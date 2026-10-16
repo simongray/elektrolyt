@@ -1,0 +1,25 @@
+{;; read only by npx shadow-cljs; clojure -M:cljs:local takes the aliases
+ ;; from the command line
+ :deps     {:aliases [:cljs :local]}
+ :dev-http {;; the app, at http://localhost:8401
+            8401 "public"
+            ;; the workbench of the views, at http://localhost:8402, with
+            ;; the app's stylesheet and Portfolio's own files
+            8402 ["dev-resources/public" "public" "classpath:public"]}
+ :builds   {:app       {:target     :browser
+                        :output-dir "public/js"
+                        :asset-path "/js"
+                        :modules    {:main {:init-fn dk.simongray.podcast-app.main/init}}}
+            ;; a scene for each state of each view, from the namespaces of
+            ;; dev/ that end in -scenes
+            :portfolio {:target     :portfolio
+                        :runner-ns  dk.simongray.podcast-app.portfolio
+                        :output-dir "dev-resources/public/js"
+                        :asset-path "/js"
+                        :html-file  {:path  "dev-resources/public/index.html"
+                                     :title "Podcast app views"}}
+            ;; clojure -M:cljs:local compile test  (the tests in Node)
+            :test      {:target    :node-test
+                        :output-to "target/node-tests.js"
+                        :ns-regexp "-test$"
+                        :autorun   true}}}

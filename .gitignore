@@ -1,0 +1,15 @@
+.DS_Store
+.cpcache/
+.nrepl-port
+.clj-kondo/.cache/
+.lsp/
+*.iml
+.idea/
+
+# ClojureScript tooling and builds
+node_modules/
+.shadow-cljs/
+target/
+public/js/
+dev-resources/public/js/
+dev-resources/public/index.html

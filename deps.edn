@@ -1,0 +1,27 @@
+{:paths ["src"]
+
+ ;; podcast-clj for the feeds and the listener's library, play-nice for the
+ ;; playing, Replicant for the rendering, Nexus for the actions that the
+ ;; views dispatch, and reitit for the routes. Both of the podcast libraries
+ ;; are ahead of their releases, so they come from Git.
+ :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
+                                   :git/sha "381f7a8ae32338cbb81cdf0b6276c39401415848"}
+         dk.simongray/play-nice   {:git/url "https://github.com/simongray/play-nice.git"
+                                   :git/sha "3e14ba6cdd8850f8ec775939a85a6535adf90c57"}
+         no.cjohansen/replicant   {:mvn/version "2026.07.1"}
+         no.cjohansen/nexus       {:mvn/version "2026.08.1"}
+         metosin/reitit-frontend  {:mvn/version "0.11.0"}}
+
+ :aliases
+ {;; clojure -M:cljs:local watch app portfolio  (see shadow-cljs.edn)
+  :cljs  {:extra-paths ["dev" "test"]
+          :extra-deps  {org.clojure/clojure    {:mvn/version "1.12.5"}
+                        thheller/shadow-cljs   {:mvn/version "3.5.7"}
+                        no.cjohansen/portfolio {:mvn/version "2026.03.1"}}
+          :main-opts   ["-m" "shadow.cljs.devtools.cli"]}
+
+  ;; podcast-clj and play-nice from the checkouts beside this one, so that
+  ;; a fix in either shows in the app at once
+  :local {:override-deps
+          {dk.simongray/podcast-clj {:local/root "../podcasting"}
+           dk.simongray/play-nice   {:local/root "../play-nice"}}}}}

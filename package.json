@@ -1,0 +1,8 @@
+{
+  "name": "podcast-app",
+  "private": true,
+  "devDependencies": {
+    "shadow-cljs": "3.5.7",
+    "snabbdom": "^3.6.4"
+  }
+}

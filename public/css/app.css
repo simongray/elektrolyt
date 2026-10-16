@@ -1,0 +1,125 @@
+/* Layout only, for now: the look comes later. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+body {
+  margin: 0;
+}
+
+
+/* The shell fills the viewport and only the main content scrolls, so that
+   the header, the player and the navigation stay in view. The dynamic
+   viewport height follows a phone's browser toolbars as they come and go.
+   From Chrome 130, the keyboard also reaches a scroller with no links in it:
+   https://developer.chrome.com/blog/keyboard-focusable-scrollers */
+.shell {
+  display: grid;
+  grid-template-areas:
+    "header"
+    "main"
+    "player"
+    "nav";
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  height: 100dvh;
+}
+
+.shell > header {
+  grid-area: header;
+  display: flex;
+  justify-content: space-between;
+}
+
+.shell > nav {
+  grid-area: nav;
+}
+
+.shell > main {
+  grid-area: main;
+  overflow-y: auto;
+}
+
+.shell > section {
+  grid-area: player;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced): 44 by 44 CSS pixels */
+.shell > header a,
+.shell > nav a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* On a phone, the navigation is a tab bar whose links share its width. The
+   list keeps role="list", since Safari drops the semantics of a list
+   without markers: https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html */
+.shell > nav ul {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shell > nav li {
+  flex: 1;
+}
+
+.shell > nav a {
+  justify-content: center;
+}
+
+/* Wider than a phone, it's a rail beside the main content: from 600 px at
+   the default font size, where Material 3's compact windows end, and where
+   Android's adaptive navigation swaps its bar for a rail.
+   https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes
+   https://developer.android.com/develop/adaptive-apps/guides/build-adaptive-navigation */
+@media (min-width: 37.5em) {
+  .shell {
+    grid-template-areas:
+      "header header"
+      "nav    main"
+      "player player";
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .shell > nav ul {
+    flex-direction: column;
+  }
+
+  .shell > nav li {
+    flex: none;
+  }
+
+  .shell > nav a {
+    justify-content: flex-start;
+  }
+}
+
+
+/* Out of sight until the keyboard reaches it, and then over the header,
+   outside the grid */
+.skip-link {
+  position: absolute;
+  z-index: 1;
+  background: Canvas;
+}
+
+.skip-link:not(:focus) {
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
