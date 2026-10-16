@@ -16,6 +16,19 @@
   (is (= "The feed couldn't be fetched. The server answered 404."
          (show/status-text :failed 0 {:message "The server answered 404."}))))
 
+(defn text-of
+  "The text of the Hiccup `x`, as one string."
+  [x]
+  (apply str (filter string? (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x))))
+
+(deftest a-show-that-is-still-on-its-way
+  (let [state #(hash-map :route {:name :route/show :path-params {:guid "g"} :query-params {}}
+                         :shows {"g" {:status %}})]
+    (is (= "Looking for the show in the Podcast Index…" (text-of (show/content (state :looking-up)))))
+    (is (= "Loading the show…" (text-of (show/content (state :loading))))
+        "rather than say there's no such show")
+    (is (re-find #"isn't in the library" (text-of (show/content (state :not-found)))))))
+
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
         section  (show/episodes "g" rows :done 20 nil)

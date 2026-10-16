@@ -1,11 +1,13 @@
 (ns dk.simongray.podcast-app.server-test
-  (:require [clojure.string :as str]
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
+            [cognitect.transit :as transit]
             [dk.simongray.podcast-app.server :as server]
             [io.pedestal.connector.test :refer [response-for]]))
 
 (def connector
-  (server/connector 8400 "public"))
+  (server/connector {:port 8400 :client-dir "public"}))
 
 (def page
   "The Accept header of a browser that opens a page."
@@ -43,6 +45,39 @@
     (is (= 400 (:status (response-for connector :get "/proxy")))))
   (testing "the proxy answers GET and HEAD alone"
     (is (= 405 (:status (response-for connector :post "/proxy"))))))
+
+(defn read-transit
+  "The value of the transit JSON `s`."
+  [s]
+  (transit/read (transit/reader (io/input-stream (.getBytes ^String s "UTF-8")) :json)))
+
+(deftest server-info-test
+  (testing "the page reads what the server offers as transit"
+    (let [{:keys [status headers body]} (response-for connector :get "/api/server")]
+      (is (= 200 status))
+      (is (= "application/transit+json" (get headers "Content-Type")))
+      (is (= {:podcastindex? false} (read-transit body)))))
+  (testing "and the server signs for the Podcast Index with its credentials"
+    (let [signing (server/connector {:port         8400
+                                     :client-dir   "public"
+                                     :podcastindex {:key "K" :secret "S"}})]
+      (is (= {:podcastindex? true}
+             (read-transit (:body (response-for signing :get "/api/server"))))))))
+
+(deftest secrets-test
+  (let [file (doto (java.io.File/createTempFile "secrets" ".edn")
+               (.deleteOnExit))]
+    (spit file (pr-str {:podcastindex {:key "the-key" :secret "the-secret"}
+                        :other        {:token "not this one"}}))
+    (let [credentials (server/podcastindex-credentials (str file))]
+      (testing "the credentials of the Podcast Index, and nothing else"
+        (is (= #{:key :secret} (set (keys credentials))))
+        (is (= "the-key" (:key credentials))))
+      (testing "with the secret hidden from what prints"
+        (is (not (str/includes? (pr-str credentials) "the-secret")))
+        (is (str/includes? (pr-str credentials) "#<secret>"))))
+    (is (nil? (server/podcastindex-credentials "no/such/file.edn")))
+    (is (nil? (server/podcastindex-credentials nil)))))
 
 (deftest refusals-test
   (testing "a name other than localhost is refused"

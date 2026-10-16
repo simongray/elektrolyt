@@ -3,12 +3,19 @@
   which the app fetches feeds, on one origin.
 
   It listens on localhost alone, since it checks no credentials and the
-  proxy fetches any public URL for whoever reaches it."
-  (:require [clojure.java.io :as io]
+  proxy fetches any public URL for whoever reaches it. With the credentials
+  of the Podcast Index in a file of secrets, the proxy signs the requests to
+  it, so that the secret stays on the server. What the server offers, the
+  page reads from /api/server, as transit."
+  (:require [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.string :as str]
+            [cognitect.transit :as transit]
+            [dk.simongray.podcast.directory.podcastindex :as podcastindex]
             [dk.simongray.podcast.util.client :as client]
             [dk.simongray.podcast.util.ring :as ring]
             [dk.simongray.wary-fetch.proxy :as proxy]
+            [dk.simongray.wary-fetch.secret :as secret]
             [io.pedestal.connector :as conn]
             [io.pedestal.http.jetty :as jetty]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
@@ -16,7 +23,8 @@
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.service.interceptors :as interceptors]
             [io.pedestal.service.resources :as resources])
-  (:import [java.util.concurrent Semaphore TimeUnit]))
+  (:import [java.io ByteArrayOutputStream]
+           [java.util.concurrent Semaphore TimeUnit]))
 
 (defn refused
   "The answer to a request that the server refuses, with `message`."
@@ -150,17 +158,57 @@
          503 "The server is busy. Try again in a few seconds."
          {"Retry-After" "5"})))))
 
+(defn podcastindex-credentials
+  "The :key and :secret of the Podcast Index under :podcastindex in the EDN
+  file `secrets`, or nil without the file or the key there. The secret is
+  hidden with wary-fetch's secret/hide, so that it prints as #<secret>."
+  [secrets]
+  (when (and secrets (.isFile (io/file secrets)))
+    (some-> (edn/read-string (slurp secrets))
+            (:podcastindex)
+            (select-keys [:key :secret])
+            (update :secret secret/hide))))
+
+(defn transit-json
+  "The value `x` written as transit in JSON."
+  [x]
+  (let [out (ByteArrayOutputStream.)]
+    (transit/write (transit/writer out :json) x)
+    (.toString out "UTF-8")))
+
+(defn server-info
+  "The handler of what the server with the Podcast Index credentials
+  `podcastindex` offers the app, as transit: whether it signs the requests
+  to the Podcast Index, as :podcastindex?."
+  [podcastindex]
+  (let [body (transit-json {:podcastindex? (some? podcastindex)})]
+    (fn [_]
+      {:status  200
+       :headers {"Content-Type" "application/transit+json"}
+       :body    body})))
+
 (defn routes
-  "The route of the proxy in Pedestal's set syntax. The proxy fetches four
-  files at once, of 32 MB at most, as podcast-clj's server does."
-  []
-  (let [proxy (at-most 4 30 (proxy/handler {:user-agent client/user-agent}))]
-    #{["/proxy" :any proxy :route-name ::proxy]}))
+  "The routes of the proxy and of /api/server in Pedestal's set syntax,
+  with the Podcast Index credentials `podcastindex`, or nil. The proxy
+  fetches four files at once, of 32 MB at most, as podcast-clj's server
+  does, and signs the requests to the Podcast Index."
+  [podcastindex]
+  (let [send  (if podcastindex
+                (podcastindex/sender podcastindex {:send client/send!})
+                client/send!)
+        proxy (at-most 4 30 (proxy/handler {:user-agent client/user-agent
+                                            :send       send}))]
+    #{["/proxy" :any proxy :route-name ::proxy]
+      ["/api/server" :get (server-info podcastindex) :route-name ::server-info]}))
 
 (defn connector
-  "A Jetty connector of the server on `port` of localhost, with the app's
-  files in `client-dir`; not yet started."
-  [port client-dir]
+  "A Jetty connector of the server with the `settings` below; not yet
+  started.
+
+  - :port, on localhost
+  - :client-dir, the folder of the app's files
+  - :podcastindex, the credentials of the Podcast Index, or nil"
+  [{:keys [port client-dir podcastindex] :as settings}]
   (let [policy {:object-src "'none'" :script-src "'self' 'unsafe-eval'"}]
     (-> (conn/default-connector-map "localhost" port)
         (conn/with-interceptors
@@ -175,7 +223,7 @@
            same-origin-writes
            (index-fallback client-dir)
            folders])
-        (conn/with-routes (routes) (client-routes client-dir))
+        (conn/with-routes (routes podcastindex) (client-routes client-dir))
         (jetty/create-connector nil))))
 
 (defonce ^{:doc "The running server's connector, or nil when stopped."}
@@ -183,15 +231,26 @@
   (atom nil))
 
 (defn start!
-  "Start the server on `port` of localhost with the app's files in
-  `client-dir`, unless it's running. By default, the port is 8400 and the
-  files are those of public/."
+  "Start the server with the `opts` below, unless it's running.
+
+  - :port, 8400 by default
+  - :client-dir, the folder of the app's files, public/ by default
+  - :secrets, an EDN file with the credentials of the Podcast Index under
+    :podcastindex, by default the file that the environment variable
+    PODCAST_APP_SECRETS names, if any"
   ([]
-   (start! 8400 "public"))
-  ([port client-dir]
+   (start! {}))
+  ([{:keys [port client-dir secrets]
+     :or   {port       8400
+            client-dir "public"
+            secrets    (System/getenv "PODCAST_APP_SECRETS")}}]
    (when-not @server
-     (reset! server (conn/start! (connector port client-dir)))
-     (println (str "The app is on http://localhost:" port "/")))
+     (let [podcastindex (podcastindex-credentials secrets)]
+       (reset! server (conn/start! (connector {:port         port
+                                               :client-dir   client-dir
+                                               :podcastindex podcastindex})))
+       (println (str "The app is on http://localhost:" port "/"
+                     (when podcastindex ", with the Podcast Index")))))
    @server))
 
 (defn stop!

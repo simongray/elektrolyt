@@ -21,11 +21,17 @@
     (catch Exception e
       (ex-message e))))
 
+(def secrets
+  "The file of secrets beside the checkouts, whose :podcastindex holds the
+  credentials of the Podcast Index, unless PODCAST_APP_SECRETS names
+  another."
+  (or (System/getenv "PODCAST_APP_SECRETS") "../secrets.edn"))
+
 (defn start!
-  "Start the server and the watch. Both are no-ops when they're already
-  running."
+  "Start the server, with the credentials in secrets, and the watch. Both
+  are no-ops when they're already running."
   []
-  ((requiring-resolve 'dk.simongray.podcast-app.server/start!))
+  ((requiring-resolve 'dk.simongray.podcast-app.server/start!) {:secrets secrets})
   (watch!))
 
 (defn stop!

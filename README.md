@@ -26,6 +26,13 @@ clojure -M:cljs:server:local:serve
   [Portfolio](https://github.com/cjohansen/portfolio), with a scene for each
   state of each view. The scenes live in the `-scenes` namespaces of `dev/`.
 
+To search the Podcast Index too, and to find a show by its guid alone, put
+the [credentials of the Podcast Index](https://api.podcastindex.org) in an
+EDN file of secrets, as `{:podcastindex {:key "…" :secret "…"}}`. The
+server signs the requests to the Podcast Index with them, so the secret
+never reaches the page. In development, the file is `../secrets.edn`,
+beside the checkouts. Otherwise, name it in `PODCAST_APP_SECRETS`.
+
 From an editor, start a REPL with the `:cljs`, `:server` and `:local`
 aliases instead and evaluate `(start!)` in the `user` namespace. After you
 reload the server's namespace, `(restart!)` starts it again with the new

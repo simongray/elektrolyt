@@ -97,8 +97,8 @@
       "Show more episodes"])])
 
 (def not-found
-  "The content of the page of a show that neither the library nor the link
-  to it says where to find."
+  "The content of the page of a show that neither the library, the link to
+  it nor the Podcast Index says where to find."
   [:p "This show isn't in the library, and the link to it doesn't say "
    "where its feed is. Find it with "
    [:a {:href (routes/href :route/search)} "Search"]
@@ -112,7 +112,11 @@
         {:keys [title author notes] :as page} (show/page state g)
         {:keys [status shown error]}          (get-in state [:shows g])]
     (if-not page
-      not-found
+      (case status
+        :looking-up          [:p {:role "status"} "Looking for the show in the Podcast Index…"]
+        (:previewing :loading) [:p {:role "status"} "Loading the show…"]
+        :failed              [:p {:role "status"} (status-text status 0 error)]
+        not-found)
       (list (artwork/img page 160 {:fetchpriority "high"})
             (when author
               [:p author])

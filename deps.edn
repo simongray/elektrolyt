@@ -12,13 +12,15 @@
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
-                                   :git/sha "0fb458a22a410ceb7d757228d72511cae60ebdcc"}
+                                   :git/sha "e21974f43731eb350cd4f50e239e9e59614a6bf4"}
          dk.simongray/play-nice   {:git/url "https://github.com/simongray/play-nice.git"
                                    :git/sha "3e14ba6cdd8850f8ec775939a85a6535adf90c57"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
-         metosin/reitit-frontend  {:mvn/version "0.11.0"}}
+         metosin/reitit-frontend  {:mvn/version "0.11.0"}
+         ;; what the app's server tells the page, as transit
+         com.cognitect/transit-cljs {:mvn/version "0.8.280"}}
 
  :aliases
  {;; clojure -M:cljs:local watch app portfolio  (see shadow-cljs.edn)
@@ -29,12 +31,14 @@
           :main-opts   ["-m" "shadow.cljs.devtools.cli"]}
 
   ;; The app's own server, for its files and the proxy, on the same Pedestal
-  ;; as podcast-clj's server. It logs to stderr through slf4j-simple.
+  ;; as podcast-clj's server. It logs to stderr through slf4j-simple, and
+  ;; tells the page what it offers as transit.
   :server {:extra-paths ["server"]
            :extra-deps  {org.clojure/clojure          {:mvn/version "1.12.5"}
                          io.pedestal/pedestal.service {:mvn/version "0.8.2-beta-11"}
                          io.pedestal/pedestal.jetty   {:mvn/version "0.8.2-beta-11"}
-                         org.slf4j/slf4j-simple       {:mvn/version "2.0.18"}}}
+                         org.slf4j/slf4j-simple       {:mvn/version "2.0.18"}
+                         com.cognitect/transit-clj    {:mvn/version "1.1.363"}}}
 
   ;; the server and the watch in one JVM, with an nREPL server (see
   ;; dev/user.clj): clojure -M:cljs:server:local:serve

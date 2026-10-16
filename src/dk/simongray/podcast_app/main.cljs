@@ -6,10 +6,12 @@
   each navigation. Nexus expands them into effects, which alone change the
   store, and each change of the store renders the page again."
   (:require [clojure.string :as str]
+            [cognitect.transit :as transit]
             [dk.simongray.podcast :as podcast]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
+            [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
@@ -95,17 +97,27 @@
       error (-> (assoc-in [:subscribe-errors url] error)
                 (assoc :announcement (str "Couldn't subscribe to " title))))))
 
+(defn index-credentials
+  "The credentials of the Podcast Index that the page gives podcast-clj in
+  the `state`: none of its own, since the app's server signs the requests,
+  or nil when the server can't."
+  [state]
+  (when (get-in state [:server :podcastindex?])
+    {}))
+
 (defn search!
   "Search for the query `q`, and keep what's found so far under the query in
   the :searches of the state, through `dispatch`: the feeds at a link, or
-  else the shows that the directories have."
-  [dispatch q]
+  else the shows that the directories have. With the `index` credentials,
+  the Podcast Index is among them."
+  [dispatch q index]
   (let [found! #(dispatch [[:store/assoc-in [:searches q] %]])]
     (found! {:status :searching :results [] :failed []})
     (-> (if (search/link? q)
-          (.then (discovery/find-feeds! q {:send app-library/send})
+          (.then (discovery/find-feeds! q {:send app-library/send :index index})
                  #(found! (search/feeds->search %)))
           (directory/search! q {:send          app-library/send
+                                :credentials   index
                                 :on-results-fn #(found! (search/shows->search %))}))
         (.catch #(found! {:status  :done
                           :results []
@@ -163,11 +175,33 @@
       (.then #(when (:error %)
                 (js/console.error "The library wasn't saved" (clj->js %))))))
 
+(declare load-show!)
+
+(defn look-up-show!
+  "Find the feed of the show `guid` in the Podcast Index, through the app's
+  server, and load the show into the `store` as load-show! does with
+  `preview?`. A show that the index doesn't know is :not-found."
+  [store guid preview?]
+  (let [not-found! (fn [_]
+                     (swap! store update-in [:shows guid] assoc :status :not-found))]
+    (swap! store update-in [:shows guid] assoc :status :looking-up)
+    (-> (directory/call! :podcastindex :lookup {:id guid}
+                         {:send app-library/send :credentials {}})
+        (.then (fn [[show]]
+                 (if-let [url (some-> show resolve/self-url)]
+                   (do (swap! store update-in [:shows guid] assoc :url url :status nil)
+                       (load-show! store guid url preview?))
+                   (not-found! nil))))
+        (.catch not-found!))))
+
 (defn load-show!
   "Load the show `guid` at `url` into the :shows of the `store`, unless the
   library keeps it: the start of its feed, and the whole feed too unless
   `preview?`. Each is fetched once, however often it's asked for, but a
-  whole feed whose fetch failed is fetched again."
+  whole feed whose fetch failed is fetched again.
+
+  Without a URL, the Podcast Index finds the feed by the guid, when the
+  app's server signs the requests to it."
   [store guid url preview?]
   (let [state    @store
         url      (or url (get-in state [:shows guid :url]))
@@ -176,6 +210,11 @@
         arrived! #(canonicalize! (swap! store show/arrived guid url %1 %2))
         failed!  #(swap! store update-in [:shows guid] assoc
                          :status :failed :error %)]
+    (when (and (nil? url)
+               (nil? status)
+               (index-credentials state)
+               (not (some-> (:library state) (show/library-key guid nil))))
+      (look-up-show! store guid preview?))
     (when (and url (not (some-> (:library state) (show/library-key guid url))))
       (when (nil? status)
         (swap! store update-in [:shows guid] assoc :url url :status :previewing)
@@ -239,8 +278,8 @@
     (rfe/push-state route-name path-params query-params)))
 
 (nxr/register-effect! :search/run
-  (fn [{:keys [dispatch]} _ q]
-    (search! dispatch q)))
+  (fn [{:keys [dispatch]} store q]
+    (search! dispatch q (index-credentials @store))))
 
 (nxr/register-effect! :library/subscribe
   (fn [_ store url title]
@@ -291,6 +330,18 @@
       (.then #(canonicalize! @store))
       (.catch #(js/console.error "The library didn't restore" %))))
 
+(defn load-server-info!
+  "Read what the app's server offers from /api/server into the :server of
+  the store, e.g. whether it signs for the Podcast Index, as a promise that
+  settles either way."
+  []
+  (-> (js/fetch "/api/server")
+      (.then #(.text %))
+      (.then (fn [text]
+               (nxr/dispatch store {} [[:store/assoc :server
+                                        (transit/read (transit/reader :json) text)]])))
+      (.catch #(js/console.error "The server didn't say what it offers" %))))
+
 (defn render!
   "Render the page for `state` into the element of the app, and give the
   window the page's title."
@@ -306,10 +357,14 @@
 
 (defn ^:export init
   "Start the app: send the actions of the views to Nexus, render the page at
-  each change of the store, follow the window's history, and restore the
-  library."
+  each change of the store, restore the library, and follow the window's
+  history once the server has said what it offers.
+
+  The first page waits for the server, since what it shows can depend on
+  it, e.g. a search asks the Podcast Index too when the server signs for
+  it, and only the Podcast Index finds a show by its guid alone."
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
   (add-watch store ::render (fn [_ _ _ state] (render! state)))
-  (start-router!)
-  (restore-library!))
+  (restore-library!)
+  (.finally (load-server-info!) start-router!))
