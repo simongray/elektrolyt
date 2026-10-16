@@ -6,6 +6,7 @@
   dk.simongray.podcast-app.episode describes it, so it shows at once when
   the start of the feed has the episode."
   (:require [dk.simongray.play-nice.media.fragment :as fragment]
+            [dk.simongray.podcast.format.transcript :as transcript]
             [dk.simongray.podcast.util.time :as time]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.routes :as routes]
@@ -98,11 +99,13 @@
          title)])]])
 
 ;; WAI, Transcribing Audio to Text: the transcript is on the page of the
-;; media itself. It's behind a disclosure, since an hour's transcript is
-;; ten thousand words, and it's read once the listener opens it.
+;; media itself, in paragraphs that name who speaks. It's behind a
+;; disclosure, since an hour's transcript is ten thousand words, and it's
+;; read once the listener opens it.
 ;; https://www.w3.org/WAI/media/av/transcripts/
 (defn transcript
-  "The transcript of the episode `page`, with the `files` read so far."
+  "The transcript of the episode `page`, with the `files` read so far, in
+  paragraphs of a speaker's turn or about a minute."
   [{:keys [id view] :as page} files]
   (let [{:keys [transcript-status]} files
         {:keys [document error]}    (:transcript files)]
@@ -119,7 +122,7 @@
 
         document
         [:div.transcript
-         (for [{:keys [start-time speaker body]} (episode/paragraphs document)]
+         (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
            [:p
             (when start-time
               (list (time-link page start-time (clock start-time)) " "))

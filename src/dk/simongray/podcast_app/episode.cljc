@@ -12,7 +12,6 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.format.chapters :as chapters]
-            [dk.simongray.podcast.format.transcript :as transcript]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.show :as show]))
 
@@ -132,22 +131,3 @@
                                       (get-in page [:view :chapters]))]
     (when (and document (not= :inferred source))
       (seq (chapters/visible document)))))
-
-;; WAI, Transcribing Audio to Text: group what's said into paragraphs, and
-;; mark who says it. A transcript without speakers comes as cues of a few
-;; words each, which read as paragraphs of about a minute.
-;; https://www.w3.org/WAI/media/av/transcripts/
-(defn paragraphs
-  "The paragraphs of the `transcript` document, as maps of their
-  :start-time, the :speaker, if it names one, and the :body: a speaker's
-  turn, or the cues of about a minute of a transcript without speakers."
-  [transcript]
-  (let [segments (:segments (transcript/turns transcript))
-        minute   #(some-> (:start-time %) (quot 60) long)]
-    (into []
-          (comp (partition-by #(if (:speaker %) [(:speaker %) (:start-time %)] (minute %)))
-                (map (fn [run]
-                       {:start-time (:start-time (first run))
-                        :speaker    (:speaker (first run))
-                        :body       (->> run (map :body) (interpose " ") (apply str))})))
-          segments)))

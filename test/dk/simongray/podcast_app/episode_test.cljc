@@ -1,5 +1,5 @@
 (ns dk.simongray.podcast-app.episode-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast-app.episode :as episode]))
@@ -89,18 +89,3 @@
         "the file's, once it's read")
     (is (nil? (episode/shown-chapters {:view {:chapters {:source :inferred :document doc}}} nil))
         "none that the show notes imply, since the notes have their times")))
-
-(deftest the-paragraphs-of-a-transcript
-  (testing "a speaker's turn"
-    (is (= [{:start-time 0.0 :speaker "Adam" :body "Hello there. How are you?"}
-            {:start-time 3.0 :speaker "Dave" :body "Fine."}]
-           (map #(select-keys % [:start-time :speaker :body])
-                (episode/paragraphs {:segments [{:start-time 0.0 :end-time 1.0 :speaker "Adam" :body "Hello there."}
-                                                {:start-time 1.0 :end-time 3.0 :speaker "Adam" :body "How are you?"}
-                                                {:start-time 3.0 :end-time 4.0 :speaker "Dave" :body "Fine."}]})))))
-  (testing "about a minute of a transcript without speakers"
-    (is (= [[0.0 "One two"] [61.0 "three"]]
-           (map (juxt :start-time :body)
-                (episode/paragraphs {:segments [{:start-time 0.0 :body "One"}
-                                                {:start-time 30.0 :body "two"}
-                                                {:start-time 61.0 :body "three"}]}))))))
