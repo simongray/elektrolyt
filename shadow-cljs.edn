@@ -1,9 +1,7 @@
 {;; read only by npx shadow-cljs; clojure -M:cljs:local takes the aliases
  ;; from the command line
  :deps     {:aliases [:cljs :local]}
- :dev-http {;; the app, at http://localhost:8401
-            8401 "public"
-            ;; the workbench of the views, at http://localhost:8402, with
+ :dev-http {;; the workbench of the views, at http://localhost:8402, with
             ;; the app's stylesheet and Portfolio's own files
             8402 ["dev-resources/public" "public" "classpath:public"]}
  :builds   {:app       {:target     :browser
