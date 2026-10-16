@@ -57,7 +57,8 @@
    :result {:chapters {:source   :file
                        :document {:chapters [{:start-time 0 :title "Intro"}
                                              {:start-time 418 :title "\"Normal People Won't Do This\" — The Robot's Podcast Suggestions"}
-                                             {:start-time 3723 :title "Value for value"}]}}}})
+                                             {:start-time 3723 :title "Value for value"
+                                              :url "https://podcasting2.org/docs/podcast-namespace/tags/value"}]}}}})
 
 (defscene from-the-start-of-the-feed
   "The episode as soon as the start of its show's feed has it, with its show
@@ -66,7 +67,8 @@
   (ui/page (episode-page from-the-start)))
 
 (defscene with-its-chapters
-  "The chapters once the chapters file is read."
+  "The chapters once the chapters file is read, whose titles link to the web
+  page of a chapter that names one."
   (ui/page (episode-page from-the-start {:episodes {(id) read-chapters}})))
 
 (defscene from-a-time

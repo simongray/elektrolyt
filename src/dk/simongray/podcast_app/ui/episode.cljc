@@ -6,28 +6,18 @@
   dk.simongray.podcast-app.episode describes it, so it shows at once when
   the start of the feed has the episode."
   (:require [dk.simongray.play-nice.media.fragment :as fragment]
+            [dk.simongray.podcast.util.time :as time]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
-            [dk.simongray.podcast-app.ui.show :as show-ui]))
-
-(defn clock-text
-  "The `seconds` into an episode as a clock shows them, e.g. \"12:34\" or
-  \"1:02:03\"."
-  [seconds]
-  (let [s   (long seconds)
-        h   (quot s 3600)
-        m   (rem (quot s 60) 60)
-        pad #(if (< % 10) (str "0" %) (str %))]
-    (if (pos? h)
-      (str h ":" (pad m) ":" (pad (rem s 60)))
-      (str m ":" (pad (rem s 60))))))
+            [dk.simongray.podcast-app.ui.show :as show-ui]
+            [dk.simongray.wary-fetch.url :as url]))
 
 (defn clock
-  "The `seconds` into an episode as a time element, whose datetime is the
-  duration since its start."
+  "The `seconds` into an episode as a time element, e.g. 12:34, whose
+  datetime is the duration since its start."
   [seconds]
-  [:time {:datetime (str "PT" (long seconds) "S")} (clock-text seconds)])
+  [:time {:datetime (str "PT" (long seconds) "S")} (time/format-clock seconds)])
 
 ;; MDN: a link is for a real URL. Each time links to the page at ?t=, which
 ;; can be copied or opened in a tab of its own, and a click on it plays the
@@ -68,7 +58,7 @@
   (if (and (= (:id page) (:id player)) (:playing? player))
     [:button {:type "button" :on {:click [[:player/pause]]}} "Pause"]
     [:button {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
-     (if t (list "Play from " (clock-text t)) "Play")]))
+     (if t (list "Play from " (time/format-clock t)) "Play")]))
 
 (defn intro
   "The show, the date, the duration and the artwork of the episode `page`,
@@ -90,16 +80,22 @@
          (show-ui/duration-text duration)])])
    (play-button page player t)])
 
+;; A chapters file is the publisher's, so a chapter's link is only one when
+;; it goes to the web, never e.g. a javascript: URL
 (defn chapters
-  "The `chapters` of the episode `page` as a list of their times and titles."
+  "The `chapters` of the episode `page` as a list of their times and titles,
+  which link to the web page of a chapter that has one."
   [page chapters]
   [:section {:aria-labelledby "chapters"}
    [:h2#chapters "Chapters"]
    [:ol.chapters {:role "list"}
-    (for [{:keys [start-time title]} chapters]
+    (for [{:keys [start-time title url]} chapters]
       [:li {:replicant/key start-time}
        (time-link page start-time (clock start-time))
-       " " title])]])
+       " "
+       (if (url/web-url? url)
+         [:a {:href url} (or title url)]
+         title)])]])
 
 ;; WAI, Transcribing Audio to Text: the transcript is on the page of the
 ;; media itself. It's behind a disclosure, since an hour's transcript is

@@ -21,10 +21,23 @@
        (merge more))))
 
 (deftest the-times-of-an-episode
-  (is (= "12:34" (episode-ui/clock-text 754)))
-  (is (= "1:02:03" (episode-ui/clock-text 3723)))
-  (is (= "0:05" (episode-ui/clock-text 5.7)) "to the second below")
-  (is (= [:time {:datetime "PT754S"} "12:34"] (episode-ui/clock 754))))
+  (is (= [:time {:datetime "PT754S"} "12:34"] (episode-ui/clock 754)))
+  (is (= [:time {:datetime "PT3723S"} "1:02:03"] (episode-ui/clock 3723)))
+  (is (= [:time {:datetime "PT5S"} "0:05"] (episode-ui/clock 5.7)) "to the second below"))
+
+(deftest the-chapters-and-their-links
+  (let [page  (episode-ui/route-page (episode-page nil))
+        items (->> (episode-ui/chapters page [{:start-time 0 :title "Intro" :url "https://example.org/intro"}
+                                              {:start-time 60 :title "Sneaky" :url "javascript:alert(1)"}
+                                              {:start-time 90 :url "https://example.org/untitled"}
+                                              {:start-time 120 :title "Plain"}])
+                   (elements :li))]
+    (is (= [[:a {:href "https://example.org/intro"} "Intro"]
+            "Sneaky"
+            [:a {:href "https://example.org/untitled"} "https://example.org/untitled"]
+            "Plain"]
+           (map last items))
+        "a link to the web alone, and the URL of a chapter without a title")))
 
 (deftest a-time-links-to-the-page-and-plays
   (let [page (episode-ui/route-page (episode-page nil))
