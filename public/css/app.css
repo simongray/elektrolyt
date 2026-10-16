@@ -108,7 +108,18 @@ body {
 }
 
 
-/* Out of sight until the keyboard reaches it, and then over the header,
+/* Out of sight, but read by a screen reader */
+.visually-hidden,
+.skip-link:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The skip link shows when the keyboard reaches it, over the header and
    outside the grid */
 .skip-link {
   position: absolute;
@@ -116,10 +127,53 @@ body {
   background: Canvas;
 }
 
-.skip-link:not(:focus) {
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+
+/* The search field takes the room that the button leaves, at any width */
+search form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+search label {
+  flex-basis: 100%;
+}
+
+search input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A result has its artwork beside its title, author and button, whether or
+   not it has artwork. The list keeps role="list", as the navigation's does. */
+.search-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-results article {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.search-results img {
+  grid-row: span 5;
+  object-fit: cover;
+}
+
+.search-results article > :not(img) {
+  grid-column: 2;
+}
+
+.search-results button {
+  justify-self: start;
+}
+
+/* A feed's URL has no spaces to wrap at, so it wraps anywhere rather than
+   widen the page on a phone (WCAG 2.2, SC 1.4.10 Reflow) */
+.search-results p {
+  overflow-wrap: anywhere;
 }

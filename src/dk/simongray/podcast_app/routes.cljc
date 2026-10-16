@@ -20,16 +20,23 @@
        (reitit/match->path))))
 
 (defn match->route
-  "The route of the reitit `match` as it's kept in the state: its :name and
-  :path-params, or nil for a path of no route."
-  [{:keys [data path-params] :as match}]
+  "The route of the reitit `match` as it's kept in the state: its :name,
+  :path-params and :query-params, or nil for a path of no route."
+  [{:keys [data path-params query-params] :as match}]
   (when match
-    {:name        (:name data)
-     :path-params path-params}))
+    {:name         (:name data)
+     :path-params  path-params
+     :query-params (or query-params {})}))
+
+(defn same-page?
+  "Whether the routes `a` and `b` are the same page, perhaps with other
+  query parameters, e.g. the Search page of another query."
+  [a b]
+  (= (dissoc a :query-params) (dissoc b :query-params)))
 
 (comment
   (href :route/library)
   ;; => "/library"
   (match->route (reitit/match-by-path router "/inbox"))
-  ;; => {:name :route/inbox, :path-params {}}
+  ;; => {:name :route/inbox, :path-params {}, :query-params {}}
   #_.)

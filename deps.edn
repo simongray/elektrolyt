@@ -5,7 +5,7 @@
  ;; views dispatch, and reitit for the routes. Both of the podcast libraries
  ;; are ahead of their releases, so they come from Git.
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
-                                   :git/sha "381f7a8ae32338cbb81cdf0b6276c39401415848"}
+                                   :git/sha "0fb458a22a410ceb7d757228d72511cae60ebdcc"}
          dk.simongray/play-nice   {:git/url "https://github.com/simongray/play-nice.git"
                                    :git/sha "3e14ba6cdd8850f8ec775939a85a6535adf90c57"}
          no.cjohansen/replicant   {:mvn/version "2026.07.1"}

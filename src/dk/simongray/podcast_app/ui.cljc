@@ -3,9 +3,13 @@
 
   An event handler is a vector of actions, i.e. data, which Replicant
   passes to the dispatch function that dk.simongray.podcast-app.main sets.
-  The state holds the current page as :route, a map of its :name and
-  :path-params, which is nil for a path that no page has."
-  (:require [dk.simongray.podcast-app.routes :as routes]))
+  The state holds the current page as :route, a map of its :name,
+  :path-params and :query-params, which is nil for a path that no page
+  has. It holds the listener's library from podcast-clj as :library, once
+  it's restored, and the last thing to tell a screen reader as
+  :announcement."
+  (:require [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.ui.search :as search]))
 
 (def app-name
   "The name of the app, as the header and the window's title show it."
@@ -93,13 +97,24 @@
    [:a {:href (routes/href :route/queue)} "queue"]
    " instead."])
 
+;; WCAG 2.2, SC 4.1.3 Status Messages: what happened out of sight, e.g. a
+;; subscription that finished, which every page announces in the same place
+(defn announcer
+  "The status line that a screen reader reads the `announcement` from,
+  which only it shows."
+  [announcement]
+  [:p.visually-hidden {:role "status"} announcement])
+
 (defn main-content
   "The main content of the page of the `state`."
   [state]
   [:main#main
    (page-heading state)
-   (when-not (:route state)
-     not-found)])
+   (case (get-in state [:route :name])
+     nil           not-found
+     :route/search (search/content state)
+     nil)
+   (announcer (:announcement state))])
 
 ;; WAI-ARIA APG, landmark regions: a section with a label is a region, the
 ;; landmark for content that none of the others describes

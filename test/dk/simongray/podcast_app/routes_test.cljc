@@ -5,7 +5,7 @@
 
 (deftest every-route-matches-its-own-href
   (doseq [route-name (reitit/route-names routes/router)]
-    (is (= {:name route-name :path-params {}}
+    (is (= {:name route-name :path-params {} :query-params {}}
            (->> (routes/href route-name)
                 (reitit/match-by-path routes/router)
                 (routes/match->route))))))
@@ -13,3 +13,8 @@
 (deftest unknown-path-has-no-route
   (is (nil? (routes/match->route
              (reitit/match-by-path routes/router "/nowhere")))))
+
+(deftest a-page-with-another-query-is-the-same-page
+  (let [search {:name :route/search :path-params {} :query-params {:q "a"}}]
+    (is (routes/same-page? search (assoc search :query-params {:q "b"})))
+    (is (not (routes/same-page? search (assoc search :name :route/inbox))))))
