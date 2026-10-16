@@ -7,6 +7,43 @@ A podcast app for the browser, built on
 [Replicant](https://replicant.fun).
 
 
+Principles
+----------
+
+- **Semantic HTML.** Each kind of content has the element made for it, and
+  each page has landmarks that describe its parts.
+- **Accessible from the start.** Every view works with a keyboard and a
+  screen reader, and so do the scripts behind it.
+- **Responsive.** Every view works on a phone and on a desktop, down to a
+  width of 320 CSS pixels.
+- **Layout first.** The CSS solves the layout and nothing more. The look of
+  the app comes later.
+- **A thick client and a thin server.** The browser keeps as much as is
+  practical, and the server does only what a browser can't. The app is for
+  one listener on a server of their own, but nothing should stand in the
+  way of several.
+- **Ready to sync.** The listener's data is kept so that other web and
+  mobile apps can sync with it later.
+- **Replicant as it's meant to be used.** The views are pure functions of
+  the state, and their event handlers are data. The pages render in the
+  browser alone, with no rendering on the server.
+
+
+How to work on the app
+----------------------
+
+- **Shape each part before you build it.** The UI grows one part at a time,
+  and each part is discussed until its design is settled.
+- **Research first, and cite it.** Base a new feature or UI pattern on
+  research into how it's done well, and cite the sources in a comment where
+  the code makes the decision.
+- **Fix the libraries at the source.** When podcast-clj, play-nice or
+  another of my libraries is buggy or confusing, fix it there rather than
+  work around it in the app.
+- **Point out what's generic.** Code that would be useful beyond the app is
+  a candidate for a library of its own.
+
+
 Development
 -----------
 
