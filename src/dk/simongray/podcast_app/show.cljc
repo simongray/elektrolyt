@@ -5,8 +5,9 @@
 
   The state keeps each show that isn't in the library under its guid in
   :shows, as a map of the :url of its feed, the :page that the views
-  render, the :status of its load and the :feed once it's whole, which a
-  subscription takes without a fetch of its own. The status is :previewed
+  render, the :status of its load, the :head of the feed, i.e. its start,
+  and the :feed once it's whole, which a subscription takes without a
+  fetch of its own. The status is :previewed
   once the start of the feed is in, :loading while the whole feed is
   fetched, :done once it's in, and :failed with the :error of the fetch."
   (:require [dk.simongray.podcast.app.library :as library]
@@ -22,8 +23,10 @@
 
 (def view-opts
   "The options of app.show/view for the page, which leaves out what it
-  doesn't show."
-  {:except #{:seasons :links :text}})
+  doesn't show, and puts the headings of the notes beside the page's own
+  h2s."
+  {:except        #{:seasons :links :text}
+   :heading-level 2})
 
 (defn episode-row
   "The episode `item` as a row of the list of episodes."
@@ -151,4 +154,5 @@
                                          whole?                          :done
                                          (= :loading (:status shown))   :loading
                                          :else                           :previewed))
-                  whole? (assoc :feed feed))))))
+                  whole?       (-> (assoc :feed feed) (dissoc :head))
+                  (not whole?) (assoc :head feed))))))

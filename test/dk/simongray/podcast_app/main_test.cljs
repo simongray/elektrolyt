@@ -51,6 +51,15 @@
             [:show/load "g" "https://example.org/feed.xml" false]]
            (main/navigated {:route inbox} route)))))
 
+(deftest the-page-of-an-episode-loads-its-show
+  (let [route {:name         :route/episode
+               :path-params  {:guid "g" :hash "8a98e2c"}
+               :query-params {:url "https://example.org/feed.xml"}}]
+    (is (= [[:store/assoc :route route]
+            [:page/focus-heading]
+            [:show/load "g" "https://example.org/feed.xml" false]]
+           (main/navigated {:route inbox} route)))))
+
 (deftest more-episodes
   (is (= [[:store/assoc-in [:shows "g" :shown] 40]
           [:store/assoc :announcement "Showing 40 of 45 episodes"]]

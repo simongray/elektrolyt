@@ -10,6 +10,7 @@
   :announcement."
   (:require [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.show :as show]
+            [dk.simongray.podcast-app.ui.episode :as episode-ui]
             [dk.simongray.podcast-app.ui.search :as search]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
@@ -30,12 +31,13 @@
   [:route/queue :route/inbox :route/library :route/search])
 
 (defn page-title
-  "The title of the page of the `state`: a show's own on its page."
+  "The title of the page of the `state`: a show's own on its page, and an
+  episode's on its."
   [state]
-  (let [route-name (get-in state [:route :name])]
-    (if (= :route/show route-name)
-      (or (:title (show/page state (show-ui/guid state))) "Show")
-      (get titles route-name "Page not found"))))
+  (case (get-in state [:route :name])
+    :route/show    (or (:title (show/page state (show-ui/guid state))) "Show")
+    :route/episode (or (:title (episode-ui/route-page state)) "Episode")
+    (get titles (get-in state [:route :name]) "Page not found")))
 
 ;; WCAG 2.2, SC 2.4.2 Page Titled: the page before the app, as in example 1
 ;; of technique G88, which lists "the most important identifying information
@@ -117,18 +119,33 @@
    (page-heading state)
    (case (get-in state [:route :name])
      nil           not-found
-     :route/search (search/content state)
-     :route/show   (show-ui/content state)
+     :route/search  (search/content state)
+     :route/show    (show-ui/content state)
+     :route/episode (episode-ui/content state)
      nil)
    (announcer (:announcement state))])
 
 ;; WAI-ARIA APG, landmark regions: a section with a label is a region, the
 ;; landmark for content that none of the others describes
+;;
+;; TODO: controls of the app's own with play-nice, in place of the
+;; browser's, which keep the progress of the episode in the library
 (defn player
-  "The player of the episode that plays, which stays as the pages change."
+  "The player of the episode that plays, which stays as the pages change:
+  the browser's own controls of the audio, for now. The :player of the
+  `state` is the :id, :src, :title and :show of the episode, and whether
+  it's :playing?."
   [state]
-  [:section {:aria-label "Player"}
-   [:p "Nothing is playing."]])
+  (let [{:keys [src title show]} (:player state)]
+    [:section#player {:aria-label "Player"}
+     (if src
+       (list [:p title (when show (list " – " show))]
+             [:audio {:controls   true
+                      :src        src
+                      :aria-label title
+                      :on         {:play  [[:store/assoc-in [:player :playing?] true]]
+                                   :pause [[:store/assoc-in [:player :playing?] false]]}}])
+       [:p "Nothing is playing."])]))
 
 (defn page
   "The whole page for the `state` of the app.

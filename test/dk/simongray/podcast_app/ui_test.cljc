@@ -29,5 +29,5 @@
          (ui/document-title {:route nil}))))
 
 (deftest the-landmarks-keep-their-order
-  (is (= [:a.skip-link :header :nav :main#main :section]
+  (is (= [:a.skip-link :header :nav :main#main :section#player]
          (map first (rest (ui/page {:route {:name :route/queue}}))))))

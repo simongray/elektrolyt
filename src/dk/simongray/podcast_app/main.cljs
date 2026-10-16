@@ -8,6 +8,7 @@
   (:require [clojure.string :as str]
             [cognitect.transit :as transit]
             [dk.simongray.podcast :as podcast]
+            [dk.simongray.podcast.app.episode :as episode]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
@@ -17,6 +18,7 @@
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui :as ui]
+            [dk.simongray.podcast-app.ui.episode :as episode-ui]
             [nexus.registry :as nxr]
             [reitit.frontend.easy :as rfe]
             [reitit.frontend.history :as rfh]
@@ -30,7 +32,7 @@
   "The actions of the navigation to the `route` from the `state`: keep the
   route, move the focus to the heading of a page that replaces another,
   search for the query of a Search page that has no search for it yet, and
-  load the show of a Show page.
+  load the show of a Show page or an Episode page.
 
   The page that loads first keeps the focus at the start of the document,
   and so does a page that only changes its query."
@@ -46,7 +48,7 @@
            (not (get-in state [:searches q])))
       (conj [:search/run q])
 
-      (= :route/show (:name route))
+      (#{:route/show :route/episode} (:name route))
       (conj [:show/load (get-in route [:path-params :guid]) url false]))))
 
 (defn more-shown
@@ -125,28 +127,35 @@
                           :error   (ex-message %)})))))
 
 (defn canonical-path
-  "The path that the Show page of the `state` should have, or nil before
-  the show's title is known: with the slug of its title, and for a show
-  that the library keeps, its key there and no URL of its feed, since the
-  library knows the URL."
-  [{{:keys [path-params query-params]} :route :as state}]
+  "The path that the Show page or the Episode page of the `state` should
+  have, or nil before the title is known: with the slug of the title, and
+  for a show that the library keeps, its key there and no URL of its feed,
+  since the library knows the URL."
+  [{{:keys [name path-params query-params]} :route :as state}]
   (let [guid (:guid path-params)
         url  (:url query-params)]
-    (when-let [title (:title (show/page state guid))]
-      (if-let [k (some-> (:library state) (show/library-key guid url))]
-        (routes/show-href k title)
-        (routes/show-href guid title url)))))
+    (case name
+      :route/show
+      (when-let [title (:title (show/page state guid))]
+        (if-let [k (some-> (:library state) (show/library-key guid url))]
+          (routes/show-href k title)
+          (routes/show-href guid title url)))
+
+      :route/episode
+      (when-let [{:keys [guid item-guid title url]} (episode-ui/route-page state)]
+        (routes/episode-href guid item-guid title url (episode-ui/start-time state)))
+
+      nil)))
 
 (defn canonicalize!
-  "Write the canonical-path of the Show page of the `state` into the
-  address bar, in place of the URL as the link gave it, e.g. without a slug.
-  It replaces the URL in the history, which adds no entry, and leaves the
+  "Write the canonical-path of the page of the `state` into the address
+  bar, in place of the URL as the link gave it, e.g. without a slug. It
+  replaces the URL in the history, which adds no entry, and leaves the
   route of the state as it was, so that the focus doesn't move."
-  [{{:keys [name]} :route :as state}]
-  (when (= :route/show name)
-    (when-let [path (canonical-path state)]
-      (when (not= path (str js/location.pathname js/location.search))
-        (.replaceState js/history nil "" path)))))
+  [state]
+  (when-let [path (canonical-path state)]
+    (when (not= path (str js/location.pathname js/location.search))
+      (.replaceState js/history nil "" path))))
 
 (defn whole-feed
   "The whole feed at `url` that the Show page loaded into the `state`, or
@@ -245,6 +254,50 @@
   (some-> @prefetch-timeout js/clearTimeout)
   (reset! prefetch-timeout (js/setTimeout #(load-show! store guid url true) 65)))
 
+(defn read-files!
+  "Read the files of the episode `id`, as its `view` names them, into the
+  :episodes of the `store`, once: its chapters file and its media file, for
+  the chapters and the duration. The transcript waits for the listener."
+  [store id view]
+  (when-not (get-in @store [:episodes id :status])
+    (swap! store assoc-in [:episodes id :status] :reading)
+    (-> (episode/read-files! view {:send app-library/send :except #{:transcript}})
+        (.then #(swap! store update-in [:episodes id] assoc :status :read :result %))
+        (.catch #(swap! store update-in [:episodes id] assoc :status :read
+                        :error {:message (ex-message %)})))))
+
+(defn read-transcript!
+  "Read the transcript of the episode `id`, as its `view` names it, into
+  the :episodes of the `store`, once."
+  [store id view]
+  (when-not (get-in @store [:episodes id :transcript-status])
+    (swap! store assoc-in [:episodes id :transcript-status] :reading)
+    (-> (episode/read-files! view {:send app-library/send :except #{:chapters :media}})
+        (.then #(swap! store update-in [:episodes id] assoc
+                       :transcript-status :read :transcript (:transcript %)))
+        (.catch #(swap! store update-in [:episodes id] assoc
+                        :transcript-status :read
+                        :transcript {:error {:message (ex-message %)}})))))
+
+(defn audio
+  "The audio element of the player, or nil when nothing is playing."
+  []
+  (js/document.querySelector "#player audio"))
+
+(defn play!
+  "Play the `playable` episode of an Episode page in the player of the
+  `store`, from `t` seconds when it's given, or else from where the player
+  is in it, or its start."
+  [store {:keys [id] :as playable} t]
+  (when-not (= id (get-in @store [:player :id]))
+    (swap! store assoc :player playable))
+  ;; the render of the swap is done, so the element has the episode's file
+  (when-let [element (audio)]
+    (when t
+      (set! (.-currentTime element) t))
+    (-> (.play element)
+        (.catch #(js/console.warn "The episode didn't play" %)))))
+
 (nxr/register-system->state! deref)
 
 (nxr/register-placeholder! :form/field
@@ -298,6 +351,25 @@
   (fn [_ _]
     (some-> @prefetch-timeout js/clearTimeout)
     (reset! prefetch-timeout nil)))
+
+;; dispatched as the page of the episode mounts, so it changes the store
+;; once the render is done
+(nxr/register-effect! :episode/read-files
+  (fn [_ store id view]
+    (js/queueMicrotask #(read-files! store id view))))
+
+(nxr/register-effect! :episode/read-transcript
+  (fn [{:keys [dispatch-data]} store id view]
+    (when (some-> (:replicant/dom-event dispatch-data) .-target .-open)
+      (read-transcript! store id view))))
+
+(nxr/register-effect! :player/play
+  (fn [_ store playable t]
+    (play! store playable t)))
+
+(nxr/register-effect! :player/pause
+  (fn [_ _]
+    (some-> (audio) .pause)))
 
 (defn routed-click?
   "Whether the `router` takes over the `click` on the `anchor` to `uri`: when
@@ -356,15 +428,17 @@
   (start-router!))
 
 (defn ^:export init
-  "Start the app: send the actions of the views to Nexus, render the page at
-  each change of the store, restore the library, and follow the window's
-  history once the server has said what it offers.
+  "Start the app: send the actions of the views to Nexus, restore the
+  library, and once the server has said what it offers, render the page at
+  each change of the store and follow the window's history.
 
-  The first page waits for the server, since what it shows can depend on
-  it, e.g. a search asks the Podcast Index too when the server signs for
-  it, and only the Podcast Index finds a show by its guid alone."
+  The first page waits for both, since what it shows can depend on them,
+  e.g. a search asks the Podcast Index too when the server signs for it,
+  only the Podcast Index finds a show by its guid alone, and a show that
+  the library keeps needs neither the index nor a fetch."
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
-  (add-watch store ::render (fn [_ _ _ state] (render! state)))
-  (restore-library!)
-  (.finally (load-server-info!) start-router!))
+  (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
+      (.finally (fn []
+                  (add-watch store ::render (fn [_ _ _ state] (render! state)))
+                  (start-router!)))))

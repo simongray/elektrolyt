@@ -188,3 +188,50 @@ search input {
   padding: 0;
   list-style: none;
 }
+
+
+/* An episode's show, date and Play button beside its artwork, which is
+   smaller on a phone */
+.episode-intro {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.episode-intro img {
+  grid-row: span 3;
+  width: 96px;
+  object-fit: cover;
+}
+
+.episode-intro > :not(img) {
+  grid-column: 2;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+.episode-intro button {
+  justify-self: start;
+  min-height: 44px;
+}
+
+@media (min-width: 37.5em) {
+  .episode-intro {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+
+  .episode-intro img {
+    width: 160px;
+  }
+}
+
+/* The chapters keep role="list", as the navigation's do */
+.chapters {
+  padding: 0;
+  list-style: none;
+}
+
+.chapters,
+.transcript {
+  overflow-wrap: anywhere;
+}

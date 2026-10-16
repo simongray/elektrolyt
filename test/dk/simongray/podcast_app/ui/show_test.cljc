@@ -31,12 +31,15 @@
 
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
-        section  (show/episodes "g" rows :done 20 nil)
+        href     #(str "/episodes/" (:guid %))
+        section  (show/episodes "g" href rows :done 20 nil)
         [_ & xs] section
         items    (some #(when (and (vector? %) (= :ol.episodes (first %))) (last %)) xs)
         button   (some #(when (and (vector? %) (= :button (first %))) %) xs)]
     (is (= 20 (count items)))
+    (is (= [:a {:href "/episodes/0"} "Episode 0"] (get-in (vec (first items)) [2 1 1]))
+        "each title links to the page of its episode")
     (is (= [[:show/more "g" 45]] (get-in button [1 :on :click])))
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
-                    (show/episodes "g" rows :done 45 nil)))
+                    (show/episodes "g" href rows :done 45 nil)))
         "no button once they're all listed")))

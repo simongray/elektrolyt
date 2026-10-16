@@ -37,8 +37,23 @@
   (is (= (str "/shows/" pc20 "/podcasting-2-0") (routes/show-href pc20 "Podcasting 2.0")))
   (is (= (str "/shows/" pc20) (routes/show-href pc20 "日本語")))
   (is (= {:name :route/show :path-params {:guid pc20} :query-params {}}
-         (route-of (str "/shows/" pc20 "/podcasting-2-0"))
-         (route-of (str "/shows/" pc20 "/another-slug"))
+         (dissoc (route-of (str "/shows/" pc20 "/podcasting-2-0")) :slug)
+         (dissoc (route-of (str "/shows/" pc20 "/another-slug")) :slug)
          (route-of (str "/shows/" pc20)))
       "the guid finds the show with any slug or none")
   (is (routes/same-page? (route-of (str "/shows/" pc20 "/a")) (route-of (str "/shows/" pc20)))))
+
+(deftest the-page-of-an-episode
+  (let [item "https://example.org/?p=7"
+        h    "84b5b7c"]
+    (is (= (str "/shows/" pc20 "/episodes/" h "/episode-7") (routes/episode-href pc20 item "Episode 7" nil))
+        "the short hash of a guid that couldn't go in a path")
+    (is (= (str "/shows/" pc20 "/episodes/" h "?url=https%3A%2F%2Fexample.org%2Ffeed.xml&t=754")
+           (routes/episode-href pc20 item "日本語" "https://example.org/feed.xml" 754.5))
+        "with the feed of a show that the library doesn't keep, and a time")
+    (is (= {:name :route/episode :path-params {:guid pc20 :hash h} :query-params {} :slug "episode-7"}
+           (route-of (str "/shows/" pc20 "/episodes/" h "/episode-7")))
+        "the slug apart from the path, to tell two episodes of a hash apart")
+    (is (routes/same-page? (route-of (str "/shows/" pc20 "/episodes/" h "/a"))
+                           (route-of (str "/shows/" pc20 "/episodes/" h))))
+    (is (= :route/show (:name (route-of (str "/shows/" pc20 "/episodes")))) "a show's slug can be anything")))

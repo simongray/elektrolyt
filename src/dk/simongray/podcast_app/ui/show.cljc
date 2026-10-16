@@ -54,10 +54,11 @@
 ;; between them is decoration, which a screen reader skips.
 (defn episode
   "An episode in the list of episodes, the `row` of its :title, its date of
-  :published and its :duration in seconds."
-  [{:keys [title published duration] :as row}]
+  :published and its :duration in seconds, whose title links to the
+  `href` of its page."
+  [href {:keys [title published duration] :as row}]
   [:article
-   [:h3 title]
+   [:h3 [:a {:href href} title]]
    (when (or published duration)
      [:p
       (when published
@@ -82,15 +83,16 @@
 ;; infinite scrolling, issue 1196 of gitlab-ui, and Deque on role=feed)
 (defn episodes
   "The episodes of the show `guid`, the `rows`, at the `status` of its load
-  with the `error` of a fetch that failed, as many of them as `shown`."
-  [guid rows status shown error]
+  with the `error` of a fetch that failed, as many of them as `shown`. The
+  link to each goes to what `href-fn` gives for its row."
+  [guid href-fn rows status shown error]
   [:section {:aria-labelledby "episodes"}
    [:h2#episodes "Episodes"]
    [:p {:role "status"} (status-text status (count rows) error)]
    (when (seq rows)
      [:ol.episodes {:role "list"}
       (for [row (take shown rows)]
-        [:li {:replicant/key (:guid row)} (episode row)])])
+        [:li {:replicant/key (:guid row)} (episode (href-fn row) row)])])
    (when (< shown (count rows))
      [:button {:type "button"
                :on   {:click [[:show/more guid (count rows)]]}}
@@ -109,6 +111,7 @@
   [state]
   (let [g                                     (guid state)
         url                                   (show/feed-url state g)
+        k                                     (some-> (:library state) (show/library-key g url))
         {:keys [title author notes] :as page} (show/page state g)
         {:keys [status shown error]}          (get-in state [:shows g])]
     (if-not page
@@ -130,4 +133,6 @@
                     (subscription/error state url)))
             (when notes
               [:div.show-notes notes])
-            (episodes g (:episodes page) status (or shown show/page-size) error)))))
+            (episodes g
+                      #(routes/episode-href (or k g) (:guid %) (:title %) (when-not k url))
+                      (:episodes page) status (or shown show/page-size) error)))))
