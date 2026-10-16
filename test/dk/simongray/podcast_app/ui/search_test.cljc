@@ -29,19 +29,22 @@
        (map #(apply str (filter string? (rest %))))))
 
 (deftest feeds-that-share-a-title
-  (let [found [{:url "https://freakshow.fm/feed/mp3" :title "Freak Show"}
-               {:url "https://freakshow.fm/feed/opus" :title "Freak Show"}
-               {:url "https://example.org/other.xml" :title "Other"}]
+  (let [found [{:url "https://freakshow.fm/feed/mp3" :guid "a" :title "Freak Show"}
+               {:url "https://freakshow.fm/feed/opus" :guid "b" :title "Freak Show"}
+               {:url "https://example.org/other.xml" :guid "c" :title "Other"}]
         items (last (search/results {} {:status :done :results found}))]
     (is (= ["https://freakshow.fm/feed/mp3"] (paragraphs (first items))))
     (is (empty? (paragraphs (last items))) "a title of its own needs no URL")))
 
-(deftest a-subscription-button
-  (let [[_ attrs label] (search/subscribe-button :ready "https://example.org/feed.xml" "A Show")]
-    (is (= "Subscribe" label))
-    (is (nil? (:aria-disabled attrs)))
-    (is (= [[:library/subscribe "https://example.org/feed.xml" "A Show"]] (get-in attrs [:on :click]))))
-  (let [[_ attrs label] (search/subscribe-button :subscribing "https://example.org/feed.xml" "A Show")]
-    (is (= "Subscribing…" label))
-    (is (= "true" (:aria-disabled attrs)))
-    (is (nil? (:on attrs)) "nothing happens until it's done")))
+(deftest a-link-to-the-page-of-a-show
+  (let [[_ {:keys [href on]} title] (search/show-link {:url   "https://feeds.podcastindex.org/pc20.xml"
+                                                       :guid  "917393e3-1b1e-5cef-ace4-edaa54e1f810"
+                                                       :title "Podcasting 2.0"})]
+    (is (= "Podcasting 2.0" title))
+    (is (= (str "/shows/917393e3-1b1e-5cef-ace4-edaa54e1f810/podcasting-2-0"
+                "?url=https%3A%2F%2Ffeeds.podcastindex.org%2Fpc20.xml")
+           href)
+        "with the slug of the title, and the feed for a show that the library doesn't keep")
+    (is (= [[:show/load "917393e3-1b1e-5cef-ace4-edaa54e1f810" "https://feeds.podcastindex.org/pc20.xml" true]]
+           (:pointerdown on))
+        "a press fetches the start of the feed at once, before the click")))

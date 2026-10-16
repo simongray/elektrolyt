@@ -173,7 +173,18 @@ search input {
 }
 
 /* A feed's URL has no spaces to wrap at, so it wraps anywhere rather than
-   widen the page on a phone (WCAG 2.2, SC 1.4.10 Reflow) */
-.search-results p {
+   widen the page on a phone (WCAG 2.2, SC 1.4.10 Reflow), and so do the
+   links in a show's notes */
+.search-results p,
+.show-notes {
   overflow-wrap: anywhere;
+}
+
+
+/* The episodes of a show, whose list keeps role="list", as the
+   navigation's does */
+.episodes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }

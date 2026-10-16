@@ -4,11 +4,19 @@
  ;; playing, Replicant for the rendering, Nexus for the actions that the
  ;; views dispatch, and reitit for the routes. Both of the podcast libraries
  ;; are ahead of their releases, so they come from Git.
+ ;;
+ ;; Replicant comes from the commit of its PR #83 too, which fixes issue #81:
+ ;; a keyed child that moves to the front and changes keeps its old vdom, so
+ ;; that a later render removes the wrong node, as the search results that
+ ;; arrive in stages do. Switch back to the release on Clojars once #83 is
+ ;; merged and released.
+ ;; https://github.com/cjohansen/replicant/pull/83
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
                                    :git/sha "0fb458a22a410ceb7d757228d72511cae60ebdcc"}
          dk.simongray/play-nice   {:git/url "https://github.com/simongray/play-nice.git"
                                    :git/sha "3e14ba6cdd8850f8ec775939a85a6535adf90c57"}
-         no.cjohansen/replicant   {:mvn/version "2026.07.1"}
+         no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
+                                   :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
          metosin/reitit-frontend  {:mvn/version "0.11.0"}}
 

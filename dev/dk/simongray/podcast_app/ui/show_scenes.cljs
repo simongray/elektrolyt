@@ -1,0 +1,74 @@
+(ns dk.simongray.podcast-app.ui.show-scenes
+  "Scenes of the Show page as its feed arrives in stages, from what a search
+  knew to the whole feed, and of the ways it can fail."
+  (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.ui :as ui]
+            [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
+            [portfolio.replicant :refer [defscene]]))
+
+(def guid "917393e3-1b1e-5cef-ace4-edaa54e1f810")
+
+(def url "https://feeds.podcastindex.org/pc20.xml")
+
+(def known
+  "What the search knew of the show."
+  {:title         "Podcasting 2.0"
+   :author        "Podcast Index LLC"
+   :artwork       search-scenes/artwork
+   :artwork-sizes []})
+
+(defn rows
+  "The rows of `n` episodes, newest first, every one of them a week apart."
+  [n]
+  (vec (for [i (range n)]
+         {:guid      (str "ep" (- n i))
+          :title     (str "Episode " (- n i) ": A Title of an Episode")
+          :published (js/Date. (- 1792000000000 (* i 7 24 3600 1000)))
+          :duration  (+ 3600 (* 137 i))})))
+
+(defn show-page
+  "The state of the Show page with the show's entry `shown` in :shows, and
+  the `more` state merged in."
+  ([shown]
+   (show-page shown {}))
+  ([shown more]
+   (merge {:route    {:name         :route/show
+                      :path-params  {:guid guid}
+                      :query-params {:url url}}
+           :library  (library/make "scenes")
+           :searches {"pc20" {:status :done :results [(assoc known :guid guid :url url)]}}
+           :shows    {guid shown}}
+          more)))
+
+(defscene what-the-search-knew
+  "The moment after the click: the title, the author and the artwork that
+  the search found, while the feed is on its way."
+  (ui/page (show-page {:url url :status :loading})))
+
+(defscene the-start-of-the-feed
+  "The first episodes from the start of the feed, while the whole feed is
+  fetched."
+  (ui/page (show-page {:url    url
+                       :status :loading
+                       :page   (assoc known
+                                      :notes [:p "The podcast about podcasting, with "
+                                              [:a {:href "https://podcastindex.org"} "Podcast Index"] "."]
+                                      :episodes (rows 20))})))
+
+(defscene the-whole-feed
+  "Every episode, of which the page lists 20 at a time."
+  (ui/page (show-page {:url    url
+                       :status :done
+                       :shown  40
+                       :page   (assoc known :episodes (rows 207))})))
+
+(defscene a-feed-that-failed
+  "A fetch of the feed that failed, after what the search knew."
+  (ui/page (show-page {:url    url
+                       :status :failed
+                       :error  {:message "The server answered 404."}})))
+
+(defscene a-show-nobody-knows
+  "A link to a show that the library doesn't keep and that names no feed."
+  (ui/page {:route   {:name :route/show :path-params {:guid guid} :query-params {}}
+            :library (library/make "scenes")}))

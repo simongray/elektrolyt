@@ -5,7 +5,9 @@
   Either way, the state keeps a search under its query as a map of its
   :status, :searching or :done, its :results and the ids of the
   directories that :failed. A result is the map of a show's feed :url, its
-  :title, :author and :artwork."
+  :guid, :title, :author, :artwork and :artwork-sizes. The guid is the one
+  that the feed declares, as far as the directory knows it, or else the
+  one that its URL gives."
   (:require [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.guid :as guid]
@@ -22,18 +24,22 @@
   "The result of a `show` of a directory, or nil when it names no feed."
   [show]
   (when-let [url (resolve/self-url show)]
-    {:url     url
-     :title   (resolve/title show)
-     :author  (resolve/author show)
-     :artwork (resolve/artwork show)}))
+    {:url           url
+     :guid          (guid/feed-guid show url)
+     :title         (resolve/title show)
+     :author        (resolve/author show)
+     :artwork       (resolve/artwork show)
+     :artwork-sizes (resolve/artwork-sizes show)}))
 
 (defn feed->result
   "The result of a `feed` that discovery found at a link."
   [{:keys [url title feed] :as found}]
-  {:url     url
-   :title   (or (resolve/title feed) title)
-   :author  (resolve/author feed)
-   :artwork (resolve/artwork feed)})
+  {:url           url
+   :guid          (guid/feed-guid feed url)
+   :title         (or (resolve/title feed) title)
+   :author        (resolve/author feed)
+   :artwork       (resolve/artwork feed)
+   :artwork-sizes (resolve/artwork-sizes feed)})
 
 (defn shows->search
   "The search of what the directories answered so far, the map `answer`

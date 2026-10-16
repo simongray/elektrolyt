@@ -18,10 +18,14 @@
 (deftest what-the-directories-answered
   (testing "while some directories are yet to answer"
     (is (= {:status  :searching
-            :results [{:url     "https://feeds.podcastindex.org/pc20.xml"
-                       :title   "Podcasting 2.0"
-                       :author  "Podcast Index LLC"
-                       :artwork nil}]
+            :results [{:url           "https://feeds.podcastindex.org/pc20.xml"
+                       ;; derived from the URL, since the directory doesn't
+                       ;; know the guid that the feed declares
+                       :guid          "d5a1ae35-5e8b-599a-943b-95609562016d"
+                       :title         "Podcasting 2.0"
+                       :author        "Podcast Index LLC"
+                       :artwork       nil
+                       :artwork-sizes []}]
             :failed  []}
            (search/shows->search {:results [pc20] :pending [:fyyd]}))))
   (testing "once every directory has answered, some with a failure"

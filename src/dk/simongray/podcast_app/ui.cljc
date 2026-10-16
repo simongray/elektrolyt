@@ -9,7 +9,9 @@
   it's restored, and the last thing to tell a screen reader as
   :announcement."
   (:require [dk.simongray.podcast-app.routes :as routes]
-            [dk.simongray.podcast-app.ui.search :as search]))
+            [dk.simongray.podcast-app.show :as show]
+            [dk.simongray.podcast-app.ui.search :as search]
+            [dk.simongray.podcast-app.ui.show :as show-ui]))
 
 (def app-name
   "The name of the app, as the header and the window's title show it."
@@ -28,9 +30,12 @@
   [:route/queue :route/inbox :route/library :route/search])
 
 (defn page-title
-  "The title of the page of the `state`."
+  "The title of the page of the `state`: a show's own on its page."
   [state]
-  (get titles (get-in state [:route :name]) "Page not found"))
+  (let [route-name (get-in state [:route :name])]
+    (if (= :route/show route-name)
+      (or (:title (show/page state (show-ui/guid state))) "Show")
+      (get titles route-name "Page not found"))))
 
 ;; WCAG 2.2, SC 2.4.2 Page Titled: the page before the app, as in example 1
 ;; of technique G88, which lists "the most important identifying information
@@ -113,6 +118,7 @@
    (case (get-in state [:route :name])
      nil           not-found
      :route/search (search/content state)
+     :route/show   (show-ui/content state)
      nil)
    (announcer (:announcement state))])
 

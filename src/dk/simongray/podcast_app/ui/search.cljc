@@ -3,12 +3,12 @@
   and its results, which the listener can subscribe to.
 
   The state holds each search under its query in :searches, as
-  dk.simongray.podcast-app.search describes it, the feed URLs that are
-  being subscribed to in :subscribing, and the errors of those that
-  failed by URL in :subscribe-errors."
+  dk.simongray.podcast-app.search describes it."
   (:require [clojure.string :as str]
             [dk.simongray.podcast-app.routes :as routes]
-            [dk.simongray.podcast-app.search :as search]))
+            [dk.simongray.podcast-app.search :as search]
+            [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.subscription :as subscription]))
 
 (defn query
   "The query of the Search page of the `state`, or nil."
@@ -75,56 +75,38 @@
   [q search]
   [:p {:role "status"} (status-text q search)])
 
-(defn subscription-status
-  "Where the subscription to the feed at `url` stands in the `state`, with
-  the `subscribed` URLs: :subscribed, :subscribing, :ready, or :waiting
-  while the library is restored."
-  [state subscribed url]
-  (cond
-    (nil? subscribed)                          :waiting
-    (search/subscribed? subscribed url)        :subscribed
-    (contains? (:subscribing state) url)       :subscribing
-    :else                                      :ready))
+;; instant.page: a pointer that rests on a link for 65 ms clicks it about
+;; half the time, and leaves some 300 ms to fetch what the page needs. Only
+;; the start of the feed is fetched, which parses in a moment.
+(defn show-link
+  "The link to the page of the show that a search found, the `result`,
+  which starts to fetch the start of its feed when a pointer rests on it."
+  [{:keys [url guid title] :as result}]
+  [:a {:href (routes/show-href guid title url)
+       :on   {:mouseenter  [[:show/prefetch-soon guid url]]
+              :mouseleave  [[:show/prefetch-cancel]]
+              :pointerdown [[:show/load guid url true]]}}
+   title])
 
-;; WCAG 2.2, SC 2.5.3 Label in Name: the name that a screen reader hears
-;; starts with the visible label, e.g. "Subscribe to Podcasting 2.0". The
-;; button is aria-disabled rather than disabled, so that it keeps the focus
-;; as it changes.
-(defn subscribe-button
-  "The button that subscribes to the show `title` at `url`, at the
-  subscription `status`."
-  [status url title]
-  [:button (cond-> {:type "button"}
-             (not= :ready status) (assoc :aria-disabled "true")
-             (= :ready status)    (assoc :on {:click [[:library/subscribe url title]]}))
-   (case status
-     :subscribed  "Subscribed"
-     :subscribing "Subscribing…"
-     "Subscribe")
-   [:span.visually-hidden " to " title]])
-
-;; W3C, Images tutorial, decorative images: the title next to the artwork
-;; already names the show, so the artwork has an empty alt. A site often has
-;; several feeds of one show, e.g. in MP3 and in Opus, so a title that
-;; another result shares comes with the URL of its feed, which the name of
-;; the button has too (WCAG 2.2, SC 2.4.6 Headings and Labels).
+;; A site often has several feeds of one show, e.g. in MP3 and in Opus, so a
+;; title that another result shares comes with the URL of its feed, which
+;; the name of the button has too (WCAG 2.2, SC 2.4.6 Headings and Labels)
 (defn result
-  "A show that the search found, the `result`, at the subscription
-  `status`, with the `error` of a subscription that failed. When
-  `shared-title?`, it shows the URL of its feed."
-  [{:keys [url title author artwork] :as result} status error shared-title?]
+  "A show that a search found, the `result`, in the `state` with the
+  `subscribed` URLs. When `shared-title?`, it shows the URL of its feed."
+  [state subscribed {:keys [url title author] :as result} shared-title?]
   (let [title (or title url)]
     [:article
-     (when artwork
-       [:img {:src artwork :alt "" :width 64 :height 64 :loading "lazy"}])
-     [:h2 title]
+     (artwork/img result 64 {:loading "lazy"})
+     [:h2 (show-link (assoc result :title title))]
      (when author
        [:p author])
      (when shared-title?
        [:p url])
-     (subscribe-button status url (cond-> title shared-title? (str ", " url)))
-     (when error
-       [:p "Couldn't subscribe: " (:message error)])]))
+     (subscription/button (subscription/status state subscribed url)
+                          url
+                          (cond-> title shared-title? (str ", " url)))
+     (subscription/error state url)]))
 
 (defn results
   "The list of the `search`'s results in the `state`."
@@ -137,10 +119,7 @@
       [:ol.search-results {:role "list"}
        (for [{:keys [url title] :as r} results]
          [:li {:replicant/key url}
-          (result r
-                  (subscription-status state subscribed url)
-                  (get-in state [:subscribe-errors url])
-                  (contains? shared title))])])))
+          (result state subscribed r (contains? shared title))])])))
 
 (defn content
   "The content of the Search page of the `state`, below its heading."
