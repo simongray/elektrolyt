@@ -329,3 +329,61 @@ search input {
     flex: 1 1 30em;
   }
 }
+
+
+/* The buttons of an episode's page wrap below each other on a phone */
+.episode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+.player-next {
+  flex: 1 1 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+
+/* The queue: each episode's artwork beside its title, show and time left,
+   with its buttons below, which wrap on a phone. The list keeps
+   role="list", as the navigation's does. */
+.queue {
+  padding: 0;
+  list-style: none;
+}
+
+.queue-episode {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.queue-episode img {
+  grid-row: span 3;
+  width: 48px;
+}
+
+.queue-episode > :not(img) {
+  grid-column: 2;
+  overflow-wrap: anywhere;
+}
+
+.queue-episode h3,
+.queue-episode p {
+  margin: 0;
+}
+
+.queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+.queue-actions button,
+.episode-actions button,
+main section > button {
+  min-height: 44px;
+}

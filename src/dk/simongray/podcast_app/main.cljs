@@ -17,6 +17,7 @@
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.library :as app-library]
+            [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
@@ -413,6 +414,53 @@
 (nxr/register-effect! :player/expand
   (fn [_ store expanded?]
     (swap! store assoc-in [:player :expanded?] expanded?)))
+
+(nxr/register-effect! :page/focus
+  (fn [_ _ id]
+    (some-> (js/document.getElementById id) .focus)))
+
+(nxr/register-effect! :dialog/open
+  (fn [_ _ id]
+    (when-let [dialog (js/document.getElementById id)]
+      (set! (.-returnValue dialog) "")
+      (.showModal dialog))))
+
+(defn queue-changed!
+  "Change the state of the `store` with `f` of it and the `args`, a change
+  of the queue, and save the library."
+  [store f & args]
+  (apply swap! store f args)
+  (audio/save! store))
+
+(nxr/register-effect! :queue/add
+  (fn [_ store {:keys [id] :as playable} title next?]
+    (try
+      (swap! store #(-> (assoc % :library (audio/added % playable))
+                        (queue/added id title next?)))
+      (audio/save! store)
+      (catch :default e
+        (js/console.error "The episode couldn't be queued" e)))))
+
+(nxr/register-effect! :queue/move
+  (fn [_ store id to]
+    (queue-changed! store queue/moved id to)))
+
+(nxr/register-effect! :queue/remove
+  (fn [_ store id]
+    (queue-changed! store queue/removed id)))
+
+(nxr/register-effect! :queue/undo
+  (fn [_ store]
+    (queue-changed! store queue/undone)))
+
+;; once the dialog has closed, since the page is inert while it's open
+(nxr/register-effect! :queue/clear-closed
+  (fn [{:keys [dispatch-data]} store focus-id]
+    (when-let [dialog (some-> (:replicant/dom-event dispatch-data) .-target)]
+      (when (= "clear" (.-returnValue dialog))
+        (set! (.-returnValue dialog) "")
+        (queue-changed! store queue/cleared)
+        (some-> (js/document.getElementById focus-id) .focus)))))
 
 (defn routed-click?
   "Whether the `router` takes over the `click` on the `anchor` to `uri`: when

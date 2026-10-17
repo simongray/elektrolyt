@@ -11,6 +11,7 @@
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.player :as player]
+            [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.show :as show-ui]
@@ -81,11 +82,30 @@
     [:button {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
      (play-label page entry t)]))
 
+;; The two places of Apple, Pocket Casts, Castro and Overcast: right after
+;; the episode that plays, or at the end. Play next moves an episode that's
+;; queued already.
+(defn queue-buttons
+  "The buttons that queue the episode `page`, by where it is in the queue,
+  `queued`: nil, :queued, or :current, which needs none."
+  [{:keys [title] :as page} queued]
+  (let [playable (episode/playable page)]
+    (when-not (= :current queued)
+      (list
+       [:button {:type "button" :on {:click [[:queue/add playable title true]]}}
+        "Play next"]
+       (if (= :queued queued)
+         [:button {:type "button" :on {:click [[:queue/remove (:id page)]]}}
+          "Remove from queue"]
+         [:button {:type "button" :on {:click [[:queue/add playable title false]]}}
+          "Add to queue"])))))
+
 (defn intro
   "The show, the date, the duration and the artwork of the episode `page`,
-  whether its `entry` in the profile is played, and the button that plays
-  it as the `player` and the start time `t` have it."
-  [{:keys [show published duration] :as page} player entry t]
+  whether its `entry` in the profile is played, the button that plays it
+  as the `player` and the start time `t` have it, and the buttons that
+  queue it, by where it's `queued`."
+  [{:keys [show published duration] :as page} player entry t queued]
   [:div.episode-intro
    (artwork/img page 160 {:fetchpriority "high"})
    [:p [:a {:href (:href show)} (:title show)]]
@@ -101,7 +121,9 @@
          (show-ui/duration-text duration)])
       (when (:played? entry)
         (list [:span {:aria-hidden "true"} " · "] "Played"))])
-   (play-button page player entry t)])
+   [:div.episode-actions
+    (play-button page player entry t)
+    (queue-buttons page queued)]])
 
 ;; A chapters file is the publisher's, so a chapter's link is only one when
 ;; it goes to the web, never e.g. a javascript: URL
@@ -185,7 +207,10 @@
       ;; and again for the page of another one
       [:div {:replicant/key      (pr-str id)
              :replicant/on-mount [[:episode/read-files id view]]}
-       (intro page (:player state) (player/entry (:library state) id) (start-time state))
+       (intro page (:player state) (player/entry (:library state) id) (start-time state)
+              (cond
+                (= id (:id (first (:episodes (some-> (:library state) queue/view))))) :current
+                (queue/queued? state id)                                              :queued))
        (when (seq notes)
          [:section {:aria-labelledby "notes"}
           [:h2#notes "Show notes"]

@@ -7,6 +7,7 @@
   chapters and the transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.podcast-app.player :as player]
+            [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]))
 
@@ -111,6 +112,15 @@
                               (str (Math/round (* 100 level)) "%"))
             :on             {:input [[:player/volume [:event/target-number]]]}}]))
 
+;; Pocket Casts, Apple Podcasts and Spotify all reach the queue from the
+;; player, which here is a page of the app
+(defn next-up
+  "The episode that plays after the one of the player of the `state`, as a
+  link to the queue, or nil."
+  [state]
+  (when-let [{:keys [title]} (first (queue/up-next state))]
+    [:p.player-next [:a {:href (routes/href :route/queue)} "Next: " title]]))
+
 (defn status-line
   "The line that says why the `player` doesn't play, or that it waits for
   data, which a screen reader reads as it changes."
@@ -149,7 +159,8 @@
         (skip-buttons back forward)
         (chapter-buttons playback)
         (speed media)
-        (volume-controls media (or volume 1) volume-locked?)]
+        (volume-controls media (or volume 1) volume-locked?)
+        (next-up state)]
        (status-line player)))))
 
 ;; WAI-ARIA APG, landmark regions: a section with a label is a region, the

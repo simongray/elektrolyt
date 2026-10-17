@@ -70,6 +70,15 @@
         "and Pause while it plays, with no aria-pressed")
     (is (= "Play" (text-of (button (playing ["other" "x"] true) nil nil))) "while another one plays")))
 
+(deftest the-buttons-that-queue-it
+  (let [page    (episode-ui/route-page (episode-page nil))
+        texts   #(map text-of (episode-ui/queue-buttons page %))]
+    (is (= ["Play next" "Add to queue"] (texts nil)))
+    (is (= ["Play next" "Remove from queue"] (texts :queued)))
+    (is (empty? (texts :current)) "none for the episode that plays")
+    (is (= [[:queue/add (episode/playable page) (:title page) true]]
+           (get-in (first (episode-ui/queue-buttons page nil)) [1 :on :click])))))
+
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]
     (is (= "Episode 2: The Present – Podcasts" (ui/document-title (episode-page nil))))

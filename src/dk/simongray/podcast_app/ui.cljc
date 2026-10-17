@@ -13,6 +13,7 @@
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
             [dk.simongray.podcast-app.ui.player :as player-ui]
+            [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.search :as search]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
@@ -121,6 +122,7 @@
    (page-heading state)
    (case (get-in state [:route :name])
      nil           not-found
+     :route/queue   (queue-ui/content state)
      :route/search  (search/content state)
      :route/show    (show-ui/content state)
      :route/episode (episode-ui/content state)

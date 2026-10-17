@@ -1,0 +1,78 @@
+(ns dk.simongray.podcast-app.queue-test
+  (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile.queue :as profile.queue]
+            [dk.simongray.podcast-app.queue :as queue]))
+
+(def url "https://example.org/feed.xml")
+
+(def feed
+  {:rss/title "A Show"
+   :rss/items (vec (for [i (range 1 5)]
+                     {:rss/title       (str "Episode " i)
+                      :rss/guid        {:content (str "ep" i)}
+                      :rss/enclosure   {:url (str "https://example.org/" i ".mp3") :type "audio/mpeg"}
+                      :itunes/duration 600}))})
+
+(def lib
+  (library/subscribe (library/make "test") url feed))
+
+(def k
+  (first (keys (:feeds lib))))
+
+(defn id [i] [k (str "ep" i)])
+
+(defn state
+  "The state with the episodes `is` queued in order, and the first of them
+  in the player when `playing?`."
+  [playing? & is]
+  (cond-> {:library (reduce #(library/update-profile %1 profile.queue/enqueue (id %2)) lib is)}
+    playing? (assoc :player {:id (id (first is))})))
+
+(defn titles [state]
+  (map :title (queue/up-next state)))
+
+(deftest the-episode-that-plays-and-up-next
+  (is (= "Episode 1" (:title (queue/current (state true 1 2 3)))))
+  (is (= ["Episode 2" "Episode 3"] (titles (state true 1 2 3))))
+  (is (= ["Episode 1" "Episode 2" "Episode 3"] (titles (state false 1 2 3)))
+      "all of them while the player has none of them")
+  (is (= 2 (queue/position (state true 1 2 3) (id 3)))))
+
+(deftest moves-in-up-next
+  (let [moved (queue/moved (state true 1 2 3 4) (id 4) 1)]
+    (is (= ["Episode 4" "Episode 2" "Episode 3"] (titles moved)) "after the episode that plays")
+    (is (= "Moved Episode 4 to position 1 of 3" (:announcement moved))))
+  (is (= ["Episode 2" "Episode 3"] (titles (queue/moved (state true 1 2 3) (id 2) 3)))
+      "never past the end"))
+
+(deftest a-removal-and-its-undo
+  (let [removed (queue/removed (state true 1 2 3) (id 2))]
+    (is (= ["Episode 3"] (titles removed)))
+    (is (= "Removed Episode 2 from the queue" (:announcement removed)))
+    (is (= "Undo removing Episode 2" (get-in removed [:queue-undo :label])))
+    (let [undone (queue/undone removed)]
+      (is (= ["Episode 2" "Episode 3"] (titles undone)) "back in its place")
+      (is (= "Put Episode 2 back in the queue" (:announcement undone)))
+      (is (nil? (:queue-undo undone))))))
+
+(deftest clearing-and-its-undo
+  (let [cleared (queue/cleared (state true 1 2 3))]
+    (is (= [] (titles cleared)))
+    (is (= "Episode 1" (:title (queue/current cleared))) "the episode that plays stays")
+    (is (= "Cleared 2 episodes from the queue" (:announcement cleared)))
+    (is (= ["Episode 2" "Episode 3"] (titles (queue/undone cleared))) "back in order")))
+
+(deftest adding
+  (testing "at the end, or after the episode that plays"
+    (is (= ["Episode 2" "Episode 3"] (titles (queue/added (state true 1 2) (id 3) "Episode 3" false))))
+    (is (= ["Episode 3" "Episode 2"] (titles (queue/added (state true 1 2) (id 3) "Episode 3" true)))))
+  (is (= ["Episode 3" "Episode 2"] (titles (queue/added (state true 1 2 3) (id 3) "Episode 3" true)))
+      "play next moves an episode that's queued")
+  (is (= "Playing Episode 3 next" (:announcement (queue/added (state true 1 2) (id 3) "Episode 3" true))))
+  (is (nil? (:queue-undo (queue/added (queue/removed (state true 1 2) (id 2)) (id 3) "Episode 3" false)))
+      "a change ends the undo of the one before"))
+
+(deftest whats-queued
+  (is (queue/queued? (state true 1 2) (id 2)))
+  (is (not (queue/queued? (state true 1 2) (id 3)))))
