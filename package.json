@@ -1,7 +1,11 @@
 {
   "name": "podcast-app",
   "private": true,
+  "scripts": {
+    "e2e": "playwright test -c test/e2e"
+  },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "shadow-cljs": "3.5.7",
     "snabbdom": "^3.6.4"
   }

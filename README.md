@@ -95,3 +95,12 @@ To run the server's tests on the JVM:
 ```bash
 clojure -X:server:local:test
 ```
+
+To run the end-to-end tests in Firefox and your installed Chrome, install
+Playwright's Firefox once, and then run them against the app that the watch
+built into `public/`. They start a server of their own on a free port.
+
+```bash
+npx playwright install firefox
+npm run e2e
+```
