@@ -129,7 +129,8 @@
                                           (search/subscribed-urls (:library state))
                                           url)
                      url
-                     title)
+                     title
+                     true)
                     (subscription/error state url)))
             (when notes
               [:div.show-notes notes])

@@ -11,7 +11,13 @@
   (let [[_ attrs label] (subscription/button :subscribing "https://example.org/feed.xml" "A Show")]
     (is (= "Subscribing…" label))
     (is (= "true" (:aria-disabled attrs)))
-    (is (nil? (:on attrs)) "nothing happens until it's done")))
+    (is (nil? (:on attrs)) "nothing happens until it's done"))
+  (let [[_ attrs label] (subscription/button :subscribed "https://example.org/feed.xml" "A Show")]
+    (is (= "Subscribed" label) "where a page offers no way out")
+    (is (= "true" (:aria-disabled attrs))))
+  (let [[_ attrs label] (subscription/button :subscribed "https://example.org/feed.xml" "A Show" true)]
+    (is (= "Unsubscribe" label) "and where it does")
+    (is (= [[:library/unsubscribe "https://example.org/feed.xml" "A Show"]] (get-in attrs [:on :click])))))
 
 (deftest the-state-of-a-subscription
   (let [url "https://example.org/feed.xml"]

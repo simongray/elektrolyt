@@ -5,7 +5,8 @@
   The views dispatch actions as data, and the router dispatches one for
   each navigation. Nexus expands them into effects, which alone change the
   store, and each change of the store renders the page again."
-  (:require [clojure.string :as str]
+  (:require [cljs.reader :as reader]
+            [clojure.string :as str]
             [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.media :as media]
@@ -18,6 +19,7 @@
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.queue :as queue]
+            [dk.simongray.podcast-app.refresh :as refresh]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
@@ -297,6 +299,10 @@
   (fn [{:replicant/keys [dom-event]}]
     (some-> dom-event .-target .-value js/parseFloat)))
 
+(nxr/register-placeholder! :event/target-keyword
+  (fn [{:replicant/keys [dom-event]}]
+    (some-> dom-event .-target .-value not-empty keyword)))
+
 (nxr/register-placeholder! :event/range-seek
   (fn [{:replicant/keys [dom-event]}]
     (some-> dom-event controls/range-seek)))
@@ -425,6 +431,51 @@
       (set! (.-returnValue dialog) "")
       (.showModal dialog))))
 
+(def library-view-key
+  "The key of the listener's choices for the Library page in localStorage,
+  since the layout that suits a screen belongs to this device."
+  "dk.simongray.podcast-app.library-view")
+
+(defn saved-library-view
+  "The listener's choices for the Library page that this browser keeps, or
+  nil."
+  []
+  (try
+    (some-> (.getItem js/localStorage library-view-key) reader/read-string)
+    (catch :default _ nil)))
+
+(nxr/register-effect! :library/view
+  (fn [_ store k v]
+    (swap! store assoc-in [:library-view k] v)
+    (try
+      (.setItem js/localStorage library-view-key (pr-str (:library-view @store)))
+      (catch :default _ nil))))
+
+(nxr/register-effect! :library/refresh
+  (fn [_ store]
+    (refresh/refresh! store true)))
+
+(defn unsubscribed
+  "The `state` once the listener unsubscribed from the show `title` at
+  `url`."
+  [state url title]
+  (if-let [k (some-> (:library state) (show/library-key nil url))]
+    (-> state
+        (update :library library/unsubscribe k)
+        (assoc :announcement (str "Unsubscribed from " title)))
+    state))
+
+;; the page of the show stays, now as one outside the library, by the URL
+;; of its feed, which it gets in its address too
+(nxr/register-effect! :library/unsubscribe
+  (fn [_ store url title]
+    (let [guid (get-in @store [:route :path-params :guid])]
+      (swap! store unsubscribed url title)
+      (app-library/save! (:library @store))
+      (if-let [s (routes/slug title)]
+        (rfe/replace-state :route/titled-show {:guid guid :slug s} {:url url})
+        (rfe/replace-state :route/show {:guid guid} {:url url})))))
+
 (defn queue-changed!
   "Change the state of the `store` with `f` of it and the `args`, a change
   of the queue, and save the library."
@@ -532,12 +583,15 @@
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
   (.addEventListener js/document "visibilitychange"
-                     #(when (= "hidden" js/document.visibilityState)
-                        (audio/hidden! store)))
+                     #(if (= "hidden" js/document.visibilityState)
+                        (audio/hidden! store)
+                        (refresh/refresh-if-due! store)))
   (.addEventListener js/window "pagehide" #(audio/hidden! store))
   (audio/volume-locked! store)
+  (swap! store assoc :library-view (saved-library-view))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
       (.finally (fn []
                   (swap! store audio/restored (audio/kept-position))
                   (add-watch store ::render (fn [_ _ _ state] (render! state)))
-                  (start-router!)))))
+                  (start-router!)
+                  (refresh/refresh-if-due! store)))))

@@ -23,16 +23,22 @@
 ;; as it changes.
 (defn button
   "The button that subscribes to the show `title` at `url`, at the
-  subscription `status`."
-  [status url title]
-  [:button (cond-> {:type "button"}
-             (not= :ready status) (assoc :aria-disabled "true")
-             (= :ready status)    (assoc :on {:click [[:library/subscribe url title]]}))
-   (case status
-     :subscribed  "Subscribed"
-     :subscribing "Subscribing…"
-     "Subscribe")
-   [:span.visually-hidden " to " title]])
+  subscription `status`, or unsubscribes from it once it's subscribed,
+  where the page offers that, `unsubscribe?`."
+  ([status url title]
+   (button status url title false))
+  ([status url title unsubscribe?]
+   (if (and unsubscribe? (= :subscribed status))
+     [:button {:type "button" :on {:click [[:library/unsubscribe url title]]}}
+      "Unsubscribe" [:span.visually-hidden " from " title]]
+     [:button (cond-> {:type "button"}
+                (not= :ready status) (assoc :aria-disabled "true")
+                (= :ready status)    (assoc :on {:click [[:library/subscribe url title]]}))
+      (case status
+        :subscribed  "Subscribed"
+        :subscribing "Subscribing…"
+        "Subscribe")
+      [:span.visually-hidden " to " title]])))
 
 (defn error
   "The paragraph that tells why the subscription to the feed at `url`

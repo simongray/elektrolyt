@@ -387,3 +387,118 @@ search input {
 main section > button {
   min-height: 44px;
 }
+
+
+/* The Library page: its choices and its refresh in rows that wrap */
+.library-tools,
+.library-refresh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.library-refresh p {
+  margin: 0;
+}
+
+.library-tools select,
+.library-refresh button {
+  min-height: 44px;
+}
+
+/* The shows: a list of rows, the artwork beside the title, or a grid of
+   tiles, the title below the artwork. Automatic is the list on a phone
+   and the grid wider than that. The list keeps role="list", as the
+   navigation's does. */
+.library-shows {
+  padding: 0;
+  list-style: none;
+}
+
+.library-show h2 {
+  margin: 0;
+  font-size: inherit;
+}
+
+/* The title's link covers the whole tile, so that a click on the artwork
+   follows it too, while a keyboard and a screen reader still find one
+   link per show, named by its title (Inclusive Components, Cards:
+   https://inclusive-components.design/cards/) */
+.library-show {
+  position: relative;
+}
+
+.library-show h2 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.library-show p {
+  margin: 0;
+}
+
+.library-shows.list .library-show {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.library-shows.list .library-show img {
+  grid-row: span 3;
+  width: 64px;
+}
+
+.library-shows.list .library-show > :not(img) {
+  grid-column: 2;
+  overflow-wrap: anywhere;
+}
+
+.library-shows.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(10em, 100%), 1fr));
+  gap: 1em;
+}
+
+.library-shows.grid .library-show {
+  overflow-wrap: anywhere;
+}
+
+.library-shows.grid .library-show img {
+  width: 100%;
+}
+
+.library-shows.auto .library-show {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.library-shows.auto .library-show img {
+  grid-row: span 3;
+  width: 64px;
+}
+
+.library-shows.auto .library-show > :not(img) {
+  grid-column: 2;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 37.5em) {
+  .library-shows.auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
+    gap: 1em;
+  }
+
+  .library-shows.auto .library-show {
+    display: block;
+  }
+
+  .library-shows.auto .library-show img {
+    width: 100%;
+  }
+}
