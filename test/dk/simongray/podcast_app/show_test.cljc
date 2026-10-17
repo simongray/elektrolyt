@@ -68,3 +68,11 @@
     (is (nil? (show/library-key lib "another-guid" "https://example.org/other.xml")))
     (is (= "Kept" (:title (show/page {:library lib} k))))
     (is (= url (show/feed-url {:library lib} k)))))
+
+(deftest a-show-that-the-library-keeps-for-one-episode
+  (let [other "https://example.org/other.xml"
+        lib   (library/add-episode (library/make "test") other (feed "Played" "One" "Two") "One")
+        k     (first (keys (:feeds lib)))]
+    (is (some? (get-in lib [:feeds k :feed])) "the library keeps its feed")
+    (is (nil? (show/library-key lib k other))
+        "but its page is that of a show outside it, since the feed has only that episode")))

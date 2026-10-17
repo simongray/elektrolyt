@@ -14,7 +14,8 @@
             [dk.simongray.podcast.app.show :as show]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
-            [dk.simongray.podcast.profile :as profile]))
+            [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast-app.links :as links]))
 
 (def page-size
   "How many episodes the page lists at first, and how many more each time
@@ -23,10 +24,11 @@
 
 (def view-opts
   "The options of app.show/view for the page, which leaves out what it
-  doesn't show, and puts the headings of the notes beside the page's own
-  h2s."
+  doesn't show, puts the headings of the notes beside the page's own h2s,
+  and opens their links to the web in a new tab."
   {:except        #{:seasons :links :text}
-   :heading-level 2})
+   :heading-level 2
+   :link-fn       links/new-tab})
 
 (defn episode-row
   "The episode `item` as a row of the list of episodes."
@@ -63,12 +65,15 @@
 
 (defn library-key
   "The key that the library `lib` keeps the show `guid` at `url` under, or
-  nil when it keeps no feed of it.
+  nil when it keeps no feed of it, or keeps it for no subscription.
 
   A show from a search has the guid that its URL gives, which the feed can
-  replace with one of its own when it's fetched, so the URL finds it too."
+  replace with one of its own when it's fetched, so the URL finds it too.
+  A show that the library keeps for an episode that the listener played
+  alone has only that episode, so its page is that of a show outside it."
   [lib guid url]
-  (let [feed? #(some? (get-in lib [:feeds % :feed]))]
+  (let [feed? #(and (some? (get-in lib [:feeds % :feed]))
+                    (profile/subscribed? (:profile lib) %))]
     (cond
       (feed? guid)
       guid

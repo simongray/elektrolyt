@@ -8,9 +8,11 @@
   has. It holds the listener's library from podcast-clj as :library, once
   it's restored, and the last thing to tell a screen reader as
   :announcement."
-  (:require [dk.simongray.podcast-app.routes :as routes]
+  (:require [dk.simongray.podcast-app.links :as links]
+            [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
+            [dk.simongray.podcast-app.ui.player :as player-ui]
             [dk.simongray.podcast-app.ui.search :as search]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
@@ -123,29 +125,8 @@
      :route/show    (show-ui/content state)
      :route/episode (episode-ui/content state)
      nil)
-   (announcer (:announcement state))])
-
-;; WAI-ARIA APG, landmark regions: a section with a label is a region, the
-;; landmark for content that none of the others describes
-;;
-;; TODO: controls of the app's own with play-nice, in place of the
-;; browser's, which keep the progress of the episode in the library
-(defn player
-  "The player of the episode that plays, which stays as the pages change:
-  the browser's own controls of the audio, for now. The :player of the
-  `state` is the :id, :src, :title and :show of the episode, and whether
-  it's :playing?."
-  [state]
-  (let [{:keys [src title show]} (:player state)]
-    [:section#player {:aria-label "Player"}
-     (if src
-       (list [:p title (when show (list " – " show))]
-             [:audio {:controls   true
-                      :src        src
-                      :aria-label title
-                      :on         {:play  [[:store/assoc-in [:player :playing?] true]]
-                                   :pause [[:store/assoc-in [:player :playing?] false]]}}])
-       [:p "Nothing is playing."])]))
+   (announcer (:announcement state))
+   [:p.visually-hidden {:id links/note-id} "Opens in a new tab"]])
 
 (defn page
   "The whole page for the `state` of the app.
@@ -159,4 +140,4 @@
    (banner state)
    (main-nav state)
    (main-content state)
-   (player state)])
+   (player-ui/region state)])

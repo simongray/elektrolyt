@@ -32,12 +32,13 @@
                                               {:start-time 90 :url "https://example.org/untitled"}
                                               {:start-time 120 :title "Plain"}])
                    (elements :li))]
-    (is (= [[:a {:href "https://example.org/intro"} "Intro"]
+    (is (= [[:a {:href "https://example.org/intro" :target "_blank" :aria-describedby "new-tab-note"} "Intro"]
             "Sneaky"
-            [:a {:href "https://example.org/untitled"} "https://example.org/untitled"]
+            [:a {:href "https://example.org/untitled" :target "_blank" :aria-describedby "new-tab-note"}
+             "https://example.org/untitled"]
             "Plain"]
            (map last items))
-        "a link to the web alone, and the URL of a chapter without a title")))
+        "a link to the web alone, in a new tab, and the URL of a chapter without a title")))
 
 (deftest a-time-links-to-the-page-and-plays
   (let [page (episode-ui/route-page (episode-page nil))
@@ -53,16 +54,21 @@
   (is (nil? (episode-ui/start-time (episode-page nil)))))
 
 (deftest the-play-button
-  (let [page   (episode-ui/route-page (episode-page nil))
-        button #(episode-ui/play-button page %1 %2)]
-    (is (= "Play" (text-of (button nil nil))))
-    (is (= "Play from 1:13" (text-of (button nil 73))) "from the time of the link")
+  (let [page    (episode-ui/route-page (episode-page nil))
+        playing #(hash-map :id %1 :media {:paused (not %2)})
+        button  #(episode-ui/play-button page %1 %2 %3)]
+    (is (= "Play" (text-of (button nil nil nil))))
+    (is (= "Play from 1:13" (text-of (button nil nil 73))) "from the time of the link")
     (is (= [[:player/play (episode/playable page) 73]]
-           (get-in (button nil 73) [1 :on :click])))
-    (is (= "Play" (text-of (button {:id (:id page) :playing? false} nil))) "while it's paused")
-    (is (= [[:player/pause]] (get-in (button {:id (:id page) :playing? true} nil) [1 :on :click]))
+           (get-in (button nil nil 73) [1 :on :click])))
+    (is (= "Resume, 50 min left" (text-of (button nil {:position 600} nil)))
+        "where the listener left it")
+    (is (= "Play" (text-of (button nil {:position 600 :played? true} nil))) "unless it's played")
+    (is (= "Resume, 50 min left" (text-of (button (playing (:id page) false) {:position 600} nil)))
+        "while it's paused")
+    (is (= [[:player/pause]] (get-in (button (playing (:id page) true) nil nil) [1 :on :click]))
         "and Pause while it plays, with no aria-pressed")
-    (is (= "Play" (text-of (button {:id ["other" "x"] :playing? true} nil))) "while another one plays")))
+    (is (= "Play" (text-of (button (playing ["other" "x"] true) nil nil))) "while another one plays")))
 
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]

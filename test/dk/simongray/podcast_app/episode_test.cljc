@@ -65,8 +65,10 @@
            (:show page)))
     (is (= (str "/shows/" g "/episodes/" hash-2 "/episode-2-the-present?url=https%3A%2F%2Fexample.org%2Ffeed.xml")
            (:href page)))
-    (is (= {:id (:id page) :src "https://example.org/2.mp3" :title "Episode 2: The Present" :show "A Show"}
-           (episode/playable page)))
+    (is (= {:id (:id page) :guid g :url url :item-guid "https://example.org/?p=2"}
+           (episode/playable page))
+        "what the player needs to add it to the library")
+    (is (= "https://example.org/2.mp3" (:src page)))
     (is (= [[:h3 {} "Links"] [:p {} "At " [:a {:href (str (:href page) "&t=754")} "12:34"] " we start."]]
            (:notes page))
         "the headings of the notes under the page's own, and their times as the view makes them")

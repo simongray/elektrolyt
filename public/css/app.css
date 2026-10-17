@@ -31,6 +31,9 @@ body {
     "player"
     "nav";
   grid-template-rows: auto minmax(0, 1fr) auto auto;
+  /* not as wide as the longest line, e.g. the player's title, which it
+     cuts short instead */
+  grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
 }
 
@@ -234,4 +237,95 @@ search input {
 .chapters,
 .transcript {
   overflow-wrap: anywhere;
+}
+
+
+/* The player: the episode and its Play button in a row, with the other
+   controls below it, which a phone shows on request. The player is a row
+   of the shell's grid, outside the main content that scrolls, so it never
+   covers what has the focus (WCAG 2.2, SC 2.4.11). */
+#player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.player-now {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 0.5em;
+  min-width: 0;
+}
+
+.player-now img {
+  flex: none;
+  width: 48px;
+}
+
+.player-title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A line each for the title and the show, cut short, so that the player
+   stays low on a phone; the title links to the episode's page, which has
+   all of it */
+.player-title p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-controls {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.player-controls.collapsed {
+  display: none;
+}
+
+.player-seek {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.player-seek input {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-status {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+#player button,
+#player select {
+  min-height: 44px;
+}
+
+@media (min-width: 37.5em) {
+  .player-now {
+    flex: 0 1 22em;
+  }
+
+  .player-more {
+    display: none;
+  }
+
+  .player-controls,
+  .player-controls.collapsed {
+    display: flex;
+    flex: 1 1 30em;
+  }
 }

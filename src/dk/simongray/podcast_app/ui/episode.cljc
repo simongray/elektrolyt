@@ -9,6 +9,8 @@
             [dk.simongray.podcast.format.transcript :as transcript]
             [dk.simongray.podcast.util.time :as time]
             [dk.simongray.podcast-app.episode :as episode]
+            [dk.simongray.podcast-app.links :as links]
+            [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.show :as show-ui]
@@ -52,20 +54,38 @@
 ;; WAI-ARIA APG, button pattern: a button whose label changes with its
 ;; state, from Play to Pause, has no aria-pressed, which would say the
 ;; opposite. https://www.w3.org/WAI/ARIA/apg/patterns/button/
+(defn play-label
+  "What the button of the episode `page` says when it would play it, by the
+  `entry` of the episode in the profile and the start time `t` of the link,
+  e.g. \"Play from 1:13\", \"Resume, 12 min left\" or \"Play\"."
+  [{:keys [duration] :as page} {:keys [position played?] :as entry} t]
+  (cond
+    t
+    (str "Play from " (time/format-clock t))
+
+    (and (number? position) (pos? position) (not played?))
+    (if (number? duration)
+      (str "Resume, " (show-ui/duration-text (max 0 (- duration position))) " left")
+      "Resume")
+
+    :else
+    "Play"))
+
 (defn play-button
-  "The button that plays the episode `page` from `t` seconds, or from where
-  the player is in it, or pauses it while the `player` plays it."
-  [page player t]
-  (if (and (= (:id page) (:id player)) (:playing? player))
+  "The button that plays the episode `page`, from `t` seconds or from where
+  its `entry` in the profile left it, or pauses it while the `player`
+  plays it."
+  [page player entry t]
+  (if (and (= (:id page) (:id player)) (false? (get-in player [:media :paused])))
     [:button {:type "button" :on {:click [[:player/pause]]}} "Pause"]
     [:button {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
-     (if t (list "Play from " (time/format-clock t)) "Play")]))
+     (play-label page entry t)]))
 
 (defn intro
   "The show, the date, the duration and the artwork of the episode `page`,
-  with the button that plays it as the `player` and the start time `t`
-  have it."
-  [{:keys [show published duration] :as page} player t]
+  whether its `entry` in the profile is played, and the button that plays
+  it as the `player` and the start time `t` have it."
+  [{:keys [show published duration] :as page} player entry t]
   [:div.episode-intro
    (artwork/img page 160 {:fetchpriority "high"})
    [:p [:a {:href (:href show)} (:title show)]]
@@ -78,8 +98,10 @@
         [:span {:aria-hidden "true"} " · "])
       (when duration
         [:time {:datetime (str "PT" (long duration) "S")}
-         (show-ui/duration-text duration)])])
-   (play-button page player t)])
+         (show-ui/duration-text duration)])
+      (when (:played? entry)
+        (list [:span {:aria-hidden "true"} " · "] "Played"))])
+   (play-button page player entry t)])
 
 ;; A chapters file is the publisher's, so a chapter's link is only one when
 ;; it goes to the web, never e.g. a javascript: URL
@@ -95,7 +117,7 @@
        (time-link page start-time (clock start-time))
        " "
        (if (url/web-url? url)
-         [:a {:href url} (or title url)]
+         (links/new-tab [:a {:href url} (or title url)])
          title)])]])
 
 ;; WAI, Transcribing Audio to Text: the transcript is on the page of the
@@ -163,7 +185,7 @@
       ;; and again for the page of another one
       [:div {:replicant/key      (pr-str id)
              :replicant/on-mount [[:episode/read-files id view]]}
-       (intro page (:player state) (start-time state))
+       (intro page (:player state) (player/entry (:library state) id) (start-time state))
        (when (seq notes)
          [:section {:aria-labelledby "notes"}
           [:h2#notes "Show notes"]

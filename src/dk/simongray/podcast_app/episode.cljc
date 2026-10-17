@@ -12,14 +12,17 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.format.chapters :as chapters]
+            [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.show :as show]))
 
 (def view-opts
   "The options of app.episode/view for the page: the headings of the show
-  notes below the page's own h2s, and neither the notes as text nor links
-  to other apps, which the page doesn't show."
+  notes below the page's own h2s, their links to the web in a new tab, and
+  neither the notes as text nor links to other apps, which the page
+  doesn't show."
   {:heading-level 3
+   :link-fn       links/new-tab
    :except        #{:text :links}})
 
 (defn item-of
@@ -79,9 +82,11 @@
            :view          view)))
 
 (defn playable
-  "What the player needs of the episode `page` to play it."
-  [{:keys [id src title show]}]
-  {:id id :src src :title title :show (:title show)})
+  "What the player needs of the episode `page` to play it: its :id, and for
+  an episode that the library doesn't have yet, the :guid of the page of
+  its show, the :url of its feed and its :item-guid, to add it."
+  [page]
+  (select-keys page [:id :guid :url :item-guid]))
 
 (defonce ^{:doc "The last page that page made, with what it made it from,
   since the page renders again at every change of the state, and hashing

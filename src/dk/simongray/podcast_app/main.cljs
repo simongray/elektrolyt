@@ -7,12 +7,15 @@
   store, and each change of the store renders the page again."
   (:require [clojure.string :as str]
             [cognitect.transit :as transit]
+            [dk.simongray.play-nice.controls :as controls]
+            [dk.simongray.play-nice.media :as media]
             [dk.simongray.podcast :as podcast]
             [dk.simongray.podcast.app.episode :as episode]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
+            [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
@@ -263,6 +266,10 @@
     (swap! store assoc-in [:episodes id :status] :reading)
     (-> (episode/read-files! view {:send app-library/send :except #{:transcript}})
         (.then #(swap! store update-in [:episodes id] assoc :status :read :result %))
+        ;; e.g. the chapters of a file, for the player and the lock screen
+        (.then #(when (= id (get-in % [:player :id]))
+                  (swap! store assoc-in [:player :playback] (audio/playback % id))
+                  (audio/lock-screen! store)))
         (.catch #(swap! store update-in [:episodes id] assoc :status :read
                         :error {:message (ex-message %)})))))
 
@@ -279,30 +286,19 @@
                         :transcript-status :read
                         :transcript {:error {:message (ex-message %)}})))))
 
-(defn audio
-  "The audio element of the player, or nil when nothing is playing."
-  []
-  (js/document.querySelector "#player audio"))
-
-(defn play!
-  "Play the `playable` episode of an Episode page in the player of the
-  `store`, from `t` seconds when it's given, or else from where the player
-  is in it, or its start."
-  [store {:keys [id] :as playable} t]
-  (when-not (= id (get-in @store [:player :id]))
-    (swap! store assoc :player playable))
-  ;; the render of the swap is done, so the element has the episode's file
-  (when-let [element (audio)]
-    (when t
-      (set! (.-currentTime element) t))
-    (-> (.play element)
-        (.catch #(js/console.warn "The episode didn't play" %)))))
-
 (nxr/register-system->state! deref)
 
 (nxr/register-placeholder! :form/field
   (fn [{:replicant/keys [dom-event]} field-name]
     (some-> dom-event .-target (js/FormData.) (.get field-name))))
+
+(nxr/register-placeholder! :event/target-number
+  (fn [{:replicant/keys [dom-event]}]
+    (some-> dom-event .-target .-value js/parseFloat)))
+
+(nxr/register-placeholder! :event/range-seek
+  (fn [{:replicant/keys [dom-event]}]
+    (some-> dom-event controls/range-seek)))
 
 (nxr/register-expansion! :route/navigated navigated)
 
@@ -363,13 +359,60 @@
     (when (some-> (:replicant/dom-event dispatch-data) .-target .-open)
       (read-transcript! store id view))))
 
+;; dispatched as the player's element mounts, so it changes the store once
+;; the render is done
+(nxr/register-effect! :player/mounted
+  (fn [{:keys [dispatch-data]} store]
+    (let [node (:replicant/node dispatch-data)]
+      (js/queueMicrotask #(audio/mounted! store node)))))
+
+(nxr/register-effect! :player/unmounted
+  (fn [_ _]
+    (@audio/detach!)))
+
 (nxr/register-effect! :player/play
   (fn [_ store playable t]
-    (play! store playable t)))
+    (audio/play! store playable t)))
+
+(nxr/register-effect! :player/resume
+  (fn [_ store]
+    (audio/resume! store)))
 
 (nxr/register-effect! :player/pause
   (fn [_ _]
-    (some-> (audio) .pause)))
+    (some-> (audio/element) media/pause!)))
+
+(nxr/register-effect! :player/press
+  (fn [_ store details]
+    (audio/press! store details)))
+
+(nxr/register-effect! :player/drag
+  (fn [_ store details]
+    (audio/drag! store details)))
+
+(nxr/register-effect! :player/chapter
+  (fn [_ store direction]
+    (audio/chapter! store direction)))
+
+(nxr/register-effect! :player/ended
+  (fn [_ store]
+    (audio/ended! store)))
+
+(nxr/register-effect! :player/rate
+  (fn [_ store rate]
+    (audio/rate! store rate)))
+
+(nxr/register-effect! :player/volume
+  (fn [_ store level]
+    (audio/volume! store level)))
+
+(nxr/register-effect! :player/mute
+  (fn [_ _ muted?]
+    (audio/mute! muted?)))
+
+(nxr/register-effect! :player/expand
+  (fn [_ store expanded?]
+    (swap! store assoc-in [:player :expanded?] expanded?)))
 
 (defn routed-click?
   "Whether the `router` takes over the `click` on the `anchor` to `uri`: when
@@ -429,8 +472,10 @@
 
 (defn ^:export init
   "Start the app: send the actions of the views to Nexus, restore the
-  library, and once the server has said what it offers, render the page at
-  each change of the store and follow the window's history.
+  library, and once the server has said what it offers, put the current
+  episode in the player, render the page at each change of the store and
+  follow the window's history. Tell the library where the player is, and
+  save it, when the page is hidden.
 
   The first page waits for both, since what it shows can depend on them,
   e.g. a search asks the Podcast Index too when the server signs for it,
@@ -438,7 +483,13 @@
   the library keeps needs neither the index nor a fetch."
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
+  (.addEventListener js/document "visibilitychange"
+                     #(when (= "hidden" js/document.visibilityState)
+                        (audio/hidden! store)))
+  (.addEventListener js/window "pagehide" #(audio/hidden! store))
+  (audio/volume-locked! store)
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
       (.finally (fn []
+                  (swap! store audio/restored (audio/kept-position))
                   (add-watch store ::render (fn [_ _ _ state] (render! state)))
                   (start-router!)))))
