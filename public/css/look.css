@@ -144,10 +144,12 @@ time,
   text-decoration: none;
 }
 
+/* The current page in the text's own ink and underlined, at the weight of
+   the others, since a bolder one is wider, and would widen the rail and
+   move the page as the listener goes from page to page */
 .shell > nav a[aria-current="page"],
 .shell > header a[aria-current="page"] {
   color: var(--ink);
-  font-weight: var(--weight-strong);
   text-decoration: underline 2px;
   text-underline-offset: 0.45em;
 }
@@ -471,8 +473,11 @@ search p {
   font-size: var(--step--1);
 }
 
+/* the list last jumped to, marked as the current page is, without moving
+   the links after it */
 .search-jump a[aria-current="true"] {
-  font-weight: var(--weight-strong);
+  color: var(--ink);
+  text-decoration-thickness: 2px;
 }
 
 .search-list h2 {
