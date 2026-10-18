@@ -14,6 +14,7 @@
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.details :as details]
             [dk.simongray.podcast-app.ui.show :as show-ui]
             [dk.simongray.wary-fetch.url :as url]))
 
@@ -100,30 +101,79 @@
          [:button {:type "button" :on {:click [[:queue/add playable title false]]}}
           "Add to queue"])))))
 
+(defn number-text
+  "The number `n` of a season or an episode, without a fraction when it
+  has none, e.g. 3 for 3.0."
+  [n]
+  (if (== n (Math/floor n))
+    (str (long n))
+    (str n)))
+
+;; podcast namespace, season and episode: a season's name may stand in for
+;; its number, and an episode's display text should. Apple puts the season
+;; and the number above the title, as in "Season 17 · Episode 1 · Explicit".
+;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/season.md
+;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/episode.md
+(defn numbering-facts
+  "The season and the number of an episode by its `numbering`, as
+  resolve/numbering gives it, and whether it's a trailer or a bonus."
+  [{:keys [type season season-name episode episode-display]}]
+  [(or season-name (some->> season number-text (str "Season ")))
+   (or episode-display (some->> episode number-text (str "Episode ")))
+   (case type "trailer" "Trailer" "bonus" "Bonus" nil)])
+
 (defn intro
-  "The show, the date, the duration and the artwork of the episode `page`,
-  whether its `entry` in the profile is played, the button that plays it
-  as the `player` and the start time `t` have it, and the buttons that
-  queue it, by where it's `queued`."
-  [{:keys [show published duration] :as page} player entry t queued]
+  "The show, the facts and the artwork of the episode `page`, whether its
+  `entry` in the profile is played, the button that plays it as the
+  `player` and the start time `t` have it, the buttons that queue it, by
+  where it's `queued`, the link to its Details when it has them, `aside?`,
+  and the links that support its show."
+  [{:keys [show numbering published duration explicit? ai-content? funding]
+    :as   page}
+   player entry t queued aside?]
   [:div.episode-intro
    (artwork/img page 160 {:fetchpriority "high"})
    [:p [:a {:href (:href show)} (:title show)]]
-   (when (or published duration)
-     [:p
-      (when published
-        [:time {:datetime (show-ui/date-attribute published)}
-         (show-ui/date-text published)])
-      (when (and published duration)
-        [:span {:aria-hidden "true"} " · "])
-      (when duration
-        [:time {:datetime (str "PT" (long duration) "S")}
-         (show-ui/duration-text duration)])
-      (when (:played? entry)
-        (list [:span {:aria-hidden "true"} " · "] "Played"))])
+   (details/facts-line
+    (concat (numbering-facts numbering)
+            [(some-> published show-ui/date)
+             (when duration
+               [:time {:datetime (str "PT" (long duration) "S")}
+                (show-ui/duration-text duration)])
+             (when explicit? "Explicit")
+             (when ai-content? "Made with AI")
+             (when (:played? entry) "Played")]))
+   (when aside?
+     details/link)
    [:div.episode-actions
     (play-button page player entry t)
-    (queue-buttons page queued)]])
+    (queue-buttons page queued)]
+   (details/support funding)])
+
+(defn size-text
+  "The size of a file of `bytes`, e.g. \"86 MB\"."
+  [bytes]
+  (cond
+    (< bytes 1e6) (str (Math/round (/ bytes 1e3)) " kB")
+    (< bytes 1e9) (str (Math/round (/ bytes 1e6)) " MB")
+    :else         (str (/ (Math/round (/ bytes 1e8)) 10.0) " GB")))
+
+;; The Details of an episode hold what's its own rather than its show's,
+;; since the show's are on the show's page
+(defn details-rows
+  "The rows of the Details of the episode `page`."
+  [{:keys [link content-links locations license enclosure]}]
+  (let [length (:length enclosure)]
+    (concat
+     [["Web page" [(details/web-link link nil)]]
+      ["Also on" (map #(details/web-link (:href %) (:text %)) content-links)]]
+     (details/location-rows locations)
+     [["License" [(details/license license)]]
+      ;; TODO: the format and bitrate of the media file, and its size where
+      ;; the feed gives none or a wrong one, from what read-files! reads of
+      ;; it. They matter once episodes can be downloaded.
+      ["File" [(when (and (number? length) (pos? length))
+                 (size-text length))]]])))
 
 ;; A chapters file is the publisher's, so a chapter's link is only one when
 ;; it goes to the web, never e.g. a javascript: URL
@@ -202,21 +252,25 @@
   [state]
   (if-let [{:keys [id notes view] :as page} (route-page state)]
     (let [files (get-in state [:episodes id])
-          shown (episode/shown-chapters page files)]
+          shown (episode/shown-chapters page files)
+          aside (details/aside (details-rows page) (:people page))]
       ;; the files are read once the page of the episode is in the document,
       ;; and again for the page of another one
       [:div {:replicant/key      (pr-str id)
              :replicant/on-mount [[:episode/read-files id view]]}
-       (intro page (:player state) (player/entry (:library state) id) (start-time state)
-              (cond
-                (= id (:id (first (:episodes (some-> (:library state) queue/view))))) :current
-                (queue/queued? state id)                                              :queued))
-       (when (seq notes)
-         [:section {:aria-labelledby "notes"}
-          [:h2#notes "Show notes"]
-          [:div.show-notes notes]])
-       (when shown
-         (chapters page shown))
-       (when (:transcript view)
-         (transcript page files))])
+       (details/with-aside
+         [(intro page (:player state) (player/entry (:library state) id) (start-time state)
+                 (cond
+                   (= id (:id (first (:episodes (some-> (:library state) queue/view))))) :current
+                   (queue/queued? state id)                                              :queued)
+                 (some? aside))
+          (when (seq notes)
+            [:section {:aria-labelledby "notes"}
+             [:h2#notes "Show notes"]
+             [:div.show-notes notes]])
+          (when shown
+            (chapters page shown))
+          (when (:transcript view)
+            (transcript page files))]
+         aside)])
     (missing state)))

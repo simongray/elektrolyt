@@ -75,6 +75,26 @@
     (is (identical? page (episode/page state g hash-2 nil time-link))
         "made once for the same feed")))
 
+(deftest what-the-page-takes-of-the-episode-and-its-show
+  (let [fed  (assoc feed
+                    :podcast/license   {:content "CC-BY-4.0"}
+                    :podcast/people    [{:content "Adam"}]
+                    :podcast/locations [{:content "Austin"}]
+                    :rss/items         [(assoc (first items)
+                                               :podcast/locations [{:content "Birmingham"}]
+                                               :itunes/season 1)
+                                        (assoc (second items) :itunes/season 1)])
+        page (episode/page-of g {:feed fed :url url} (first (:rss/items fed)) time-link)]
+    (is (= ["Birmingham"] (map :content (:locations page))) "its own location")
+    (is (nil? (:license page)) "but not its show's license, which the show's page shows")
+    (is (= ["Adam"] (map :name (:people page))) "and its show's people, when it names none")
+    (is (= "https://example.org/?p=2" (:link page)) "its web page, here its guid")
+    (is (= {:type "full"} (:numbering page)) "and no season, where the show has only one")
+    (is (= 1 (get-in (episode/page-of g {:feed (assoc-in fed [:rss/items 1 :itunes/season] 2) :url url}
+                                      (first (:rss/items fed)) time-link)
+                     [:numbering :season]))
+        "but its season where the show has two")))
+
 (deftest while-there-is-no-episode
   (is (= :loading (episode/status (loaded false :loading) g)) "the whole feed may have it")
   (is (= :not-found (episode/status (loaded true :done) g)))

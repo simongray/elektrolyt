@@ -22,6 +22,7 @@
             [dk.simongray.podcast.app.show :as show]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
+            [dk.simongray.podcast.feed.schedule :as schedule]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.search :as search]))
@@ -47,15 +48,40 @@
    :published (resolve/published item)
    :duration  (resolve/duration item)})
 
+(def facts
+  "The properties of a show view that its page shows besides the title,
+  the artwork and the notes: in its intro, in its Details and as its
+  People."
+  [:link :categories :language :copyright :update-frequency :complete?
+   :serial? :medium :explicit? :ai-content? :locations :license :people
+   :funding])
+
+;; The latest episode anchors the cadence, so that the page needs no clock
+;; and the cadence of a show that stopped stays what it was
+(defn cadence
+  "How often the show of the `episodes`, the items of its view, publishes,
+  in milliseconds, as schedule/cadence estimates it up to `latest`, the
+  date of the newest, or nil."
+  [episodes latest]
+  (when latest
+    (schedule/cadence {:rss/items episodes} latest)))
+
 (defn view->page
   "The page of the show `view`, as app.show/view or library/show gives it."
   [view]
-  {:title         (:title view)
-   :author        (resolve/author view)
-   :artwork       (:artwork view)
-   :artwork-sizes (resolve/artwork-sizes view)
-   :notes         (:notes view)
-   :episodes      (mapv episode-row (:episodes view))})
+  (let [episodes (:episodes view)
+        rows     (mapv episode-row episodes)
+        latest   (some->> (seq (keep :published rows)) (apply max-key inst-ms))]
+    (merge (select-keys view facts)
+           {:title         (:title view)
+            :author        (resolve/author view)
+            :artwork       (:artwork view)
+            :artwork-sizes (resolve/artwork-sizes view)
+            :notes         (:notes view)
+            :episodes      rows}
+           (when latest
+             {:latest  latest
+              :cadence (cadence episodes latest)}))))
 
 (defn feed->page
   "The page of the show of the parsed `feed` at `url`, whole or its start."

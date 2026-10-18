@@ -18,6 +18,24 @@
     (is (= #{"One" "Two"} (set (map :title (:episodes page)))))
     (is (every? :guid (:episodes page)) "each row has the key of its list item")))
 
+(deftest the-facts-of-a-feed
+  (let [dated (fn [title date] {:rss/title title :rss/guid {:content title} :rss/pub-date date})
+        fed   {:rss/title       "A Show"
+               :rss/link        "https://example.org"
+               :rss/language    "en"
+               :itunes/explicit true
+               :podcast/people  [{:content "Adam"}]
+               :rss/items       [(dated "Three" #inst "2026-01-15T00:00:00Z")
+                                 (dated "Two" #inst "2026-01-08T00:00:00Z")
+                                 (dated "One" #inst "2026-01-01T00:00:00Z")]}
+        page  (show/feed->page url fed)]
+    (is (= {:link "https://example.org" :language "en" :explicit? true
+            :people [{:name "Adam" :role "host" :group "cast"}]}
+           (select-keys page [:link :language :explicit? :people])))
+    (is (= #inst "2026-01-15T00:00:00Z" (:latest page)))
+    (is (= (* 7 24 3600 1000) (:cadence page)) "how often it publishes, up to its latest episode")
+    (is (nil? (:cadence (show/feed->page url (feed "A Show" "One")))) "but not without dates")))
+
 (deftest a-feed-that-arrives-in-stages
   (let [guid  "g"
         state {:shows {guid {:url url :status :loading}}}

@@ -82,14 +82,59 @@
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]
     (is (= "Episode 2: The Present – Podcasts" (ui/document-title (episode-page nil))))
-    (is (= ["h1" "h2" "h3"]
+    (is (= ["h1" "h2" "h3" "h2"]
            (keep #(when (vector? %) (re-find #"^h[1-6]" (name (first %))))
                  (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) (elements :main#main x))))
-        "the title, Show notes, and the notes' own heading below it")
+        "the title, Show notes, the notes' own heading below it, and the Details")
     (is (= [(pr-str [episode-test/g "https://example.org/?p=2"])]
-           (keep #(:replicant/key (second %)) (filter (comp map? second) (elements :div x))))
+           (keep #(:replicant/key (second %))
+                 (filter #(:replicant/on-mount (second %)) (filter (comp map? second) (elements :div x)))))
         "a key of its own for each episode, so that its files are read when it mounts")
+    (is (= [:aside.details {:aria-labelledby "details"}]
+           (subvec (last (first (elements :div.with-details x))) 0 2))
+        "the Details last, after the show notes")
     (is (re-find #"A Show" (text-of (elements :div.episode-intro x))))))
+
+(deftest the-numbers-of-an-episode
+  (is (= ["Season 2" "Episode 3" nil] (episode-ui/numbering-facts {:type "full" :season 2 :episode 3})))
+  (is (= ["The Sequel" "Ch.3" "Bonus"]
+         (episode-ui/numbering-facts {:type "bonus" :season 2 :season-name "The Sequel"
+                                      :episode 204 :episode-display "Ch.3"}))
+      "a season's name and an episode's display text in place of their numbers")
+  (is (= [nil "Episode 3.5" "Trailer"] (episode-ui/numbering-facts {:type "trailer" :episode 3.5})))
+  (is (= "3" (episode-ui/number-text 3.0))))
+
+(deftest the-facts-of-an-episode
+  (let [page  (episode-ui/route-page (episode-page nil))
+        intro #(episode-ui/intro (merge page %) nil nil nil nil true)]
+    (is (= "Episode 2 · 1 h · Explicit"
+           (text-of (second (elements :p (intro {:numbering {:type "full" :episode 2} :published nil
+                                                  :explicit? true}))))))
+    (is (= [[:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
+                              "Details" [:span {:aria-hidden "true"} " ↓"]]]]
+           (elements :p.details-link (intro {})))
+        "and a link to its Details")
+    (is (empty? (elements :p.details-link (episode-ui/intro page nil nil nil nil false)))
+        "but none when it has no Details")
+    (is (= "Support the show: Give, example.org"
+           (text-of (last (elements :p (intro {:funding [{:url "https://pay.example/1" :content "Give"}
+                                                         {:url "https://www.example.org/donate"}
+                                                         {:url "javascript:alert(1)" :content "No"}]})))))
+        "the links of the web alone, by their text or their host")))
+
+(deftest the-details-of-an-episode
+  (let [rows (into {} (episode-ui/details-rows {:link          "https://example.org/?p=2"
+                                                :content-links [{:href "https://youtu.be/x" :text "Watch on YouTube"}]
+                                                :license       {:content "CC-BY-4.0" :name "Creative Commons Attribution"
+                                                                :version "4.0" :url "https://creativecommons.org/licenses/by/4.0/"}
+                                                :enclosure     {:url "https://example.org/2.mp3" :length 86000000}}))]
+    (is (= "example.org" (text-of (first (get rows "Web page")))))
+    (is (= "Watch on YouTube" (text-of (first (get rows "Also on")))))
+    (is (= "Creative Commons Attribution 4.0" (text-of (first (get rows "License")))))
+    (is (= ["86 MB"] (get rows "File")))
+    (is (= [nil] (get (into {} (episode-ui/details-rows {:enclosure {:length 0}})) "File"))
+        "a length of 0 says that the feed doesn't know it"))
+  (is (= ["850 kB" "86 MB" "1.5 GB"] (map episode-ui/size-text [850000 86000000 1500000000]))))
 
 (deftest the-transcript-on-request
   (let [page  (episode-ui/route-page (episode-page nil))

@@ -50,10 +50,21 @@
       feed {:feed feed :url (:url shown) :whole? true}
       head {:feed head :url (:url shown) :whole? false})))
 
+;; Apple, A Podcaster's Guide to RSS: with only one season in the feed,
+;; Apple Podcasts doesn't display a season number
+(defn one-season?
+  "Whether the items of `feed` are in one season at most."
+  [feed]
+  (>= 1 (count (into #{} (keep (comp :season resolve/numbering)) (:rss/items feed)))))
+
 (defn page-of
   "The page of the `item` of the show `guid` in the feed `source`, as source
   gives it. Each time in the show notes is what `time-fn` gives for the
-  page, the seconds and the text of the time."
+  page, the seconds and the text of the time.
+
+  The page's link, locations and license are the item's own, since its
+  Details show what's particular to it, and its people and funding are
+  its show's when it has none of its own."
   [guid {:keys [feed url key]} item time-fn]
   (let [item-guid (guid/item-guid item)
         title     (resolve/title item)
@@ -74,12 +85,19 @@
                                 (assoc view-opts
                                        :url url
                                        :timestamp-fn #(time-fn base %1 %2)))]
-    (assoc base
-           :duration      (resolve/duration item)
-           :artwork       (:artwork view)
-           :artwork-sizes (resolve/artwork-sizes view)
-           :notes         (:notes view)
-           :view          view)))
+    (merge base
+           (select-keys view [:explicit? :ai-content? :people :funding
+                              :content-links :enclosure])
+           {:duration      (resolve/duration item)
+            :artwork       (:artwork view)
+            :artwork-sizes (resolve/artwork-sizes view)
+            :notes         (:notes view)
+            :numbering     (cond-> (:numbering view)
+                             (one-season? feed) (dissoc :season :season-name))
+            :link          (resolve/link item)
+            :locations     (resolve/locations item)
+            :license       (resolve/license item)
+            :view          view})))
 
 (defn playable
   "What the player needs of the episode `page` to play it: its :id, and for

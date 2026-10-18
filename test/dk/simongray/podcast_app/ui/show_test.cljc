@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.ui.show-test
-  (:require [clojure.test :refer [deftest is]]
-            [dk.simongray.podcast-app.ui.show :as show]))
+  (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast-app.ui.show :as show]
+            [dk.simongray.podcast-app.ui-test :refer [elements]]))
 
 (deftest the-duration-of-an-episode
   (is (= "1 h 23 min" (show/duration-text 4980)))
@@ -48,6 +49,72 @@
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
                     (show/episodes "g" href rows :done 45 nil nil)))
         "no button once they're all listed")))
+
+(deftest how-often-a-show-publishes
+  (let [day (* 24 3600 1000)]
+    (is (= ["More than once a day" "About every day" "About every 3 days" "About every week"
+            "About every 2 weeks" "About every month" "About every 3 months"]
+           (map #(show/cadence-text (* % day)) [0.25 1 3 7 14 30 91])))
+    (is (= "Weekly" (show/schedule-text {:update-frequency "Weekly" :cadence (* 3 day)}))
+        "the schedule that the show states first")
+    (is (= "About every week" (show/schedule-text {:cadence (* 7 day)})))
+    (is (nil? (show/schedule-text {:cadence (* 7 day) :complete? true})) "none once it's complete")))
+
+(deftest the-facts-of-a-show
+  (is (= ["Tech News" "Audiobook" "Complete" "Explicit" "Made with AI"]
+         (show/facts {:categories [["News" "Tech News"] ["Technology"]] :medium "audiobook"
+                      :complete? true :explicit? true :ai-content? true}))
+      "the first category, or its subcategory, as Apple shows it")
+  (is (every? nil? (show/facts {:medium "podcast" :explicit? false})) "no medium for a podcast")
+  (let [rows (show/details-rows {:link       "https://www.podcastindex.org/"
+                                 :categories [["News" "Tech News"] ["Technology"]]
+                                 :serial?    true
+                                 :locations  [{:content "Austin, TX" :rel "creator" :osm {:type "R" :id 113314}}
+                                              {:content "Birmingham" :rel "subject"}
+                                              {:content "Marlow" :rel "Creator"}]
+                                 :copyright  "Podcast Index LLC 2026"}
+                                "https://feeds.podcastindex.org/pc20.xml")]
+    (is (= ["Website" "Categories" "Language" "Latest episode" "Schedule" "Order"
+            "Made in" "Location" "License" "Copyright" "Feed"]
+           (map first rows))
+        "in the order of Apple's Information, with the places by what they are")
+    (is (= "podcastindex.org" (text-of (first (second (first rows))))) "the website by its host")
+    (is (= ["Tech News" "Technology"] (second (second rows))))
+    (is (= "Austin, TXMarlow" (text-of (second (nth rows 6)))) "two places made in, under one name")
+    (is (= "https://www.openstreetmap.org/relation/113314"
+           (get-in (vec (first (second (nth rows 6)))) [1 :href]))
+        "a place linked to its map")))
+
+(deftest the-details-beside-the-episodes
+  (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {:url "https://example.org/feed.xml"}}
+               :shows {"g" {:url    "https://example.org/feed.xml"
+                            :status :done
+                            :page   {:title "A Show" :link "https://example.org" :explicit? true
+                                     :people [{:name "Adam" :role "host" :img "https://example.org/adam.jpg"}]
+                                     :episodes [{:guid "1" :title "One"}]}}}}
+        x     (show/content state)
+        [_ main aside] x]
+    (is (= :div.with-details (first x)))
+    (is (= "Explicit" (text-of (some #(when (= [:p "Explicit"] %) %) main))))
+    (is (some #(= [:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
+                                    "Details" [:span {:aria-hidden "true"} " ↓"]]]
+                  %)
+              main)
+        "a link to the Details, which a phone shows after the episodes")
+    (is (= [:aside.details {:aria-labelledby "details"} [:h2 {:id "details" :tabindex -1} "Details"]]
+           (subvec aside 0 3))
+        "the Details last, labelled by their heading")
+    (is (= [[:dt "Website"] [:dd [:a {:href "https://example.org" :target "_blank" :aria-describedby "new-tab-note"}
+                                 "example.org"]]]
+           (subvec (first (elements :div aside)) 2))
+        "a name and its value in a div of the dl")
+    (is (= "PeopleAdam, Host" (text-of (drop 4 aside)))))
+  (testing "no Details, and no link to them, before the feed has any"
+    (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
+                 :shows {"g" {:status :loading :page {:title "A Show" :episodes []}}}}
+          [_ main aside] (show/content state)]
+      (is (nil? aside))
+      (is (not-any? #(= "Details" (text-of %)) (filter vector? main))))))
 
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]

@@ -297,6 +297,76 @@ search input {
 }
 
 
+/* The Details of a show or an episode beside its content, where there's
+   room for both, and below it where there isn't, with no media query, as
+   Every Layout's Sidebar has them. The content wraps the Details below it
+   once it would be narrower than 60% of the page, i.e. below 55 rem,
+   where 40% of the page is less than the Details' 20 rem and the gap's
+   2 em.
+   https://every-layout.dev/layouts/sidebar/ */
+.with-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 2em;
+  container-type: inline-size;
+}
+
+.with-details > :first-child {
+  flex-basis: 0;
+  flex-grow: 999;
+  min-inline-size: 60%;
+}
+
+.with-details > aside {
+  flex-basis: 20rem;
+  flex-grow: 1;
+}
+
+/* The link to the Details only where they come after the content, since
+   beside it they're in view already. The width is the one that the wrap
+   above works out, so the two change together. */
+@container (min-width: 55rem) {
+  .details-link {
+    display: none;
+  }
+}
+
+/* Each name above its values, as GOV.UK's summary list has them on a
+   phone, which suits the narrow column on a desktop too, and long values,
+   e.g. the URL of a feed, wrap */
+.details {
+  overflow-wrap: anywhere;
+}
+
+.details dd {
+  margin: 0;
+}
+
+.details dl > div + div {
+  margin-top: 0.5em;
+}
+
+/* The people keep role="list", as the navigation's do */
+.people {
+  padding: 0;
+  list-style: none;
+}
+
+.people li {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 48px;
+}
+
+/* The ring on the heading that the link to the Details moved the focus
+   to, as on the lists of the Search page */
+.details h2:focus {
+  outline: auto;
+}
+
+
 /* The player: the episode and its Play button in a row, with the other
    controls below it, which a phone shows on request. The player is a row
    of the shell's grid, outside the main content that scrolls, so it never

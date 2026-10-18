@@ -5,10 +5,13 @@
   The page comes from the best source at hand, as
   dk.simongray.podcast-app.show describes it, so it shows what a search
   knew of the show at once, and its episodes as its feed arrives."
-  (:require [dk.simongray.podcast-app.routes :as routes]
+  (:require [clojure.string :as str]
+            [dk.simongray.podcast.feed.spec :as spec]
+            [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.details :as details]
             [dk.simongray.podcast-app.ui.subscription :as subscription]))
 
 (defn guid
@@ -48,6 +51,84 @@
   [inst]
   #?(:clj  (str (.toInstant ^java.util.Date inst))
      :cljs (.toISOString inst)))
+
+(defn date
+  "The date of the instant `inst` as a time element."
+  [inst]
+  [:time {:datetime (date-attribute inst)} (date-text inst)])
+
+;; ECMA-402, Intl.DisplayNames: the name of a language in the language of
+;; the page, which gives back the tag itself when it doesn't know it
+(defn language-name
+  "The name of the language `tag` in the language of the page, e.g.
+  \"English\" for en, or the tag when the browser can't name it."
+  [tag]
+  #?(:clj  tag
+     :cljs (try
+             (.of (js/Intl.DisplayNames. #js [(page-language)] #js {:type "language"}) tag)
+             (catch :default _ tag))))
+
+(defn cadence-text
+  "How often a show publishes by its cadence of `ms` between episodes, in
+  words, e.g. \"About every 2 weeks\"."
+  [ms]
+  (let [days   (Math/round (/ ms 86400000.0))
+        weeks  (Math/round (/ days 7.0))
+        months (Math/round (/ days 30.44))]
+    (cond
+      (zero? days) "More than once a day"
+      (= 1 days)   "About every day"
+      (< days 7)   (str "About every " days " days")
+      (= 1 weeks)  "About every week"
+      (< days 28)  (str "About every " weeks " weeks")
+      (= 1 months) "About every month"
+      :else        (str "About every " months " months"))))
+
+(defn schedule-text
+  "The schedule of the show `page`: the one that it states, or else how
+  often it publishes, unless it's complete."
+  [{:keys [update-frequency complete? cadence]}]
+  (or update-frequency
+      (when (and cadence (not complete?))
+        (cadence-text cadence))))
+
+;; Apple shows the primary category of a show, or its subcategory when it
+;; has one, and Pocket Casts shows it under the title too
+;; https://podcasters.apple.com/support/1691-apple-podcasts-categories
+(defn facts
+  "The facts of the show `page` for the line under its title: its first
+  category, its medium when it isn't a podcast, and whether it's complete,
+  explicit or made with AI."
+  [{:keys [categories medium complete? explicit? ai-content?]}]
+  [(last (first categories))
+   (when (and (spec/mediums medium) (not= "podcast" medium))
+     (str/capitalize medium))
+   (when complete? "Complete")
+   (when explicit? "Explicit")
+   (when ai-content? "Made with AI")])
+
+;; The order of Apple's Information and Pocket Casts' details: what the
+;; show is and where to find it first, then when it publishes, and the
+;; fine print last. Wikipedia's infoboxes keep to key facts, and so does
+;; this, with the count of episodes left to the list of them.
+;; https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Infoboxes
+(defn details-rows
+  "The rows of the Details of the show `page`, whose feed is at `url`."
+  [{:keys [link categories language latest serial? locations license copyright]
+    :as   page}
+   url]
+  (let [names (distinct (map last categories))]
+    (concat
+     [["Website" [(details/web-link link nil)]]
+      [(if (next names) "Categories" "Category") names]
+      ["Language" [(some-> language language-name)]]
+      ["Latest episode" [(some-> latest date)]]
+      ["Schedule" [(schedule-text page)]]
+      ["Order" [(when serial? "Serial, from the first episode")]]]
+     (details/location-rows locations)
+     [["License" [(details/license license)]]
+      ["Copyright" [copyright]]
+      ["Feed" [(details/web-link url url)]]])))
 
 ;; HTML, section 4.5.14: the time element gives a machine-readable date, or
 ;; a duration such as PT5025S, besides the text that a reader sees. The dot
@@ -130,20 +211,27 @@
         (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
         :failed                         [:p {:role "status"} (status-text status 0 error nil)]
         not-found)
-      (list (artwork/img page 160 {:fetchpriority "high"})
-            (when author
-              [:p author])
-            (when url
-              (let [status (subscription/status state
-                                                (search/subscribed-urls (:library state))
-                                                url)]
-                (list (subscription/button status url title true)
-                      (when (= :subscribed status)
-                        (subscription/new-episodes (:library state) k))
-                      (subscription/error state url))))
-            (when notes
-              [:div.show-notes notes])
-            (episodes g
-                      #(routes/episode-href (or k g) (:guid %) (:title %) (when-not k url))
-                      (:episodes page) status (or shown show/page-size) error
-                      (:count newer))))))
+      (let [aside (details/aside (details-rows page url) (:people page))]
+        (details/with-aside
+          [(artwork/img page 160 {:fetchpriority "high"})
+           (when author
+             [:p author])
+           (details/facts-line (facts page))
+           (when aside
+             details/link)
+           (when url
+             (let [status (subscription/status state
+                                               (search/subscribed-urls (:library state))
+                                               url)]
+               (list (subscription/button status url title true)
+                     (when (= :subscribed status)
+                       (subscription/new-episodes (:library state) k))
+                     (subscription/error state url))))
+           (details/support (:funding page))
+           (when notes
+             [:div.show-notes notes])
+           (episodes g
+                     #(routes/episode-href (or k g) (:guid %) (:title %) (when-not k url))
+                     (:episodes page) status (or shown show/page-size) error
+                     (:count newer))]
+          aside)))))

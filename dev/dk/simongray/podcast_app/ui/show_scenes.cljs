@@ -1,7 +1,9 @@
 (ns dk.simongray.podcast-app.ui.show-scenes
   "Scenes of the Show page as its feed arrives in stages, from what a search
-  knew to the whole feed, and of the ways it can fail."
+  knew to the whole feed, with the Details of a show that says much of
+  itself, and of the ways it can fail."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.inbox-scenes :as inbox-scenes]
             [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
@@ -71,6 +73,38 @@
                        :status :done
                        :page   (assoc known :episodes (rows 207))
                        :newer  {:count 2}})))
+
+(def pc20
+  "A feed like that of Podcasting 2.0, with what it says of itself, where
+  it's made and its license, and 20 episodes a week apart."
+  {:rss/title         "Podcasting 2.0"
+   :rss/link          "https://podcastindex.org"
+   :rss/description   "<p>The podcast about podcasting, with Podcast Index.</p>"
+   :rss/language      "en"
+   :rss/copyright     "Podcast Index LLC 2026"
+   :itunes/author     "Podcast Index LLC"
+   :itunes/categories [{:text "News" :categories [{:text "Tech News"}]} {:text "Technology"}]
+   :podcast/funding   [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]
+   :podcast/people    [{:content "Adam Curry" :role "host" :href "http://curry.com/"
+                        :img "https://feeds.podcastindex.org/adam_avatar.jpg"}
+                       {:content "Dave Jones" :role "host" :href "http://dave.sobr.org"
+                        :img "https://feeds.podcastindex.org/dave_avatar.jpg"}]
+   :podcast/locations [{:content "Austin, TX" :rel "creator" :osm {:type "R" :id 113314}}]
+   :podcast/license   {:content "CC-BY-4.0"}
+   :rss/items         (vec (for [{:keys [guid title published duration]} (rows 20)]
+                             {:rss/guid        {:content guid}
+                              :rss/title       title
+                              :rss/pub-date    published
+                              :itunes/duration duration}))})
+
+(defscene a-show-with-its-details
+  "A show that says much of itself: its Details beside the episodes where
+  there's room for both, and below them on a phone, with a link to them at
+  the top, and the people who make it."
+  (ui/page (show-page {:url    url
+                       :status :done
+                       :page   (merge (show/feed->page url pc20)
+                                      (select-keys known [:artwork :artwork-sizes]))})))
 
 (defscene a-feed-that-failed
   "A fetch of the feed that failed, after what the search knew."
