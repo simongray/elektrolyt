@@ -9,13 +9,11 @@
   can't answer 304 is checked by its start first, its :head-check?, so
   that only a feed with something new is fetched whole and parsed.
 
-  The page saves the library first, so that the worker reads what it has,
-  and catches up with what the worker saved after. One refresh runs at a
-  time across the tabs, so a tab whose worker finds another refreshing
-  waits for what that one saves. A hidden tab doesn't refresh, so with
-  every tab hidden, nothing does."
+  One refresh runs at a time across the tabs, so a tab whose worker finds
+  another refreshing catches up with what that one saves. A hidden tab
+  doesn't refresh, so with every tab hidden, nothing does."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast-app.background :as background]
+            [dk.simongray.podcast.app.worker :as worker]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.shows :as shows]))
 
@@ -51,12 +49,9 @@
 
 (defn refreshed
   "The `state` once the refresh that gave the :refresh `result` is done,
-  which the listener asked for when `asked?`. The library keeps the
-  result, which the store doesn't, since next-refresh reads which feeds
-  failed from it."
+  which the listener asked for when `asked?`."
   [state result asked?]
   (-> state
-      (update :library #(cond-> % result (assoc :refresh result)))
       (assoc :refresh {:running? false
                        :result   (select-keys result [:at :counts :added])})
       (cond-> (shows/summary result asked?)
@@ -67,31 +62,24 @@
 ;; for each feed, which would be too chatty
 (defn refresh!
   "Refresh the library of the `store` in the worker: the feeds that are
-  due, or, when the listener `asked?`, every feed of a subscription. Save
-  it first, catch up with what the worker saved after, and wait for the
-  next. Nothing starts while a refresh is under way."
+  due, or, when the listener `asked?`, every feed of a subscription, and
+  wait for the next. Nothing starts while a refresh is under way."
   [store asked?]
   (let [{:keys [library refresh]} @store]
-    (when (and library (not (:running? refresh)))
+    (when (and library @app-library/the-replica (not (:running? refresh)))
       (some-> @timer js/clearTimeout)
       (swap! store #(cond-> (assoc % :refresh {:running? true :done 0})
                       asked? (assoc :announcement "Checking for new episodes…")))
-      (-> (app-library/save! store)
-          (.then (fn [_]
-                   (background/refresh!
-                    (:device library)
-                    (cond-> {:head-check? true
-                             :online?     (.-onLine js/navigator)}
-                      asked? (assoc :feed-guids (vec (keys (library/subscriptions library)))))
-                    #(swap! store update :refresh merge %))))
-          (.then (fn [{:keys [refresh busy? failed]}]
-                   (when failed
-                     (throw (js/Error. failed)))
-                   (.then (app-library/catch-up! store)
-                          (fn [_]
-                            (if busy?
-                              (swap! store assoc :refresh {:running? false})
-                              (swap! store refreshed refresh asked?))))))
+      (-> (worker/refresh! @app-library/web-worker
+                           @app-library/the-replica
+                           (cond-> {:head-check? true
+                                    :online?     (.-onLine js/navigator)}
+                             asked? (assoc :feed-guids (vec (keys (library/subscriptions library)))))
+                           #(swap! store update :refresh merge %))
+          (.then (fn [{:keys [refresh busy?]}]
+                   (if busy?
+                     (swap! store assoc :refresh {:running? false})
+                     (swap! store refreshed refresh asked?))))
           (.catch (fn [e]
                     (js/console.error "The library didn't refresh" e)
                     (swap! store assoc :refresh {:running? false})))

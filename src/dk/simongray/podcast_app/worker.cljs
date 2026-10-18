@@ -10,17 +10,9 @@
             [dk.simongray.podcast.app.worker :as worker]
             [dk.simongray.podcast-app.library :as app-library]))
 
-(defn- parser
-  "An xmldom DOMParser that throws on the errors that a browser's parser
-  reports as a parsererror element."
-  []
-  (xmldom/DOMParser. #js {:onError (fn [level message _context]
-                                     (when-not (= level "warning")
-                                       (throw (js/Error. message))))}))
-
 (defn ^:export init
   "Answer the page's requests to refresh the library and fetch feeds."
   []
-  (worker/serve! {:store  app-library/store
-                  :config app-library/config
-                  :parser parser}))
+  (worker/serve! {:store      app-library/store
+                  :config     app-library/config
+                  :dom-parser xmldom/DOMParser}))

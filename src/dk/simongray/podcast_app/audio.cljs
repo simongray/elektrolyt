@@ -68,7 +68,7 @@
   "Save the library of the `store`, and note when."
   [store]
   (swap! store assoc-in [:player :saved] (js/Date.now))
-  (-> (app-library/save! store)
+  (-> (app-library/save!)
       (.then #(when (:error %)
                 (js/console.error "The library wasn't saved" (clj->js %))))))
 

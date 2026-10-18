@@ -13,7 +13,10 @@ test('a paused episode is paused at the same second after a reload', async ({ pa
   const seekBar = player.getByRole('slider', { name: 'Position' });
 
   await main.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect.poll(() => audio.evaluate(a => a.currentTime)).toBeGreaterThan(2);
+  // playback, not its speed, is the point, and the first run after a build
+  // starts the worker's code cold in every page of the run at once
+  await expect.poll(() => audio.evaluate(a => a.currentTime), { timeout: 15_000 })
+    .toBeGreaterThan(2);
   await main.getByRole('button', { name: 'Pause' }).click();
   await expect(player.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 

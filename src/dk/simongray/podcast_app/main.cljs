@@ -12,11 +12,11 @@
             [dk.simongray.play-nice.media :as media]
             [dk.simongray.podcast.app.episode :as episode]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.app.worker :as worker]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast-app.audio :as audio]
-            [dk.simongray.podcast-app.background :as background]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.refresh :as refresh]
@@ -181,12 +181,12 @@
   (swap! store subscribing url)
   (-> (if-let [feed (whole-feed @store url)]
         (js/Promise.resolve feed)
-        (background/fetch! url {:max-pages 20}))
+        (worker/fetch! @app-library/web-worker url {:max-pages 20}))
       (.then #(swap! store subscribed url title %))
       ;; a show subscribed to from its page loses the URL of its feed from
       ;; the address bar, since the library knows it now
       (.then #(do (canonicalize! %) %))
-      (.then (fn [_] (app-library/save! store)))
+      (.then (fn [_] (app-library/save!)))
       (.then #(when (:error %)
                 (js/console.error "The library wasn't saved" (clj->js %))))))
 
@@ -240,7 +240,7 @@
         ;; in the worker, since a feed of 20 MB takes a third of a second or
         ;; more to parse; the start of the feed already shows the first
         ;; episodes, parsed here, since it's small
-        (-> (background/fetch! url {:max-pages 20})
+        (-> (worker/fetch! @app-library/web-worker url {:max-pages 20})
             (.then (fn [{:keys [feed error]}]
                      (if feed
                        (arrived! feed true)
@@ -470,7 +470,7 @@
   (fn [_ store url title]
     (let [guid (get-in @store [:route :path-params :guid])]
       (swap! store unsubscribed url title)
-      (app-library/save! store)
+      (app-library/save!)
       (if-let [s (routes/slug title)]
         (rfe/replace-state :route/titled-show {:guid guid :slug s} {:url url})
         (rfe/replace-state :route/show {:guid guid} {:url url})))))
@@ -532,13 +532,14 @@
                :ignore-anchor-click? routed-click?}))
 
 (defn restore-library!
-  "Restore the library that this browser saved into the store.
+  "Restore the library that this browser saved into the store, as the
+  replica of this tab, which catches up with what the other tabs and the
+  worker save.
 
   A library that doesn't restore stays out of the store rather than be
   replaced by a new one, which the next save would write over the old."
   []
-  (-> (app-library/restore!)
-      (.then #(nxr/dispatch store {} [[:store/assoc :library %]]))
+  (-> (app-library/open! store)
       ;; the title of a show that only the library keeps is known now
       (.then #(canonicalize! @store))
       (.catch #(js/console.error "The library didn't restore" %))))
@@ -578,22 +579,14 @@
   The first page waits for both, since what it shows can depend on them,
   e.g. a search asks the Podcast Index too when the server signs for it,
   only the Podcast Index finds a show by its guid alone, and a show that
-  the library keeps needs neither the index nor a fetch.
-
-  The library catches up with what the other tabs and the worker save, as
-  they say it, and when the page comes back, since a hidden page can miss
-  what they say."
+  the library keeps needs neither the index nor a fetch."
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
-  (app-library/listen! store)
   (.addEventListener js/document "visibilitychange"
                      #(if (= "hidden" js/document.visibilityState)
                         (audio/hidden! store)
-                        (-> (app-library/catch-up! store)
-                            (.finally (fn [] (refresh/refresh-if-due! store))))))
+                        (refresh/refresh-if-due! store)))
   (.addEventListener js/window "pagehide" #(audio/hidden! store))
-  (.addEventListener js/window "pageshow"
-                     #(when (.-persisted ^js %) (app-library/catch-up! store)))
   (audio/volume-locked! store)
   (swap! store assoc :library-view (saved-library-view))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
