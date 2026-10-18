@@ -3,6 +3,7 @@
   knew to the whole feed, and of the ways it can fail."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.ui :as ui]
+            [dk.simongray.podcast-app.ui.inbox-scenes :as inbox-scenes]
             [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
             [portfolio.replicant :refer [defscene]]))
 
@@ -67,6 +68,13 @@
   (ui/page (show-page {:url    url
                        :status :failed
                        :error  {:message "The server answered 404."}})))
+
+(defscene a-show-in-the-library
+  "A show that the listener subscribes to, with the choice of where its new
+  episodes go."
+  (let [k (first (keys (:feeds inbox-scenes/lib)))]
+    (ui/page {:route   {:name :route/show :path-params {:guid k} :query-params {}}
+              :library inbox-scenes/lib})))
 
 (defscene a-show-nobody-knows
   "A link to a show that the library doesn't keep and that names no feed."

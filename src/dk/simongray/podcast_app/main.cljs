@@ -16,12 +16,16 @@
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.audio :as audio]
+            [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.library :as app-library]
+            [dk.simongray.podcast-app.opml :as opml]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.refresh :as refresh]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
+            [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
@@ -37,8 +41,9 @@
 (defn navigated
   "The actions of the navigation to the `route` from the `state`: keep the
   route, move the focus to the heading of a page that replaces another,
-  search for the query of a Search page that has no search for it yet, and
-  load the show of a Show page or an Episode page.
+  search for the query of a Search page that has no search for it yet,
+  load the show of a Show page or an Episode page, and ask the browser how
+  it keeps the library for the Settings page.
 
   The page that loads first keeps the focus at the start of the document,
   and so does a page that only changes its query."
@@ -55,7 +60,10 @@
       (conj [:search/run q])
 
       (#{:route/show :route/episode} (:name route))
-      (conj [:show/load (get-in route [:path-params :guid]) url false]))))
+      (conj [:show/load (get-in route [:path-params :guid]) url false])
+
+      (= :route/settings (:name route))
+      (conj [:storage/check]))))
 
 (defn more-shown
   "The actions of the listener's ask for more of the `total` episodes of the
@@ -302,6 +310,10 @@
   (fn [{:replicant/keys [dom-event]}]
     (some-> dom-event .-target .-value not-empty keyword)))
 
+(nxr/register-placeholder! :event/target-checked
+  (fn [{:replicant/keys [dom-event]}]
+    (some-> dom-event .-target .-checked)))
+
 (nxr/register-placeholder! :event/range-seek
   (fn [{:replicant/keys [dom-event]}]
     (some-> dom-event controls/range-seek)))
@@ -475,12 +487,61 @@
         (rfe/replace-state :route/titled-show {:guid guid :slug s} {:url url})
         (rfe/replace-state :route/show {:guid guid} {:url url})))))
 
-(defn queue-changed!
+(defn profile-changed!
   "Change the state of the `store` with `f` of it and the `args`, a change
-  of the queue, and save the library."
+  of the listener's profile, e.g. of the queue, and save the library."
   [store f & args]
   (apply swap! store f args)
   (audio/save! store))
+
+(nxr/register-effect! :library/new-episodes
+  (fn [_ store k choice]
+    (when choice
+      (swap! store update :library library/update-profile
+             profile/configure k (profile/new-episodes-settings choice))
+      (audio/save! store))))
+
+(nxr/register-effect! :settings/prefer
+  (fn [_ store k v]
+    (when (or (boolean? v) (keyword? v) (js/Number.isFinite v))
+      (profile-changed! store settings/preferred {k v}))))
+
+(nxr/register-effect! :settings/new-episodes
+  (fn [_ store choice]
+    (when choice
+      (profile-changed! store settings/defaulted choice))))
+
+(nxr/register-effect! :settings/apply-to-all
+  (fn [_ store]
+    (profile-changed! store settings/applied-to-all)))
+
+;; the input is emptied, so that choosing the same file again imports it
+;; again
+(nxr/register-effect! :opml/import
+  (fn [{:keys [dispatch-data]} store]
+    (when-let [input (some-> (:replicant/dom-event dispatch-data) .-target)]
+      (when-let [file (some-> input .-files (aget 0))]
+        (opml/import! store file)
+        (set! (.-value input) "")))))
+
+(nxr/register-effect! :opml/export
+  (fn [_ store]
+    (opml/export! @store)))
+
+(nxr/register-effect! :storage/check
+  (fn [_ store]
+    (.then (app-library/storage!) #(swap! store assoc :storage %))))
+
+(nxr/register-effect! :storage/persist
+  (fn [_ store]
+    (-> (or (app-library/persist!) (js/Promise.resolve false))
+        (.then (fn [granted?]
+                 (when-not granted?
+                   (swap! store assoc :settings-status
+                          {:group :this-browser
+                           :text  "The browser didn't agree to keep it."}))
+                 (app-library/storage!)))
+        (.then #(swap! store assoc :storage %)))))
 
 (nxr/register-effect! :queue/add
   (fn [_ store {:keys [id] :as playable} title next?]
@@ -493,15 +554,31 @@
 
 (nxr/register-effect! :queue/move
   (fn [_ store id to]
-    (queue-changed! store queue/moved id to)))
+    (profile-changed! store queue/moved id to)))
 
 (nxr/register-effect! :queue/remove
   (fn [_ store id]
-    (queue-changed! store queue/removed id)))
+    (profile-changed! store queue/removed id)))
 
 (nxr/register-effect! :queue/undo
   (fn [_ store]
-    (queue-changed! store queue/undone)))
+    (profile-changed! store queue/undone)))
+
+(nxr/register-effect! :inbox/dismiss
+  (fn [_ store id]
+    (profile-changed! store inbox/dismissed id)))
+
+(nxr/register-effect! :inbox/dismiss-all
+  (fn [_ store]
+    (profile-changed! store inbox/all-dismissed)))
+
+(nxr/register-effect! :inbox/queue-all
+  (fn [_ store]
+    (profile-changed! store inbox/all-queued)))
+
+(nxr/register-effect! :inbox/undo
+  (fn [_ store]
+    (profile-changed! store inbox/undone)))
 
 ;; once the dialog has closed, since the page is inert while it's open
 (nxr/register-effect! :queue/clear-closed
@@ -509,7 +586,7 @@
     (when-let [dialog (some-> (:replicant/dom-event dispatch-data) .-target)]
       (when (= "clear" (.-returnValue dialog))
         (set! (.-returnValue dialog) "")
-        (queue-changed! store queue/cleared)
+        (profile-changed! store queue/cleared)
         (some-> (js/document.getElementById focus-id) .focus)))))
 
 (defn routed-click?

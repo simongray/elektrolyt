@@ -7,6 +7,7 @@
   a removal, so that a keyboard and a screen reader keep their place."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
@@ -144,10 +145,17 @@
     [:section {:aria-labelledby "up-next"}
      [:h2#up-next {:tabindex -1} "Up next"]
      (if (empty? episodes)
-       (list
-        [:p "Nothing in the queue."]
-        [:p "Add episodes from their pages with Play next or Add to queue, "
-         "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."])
+       ;; AntennaPod's empty queue tells of the new episodes in the inbox,
+       ;; with a way there
+       ;; https://github.com/AntennaPod/AntennaPod/blob/develop/ui/i18n/src/main/res/values/strings.xml
+       (let [new-ones (count (inbox/episodes state))]
+         (list
+          [:p "Nothing in the queue."]
+          (when (pos? new-ones)
+            [:p "Your " [:a {:href (routes/href :route/inbox)} "Inbox"]
+             " has " (inbox/counted new-ones) " to choose from."])
+          [:p "Add episodes from their pages with Play next or Add to queue, "
+           "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."]))
        [:p.queue-summary (summary episodes)])
      ;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until
      ;; the next change, rather than in a toast that times out

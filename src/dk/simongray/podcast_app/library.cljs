@@ -83,3 +83,15 @@
   "Ask the browser to keep the site's storage when the device runs low."
   []
   (some-> js/navigator .-storage .persist))
+
+(defn storage!
+  "A promise of how the browser keeps the site's storage: a map of
+  :supported?, :persisted? and the :usage in bytes."
+  []
+  (if-let [^js s (some-> js/navigator .-storage)]
+    (.then (js/Promise.all #js [(.persisted s) (.estimate s)])
+           (fn [[persisted estimate]]
+             {:supported? true
+              :persisted? persisted
+              :usage      (.-usage estimate)}))
+    (js/Promise.resolve {:supported? false})))

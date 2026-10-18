@@ -8,14 +8,17 @@
   has. It holds the listener's library from podcast-clj as :library, once
   it's restored, and the last thing to tell a screen reader as
   :announcement."
-  (:require [dk.simongray.podcast-app.links :as links]
+  (:require [dk.simongray.podcast-app.inbox :as inbox]
+            [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
+            [dk.simongray.podcast-app.ui.inbox :as inbox-ui]
             [dk.simongray.podcast-app.ui.library :as library-ui]
             [dk.simongray.podcast-app.ui.player :as player-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.search :as search]
+            [dk.simongray.podcast-app.ui.settings :as settings-ui]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
 (def app-name
@@ -81,6 +84,21 @@
    [:a {:href (routes/href :route/queue)} app-name]
    (page-link state :route/settings (titles :route/settings))])
 
+;; AntennaPod counts the inbox in its navigation. The count is part of the
+;; link's name, e.g. "Inbox 3 new episodes", which begins with what the
+;; link shows (WCAG 2.2, SC 2.5.3 Label in Name).
+;; https://github.com/AntennaPod/AntennaPod/pull/7398
+(defn nav-label
+  "The label of the link of the main navigation to the route named
+  `route-name` for the `state`: its title, with the count of the inbox."
+  [state route-name]
+  (let [n (when (= :route/inbox route-name)
+            (count (inbox/episodes state)))]
+    (if (pos? (or n 0))
+      (list (titles route-name) " " (str n)
+            [:span.visually-hidden (if (= 1 n) " new episode" " new episodes")])
+      (titles route-name))))
+
 ;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
 ;; list's role is explicit, since the CSS removes its markers (see app.css).
@@ -91,7 +109,7 @@
   [:nav {:aria-label "Main"}
    [:ul {:role "list"}
     (for [route-name destinations]
-      [:li (page-link state route-name (titles route-name))])]])
+      [:li (page-link state route-name (nav-label state route-name))])]])
 
 ;; The heading takes the focus after each navigation, which the users who
 ;; tested the techniques of client-side routing found the best experience
@@ -122,12 +140,14 @@
   [:main#main
    (page-heading state)
    (case (get-in state [:route :name])
-     nil           not-found
-     :route/queue   (queue-ui/content state)
-     :route/library (library-ui/content state)
-     :route/search  (search/content state)
-     :route/show    (show-ui/content state)
-     :route/episode (episode-ui/content state)
+     nil             not-found
+     :route/queue    (queue-ui/content state)
+     :route/inbox    (inbox-ui/content state)
+     :route/library  (library-ui/content state)
+     :route/search   (search/content state)
+     :route/settings (settings-ui/content state)
+     :route/show     (show-ui/content state)
+     :route/episode  (episode-ui/content state)
      nil)
    (announcer (:announcement state))
    [:p.visually-hidden {:id links/note-id} "Opens in a new tab"]])

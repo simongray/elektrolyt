@@ -4,7 +4,8 @@
   The state holds the feed URLs that are being subscribed to in
   :subscribing, and the errors of those that failed by URL in
   :subscribe-errors."
-  (:require [dk.simongray.podcast-app.search :as search]))
+  (:require [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast-app.search :as search]))
 
 (defn status
   "Where the subscription to the feed at `url` stands in the `state`, with
@@ -39,6 +40,34 @@
         :subscribing "Subscribing…"
         "Subscribe")
       [:span.visually-hidden " to " title]])))
+
+(def new-episodes-options
+  "Where the new episodes of a show can go, as profile/new-episodes names
+  them, with the text of each, in the order of the select."
+  [[:inbox "The inbox"]
+   [:queue "The end of the queue"]
+   [:next  "Next in the queue"]
+   [:none  "Nowhere"]])
+
+;; Castro and AntennaPod: a choice for each show of where its new episodes
+;; go, the inbox, the queue or nothing, set on the show's page. It shows as
+;; the show is subscribed to, set to the default, rather than ask in a
+;; dialog, which would stand in the way of every subscription.
+;; https://castro.fm/support/auto-queue-and-auto-archive
+;; https://github.com/AntennaPod/AntennaPod/blob/develop/app/src/main/res/xml/feed_settings.xml
+;; A change applies at once, and moves neither the focus nor the page, so
+;; it changes no context (WCAG 2.2, SC 3.2.2 On Input).
+(defn new-episodes
+  "The select of where the new episodes of the show `k` of the `library`
+  go, for the page of a show that the listener subscribes to."
+  [library k]
+  (let [chosen (profile/new-episodes (profile/settings (:profile library) k))]
+    [:div.new-episodes
+     [:label {:for "new-episodes"} "New episodes go to"]
+     [:select {:id "new-episodes"
+               :on {:change [[:library/new-episodes k [:event/target-keyword]]]}}
+      (for [[option text] new-episodes-options]
+        [:option {:value (name option) :selected (= option chosen)} text])]]))
 
 (defn error
   "The paragraph that tells why the subscription to the feed at `url`

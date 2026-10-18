@@ -124,14 +124,13 @@
             (when author
               [:p author])
             (when url
-              (list (subscription/button
-                     (subscription/status state
-                                          (search/subscribed-urls (:library state))
-                                          url)
-                     url
-                     title
-                     true)
-                    (subscription/error state url)))
+              (let [status (subscription/status state
+                                                (search/subscribed-urls (:library state))
+                                                url)]
+                (list (subscription/button status url title true)
+                      (when (= :subscribed status)
+                        (subscription/new-episodes (:library state) k))
+                      (subscription/error state url))))
             (when notes
               [:div.show-notes notes])
             (episodes g

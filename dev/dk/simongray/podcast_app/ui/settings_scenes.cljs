@@ -1,0 +1,30 @@
+(ns dk.simongray.podcast-app.ui.settings-scenes
+  "Scenes of the Settings page: the defaults, a browser that may clear the
+  library, and the status line after an action."
+  (:require [dk.simongray.podcast-app.settings :as settings]
+            [dk.simongray.podcast-app.ui :as ui]
+            [dk.simongray.podcast-app.ui.inbox-scenes :as inbox-scenes]
+            [portfolio.replicant :refer [defscene]]))
+
+(defn settings-page
+  "The state of the Settings page, with the `more` state merged in."
+  [more]
+  (merge {:route   {:name :route/settings}
+          :library inbox-scenes/lib}
+         more))
+
+(defscene the-defaults
+  "Every setting as it is until the listener changes it, in a browser that
+  keeps the library."
+  (ui/page (settings-page {:storage {:supported? true :persisted? true :usage 12345678}})))
+
+(defscene a-browser-that-may-clear-it
+  "A browser that hasn't agreed to keep the library, with the button that
+  asks it to."
+  (ui/page (settings-page {:storage {:supported? true :persisted? false :usage 2345678}})))
+
+(defscene after-applying-to-all-shows
+  "The status line of the new episodes, once their default applies to
+  every show."
+  (ui/page (settings/applied-to-all
+            (settings-page {:storage {:supported? true :persisted? true :usage 12345678}}))))

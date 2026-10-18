@@ -345,37 +345,44 @@ search input {
 }
 
 
-/* The queue: each episode's artwork beside its title, show and time left,
-   with its buttons below, which wrap on a phone. The list keeps
-   role="list", as the navigation's does. */
-.queue {
+/* The queue and the inbox: each episode's artwork beside its title, show
+   and times, with its buttons below, which wrap on a phone. The lists
+   keep role="list", as the navigation's does. */
+.queue,
+.inbox {
   padding: 0;
   list-style: none;
 }
 
-.queue-episode {
+.queue-episode,
+.inbox-episode {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   column-gap: 1em;
   align-items: start;
 }
 
-.queue-episode img {
+.queue-episode img,
+.inbox-episode img {
   grid-row: span 3;
   width: 48px;
 }
 
-.queue-episode > :not(img) {
+.queue-episode > :not(img),
+.inbox-episode > :not(img) {
   grid-column: 2;
   overflow-wrap: anywhere;
 }
 
 .queue-episode h3,
-.queue-episode p {
+.queue-episode p,
+.inbox-episode h2,
+.inbox-episode p {
   margin: 0;
 }
 
-.queue-actions {
+.queue-actions,
+.inbox-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
@@ -383,15 +390,19 @@ search input {
 
 /* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
 .queue-actions button,
+.inbox-actions button,
 .episode-actions button,
 main section > button {
   min-height: 44px;
 }
 
 
-/* The Library page: its choices and its refresh in rows that wrap */
+/* The Library page's choices and its refresh, the Inbox page's buttons,
+   and the choice of a show's page, in rows that wrap */
 .library-tools,
-.library-refresh {
+.library-refresh,
+.inbox-tools,
+.new-episodes {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -403,7 +414,9 @@ main section > button {
 }
 
 .library-tools select,
-.library-refresh button {
+.library-refresh button,
+.inbox-tools button,
+.new-episodes select {
   min-height: 44px;
 }
 
@@ -501,4 +514,37 @@ main section > button {
   .library-shows.auto .library-show img {
     width: 100%;
   }
+}
+
+
+/* The Settings page: a column of groups, each setting a row of its label
+   and its control, which wraps on a phone, with a hint below. The groups
+   keep the fieldset's own look until the app has one. */
+.settings-group {
+  margin: 0 0 1.5em;
+  min-inline-size: 0;
+}
+
+.settings-group legend h2 {
+  margin: 0;
+}
+
+.setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+  margin-block: 0.75em;
+}
+
+.setting p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.setting select,
+.setting input[type=file],
+.settings-group > button {
+  min-height: 44px;
+  max-width: 100%;
 }

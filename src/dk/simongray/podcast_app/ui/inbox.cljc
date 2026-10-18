@@ -1,0 +1,149 @@
+(ns dk.simongray.podcast-app.ui.inbox
+  "The views of the Inbox page: the new episodes of the listener's shows,
+  the newest first, which the listener plays, queues or dismisses, one at
+  a time or all at once.
+
+  Each of them takes an episode out of the inbox, so its row goes, and the
+  focus moves to the same button of the next row, or of the row before
+  the last, so that a keyboard and a screen reader keep their place. What
+  happened is announced in the page's status line."
+  (:require [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.podcast-app.inbox :as inbox]
+            [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.queue :as queue-ui]
+            [dk.simongray.podcast-app.ui.show :as show-ui]))
+
+(defn control-id
+  "The id of the button `kind`, e.g. :dismiss, of the row of the episode
+  `id`, by which the focus finds it again after a change."
+  [id kind]
+  (str "inbox-" (guid/short-hash (pr-str id)) "-" (name kind)))
+
+(def undo-id
+  "The id of the button that undoes the last dismissal."
+  "inbox-undo")
+
+(def separator
+  "What stands between the parts of a row's details, which a screen reader
+  leaves out."
+  [:span {:aria-hidden "true"} " · "])
+
+(defn details
+  "The show of the `episode` of the inbox, when it came out, and how long
+  it is, or has left once it has started."
+  [{:keys [show published] :as episode}]
+  [:p show
+   (when published
+     (list separator
+           [:time {:datetime (show-ui/date-attribute published)}
+            (show-ui/date-text published)]))
+   (when-let [left (queue-ui/time-left episode)]
+     (list separator left))])
+
+(defn row
+  "The `episode` of the inbox, its artwork, title and details, in the
+  library `lib`."
+  [lib {:keys [id title] :as episode}]
+  (list
+   (artwork/img episode 48 {})
+   [:h2 [:a {:href (queue-ui/episode-href lib id title)} title]]
+   (details episode)))
+
+;; Castro's actions on an episode of its inbox: play, queue at the top or
+;; the bottom, and archive. Each is a button that names its episode,
+;; rather than a swipe, which would need such a button anyway (WCAG 2.2,
+;; SC 2.5.1 Pointer Gestures).
+;; https://sixcolors.com/post/2016/08/castro-2-inbox-triage-for-podcast-episodes/
+;; https://inclusive-components.design/a-todo-list/
+(defn actions
+  "The buttons of the `episode` of the inbox, where `focus` gives the
+  action that moves the focus after one of them, by the kind of its
+  button."
+  [{:keys [id title] :as episode} focus]
+  [:div.inbox-actions
+   (queue-ui/button "Play" title
+                    {:id (control-id id :play)
+                     :on {:click [[:player/play {:id id} nil] (focus :play)]}})
+   (queue-ui/button "Add to queue" title
+                    {:id (control-id id :queue)
+                     :on {:click [[:queue/add {:id id} title false] (focus :queue)]}})
+   (queue-ui/button "Play next" title
+                    {:id (control-id id :next)
+                     :on {:click [[:queue/add {:id id} title true] (focus :next)]}})
+   (queue-ui/button "Dismiss" title
+                    {:id (control-id id :dismiss)
+                     :on {:click [[:inbox/dismiss id] (focus :dismiss)]}})])
+
+(defn focus-after
+  "A function of the kind of a button of the row before `neighbour`, the
+  next row's episode or nil, which gives the action that moves the focus
+  once the row has gone: to that button of the neighbour, or else to the
+  undo of a dismissal, or the page's heading."
+  [neighbour]
+  (fn [kind]
+    (cond
+      neighbour         [:page/focus (control-id (:id neighbour) kind)]
+      (= :dismiss kind) [:page/focus undo-id]
+      :else             [:page/focus-heading])))
+
+;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until the
+;; next change, rather than in a toast that times out. Dismissing all
+;; needs no dialog that asks first, since it can be undone (NN/g,
+;; Confirmation Dialogs).
+;; https://adrianroselli.com/2020/01/defining-toast-messages.html
+;; https://www.nngroup.com/articles/confirmation-dialog/
+(defn tools
+  "The buttons that act on all the `episodes` of the inbox, and the one that
+  undoes the last dismissal, the `undo`."
+  [episodes undo]
+  (when (or (seq episodes) undo)
+    [:div.inbox-tools
+     (when (seq episodes)
+       (list
+        [:button {:type "button"
+                  :on   {:click [[:inbox/queue-all] [:page/focus-heading]]}}
+         "Add all to queue"]
+        [:button {:type "button"
+                  :on   {:click [[:inbox/dismiss-all] [:page/focus undo-id]]}}
+         "Dismiss all"]))
+     ;; the focus goes to the first episode that it puts back, since the
+     ;; button goes
+     (when undo
+       [:button {:type "button"
+                 :id   undo-id
+                 :on   {:click [[:inbox/undo]
+                                [:page/focus (control-id (first (:ids undo)) :dismiss)]]}}
+        (:label undo)])]))
+
+;; NN/g, empty states: say why it's empty, and how it fills
+;; https://www.nngroup.com/articles/empty-state-interface-design/
+(def empty-inbox
+  "What the Inbox page says when it has no episodes."
+  (list
+   [:p "No new episodes."]
+   [:p "The new episodes of your shows arrive here, unless you choose the "
+    "queue for them, or nowhere, on the page of a show in your "
+    [:a {:href (routes/href :route/library)} "Library"] ", or for every "
+    "new show in " [:a {:href (routes/href :route/settings)} "Settings"] "."]))
+
+(defn content
+  "The content of the Inbox page of the `state`, below its heading."
+  [{:keys [library inbox-undo] :as state}]
+  (if-not library
+    [:p "The library couldn't be read."]
+    (let [episodes (inbox/episodes state)
+          n        (count episodes)]
+      (list
+       (if (zero? n)
+         empty-inbox
+         [:p (str n (if (= 1 n) " new episode" " new episodes"))])
+       (tools episodes inbox-undo)
+       (when (seq episodes)
+         [:ul.inbox {:role "list"}
+          (for [[i {:keys [id] :as episode}] (map-indexed vector episodes)]
+            (let [neighbour (or (get episodes (inc i)) (get episodes (dec i)))]
+              [:li {:replicant/key (pr-str id)}
+               [:article.inbox-episode
+                (row library episode)
+                (actions episode (focus-after neighbour))]]))])))))
