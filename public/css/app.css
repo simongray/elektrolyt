@@ -360,11 +360,6 @@ search input {
   min-width: 0;
 }
 
-.player-status {
-  flex: 1 1 100%;
-  margin: 0;
-}
-
 /* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
 #player button,
 #player select {

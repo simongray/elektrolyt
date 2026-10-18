@@ -50,6 +50,11 @@
     (is (= 1.5 (some #(when (:selected (second %)) (:value (second %))) (elements :option x)))
         "the speed that it plays at")))
 
+(deftest the-status-line
+  (is (= [:p.visually-hidden {:role "status"} "Loading…"]
+         (first (elements :p.visually-hidden (player-ui/region (state {:buffering? true})))))
+      "which only a screen reader reads, so that the player doesn't move as it changes"))
+
 (deftest the-controls-on-a-phone
   (let [button #(some (fn [b] (when (= "Controls" (text-of b)) (second b))) (buttons %))
         shown  #(:class (attributes-of "player-controls" %))]

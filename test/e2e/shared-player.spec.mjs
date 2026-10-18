@@ -36,17 +36,23 @@ test('one playback, which every tab shows and controls', async ({ page, context 
   await expect.poll(async () => Number(await seekBar.inputValue()), { timeout: 5_000 })
     .toBeGreaterThan(before);
 
+  const height = () => there.evaluate(p => p.getBoundingClientRect().height);
+  const withStatus = await height();
+
   // its Pause pauses the tab that plays
   await there.getByRole('button', { name: 'Pause' }).click();
   await expect.poll(() => paused(page)).toBe(true);
   const left = await position(page);
   await expect(there.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(there.getByRole('status')).toHaveText('');
+  expect(await height(), 'the player keeps its height as the status goes').toBe(withStatus);
 
   // and its Play plays here, from where the other tab left it rather than
-  // from where this tab loaded the episode
+  // from where this tab loaded the episode. It moves there as it starts to
+  // play, before it tells the first tab, so the position is read after.
   await there.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect.poll(() => paused(other)).toBe(false);
-  expect(await position(other)).toBeGreaterThanOrEqual(left - 0.5);
   await expect(player(page).getByRole('status')).toHaveText('Playing in another tab.');
+  expect(await paused(other)).toBe(false);
+  expect(await position(other)).toBeGreaterThanOrEqual(left - 0.5);
   await expect.poll(() => paused(page)).toBe(true);
 });

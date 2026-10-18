@@ -122,11 +122,14 @@
   (when-let [{:keys [title]} (first (queue/up-next state))]
     [:p.player-next [:a {:href (routes/href :route/queue)} "Next: " title]]))
 
+;; Only a screen reader reads it, as it does the page's announcer: a
+;; sighted listener sees the player's state in its controls, and a line
+;; that came and went would move the player each time
 (defn status-line
   "The line that says why the `player` doesn't play, or that it waits for
   data, which a screen reader reads as it changes."
   [player]
-  [:p.player-status {:role "status"} (player/status-text player)])
+  [:p.visually-hidden {:role "status"} (player/status-text player)])
 
 ;; WAI-ARIA APG, disclosure pattern: a button with aria-expanded that shows
 ;; and hides the controls below it, which leaves the history and the focus

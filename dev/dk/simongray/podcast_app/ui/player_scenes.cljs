@@ -60,7 +60,8 @@
   (ui/page (playing {:media (assoc media :paused true) :volume-locked? true})))
 
 (defscene while-it-waits-for-data
-  "The status line once the player has waited half a second for data."
+  "The player once it has waited half a second for data, which its status
+  line tells a screen reader."
   (ui/page (playing {:media (assoc media :status :buffering) :buffering? true})))
 
 (defscene a-file-that-wont-play
