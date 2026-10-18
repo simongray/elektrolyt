@@ -8,13 +8,13 @@ const opml = `<?xml version="1.0" encoding="UTF-8"?>
   <body><outline type="rss" text="${showTitle}" xmlUrl="${feedUrl}"/></body>
 </opml>`;
 
-/** Subscribe to the show from its page, and open Settings from the header. */
+/** Subscribe to the show from its page, and open Settings from the navigation. */
 async function subscribeAndOpenSettings(page) {
   const main = page.getByRole('main');
   await page.goto(showPath);
   await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
   await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
-  await page.getByRole('banner').getByRole('link', { name: 'Settings' }).click();
+  await navLink(page, 'Settings').click();
 }
 
 test('importing an OPML file subscribes to its shows', async ({ page }) => {
@@ -82,7 +82,7 @@ test('a link to a group of the settings shows it at the top, from another page a
   await expect(heading).toBeFocused();
   const shown = await landing(heading);
   expect(Math.abs(shown.below)).toBeLessThan(1);
-  expect(shown.scrolled, 'the main content scrolled, but not the header').toBe(0);
+  expect(shown.scrolled, 'the main content scrolled, but not the page').toBe(0);
 
   await page.reload();
   await expect(heading).toBeFocused();

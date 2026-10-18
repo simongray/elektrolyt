@@ -23,7 +23,7 @@
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
 (def app-name
-  "The name of the app, as the header and the window's title show it."
+  "The name of the app, as the navigation and the window's title show it."
   "Podcasts")
 
 (def titles
@@ -35,8 +35,9 @@
    :route/settings "Settings"})
 
 (def destinations
-  "The names of the routes that the main navigation links to, in order."
-  [:route/queue :route/inbox :route/library :route/search])
+  "The names of the routes that the main navigation links to, in order,
+  Settings last."
+  [:route/queue :route/inbox :route/library :route/search :route/settings])
 
 (defn page-title
   "The title of the page of the `state`: a show's own on its page, and an
@@ -70,20 +71,12 @@
 ;; page to the main content. It moves the focus itself rather than follow
 ;; its fragment, which would add an entry to the history.
 (def skip-link
-  "The first thing a keyboard reaches: a link past the header and the
-  navigation, to the heading of the page."
+  "The first thing a keyboard reaches: a link past the navigation, to the
+  heading of the page."
   [:a.skip-link {:href "#main"
                  :on   {:click [[:event/prevent-default]
                                 [:page/focus-heading]]}}
    "Skip to content"])
-
-(defn banner
-  "The header of every page for the `state`: the app's name, which links to
-  the queue, and the link to the settings."
-  [state]
-  [:header
-   [:a {:href (routes/href :route/queue)} app-name]
-   (page-link state :route/settings (titles :route/settings))])
 
 ;; AntennaPod counts the inbox in its navigation. The count is part of the
 ;; link's name, e.g. "Inbox 3 new episodes", which begins with what the
@@ -103,11 +96,16 @@
 ;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
 ;; list's role is explicit, since the CSS removes its markers (see app.css).
+;; The app's name comes first and links to the queue, as a site's name
+;; links to its home page; a phone, whose tab bar has no room for it,
+;; leaves it out.
 (defn main-nav
-  "The navigation between the main pages for the `state`: a tab bar on a
-  phone and a rail on a wider screen."
+  "The navigation between the pages for the `state`: the app's name, the
+  main pages and Settings, as a tab bar on a phone and a rail on a wider
+  screen."
   [state]
   [:nav {:aria-label "Main"}
+   [:a.app-name {:href (routes/href :route/queue)} app-name]
    [:ul {:role "list"}
     (for [route-name destinations]
       [:li (page-link state route-name (nav-label state route-name))])]])
@@ -161,13 +159,12 @@
   "The whole page for the `state` of the app.
 
   The landmarks come in the same order at every width, so that the order of
-  the focus doesn't change with the layout: the header, the navigation, the
-  main content and the player. The page takes the colours of the artwork
-  of what it's about, or else of what plays, as colors/focus has it."
+  the focus doesn't change with the layout: the navigation, the main
+  content and the player. The page takes the colours of the artwork of
+  what it's about, or else of what plays, as colors/focus has it."
   [state]
   [:div.shell (colors/attrs state (colors/focus state))
    skip-link
-   (banner state)
    (main-nav state)
    (main-content state)
    (player-ui/region state)])

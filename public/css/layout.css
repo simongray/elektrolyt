@@ -48,28 +48,21 @@ hgroup > p {
 
 
 /* The shell fills the viewport and only the main content scrolls, so that
-   the header, the player and the navigation stay in view. The dynamic
-   viewport height follows a phone's browser toolbars as they come and go.
-   From Chrome 130, the keyboard also reaches a scroller with no links in it:
+   the player and the navigation stay in view. The dynamic viewport height
+   follows a phone's browser toolbars as they come and go. From Chrome 130,
+   the keyboard also reaches a scroller with no links in it:
    https://developer.chrome.com/blog/keyboard-focusable-scrollers */
 .shell {
   display: grid;
   grid-template-areas:
-    "header"
     "main"
     "player"
     "nav";
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto auto;
   /* not as wide as the longest line, e.g. the player's title, which it
      cuts short instead */
   grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
-}
-
-.shell > header {
-  grid-area: header;
-  display: flex;
-  justify-content: space-between;
 }
 
 .shell > nav {
@@ -90,16 +83,17 @@ hgroup > p {
 }
 
 /* WCAG 2.2, SC 2.5.5 Target Size (Enhanced): 44 by 44 CSS pixels */
-.shell > header a,
 .shell > nav a {
   display: flex;
   align-items: center;
   min-height: 44px;
 }
 
-/* On a phone, the navigation is a tab bar whose links share its width. The
-   list keeps role="list", since Safari drops the semantics of a list
-   without markers: https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html */
+/* On a phone, the navigation is a tab bar whose links share its width,
+   with no room for the app's name, for which the Queue tab and the page's
+   own heading stand in. The list keeps role="list", since Safari drops the
+   semantics of a list without markers:
+   https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html */
 .shell > nav ul {
   display: flex;
   margin: 0;
@@ -107,35 +101,56 @@ hgroup > p {
   list-style: none;
 }
 
+/* each tab its label's width, and an even share of what's left, so that
+   the long labels don't touch at 320 px */
 .shell > nav li {
-  flex: 1;
+  flex: 1 1 auto;
 }
 
 .shell > nav a {
   justify-content: center;
 }
 
-/* Wider than a phone, it's a rail beside the main content: from 600 px at
-   the default font size, where Material 3's compact windows end, and where
-   Android's adaptive navigation swaps its bar for a rail.
+.shell > nav .app-name {
+  display: none;
+}
+
+/* Wider than a phone, it's a rail beside the main content, the whole
+   height above the player: from 600 px at the default font size, where
+   Material 3's compact windows end, and where Android's adaptive
+   navigation swaps its bar for a rail. The app's name heads it, and
+   Settings stands at its foot, apart from the main pages.
    https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes
    https://developer.android.com/develop/adaptive-apps/guides/build-adaptive-navigation */
 @media (min-width: 37.5em) {
   .shell {
     grid-template-areas:
-      "header header"
       "nav    main"
       "player player";
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .shell > nav {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .shell > nav .app-name {
+    display: flex;
   }
 
   .shell > nav ul {
+    flex: 1;
     flex-direction: column;
   }
 
   .shell > nav li {
     flex: none;
+  }
+
+  .shell > nav li:last-child {
+    margin-top: auto;
   }
 
   .shell > nav a {
@@ -155,8 +170,8 @@ hgroup > p {
   white-space: nowrap;
 }
 
-/* The skip link shows when the keyboard reaches it, over the header and
-   outside the grid */
+/* The skip link shows when the keyboard reaches it, over the top of the
+   page and outside the grid */
 .skip-link {
   position: absolute;
   z-index: 1;

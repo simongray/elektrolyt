@@ -29,7 +29,7 @@
          (ui/document-title {:route nil}))))
 
 (deftest the-landmarks-keep-their-order
-  (is (= [:a.skip-link :header :nav :main#main :section#player]
+  (is (= [:a.skip-link :nav :main#main :section#player]
          (map first (drop 2 (ui/page {:route {:name :route/queue}}))))
       "after the shell's attributes"))
 

@@ -8,7 +8,7 @@
 // between two loads, and a feed's server says max-age=1 where a show
 // should be past its time.
 
-import { test, expect, episodes, feedUrl, showPath } from './fixtures.mjs';
+import { test, expect, episodes, feedUrl, navLink, showPath } from './fixtures.mjs';
 
 const noon = new Date('2026-10-18T12:00:00Z');
 
@@ -179,7 +179,7 @@ test('Settings clears the searches and shows that this browser keeps', async ({ 
   await expect(main.getByRole('link', { name: episodes[2].title })).toBeVisible();
   await expect.poll(() => cached(page)).not.toEqual([]);
 
-  await page.getByRole('banner').getByRole('link', { name: 'Settings' }).click();
+  await navLink(page, 'Settings').click();
   await main.getByRole('button', { name: 'Clear the searches and shows' }).click();
   await expect(main.getByText('Cleared the searches and shows.')).toBeVisible();
   expect(await cached(page)).toEqual([]);

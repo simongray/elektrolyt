@@ -78,7 +78,7 @@ time,
 }
 
 
-/* The bars: the header and the player, and the tab bar on a phone, in a
+/* The bars: the player, and the tab bar under it on a phone, in a
    strong colour from the --seed that the view sets on the shell, of the
    artwork of what the page is about, or else of what plays. It's the
    seed's complement, its hue turned halfway round, so that the artwork in
@@ -101,7 +101,6 @@ time,
 
 /* Inside a bar, the content's tokens take the bar's values, so that every
    rule below applies there unchanged */
-.shell > header,
 .shell > nav,
 #player {
   color-scheme: dark;
@@ -118,47 +117,28 @@ time,
   --focus: var(--on-bar);
 }
 
-.shell > header {
-  align-items: center;
-  padding-inline: var(--gutter);
-}
-
-.shell > header a {
-  color: var(--on-bar);
-  text-decoration: none;
-}
-
-.shell > header a:first-of-type {
-  font-size: var(--step-1);
-}
-
-.shell > header a:last-of-type,
 .shell > nav a {
+  color: var(--ink-2);
   font-size: var(--step--1);
   font-variant-caps: all-small-caps;
   letter-spacing: var(--caps-tracking);
-}
-
-.shell > nav a {
-  color: var(--ink-2);
   text-decoration: none;
 }
 
 /* The current page in the text's own ink and underlined, at the weight of
    the others, since a bolder one is wider, and would widen the rail and
    move the page as the listener goes from page to page */
-.shell > nav a[aria-current="page"],
-.shell > header a[aria-current="page"] {
+.shell > nav a[aria-current="page"] {
   color: var(--ink);
   text-decoration: underline 2px;
   text-underline-offset: 0.45em;
 }
 
-/* The paper, with an edge where it meets the bars, above and below. Its
-   links, buttons and focus ring take the seed's own hue. */
+/* The paper, with an edge where it meets the player. Its links, buttons
+   and focus ring take the seed's own hue. */
 .shell > main {
   padding: var(--space-4) var(--gutter) var(--space-5);
-  border-block: 1px solid var(--edge);
+  border-bottom: 1px solid var(--edge);
   background: var(--paper);
   --accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
   --accent-ink: light-dark(oklch(100% 0 0), oklch(from var(--seed) 18% min(c, 0.03) h));
@@ -178,12 +158,12 @@ time,
 
 /* Wider than a phone, the rail lies on the paper beside the text, as a
    book's contents would, its tokens the content's again, with a thick,
-   light line between them that stops short of the bars */
+   light line between them that stops short of its top and of the player */
 @media (min-width: 37.5em) {
   .shell > nav {
     position: relative;
-    padding: var(--space-3) var(--space-3) 0;
-    border-block: 1px solid var(--edge);
+    padding: var(--space-4) var(--space-3) var(--space-3);
+    border-bottom: 1px solid var(--edge);
     background: var(--paper);
     color-scheme: inherit;
     --ink: inherit;
@@ -214,6 +194,17 @@ time,
     padding-inline: var(--space-4) var(--space-3);
     font-size: var(--step-1);
     text-align: end;
+  }
+
+  /* the app's name at the head of the rail, as a book's title heads its
+     contents: in the face's own case and larger, above the links */
+  .shell > nav .app-name {
+    margin-bottom: var(--space-3);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-variant-caps: normal;
+    letter-spacing: 0;
   }
 }
 
