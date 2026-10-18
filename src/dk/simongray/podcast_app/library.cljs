@@ -10,12 +10,13 @@
   its own, since a save deletes the documents of any other library there.
 
   Each tab and worker writes the library as a replica of the device, as
-  podcast-clj's app.replica has it, so that none of them loses what
-  another writes. The documents are in Transit, which reads about 30 times
-  faster than EDN."
-  (:require [dk.simongray.like-minded.store.indexeddb :as indexeddb]
+  like-minded's replica has it with the library's kind, so that none of
+  them loses what another writes. The documents are in Transit, which
+  reads about 30 times faster than EDN."
+  (:require [dk.simongray.like-minded.replica :as replica]
+            [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
-            [dk.simongray.podcast.app.replica :as replica]
+            [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.worker :as worker]
             [dk.simongray.wary-fetch.proxy :as proxy]))
 
@@ -59,7 +60,7 @@
                          :path   [:library]
                          :store  store
                          :device (device-id!)
-                         :config config})
+                         :kind   (library/replica-kind config)})
          #(reset! the-replica %)))
 
 (defn save!
