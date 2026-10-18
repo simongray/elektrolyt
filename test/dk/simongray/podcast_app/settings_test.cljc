@@ -30,6 +30,17 @@
       (is (= :next (new-episodes-of-the-show applied)) "until it's applied to all of them")
       (is (= {:group :new-episodes :text "Applied to 1 show"} (:settings-status applied))))))
 
+(deftest the-directories-of-a-search
+  (is (= [[:podcastindex true] [:apple true] [:fyyd true] [:gpodder false]]
+         (settings/directory-rows state))
+      "the Podcast Index, Apple Podcasts and fyyd at first, and gpodder.net left out")
+  (is (= [:podcastindex :apple :fyyd :gpodder] (settings/searched (settings/turned state :gpodder true)))
+      "turned on at the end")
+  (is (= [:apple :fyyd] (settings/searched (settings/turned state :podcastindex false))))
+  (is (= [:fyyd :podcastindex :apple] (settings/searched (settings/moved-source state :fyyd 1))))
+  (is (= [:podcastindex :fyyd :apple] (settings/searched (settings/moved-source state :apple 9)))
+      "no further than the end"))
+
 (deftest sizes
   (is (= "12.3 MB" (settings/megabytes 12345678)))
   (is (= "0.0 MB" (settings/megabytes 0))))

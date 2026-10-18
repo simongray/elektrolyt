@@ -122,24 +122,38 @@
   (when (get-in state [:server :podcastindex?])
     {}))
 
+(defn search-directory!
+  "Search the directory `source` for the words `q`, and keep its list under
+  the query in the :searches of the state, through `dispatch`, with the
+  `index` credentials for the Podcast Index."
+  [dispatch q source index]
+  (let [listed! #(dispatch [[:store/assoc-in [:searches q :lists source] %]])]
+    (listed! {:status :searching})
+    (-> (directory/search! q {:send        app-library/send
+                              :sources     [source]
+                              :credentials index})
+        (.then #(listed! (search/shows->list %)))
+        (.catch #(listed! (search/failed (ex-message %)))))))
+
+;; Each directory answers in a list of its own, so that no answer reorders
+;; or replaces what another showed, as one merged list did when the others
+;; arrived (web.dev, Cumulative Layout Shift)
+;; https://web.dev/articles/cls
 (defn search!
-  "Search for the query `q`, and keep what's found so far under the query in
-  the :searches of the state, through `dispatch`: the feeds at a link, or
-  else the shows that the directories have. With the `index` credentials,
-  the Podcast Index is among them."
-  [dispatch q index]
-  (let [found! #(dispatch [[:store/assoc-in [:searches q] %]])]
-    (found! {:status :searching :results [] :failed []})
-    (-> (if (search/link? q)
-          (.then (discovery/find-feeds! q {:send app-library/send :index index})
-                 #(found! (search/feeds->search %)))
-          (directory/search! q {:send          app-library/send
-                                :credentials   index
-                                :on-results-fn #(found! (search/shows->search %))}))
-        (.catch #(found! {:status  :done
-                          :results []
-                          :failed  []
-                          :error   (ex-message %)})))))
+  "Search for the query `q`, and keep what's found under the query in the
+  :searches of the state, through `dispatch`: the feeds at a link, or else
+  the shows that each of the directories `sources` has, in a list of its
+  own. With the `index` credentials, the Podcast Index can be among them."
+  [dispatch q sources index]
+  (if (search/link? q)
+    (let [found! #(dispatch [[:store/assoc-in [:searches q] %]])]
+      (found! {:status :searching :results []})
+      (-> (discovery/find-feeds! q {:send app-library/send :index index})
+          (.then #(found! (search/feeds->search %)))
+          (.catch #(found! {:status :done :results [] :error (ex-message %)}))))
+    (do (dispatch [[:store/assoc-in [:searches q] (search/searching sources)]])
+        (doseq [source sources]
+          (search-directory! dispatch q source index)))))
 
 (defn canonical-path
   "The path that the Show page or the Episode page of the `state` should
@@ -347,7 +361,12 @@
 
 (nxr/register-effect! :search/run
   (fn [{:keys [dispatch]} store q]
-    (search! dispatch q (index-credentials @store))))
+    (let [index (index-credentials @store)]
+      (search! dispatch q (search/sources (:library @store) (some? index)) index))))
+
+(nxr/register-effect! :search/retry
+  (fn [{:keys [dispatch]} store q source]
+    (search-directory! dispatch q source (index-credentials @store))))
 
 (nxr/register-effect! :library/subscribe
   (fn [_ store url title]
@@ -440,6 +459,20 @@
   (fn [_ _ id]
     (some-> (js/document.getElementById id) .focus)))
 
+;; CSSOM View, scrollIntoView: a heading at the start of a row that
+;; scrolls sideways, which brings its column into view, and at the top of
+;; the page where it's out of sight, e.g. further down a stack, since focus
+;; alone scrolls nothing where a part of the element shows
+;; https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview
+(nxr/register-effect! :page/show
+  (fn [_ _ id]
+    (when-let [^js heading (js/document.getElementById id)]
+      (let [box   (.getBoundingClientRect heading)
+            seen? (and (>= (.-top box) 0) (<= (.-bottom box) js/window.innerHeight))]
+        (.scrollIntoView heading #js {:block  (if seen? "nearest" "start")
+                                      :inline "start"})
+        (.focus heading #js {:preventScroll true})))))
+
 (nxr/register-effect! :dialog/open
   (fn [_ _ id]
     (when-let [dialog (js/document.getElementById id)]
@@ -518,6 +551,14 @@
 (nxr/register-effect! :settings/apply-to-all
   (fn [_ store]
     (profile-changed! store settings/applied-to-all)))
+
+(nxr/register-effect! :settings/search-source
+  (fn [_ store source on?]
+    (profile-changed! store settings/turned source (boolean on?))))
+
+(nxr/register-effect! :settings/move-source
+  (fn [_ store source to]
+    (profile-changed! store settings/moved-source source to)))
 
 ;; the input is emptied, so that choosing the same file again imports it
 ;; again

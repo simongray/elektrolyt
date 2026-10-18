@@ -1,7 +1,7 @@
 (ns dk.simongray.podcast-app.ui.settings
   "The views of the Settings page: how the listener plays, where new
-  episodes go, the import and export of their subscriptions, and how this
-  browser keeps the library.
+  episodes go, the directories that a search asks, the import and export
+  of their subscriptions, and how this browser keeps the library.
 
   Each change applies at once, with no Save button, which NN/g, Microsoft
   and GNOME advise for settings, and which a field-by-field profile makes
@@ -12,7 +12,9 @@
   https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings
   https://design-system.service.gov.uk/components/fieldset/"
   (:require [dk.simongray.podcast-app.player :as player]
+            [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.settings :as settings]
+            [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.subscription :as subscription]))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: the outcome of an action whose
@@ -103,6 +105,42 @@
           "Apply to all shows"]
          (status state :new-episodes)))
 
+;; Kagi's lenses: only those turned on in the settings appear while
+;; searching. The order of the rows is the order of the lists of the
+;; Search page, which the buttons of the queue rearrange.
+;; https://help.kagi.com/kagi/settings/lenses.html
+(defn search-directories
+  "The directories that a search asks in the `state`, in the order of
+  their lists, which the listener turns on and off and rearranges, and
+  those that it leaves out."
+  [state]
+  (let [listed (settings/directory-rows state)
+        n      (count (filter second listed))
+        index? (get-in state [:server :podcastindex?])]
+    (group "Search"
+           [:p "A search asks each directory that's on, and shows what each "
+            "found in a list of its own, in this order."]
+           [:ol.settings-directories {:role "list"}
+            (for [[i [source on?]] (map-indexed vector listed)]
+              (let [title (search/source-name source)
+                    id    (str "directory-" (name source))
+                    hint? (and (= :podcastindex source) (not index?))]
+                [:li.setting {:replicant/key source}
+                 [:input (cond-> {:type    "checkbox"
+                                  :id      id
+                                  :checked (boolean on?)
+                                  :on      {:change [[:settings/search-source source [:event/target-checked]]
+                                                     [:page/focus id]]}}
+                           hint? (assoc :aria-describedby (str id "-hint")))]
+                 [:label {:for id} title]
+                 (when on?
+                   (rows/move-buttons title (inc i) n
+                                      #(str id "-" (name %))
+                                      #(vector :settings/move-source source %)))
+                 (when hint?
+                   [:p {:id (str id "-hint")}
+                    "This server doesn't sign the requests to it, so a search here leaves it out."])]))])))
+
 ;; AntennaPod, Pocket Casts and Castro all import and export OPML, the way
 ;; a listener brings their shows from one app to another
 ;; https://antennapod.org/documentation/
@@ -158,5 +196,6 @@
     (list
      (playback (settings/preferences state))
      (new-episodes state)
+     (search-directories state)
      (subscriptions state)
      (this-browser state))))

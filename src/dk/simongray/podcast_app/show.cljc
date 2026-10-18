@@ -15,7 +15,8 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.podcast-app.links :as links]))
+            [dk.simongray.podcast-app.links :as links]
+            [dk.simongray.podcast-app.search :as search]))
 
 (def page-size
   "How many episodes the page lists at first, and how many more each time
@@ -117,8 +118,8 @@
 (defn search-result
   "The result of a search in the `state` for the show `guid`, or nil."
   [state guid]
-  (some (fn [{:keys [results]}]
-          (some #(when (= guid (:guid %)) %) results))
+  (some (fn [search]
+          (some #(when (= guid (:guid %)) %) (search/results-of search)))
         (vals (:searches state))))
 
 (defn page

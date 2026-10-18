@@ -1,20 +1,34 @@
 (ns dk.simongray.podcast-app.ui.search-test
-  (:require [clojure.test :refer [deftest is]]
-            [dk.simongray.podcast-app.ui.search :as search]))
+  (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast-app.search :as app-search]
+            [dk.simongray.podcast-app.ui.search :as search]
+            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
+            [dk.simongray.podcast-app.ui-test :refer [elements]]))
+
+(defn listed
+  "A search of the directories `sources` for which each of `lists` has
+  come, a map by source."
+  [sources lists]
+  (update (app-search/searching sources) :lists merge lists))
+
+(def shows
+  "A list of a directory with `n` shows."
+  #(hash-map :status :done :results (vec (for [i (range %)] {:url (str "https://example.org/" i) :title (str "Show " i)}))))
 
 (deftest the-status-line
   (is (nil? (search/status-text nil nil)) "before a search")
   (is (= "Searching…"
-         (search/status-text "x" {:status :searching :results [{} {}]}))
-      "unchanged as the results arrive, so it's read once")
-  (is (= "1 show." (search/status-text "x" {:status :done :results [{}]})))
-  (is (= "2 shows. fyyd and gpodder.net didn't answer."
-         (search/status-text "x" {:status :done :results [{} {}] :failed [:fyyd :gpodder]})))
+         (search/status-text "x" (listed [:apple :fyyd] {:apple (shows 2)})))
+      "until every directory has answered, so it's read once")
+  (is (= "Found 2 shows in Apple Podcasts and 1 in fyyd."
+         (search/status-text "x" (listed [:apple :fyyd] {:apple (shows 2) :fyyd (shows 1)}))))
+  (is (= "Found 1 show in Apple Podcasts. fyyd and gpodder.net didn't answer."
+         (search/status-text "x" (listed [:apple :fyyd :gpodder]
+                                         {:apple   (shows 1)
+                                          :fyyd    (app-search/failed "fyyd answered 500")
+                                          :gpodder (app-search/failed "timeout")}))))
   (is (= "No shows match “xyzzy”."
-         (search/status-text "xyzzy" {:status :done :results []})))
-  (is (= "No shows found. Apple Podcasts didn't answer."
-         (search/status-text "xyzzy" {:status :done :results [] :failed [:apple]}))
-      "no match is certain only when every directory answered")
+         (search/status-text "xyzzy" (listed [:apple :fyyd] {:apple (shows 0) :fyyd (shows 0)}))))
   (is (= "No podcast feeds at that link."
          (search/status-text "example.org" {:status :done :results []})))
   (is (= "2 podcast feeds."
@@ -32,9 +46,55 @@
   (let [found [{:url "https://freakshow.fm/feed/mp3" :guid "a" :title "Freak Show"}
                {:url "https://freakshow.fm/feed/opus" :guid "b" :title "Freak Show"}
                {:url "https://example.org/other.xml" :guid "c" :title "Other"}]
-        items (last (search/results {} {:status :done :results found}))]
+        items (last (search/results {} :h2 found))]
     (is (= ["https://freakshow.fm/feed/mp3"] (paragraphs (first items))))
     (is (empty? (paragraphs (last items))) "a title of its own needs no URL")))
+
+(defn page
+  "The Search page for the words `q` with the `search`."
+  [q search]
+  (search/content {:route    {:name :route/search :query-params {:q q}}
+                   :searches {q search}}))
+
+(deftest a-list-for-each-directory
+  (let [x (page "x" (listed [:fyyd :apple] {:fyyd (shows 3)}))]
+    (is (= ["fyyd" "Apple Podcasts"] (map text-of (elements :h2 x))) "in the listener's order")
+    (is (= ["Show 0" "Show 1" "Show 2"] (map text-of (elements :h3 x))) "each show under its list")
+    (is (re-find #"Searching…" (text-of (second (elements :section.search-list x))))
+        "and the list of a directory that is yet to answer says so")
+    (testing "the jump row, with the count of each list"
+      (let [links (elements :a (elements :nav.search-jump x))]
+        (is (= ["fyyd 3 shows" "Apple Podcasts …, searching"] (map text-of links)))
+        (is (= [[:event/prevent-default]
+                [:store/assoc-in [:searches "x" :shown] :fyyd]
+                [:page/show (search/list-id :fyyd)]]
+               (get-in (first links) [1 :on :click]))
+            "which brings the list into view, and moves the focus to its heading")
+        (is (nil? (get-in (first links) [1 :aria-current])))
+        (is (= "true" (get-in (first (elements :a (elements :nav.search-jump
+                                                          (page "x" (assoc (listed [:fyyd :apple] {:fyyd (shows 3)})
+                                                                           :shown :fyyd)))))
+                              [1 :aria-current]))
+            "and is the current one once it has"))))
+  (is (empty? (elements :nav.search-jump (page "x" (listed [:apple] {:apple (shows 1)}))))
+      "and none for a single directory"))
+
+(deftest a-list-stays-as-it-appeared
+  (let [lists {:apple (shows 2)}
+        apple #(first (elements :section.search-list (page "x" (listed [:apple :fyyd] %))))]
+    (is (= (apple lists) (apple (assoc lists :fyyd (shows 5))))
+        "whatever another directory answers later")))
+
+(deftest a-directory-that-didnt-answer
+  (let [x (page "x" (listed [:apple] {:apple (app-search/failed "timeout")}))]
+    (is (re-find #"Didn't answer" (text-of x)))
+    (is (= [[:search/retry "x" :apple]]
+           (get-in (first (elements :button (elements :section.search-list x))) [1 :on :click]))
+        "which can be asked again")))
+
+(deftest where-a-search-looks
+  (let [x (search/search-form nil [:apple :fyyd])]
+    (is (re-find #"Searches Apple Podcasts and fyyd\. Change the directories" (text-of x)))))
 
 (deftest a-link-to-the-page-of-a-show
   (let [[_ {:keys [href on]} title] (search/show-link {:url   "https://feeds.podcastindex.org/pc20.xml"

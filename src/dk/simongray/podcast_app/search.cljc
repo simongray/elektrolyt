@@ -1,13 +1,19 @@
 (ns dk.simongray.podcast-app.search
-  "What the Search page finds for a query: the shows that the directories
-  have for words, or the feeds at a link that the listener pasted.
+  "What the Search page finds for a query: the shows that each directory
+  has for words, or the feeds at a link that the listener pasted.
 
-  Either way, the state keeps a search under its query as a map of its
-  :status, :searching or :done, its :results and the ids of the
-  directories that :failed. A result is the map of a show's feed :url, its
-  :guid, :title, :author, :artwork and :artwork-sizes. The guid is the one
-  that the feed declares, as far as the directory knows it, or else the
-  one that its URL gives."
+  The state keeps a search under its query. One of words is a map of the
+  :sources that it asks, in the listener's order, and their :lists by
+  source, each a map of its :status, :searching, :done or :failed, its
+  :results and, where it failed, the :reason, and the source whose list
+  the listener last jumped to as :shown. One of a link is a map of
+  its :status and its :results. A result is the map of a show's feed
+  :url, its :guid, :title, :author, :artwork and :artwork-sizes. The guid
+  is the one that the feed declares, as far as the directory knows it, or
+  else the one that its URL gives.
+
+  Each directory's list is its own answer, in its own order, which no
+  other answer changes, so a list stays as it appeared."
   (:require [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.guid :as guid]
@@ -41,13 +47,49 @@
    :artwork       (resolve/artwork feed)
    :artwork-sizes (resolve/artwork-sizes feed)})
 
-(defn shows->search
-  "The search of what the directories answered so far, the map `answer`
-  of directory/search!."
-  [{:keys [results report pending] :as answer}]
-  {:status  (if (seq pending) :searching :done)
-   :results (into [] (keep show->result) results)
-   :failed  (mapv :source report)})
+(defn sources
+  "The directories that a search asks for the listener of the library
+  `lib`, in their order: the :search-sources of their preferences, or of
+  the defaults before the library is restored, and the Podcast Index only
+  where the app's server signs the requests to it, `index?`."
+  [lib index?]
+  (let [prefs (if lib
+                (profile/preferences (:profile lib))
+                profile/default-preferences)]
+    (filterv #(or index? (not= :podcastindex %)) (:search-sources prefs))))
+
+(defn searching
+  "A search of the directories `sources`, none of which has answered."
+  [sources]
+  {:sources (vec sources)
+   :lists   (zipmap sources (repeat {:status :searching}))})
+
+(defn shows->list
+  "The list of one directory, from its `answer`, the map of
+  directory/search! for that source alone: :done with its :results, or
+  :failed with the :reason."
+  [{:keys [results report] :as answer}]
+  (if-let [{:keys [reason]} (first report)]
+    {:status :failed :results [] :reason reason}
+    {:status :done :results (into [] (keep show->result) results)}))
+
+(defn failed
+  "The list of a directory whose search threw `reason`, a message."
+  [reason]
+  {:status :failed :results [] :reason reason})
+
+(defn results-of
+  "Every result of the `search`, of a link or of the directories, the
+  latter in the order of their lists."
+  [{:keys [results sources lists] :as search}]
+  (or results
+      (into [] (mapcat #(get-in lists [% :results])) sources)))
+
+(defn searching?
+  "Whether the `search` waits for an answer."
+  [{:keys [status lists] :as search}]
+  (boolean (or (= :searching status)
+               (some #(= :searching (:status %)) (vals lists)))))
 
 (defn feeds->search
   "The search of the feeds that discovery/find-feeds! found at a link, the

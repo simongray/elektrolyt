@@ -20,16 +20,11 @@
 ;; MDN, <search>: the element is the search landmark, and the results go
 ;; outside it, in the main content. The query goes in the URL, so that Back,
 ;; a reload and a shared link show the same search.
-(defn search-form
-  "The form that searches for words or a link, which shows the query `q`."
-  [q]
-  [:search
-   [:form {:action (routes/href :route/search)
-           :on     {:submit [[:event/prevent-default]
-                             [:search/submit [:form/field "q"]]]}}
-    [:label {:for "search-query"} "Search for podcasts, or paste a link"]
-    [:input#search-query {:type "search" :name "q" :value (or q "")}]
-    [:button {:type "submit"} "Search"]]])
+(defn sources
+  "The directories that a search asks in the `state`, in the listener's
+  order."
+  [state]
+  (search/sources (:library state) (boolean (get-in state [:server :podcastindex?]))))
 
 (defn listing
   "The strings `xs` as an English list, e.g. \"a, b and c\"."
@@ -38,37 +33,73 @@
     (str (str/join ", " (butlast xs)) " and " (last xs))
     (first xs)))
 
-(defn- found-text
-  "What the search for `q` found, as the status line starts to tell it: `n`
-  results, with the ids of the directories that `failed`."
-  [q n failed]
-  (let [link? (search/link? q)]
-    (cond
-      (and link? (pos? n)) (str n (if (= 1 n) " podcast feed" " podcast feeds"))
-      (pos? n)             (str n (if (= 1 n) " show" " shows"))
-      link?                "No podcast feeds at that link"
-      ;; no match is certain only when every directory answered
-      (seq failed)         "No shows found"
-      :else                (str "No shows match “" q "”"))))
+;; NN/g, scoped search: say where a search looks, near the box, with a way
+;; to change it, which the Settings page has
+;; https://www.nngroup.com/articles/scoped-search/
+(defn search-form
+  "The form that searches for words or a link, which shows the query `q`,
+  and the directories `sources` that it asks."
+  [q sources]
+  [:search
+   [:form {:action (routes/href :route/search)
+           :on     {:submit [[:event/prevent-default]
+                             [:search/submit [:form/field "q"]]]}}
+    [:label {:for "search-query"} "Search for podcasts, or paste a link"]
+    [:input#search-query {:type "search" :name "q" :value (or q "")}]
+    [:button {:type "submit"} "Search"]]
+   [:p "Searches " (listing (map search/source-name sources)) ". "
+    [:a {:href (routes/href :route/settings)}
+     "Change" [:span.visually-hidden " the directories"]]]])
+
+(defn shows-text
+  "The count `n` of shows in words, e.g. \"3 shows\"."
+  [n]
+  (str n (if (= 1 n) " show" " shows")))
+
+(defn link-text
+  "What the search of the link `q` found: its `n` feeds."
+  [n]
+  (if (pos? n)
+    (str n (if (= 1 n) " podcast feed." " podcast feeds."))
+    "No podcast feeds at that link."))
+
+(defn directories-text
+  "What the search for the words `q` found in its directories, the
+  `sources` with their `lists`, e.g. \"Found 20 shows in Apple Podcasts
+  and 3 in fyyd. gpodder.net didn't answer.\""
+  [q {:keys [sources lists] :as search}]
+  (let [of     (fn [status] (filter #(= status (get-in lists [% :status])) sources))
+        done   (of :done)
+        failed (of :failed)
+        n      #(count (get-in lists [% :results]))
+        found  (map-indexed (fn [i s]
+                              (str (if (zero? i) (shows-text (n s)) (n s))
+                                   " in " (search/source-name s)))
+                            done)]
+    (str/trim
+     (str (cond
+            (pos? (reduce + (map n done))) (str "Found " (listing found) ".")
+            (seq done)                     (str "No shows match “" q "”."))
+          (when (seq failed)
+            (str " " (listing (map search/source-name failed)) " didn't answer."))))))
 
 (defn status-text
   "What the status line says of the `search` for the query `q`, or nil
   before there's a search."
-  [q {:keys [status results failed error] :as search}]
+  [q {:keys [results lists error] :as search}]
   (cond
-    (nil? search)         nil
-    (= :searching status) "Searching…"
-    error                 "The search failed. Try again."
-    :else                 (str (found-text q (count results) failed)
-                               "."
-                               (when (seq failed)
-                                 (str " " (listing (map search/source-name failed))
-                                      " didn't answer.")))))
+    (nil? search)               nil
+    (search/searching? search)  "Searching…"
+    error                       "The search failed. Try again."
+    lists                       (directories-text q search)
+    :else                       (link-text (count results))))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: the status role lets a screen reader
 ;; tell how the search went without moving the focus. It says "Searching…"
-;; until every directory has answered, so that the results that arrive in
-;; between aren't read out each time.
+;; until every directory has answered, and then sums them all up in one
+;; message, since several that arrive at once are read as badly as none
+;; (Scott O'Hara, Are we live?).
+;; https://www.scottohara.me/blog/2022/02/05/are-we-live.html
 (defn status-line
   "The status line of the `search` for `q`, which is on the page before the
   search starts."
@@ -91,14 +122,21 @@
 ;; A site often has several feeds of one show, e.g. in MP3 and in Opus, so a
 ;; title that another result shares comes with the URL of its feed, which
 ;; the name of the button has too (WCAG 2.2, SC 2.4.6 Headings and Labels)
+;;
+;; TODO: mark a show that other directories also have, e.g. with a small,
+;; discreet icon for each of them, as SearXNG names the engines that found
+;; a result. A show that several directories carry is most likely its real
+;; feed, rather than a re-upload or an abandoned feed of the same title.
+;; https://github.com/searxng/searxng/blob/master/searx/templates/simple/macros.html
 (defn result
   "A show that a search found, the `result`, in the `state` with the
-  `subscribed` URLs. When `shared-title?`, it shows the URL of its feed."
-  [state subscribed {:keys [url title author] :as result} shared-title?]
+  `subscribed` URLs, under a heading of the `level`, e.g. :h3. When
+  `shared-title?`, it shows the URL of its feed."
+  [state subscribed level {:keys [url title author] :as result} shared-title?]
   (let [title (or title url)]
     [:article
      (artwork/img result 64 {:loading "lazy"})
-     [:h2 (show-link (assoc result :title title))]
+     [level (show-link (assoc result :title title))]
      (when author
        [:p author])
      (when shared-title?
@@ -109,8 +147,9 @@
      (subscription/error state url)]))
 
 (defn results
-  "The list of the `search`'s results in the `state`."
-  [state {:keys [results] :as search}]
+  "The list of the `results` in the `state`, each under a heading of the
+  `level`."
+  [state level results]
   (let [subscribed (search/subscribed-urls (:library state))
         shared     (->> (frequencies (map :title results))
                         (keep (fn [[title n]] (when (< 1 n) title)))
@@ -119,13 +158,103 @@
       [:ol.search-results {:role "list"}
        (for [{:keys [url title] :as r} results]
          [:li {:replicant/key url}
-          (result state subscribed r (contains? shared title))])])))
+          (result state subscribed level r (contains? shared title))])])))
+
+(defn list-id
+  "The id of the heading of the list of the directory `source`, which the
+  jump row moves the focus to."
+  [source]
+  (str "search-" (name source)))
+
+(defn section-id
+  "The id of the list of the directory `source`, which the jump row brings
+  into view."
+  [source]
+  (str "search-list-" (name source)))
+
+(defn list-text
+  "What the list of a directory says of itself, `l`, for the words `q`."
+  [q {:keys [status results] :as l}]
+  (case status
+    :searching "Searching…"
+    :failed    "Didn't answer."
+    (if (seq results)
+      (shows-text (count results))
+      (str "No shows match “" q "”."))))
+
+;; Duke's bento search: one box of results for each source, since a
+;; ranking across very different sources is hard to make, and a library's
+;; users weren't confused by the boxes (NCSU)
+;; https://blogs.library.duke.edu/bitstreams/2014/07/03/bento-is-coming/
+;; https://www.lib.ncsu.edu/node/45126
+(defn directory-list
+  "The list of the directory `source`, `l`, for the words `q`, in the
+  `state`: its heading, what it found, and a way to ask it again where it
+  didn't answer."
+  [state q source {:keys [status] :as l}]
+  [:section.search-list {:replicant/key source :id (section-id source)}
+   [:h2 {:id (list-id source) :tabindex -1} (search/source-name source)]
+   [:p (list-text q l)]
+   (when (= :failed status)
+     [:button {:type "button" :on {:click [[:search/retry q source]]}}
+      "Try again" [:span.visually-hidden " " (search/source-name source)]])
+   (results state :h3 (:results l))])
+
+(defn jump-text
+  "What a link of the jump row shows of the list `l` after the name of its
+  directory: its count, or a mark while it searches or where it failed,
+  each with words for a screen reader."
+  [{:keys [status results] :as l}]
+  (case status
+    :searching (list [:span {:aria-hidden "true"} " …"]
+                     [:span.visually-hidden ", searching"])
+    :failed    (list [:span {:aria-hidden "true"} " –"]
+                     [:span.visually-hidden ", didn't answer"])
+    (list " " (str (count results))
+          [:span.visually-hidden (if (= 1 (count results)) " show" " shows")])))
+
+;; GOV.UK's tabs, and Inclusive Components': a contents of same-page links
+;; above sections that all stay on the page, rather than a widget that
+;; hides them. A link brings the whole of its list into view, sideways in
+;; a row of them and down in a stack, and moves the focus to its heading,
+;; as the skip link does. The link of the list last shown is the current
+;; one (WAI-ARIA 1.2, aria-current).
+;; https://design-system.service.gov.uk/components/tabs/
+;; https://inclusive-components.design/tabbed-interfaces/
+(defn jump-row
+  "The links to the lists of the `sources` of the search for `q`, `lists`,
+  with what each found, where the one `shown` last is the current one."
+  [q sources lists shown]
+  [:nav.search-jump {:aria-label "Directories"}
+   [:ul {:role "list"}
+    (for [source sources]
+      [:li {:replicant/key source}
+       [:a {:href         (str "#" (section-id source))
+            :aria-current (when (= shown source) "true")
+            :on           {:click [[:event/prevent-default]
+                                   [:store/assoc-in [:searches q :shown] source]
+                                   [:page/show (list-id source)]]}}
+        (search/source-name source) (jump-text (get lists source))]])]])
+
+(defn directory-lists
+  "The lists of the directories of the `search` for the words `q` in the
+  `state`, in the listener's order, side by side on a wide screen and one
+  below the other on a narrow one."
+  [state q {:keys [sources lists shown] :as search}]
+  (list
+   (when (next sources)
+     (jump-row q sources lists shown))
+   [:div.search-lists
+    (for [source sources]
+      (directory-list state q source (get lists source)))]))
 
 (defn content
   "The content of the Search page of the `state`, below its heading."
   [state]
   (let [q      (query state)
         search (get-in state [:searches q])]
-    (list (search-form q)
+    (list (search-form q (sources state))
           (status-line q search)
-          (results state search))))
+          (if (:lists search)
+            (directory-lists state q search)
+            (results state :h2 (:results search))))))

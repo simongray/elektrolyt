@@ -11,6 +11,7 @@
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
 (defn control-id
@@ -36,50 +37,20 @@
      (show-ui/duration-text remaining)
      (when (pos? position) " left")]))
 
-;; GOV.UK Design System, summary list: a visible label first, then the
-;; name of what it acts on in visually hidden text, e.g. "Remove Episode
-;; 3", so that the name begins with what a voice user says (WCAG 2.2, SC
-;; 2.5.3 Label in Name)
-(defn button
-  "A button of the row of the episode titled `title` that says `label`,
-  with the `attrs` merged in."
-  [label title attrs]
-  [:button (merge {:type "button"} attrs)
-   label [:span.visually-hidden " " title]])
-
-;; The APG's rearrangeable list: move up and move down, with aria-disabled
-;; at either end, which keeps the focus on the button, and the focus on
-;; the moved row after a move
-;; https://www.w3.org/WAI/ARIA/apg/patterns/listbox/examples/listbox-rearrangeable/
-;;
-;; TODO: dragging too, with the look, and only on top of the buttons, which
-;; meet WCAG 2.2, SC 2.5.7 Dragging Movements on their own. Atlassian's
-;; guidance for Pragmatic drag and drop: a handle that is also the button
-;; of the row's moves, and no dragging with the arrow keys.
-;; https://atlassian.design/components/pragmatic-drag-and-drop/accessibility-guidelines
 (defn actions
   "The buttons of the `episode` at `position` of Up next, of `n` episodes,
   where the `next-focus` is the id of the button that takes the focus
   after a removal."
   [{:keys [id title] :as episode} position n next-focus]
   [:div.queue-actions
-   (button "Play" title {:id (control-id id :play)
-                         :on {:click [[:player/play {:id id} nil]]}})
-   (button "Move up" title
-           (if (= 1 position)
-             {:id (control-id id :up) :aria-disabled "true"}
-             {:id (control-id id :up)
-              :on {:click [[:queue/move id (dec position)]
-                           [:page/focus (control-id id :up)]]}}))
-   (button "Move down" title
-           (if (= n position)
-             {:id (control-id id :down) :aria-disabled "true"}
-             {:id (control-id id :down)
-              :on {:click [[:queue/move id (inc position)]
-                           [:page/focus (control-id id :down)]]}}))
-   (button "Remove" title {:id (control-id id :remove)
-                           :on {:click [[:queue/remove id]
-                                        [:page/focus next-focus]]}})])
+   (rows/button "Play" title {:id (control-id id :play)
+                              :on {:click [[:player/play {:id id} nil]]}})
+   (rows/move-buttons title position n
+                      #(control-id id %)
+                      #(vector :queue/move id %))
+   (rows/button "Remove" title {:id (control-id id :remove)
+                                :on {:click [[:queue/remove id]
+                                             [:page/focus next-focus]]}})])
 
 (defn row
   "The `episode` of the queue, its artwork, title, show and time left, in

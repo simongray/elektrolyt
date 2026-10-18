@@ -4,8 +4,9 @@
   new show go, and what the page says of how this browser keeps the
   library.
 
-  The preferences live in the profile, so that they sync with it. The
-  state keeps the last outcome that the page tells of as
+  The preferences live in the profile, so that they sync with it, among
+  them the directories that a search asks, in the order of their lists.
+  The state keeps the last outcome that the page tells of as
   :settings-status, a map of the :group of settings that it's about and
   its :text, and what the browser said of its storage as :storage, a map
   of :supported?, :persisted? and the :usage in bytes."
@@ -57,6 +58,43 @@
   (preferred state {:subscription-defaults
                     (merge (:subscription-defaults (preferences state))
                            (profile/new-episodes-settings choice))}))
+
+(def directories
+  "The directories that the Settings page offers, in the order in which it
+  lists those that a search leaves out."
+  [:podcastindex :apple :fyyd :gpodder])
+
+(defn searched
+  "The directories that a search asks by the preferences of the `state`, in
+  the listener's order."
+  [state]
+  (:search-sources (or (preferences state) profile/default-preferences)))
+
+(defn directory-rows
+  "The directories as the Settings page lists them for the `state`, each a
+  pair of its id and whether a search asks it: those that it asks, in
+  their order, and then the others."
+  [state]
+  (let [on (searched state)]
+    (concat (map #(vector % true) on)
+            (for [d directories :when (not (some #{d} on))]
+              [d false]))))
+
+(defn turned
+  "The `state` with a search asking the directory `source`, at the end of
+  the order, where `on?`, or leaving it out."
+  [state source on?]
+  (let [others (filterv #(not= source %) (searched state))]
+    (preferred state {:search-sources (if on? (conj others source) others)})))
+
+(defn moved-source
+  "The `state` with the directory `source` at the position `to`, from 1, in
+  the order of those that a search asks."
+  [state source to]
+  (let [others (filterv #(not= source %) (searched state))
+        i      (max 0 (min (count others) (dec to)))]
+    (preferred state {:search-sources (into (conj (subvec others 0 i) source)
+                                            (subvec others i))})))
 
 (defn shows-text
   "The count `n` of shows in words, e.g. \"3 shows\"."

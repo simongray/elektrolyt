@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.search-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.search :as search]))
 
 (def pc20
@@ -15,25 +16,39 @@
   (is (search/link? "atp.fm") "a domain")
   (is (search/link? "https://podcasts.apple.com/us/podcast/id1584274529") "a link of an app"))
 
-(deftest what-the-directories-answered
-  (testing "while some directories are yet to answer"
-    (is (= {:status  :searching
-            :results [{:url           "https://feeds.podcastindex.org/pc20.xml"
-                       ;; derived from the URL, since the directory doesn't
-                       ;; know the guid that the feed declares
-                       :guid          "d5a1ae35-5e8b-599a-943b-95609562016d"
-                       :title         "Podcasting 2.0"
-                       :author        "Podcast Index LLC"
-                       :artwork       nil
-                       :artwork-sizes []}]
-            :failed  []}
-           (search/shows->search {:results [pc20] :pending [:fyyd]}))))
-  (testing "once every directory has answered, some with a failure"
-    (let [found (search/shows->search {:results [pc20 {:rss/title "No feed"}]
-                                       :report  [{:source :fyyd}]})]
-      (is (= :done (:status found)))
-      (is (= ["Podcasting 2.0"] (map :title (:results found))) "a show without a feed can't be subscribed to")
-      (is (= [:fyyd] (:failed found))))))
+(deftest what-a-directory-answered
+  (is (= {:status  :done
+          :results [{:url           "https://feeds.podcastindex.org/pc20.xml"
+                     ;; derived from the URL, since the directory doesn't
+                     ;; know the guid that the feed declares
+                     :guid          "d5a1ae35-5e8b-599a-943b-95609562016d"
+                     :title         "Podcasting 2.0"
+                     :author        "Podcast Index LLC"
+                     :artwork       nil
+                     :artwork-sizes []}]}
+         (search/shows->list {:results [pc20 {:rss/title "No feed"}]}))
+      "a show without a feed can't be subscribed to, so it's left out")
+  (is (= {:status :failed :results [] :reason "fyyd answered 500"}
+         (search/shows->list {:results [] :report [{:source :fyyd :reason "fyyd answered 500"}]}))))
+
+(deftest a-search-of-the-directories
+  (let [started (search/searching [:apple :fyyd])]
+    (is (= {:sources [:apple :fyyd]
+            :lists   {:apple {:status :searching} :fyyd {:status :searching}}}
+           started))
+    (is (search/searching? started))
+    (let [done (-> started
+                   (assoc-in [:lists :apple] {:status :done :results [{:title "A"}]})
+                   (assoc-in [:lists :fyyd] {:status :done :results [{:title "B"}]}))]
+      (is (not (search/searching? done)))
+      (is (= ["A" "B"] (map :title (search/results-of done))) "every result, in the order of the lists")))
+  (is (= [{:title "C"}] (search/results-of {:status :done :results [{:title "C"}]})) "or of a link"))
+
+(deftest the-directories-of-a-search
+  (is (= [:podcastindex :apple :fyyd] (search/sources nil true)) "the defaults, before the library is restored")
+  (is (= [:apple :fyyd] (search/sources nil false)) "without the Podcast Index, where the server doesn't sign for it")
+  (let [lib (library/update-profile (library/make "test") profile/prefer {:search-sources [:fyyd :gpodder]})]
+    (is (= [:fyyd :gpodder] (search/sources lib false)) "the listener's own, in their order")))
 
 (deftest the-podcasts-at-a-link
   (is (= ["https://example.org/podcast.xml"]

@@ -19,7 +19,7 @@
 
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
-    (is (= ["Playback" "New episodes" "Subscriptions" "This browser"]
+    (is (= ["Playback" "New episodes" "Search" "Subscriptions" "This browser"]
            (map text-of (elements :h2 (elements :legend x))))
         "each group a fieldset, its heading in its legend")
     (testing "the preferences as they are, the defaults at first"
@@ -39,6 +39,22 @@
       (is (= [[:settings/prefer :continuous? [:event/target-checked]]] (get-in attrs [:on :change]))))
     (is (= 3 (count (filter #(= "status" (:role (second %))) (elements :p.settings-status x))))
         "a status line beside the buttons of each group that has them")))
+
+(deftest the-directories-of-a-search
+  (let [x    (settings-ui/search-directories {:library inbox-test/lib})
+        rows (elements :li.setting x)]
+    (is (= ["Podcast Index" "Apple Podcasts" "fyyd" "gpodder.net"] (map text-of (elements :label x)))
+        "those that a search asks, in their order, then the others")
+    (is (= [true true true false] (map #(:checked (second (by-id % :input (:id (second (first (elements :input %))))))) rows)))
+    (is (re-find #"This server doesn't sign" (text-of (first rows)))
+        "the Podcast Index says where the server can't search it")
+    (testing "the rows that a search asks move, as those of the queue do"
+      (is (= "true" (:aria-disabled (second (by-id x :button "directory-podcastindex-up")))) "no way up from the top")
+      (is (= [[:settings/move-source :apple 3] [:page/focus "directory-apple-down"]]
+             (get-in (by-id x :button "directory-apple-down") [1 :on :click])))
+      (is (empty? (elements :button (last rows))) "but not those that it leaves out"))
+    (is (= [[:settings/search-source :gpodder [:event/target-checked]] [:page/focus "directory-gpodder"]]
+           (get-in (by-id x :input "directory-gpodder") [1 :on :change])))))
 
 (deftest how-this-browser-keeps-the-library
   (let [shown #(text-of (settings-ui/this-browser {:storage %}))]

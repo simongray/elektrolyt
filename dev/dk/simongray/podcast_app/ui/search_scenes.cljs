@@ -2,6 +2,7 @@
   "Scenes of the Search page, from before a search to its results, with each
   state of their subscriptions."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
 
@@ -43,31 +44,53 @@
            :searches (when q {q search})}
           more)))
 
+(defn listed
+  "A search of the default directories, with the `lists` that have come,
+  by source."
+  [lists]
+  (update (search/searching [:podcastindex :apple :fyyd]) :lists merge lists))
+
+(defn found
+  "The list of a directory that found the `shows`."
+  [shows]
+  {:status :done :results (vec shows)})
+
 (defscene before-a-search
-  "The page that the navigation links to, with an empty form."
+  "The page that the navigation links to, with an empty form, which says
+  where it searches."
   (ui/page (search-page nil nil)))
 
 (defscene searching
-  "The results of the directories that have answered, while the others are
-  yet to answer."
-  (ui/page (search-page "podcasting" {:status  :searching
-                                      :results (take 2 results)
-                                      :failed  []})))
+  "The list of the directory that has answered, while the others are yet
+  to answer."
+  (ui/page (search-page "podcasting" (listed {:apple (found (take 2 results))}))))
+
+(defscene a-list-for-each-directory
+  "What each directory found, side by side on a wide screen and one below
+  the other on a phone, with the jump row above them."
+  (ui/page (search-page "podcasting" (listed {:apple        (found results)
+                                              :podcastindex (found (take 2 results))
+                                              :fyyd         (found (take 1 results))}))))
 
 (defscene results-and-subscriptions
   "Every state of a subscription: one subscribed, one under way, and one
   that failed."
   (ui/page (search-page "podcasting"
-                        {:status :done :results results :failed []}
+                        (listed {:apple        (found results)
+                                 :podcastindex (found [])
+                                 :fyyd         (found [])})
                         {:library          subscribed-library
                          :subscribing      #{(:url (second results))}
                          :subscribe-errors {(:url (last results))
                                             {:message "The server answered 404."}}})))
 
 (defscene directories-that-failed
-  "Results from some directories, while others didn't answer."
+  "A list from one directory, while the others didn't answer, which can
+  be asked again."
   (ui/page (search-page "podcasting"
-                        {:status :done :results (take 1 results) :failed [:fyyd :gpodder]})))
+                        (listed {:apple        (found (take 1 results))
+                                 :podcastindex (search/failed "podcastindex answered 500")
+                                 :fyyd         (search/failed "timeout")}))))
 
 (defscene feeds-of-one-show
   "The feeds of one show at a link, e.g. in MP3 and in Opus, which share a
@@ -80,7 +103,7 @@
 
 (defscene no-shows
   "Words that no directory has a show for."
-  (ui/page (search-page "xyzzy" {:status :done :results [] :failed []})))
+  (ui/page (search-page "xyzzy" (listed {:apple (found []) :podcastindex (found []) :fyyd (found [])}))))
 
 (defscene no-feeds-at-a-link
   "A link where no podcast feed was found."
@@ -89,5 +112,5 @@
 (defscene library-not-yet-restored
   "Results before the library is restored, whose buttons wait for it."
   (ui/page (search-page "podcasting"
-                        {:status :done :results results :failed []}
+                        (listed {:apple (found results) :podcastindex (found []) :fyyd (found [])})
                         {:library nil})))

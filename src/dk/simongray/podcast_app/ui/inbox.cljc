@@ -12,6 +12,7 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
+            [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
 (defn control-id
@@ -62,18 +63,18 @@
   button."
   [{:keys [id title] :as episode} focus]
   [:div.inbox-actions
-   (queue-ui/button "Play" title
-                    {:id (control-id id :play)
-                     :on {:click [[:player/play {:id id} nil] (focus :play)]}})
-   (queue-ui/button "Add to queue" title
-                    {:id (control-id id :queue)
-                     :on {:click [[:queue/add {:id id} title false] (focus :queue)]}})
-   (queue-ui/button "Play next" title
-                    {:id (control-id id :next)
-                     :on {:click [[:queue/add {:id id} title true] (focus :next)]}})
-   (queue-ui/button "Dismiss" title
-                    {:id (control-id id :dismiss)
-                     :on {:click [[:inbox/dismiss id] (focus :dismiss)]}})])
+   (rows/button "Play" title
+                {:id (control-id id :play)
+                 :on {:click [[:player/play {:id id} nil] (focus :play)]}})
+   (rows/button "Add to queue" title
+                {:id (control-id id :queue)
+                 :on {:click [[:queue/add {:id id} title false] (focus :queue)]}})
+   (rows/button "Play next" title
+                {:id (control-id id :next)
+                 :on {:click [[:queue/add {:id id} title true] (focus :next)]}})
+   (rows/button "Dismiss" title
+                {:id (control-id id :dismiss)
+                 :on {:click [[:inbox/dismiss id] (focus :dismiss)]}})])
 
 (defn focus-after
   "A function of the kind of a button of the row before `neighbour`, the

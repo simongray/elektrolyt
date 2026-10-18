@@ -183,6 +183,59 @@ search input {
   overflow-wrap: anywhere;
 }
 
+/* The links to the lists of the directories, in a row that wraps */
+.search-jump ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 1em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-jump a {
+  display: inline-block;
+  min-height: 24px;
+}
+
+/* The lists of the directories: one below the other on a phone, and side
+   by side wider than that, in a row of columns of about 360 px, as
+   Android's adaptive panes have them, which scrolls sideways where they
+   don't all fit. At 320 px they stack (WCAG 2.2, SC 1.4.10 Reflow).
+   https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes */
+.search-lists {
+  display: grid;
+  gap: 1.5em;
+}
+
+@media (min-width: 48em) {
+  .search-lists {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(22.5rem, 1fr);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .search-list {
+    scroll-snap-align: start;
+  }
+}
+
+.search-list h2 {
+  margin-bottom: 0;
+}
+
+/* The browser's own ring on the heading that the jump row moved the focus
+   to, which it leaves out after a click, so that the list shows where the
+   jump went (WCAG 2.2, SC 2.4.7 Focus Visible)
+
+   TODO: with the look, maybe a ring around the whole list instead, with
+   .search-list:focus-within, while the focus stays on the heading for a
+   screen reader */
+.search-list h2:focus {
+  outline: auto;
+}
+
 
 /* The episodes of a show, whose list keeps role="list", as the
    navigation's does */
@@ -544,7 +597,16 @@ main section > button {
 
 .setting select,
 .setting input[type=file],
+.setting button,
 .settings-group > button {
   min-height: 44px;
   max-width: 100%;
+}
+
+/* The directories of a search, a row each, which keeps role="list", as the
+   navigation's does */
+.settings-directories {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
