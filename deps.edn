@@ -18,6 +18,10 @@
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
          metosin/reitit-frontend  {:mvn/version "0.11.0"}
+         ;; the caches of searches and shows, and the cache mode of their
+         ;; requests, newer than what podcast-clj depends on
+         dk.simongray/like-minded {:mvn/version "0.7.0"}
+         dk.simongray/wary-fetch  {:mvn/version "0.16.0"}
          ;; what the app's server tells the page, as transit
          com.cognitect/transit-cljs {:mvn/version "0.8.280"}}
 
