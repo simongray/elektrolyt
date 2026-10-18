@@ -30,4 +30,16 @@
 
 (deftest the-landmarks-keep-their-order
   (is (= [:a.skip-link :header :nav :main#main :section#player]
-         (map first (rest (ui/page {:route {:name :route/queue}}))))))
+         (map first (drop 2 (ui/page {:route {:name :route/queue}}))))
+      "after the shell's attributes"))
+
+(deftest the-colours-of-the-artwork
+  (let [playing "https://example.org/playing.jpg"
+        state   {:route  {:name :route/queue}
+                 :player {:id ["f" "e"] :playback {:id ["f" "e"] :artwork playing}}}]
+    (is (= {} (second (ui/page state))) "the app's own colours, while the artwork's are unknown")
+    (is (= {:style {:--seed "#9e2a2b"}}
+           (second (ui/page (assoc state :colors {playing {:seed "#9e2a2b"}}))))
+        "and the bars in the seed of the artwork of what plays, once it's known")
+    (is (= {} (second (ui/page (assoc state :colors {playing {:seed nil}}))))
+        "or the app's own, for artwork without a hue")))

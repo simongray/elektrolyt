@@ -33,6 +33,11 @@
   (some #(when (= id (:id (second %))) (second %))
         (filter #(map? (second %)) (concat (elements :input x) (elements :select x) (elements :div x)))))
 
+(deftest the-main-action
+  (is (= [:button.primary :button.primary]
+         (map (comp first player-ui/play-button) [{:paused true} {:paused false}]))
+      "Play and Pause, which the look fills"))
+
 (deftest nothing-playing
   (is (= "Nothing is playing." (text-of (player-ui/region {:library (library/make "test")})))))
 

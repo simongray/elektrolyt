@@ -1,0 +1,703 @@
+/* The layout: where each part of a page goes and how much room it takes.
+   Its colours, type and lines are the look's, in look.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+body {
+  margin: 0;
+}
+
+/* The flow of the text: the space between headings and paragraphs, which
+   the rules below take away where a part needs none. It's the layout's,
+   since the look's layer would win over those rules. */
+h1 {
+  margin: 0 0 var(--space-3);
+}
+
+h2 {
+  margin: var(--space-5) 0 var(--space-2);
+}
+
+p {
+  margin: 0 0 var(--space-2);
+}
+
+
+/* The shell fills the viewport and only the main content scrolls, so that
+   the header, the player and the navigation stay in view. The dynamic
+   viewport height follows a phone's browser toolbars as they come and go.
+   From Chrome 130, the keyboard also reaches a scroller with no links in it:
+   https://developer.chrome.com/blog/keyboard-focusable-scrollers */
+.shell {
+  display: grid;
+  grid-template-areas:
+    "header"
+    "main"
+    "player"
+    "nav";
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  /* not as wide as the longest line, e.g. the player's title, which it
+     cuts short instead */
+  grid-template-columns: minmax(0, 1fr);
+  height: 100dvh;
+}
+
+.shell > header {
+  grid-area: header;
+  display: flex;
+  justify-content: space-between;
+}
+
+.shell > nav {
+  grid-area: nav;
+}
+
+/* Positioned, so that the text that only a screen reader reads, which is
+   positioned absolutely, stays in the main content's scroller, rather than
+   make the whole page scroll past the end of the shell */
+.shell > main {
+  grid-area: main;
+  overflow-y: auto;
+  position: relative;
+}
+
+.shell > section {
+  grid-area: player;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced): 44 by 44 CSS pixels */
+.shell > header a,
+.shell > nav a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* On a phone, the navigation is a tab bar whose links share its width. The
+   list keeps role="list", since Safari drops the semantics of a list
+   without markers: https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html */
+.shell > nav ul {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shell > nav li {
+  flex: 1;
+}
+
+.shell > nav a {
+  justify-content: center;
+}
+
+/* Wider than a phone, it's a rail beside the main content: from 600 px at
+   the default font size, where Material 3's compact windows end, and where
+   Android's adaptive navigation swaps its bar for a rail.
+   https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes
+   https://developer.android.com/develop/adaptive-apps/guides/build-adaptive-navigation */
+@media (min-width: 37.5em) {
+  .shell {
+    grid-template-areas:
+      "header header"
+      "nav    main"
+      "player player";
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .shell > nav ul {
+    flex-direction: column;
+  }
+
+  .shell > nav li {
+    flex: none;
+  }
+
+  .shell > nav a {
+    justify-content: flex-start;
+  }
+}
+
+
+/* Out of sight, but read by a screen reader */
+.visually-hidden,
+.skip-link:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The skip link shows when the keyboard reaches it, over the header and
+   outside the grid */
+.skip-link {
+  position: absolute;
+  z-index: 1;
+  background: Canvas;
+}
+
+
+/* The search field takes the room that the button leaves, at any width */
+search form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+search label {
+  flex-basis: 100%;
+}
+
+search input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A result has its artwork beside its title, author and button, whether or
+   not it has artwork. The list keeps role="list", as the navigation's does. */
+.search-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-results article {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.search-results img {
+  grid-row: span 5;
+  object-fit: cover;
+}
+
+.search-results article > :not(img) {
+  grid-column: 2;
+}
+
+.search-results button {
+  justify-self: start;
+}
+
+/* A feed's URL has no spaces to wrap at, so it wraps anywhere rather than
+   widen the page on a phone (WCAG 2.2, SC 1.4.10 Reflow), and so do the
+   links in a show's notes */
+.search-results p,
+.show-notes {
+  overflow-wrap: anywhere;
+}
+
+/* The links to the lists of the directories, in a row that wraps */
+.search-jump ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 1em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-jump a {
+  display: inline-block;
+  min-height: 24px;
+}
+
+/* The lists of the directories: one below the other on a phone, and side
+   by side wider than that, in a row of columns of about 360 px, as
+   Android's adaptive panes have them, which scrolls sideways where they
+   don't all fit. At 320 px they stack (WCAG 2.2, SC 1.4.10 Reflow).
+   https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes */
+.search-lists {
+  display: grid;
+  gap: 1.5em;
+}
+
+@media (min-width: 48em) {
+  .search-lists {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(22.5rem, 1fr);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .search-list {
+    scroll-snap-align: start;
+  }
+}
+
+.search-list h2 {
+  margin-bottom: 0;
+}
+
+/* The browser's own ring on the heading that the jump row moved the focus
+   to, which it leaves out after a click, so that the list shows where the
+   jump went (WCAG 2.2, SC 2.4.7 Focus Visible)
+
+   TODO: with the look, maybe a ring around the whole list instead, with
+   .search-list:focus-within, while the focus stays on the heading for a
+   screen reader */
+.search-list h2:focus {
+  outline: auto;
+}
+
+
+/* The episodes of a show, whose list keeps role="list", as the
+   navigation's does */
+.episodes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+
+/* An episode's show, date and Play button beside its artwork, which is
+   smaller on a phone */
+.episode-intro {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.episode-intro img {
+  grid-row: span 3;
+  width: 96px;
+  object-fit: cover;
+}
+
+.episode-intro > :not(img) {
+  grid-column: 2;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+.episode-intro button {
+  justify-self: start;
+  min-height: 44px;
+}
+
+@media (min-width: 37.5em) {
+  .episode-intro {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+
+  .episode-intro img {
+    width: 160px;
+  }
+}
+
+/* The chapters keep role="list", as the navigation's do */
+.chapters {
+  padding: 0;
+  list-style: none;
+}
+
+.chapters,
+.transcript {
+  overflow-wrap: anywhere;
+}
+
+
+/* The Details of a show or an episode beside its content, where there's
+   room for both, and below it where there isn't, with no media query, as
+   Every Layout's Sidebar has them. The content wraps the Details below it
+   once it would be narrower than 60% of the page, i.e. below 55 rem,
+   where 40% of the page is less than the Details' 20 rem and the gap's
+   2 em.
+   https://every-layout.dev/layouts/sidebar/ */
+.with-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 2em;
+  container-type: inline-size;
+}
+
+.with-details > :first-child {
+  flex-basis: 0;
+  flex-grow: 999;
+  min-inline-size: 60%;
+}
+
+.with-details > aside {
+  flex-basis: 20rem;
+  flex-grow: 1;
+}
+
+/* The link to the Details only where they come after the content, since
+   beside it they're in view already. The width is the one that the wrap
+   above works out, so the two change together. */
+@container (min-width: 55rem) {
+  .details-link {
+    display: none;
+  }
+}
+
+/* Each name above its values, as GOV.UK's summary list has them on a
+   phone, which suits the narrow column on a desktop too, and long values,
+   e.g. the URL of a feed, wrap */
+.details {
+  overflow-wrap: anywhere;
+}
+
+.details dd {
+  margin: 0;
+}
+
+.details dl > div + div {
+  margin-top: 0.5em;
+}
+
+/* The people keep role="list", as the navigation's do */
+.people {
+  padding: 0;
+  list-style: none;
+}
+
+.people li {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 48px;
+}
+
+/* The ring on the heading that the link to the Details moved the focus
+   to, as on the lists of the Search page */
+.details h2:focus {
+  outline: auto;
+}
+
+
+/* The player: the episode and its Play button in a row, with the other
+   controls below it, which a phone shows on request. The player is a row
+   of the shell's grid, outside the main content that scrolls, so it never
+   covers what has the focus (WCAG 2.2, SC 2.4.11). */
+#player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.player-now {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 0.5em;
+  min-width: 0;
+}
+
+.player-now img {
+  flex: none;
+  width: 48px;
+}
+
+.player-title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A line each for the title and the show, cut short, so that the player
+   stays low on a phone; the title links to the episode's page, which has
+   all of it */
+.player-title p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-controls {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.player-controls.collapsed {
+  display: none;
+}
+
+.player-seek {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.player-seek input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+#player button,
+#player select {
+  min-height: 44px;
+}
+
+@media (min-width: 37.5em) {
+  .player-now {
+    flex: 0 1 22em;
+  }
+
+  .player-more {
+    display: none;
+  }
+
+  .player-controls,
+  .player-controls.collapsed {
+    display: flex;
+    flex: 1 1 30em;
+  }
+}
+
+
+/* The buttons of an episode's page wrap below each other on a phone */
+.episode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+.player-next {
+  flex: 1 1 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+
+/* The queue and the inbox: each episode's artwork beside its title, show
+   and times, with its buttons below, which wrap on a phone. The lists
+   keep role="list", as the navigation's does. */
+.queue,
+.inbox {
+  padding: 0;
+  list-style: none;
+}
+
+.queue-episode,
+.inbox-episode {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.queue-episode img,
+.inbox-episode img {
+  grid-row: span 3;
+  width: 48px;
+}
+
+.queue-episode > :not(img),
+.inbox-episode > :not(img) {
+  grid-column: 2;
+  overflow-wrap: anywhere;
+}
+
+.queue-episode h3,
+.queue-episode p,
+.inbox-episode h2,
+.inbox-episode p {
+  margin: 0;
+}
+
+.queue-actions,
+.inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+.queue-actions button,
+.inbox-actions button,
+.episode-actions button,
+main section > button {
+  min-height: 44px;
+}
+
+
+/* The Library page's choices and its refresh, the Inbox page's buttons,
+   and the choice of a show's page, in rows that wrap */
+.library-tools,
+.library-refresh,
+.inbox-tools,
+.new-episodes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.library-refresh p {
+  margin: 0;
+}
+
+.library-tools select,
+.library-refresh button,
+.inbox-tools button,
+.new-episodes select {
+  min-height: 44px;
+}
+
+/* The shows: a list of rows, the artwork beside the title, or a grid of
+   tiles, the title below the artwork. Automatic is the list on a phone
+   and the grid wider than that. The list keeps role="list", as the
+   navigation's does. */
+.library-shows {
+  padding: 0;
+  list-style: none;
+}
+
+.library-show h2 {
+  margin: 0;
+  font-size: inherit;
+}
+
+/* The title's link covers the whole tile, so that a click on the artwork
+   follows it too, while a keyboard and a screen reader still find one
+   link per show, named by its title (Inclusive Components, Cards:
+   https://inclusive-components.design/cards/) */
+.library-show {
+  position: relative;
+}
+
+.library-show h2 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.library-show p {
+  margin: 0;
+}
+
+.library-shows.list .library-show {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.library-shows.list .library-show img {
+  grid-row: span 3;
+  width: 64px;
+}
+
+.library-shows.list .library-show > :not(img) {
+  grid-column: 2;
+  overflow-wrap: anywhere;
+}
+
+.library-shows.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(10em, 100%), 1fr));
+  gap: 1em;
+}
+
+.library-shows.grid .library-show {
+  overflow-wrap: anywhere;
+}
+
+.library-shows.grid .library-show img {
+  width: 100%;
+}
+
+.library-shows.auto .library-show {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.library-shows.auto .library-show img {
+  grid-row: span 3;
+  width: 64px;
+}
+
+.library-shows.auto .library-show > :not(img) {
+  grid-column: 2;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 37.5em) {
+  .library-shows.auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
+    gap: 1em;
+  }
+
+  .library-shows.auto .library-show {
+    display: block;
+  }
+
+  .library-shows.auto .library-show img {
+    width: 100%;
+  }
+}
+
+
+/* The Settings page: a column of groups, each setting a row of its label
+   and its control, which wraps on a phone, with a hint below. The groups
+   keep the fieldset's own look until the app has one. */
+.settings-group {
+  margin: 0 0 1.5em;
+  min-inline-size: 0;
+}
+
+.settings-group legend h2 {
+  margin: 0;
+}
+
+/* The ring on the heading of the group that a link went to, as on the
+   lists of the Search page */
+.settings-group legend h2:focus {
+  outline: auto;
+}
+
+.setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+  margin-block: 0.75em;
+}
+
+.setting p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.setting select,
+.setting input[type=file],
+.setting button,
+.settings-group > button {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+/* The directories of a search, a row each, which keeps role="list", as the
+   navigation's does */
+.settings-directories {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

@@ -17,12 +17,23 @@
   (some #(when (:selected (second %)) (:value (second %)))
         (elements :option (by-id x :select id))))
 
+(defn ids
+  "The ids of the elements of the Hiccup `x`, in their order."
+  [x]
+  (->> (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x)
+       (keep #(when (and (vector? %) (map? (second %))) (:id (second %))))))
+
+(deftest every-id-once
+  (let [found (ids (settings-ui/content {:library inbox-test/lib}))]
+    (is (= (count found) (count (distinct found)))
+        "so that each label names its own control, e.g. Colours, apart from the heading of its group")))
+
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
-    (is (= ["Playback" "New episodes" "Search" "Subscriptions" "This browser"]
+    (is (= ["Appearance" "Playback" "New episodes" "Search" "Subscriptions" "This browser"]
            (map text-of (elements :h2 (elements :legend x))))
         "each group a fieldset, its heading in its legend")
-    (is (= [["playback" -1] ["new-episodes" -1] ["search" -1] ["subscriptions" -1] ["this-browser" -1]]
+    (is (= [["appearance" -1] ["playback" -1] ["new-episodes" -1] ["search" -1] ["subscriptions" -1] ["this-browser" -1]]
            (map #((juxt :id :tabindex) (second %)) (elements :h2 x)))
         "which a link to the group names, and which takes the focus")
     (is (= "/settings#search" (settings-ui/group-href :search)))
@@ -31,8 +42,11 @@
       (is (= "30" (chosen x "skip-forward")))
       (is (= "1" (chosen x "speed")))
       (is (= "chapters" (chosen x "track-buttons")))
-      (is (= "inbox" (chosen x "default-new-episodes"))))
+      (is (= "inbox" (chosen x "default-new-episodes")))
+      (is (= "auto" (chosen x "colours")) "the device's colours"))
     (testing "each change applied at once"
+      (is (= [[:settings/prefer :appearance [:event/target-keyword]]]
+             (get-in (by-id x :select "colours") [1 :on :change])))
       (is (= [[:settings/prefer :skip-back [:event/target-number]]]
              (get-in (by-id x :select "skip-back") [1 :on :change])))
       (is (= [[:settings/new-episodes [:event/target-keyword]]]

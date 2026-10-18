@@ -21,6 +21,13 @@
   (is (= 45 (:skip-forward (settings/preferences (settings/preferred state {:skip-forward 45})))))
   (is (nil? (settings/preferences {})) "and none before the library is restored"))
 
+(deftest the-colours-of-the-app
+  (is (nil? (settings/theme state)) "the device's, at first")
+  (is (= "dark" (settings/theme (settings/preferred state {:appearance :dark}))))
+  (is (= "light" (settings/theme (settings/preferred state {:appearance :light}))))
+  (is (nil? (settings/theme (settings/preferred state {:appearance :auto}))))
+  (is (nil? (settings/theme {})) "and before the library is restored"))
+
 (deftest new-episodes-of-a-new-show
   (is (= :inbox (settings/new-episodes state)))
   (let [s (settings/defaulted state :next)]

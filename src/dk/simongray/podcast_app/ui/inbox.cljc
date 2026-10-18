@@ -65,8 +65,9 @@
   [{:keys [id title] :as episode} focus]
   [:div.inbox-actions
    (rows/button "Play" title
-                {:id (control-id id :play)
-                 :on {:click [[:player/play {:id id} nil] (focus :play)]}})
+                {:id    (control-id id :play)
+                 :class "primary"
+                 :on    {:click [[:player/play {:id id} nil] (focus :play)]}})
    (rows/button "Add to queue" title
                 {:id (control-id id :queue)
                  :on {:click [[:queue/add {:id id} title false] (focus :queue)]}})

@@ -33,8 +33,8 @@
   wherever it plays."
   [{:keys [paused] :as media}]
   (if (false? paused)
-    [:button {:type "button" :on {:click [[:player/pause]]}} "Pause"]
-    [:button {:type "button" :on {:click [[:player/resume]]}} "Play"]))
+    [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
+    [:button.primary {:type "button" :on {:click [[:player/resume]]}} "Play"]))
 
 ;; A range input, rather than a slider of our own, since a screen reader on
 ;; a phone adjusts it with a swipe, which it always follows

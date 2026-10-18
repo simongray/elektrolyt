@@ -16,9 +16,11 @@
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
+            [dk.simongray.podcast.format.image :as image]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.cache :as app-cache]
+            [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.opml :as opml]
@@ -32,6 +34,7 @@
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
             [nexus.registry :as nxr]
+            [reitit.core :as reitit]
             [reitit.frontend.easy :as rfe]
             [reitit.frontend.history :as rfh]
             [replicant.dom :as r]))
@@ -837,12 +840,62 @@
                                         (transit/read (transit/reader :json) text)]])))
       (.catch #(js/console.error "The server didn't say what it offers" %))))
 
+(defn themed!
+  "Give the document the colours that the listener chose in the `state`
+  as its data-theme, or else none, for the device's."
+  [state]
+  (if-let [theme (settings/theme state)]
+    (.setAttribute js/document.documentElement "data-theme" theme)
+    (.removeAttribute js/document.documentElement "data-theme")))
+
 (defn render!
   "Render the page for `state` into the element of the app, and give the
-  window the page's title."
+  window the page's title and the listener's colours."
   [state]
   (r/render (js/document.getElementById "app") (ui/page state))
-  (set! js/document.title (ui/document-title state)))
+  (set! js/document.title (ui/document-title state))
+  (themed! state))
+
+(defn load-colors!
+  "Work out the colours of the artwork `x`, as colors/wanted names it, into
+  the :colors of the `store`: from the cache, or else from the image,
+  whose colours the cache keeps then. An image that doesn't come leaves
+  the artwork without a seed until the page loads again."
+  [store {:keys [artwork] :as x}]
+  (swap! store assoc-in [:colors artwork] {:status :loading})
+  (-> (app-cache/fetch! app-cache/colors artwork)
+      (.then (fn [kept]
+               (or (:value kept)
+                   (-> (app-library/send {:url (colors/source x) :as :bytes})
+                       (.then #(image/colors (:body %)))
+                       (.then (fn [found]
+                                (let [v {:seed (:seed found)}]
+                                  (app-cache/put! app-cache/colors artwork v)
+                                  v)))))))
+      (.catch (fn [e]
+                (js/console.warn "The colours of the artwork weren't worked out" e)
+                nil))
+      (.then #(swap! store assoc-in [:colors artwork] (or % {:seed nil})))))
+
+(defn colored!
+  "Work out the colours of each artwork that the page of the `state` wants
+  and doesn't have yet, into the `store`."
+  [store state]
+  (doseq [x (colors/wanted state)]
+    (load-colors! store x)))
+
+(defn kept-colors!
+  "A promise that the :colors of the `store` have what the cache keeps of
+  the artwork that the page at the window's location wants, before it
+  renders, which comes to nothing for artwork that it doesn't keep."
+  [store]
+  (let [route  (routes/match->route (reitit/match-by-path routes/router js/location.pathname))
+        wanted (colors/wanted (assoc @store :route route))]
+    (-> (js/Promise.all (into-array (map #(app-cache/fetch! app-cache/colors (:artwork %)) wanted)))
+        (.then (fn [kept]
+                 (swap! store update :colors merge
+                        (into {} (keep (fn [[x k]] (when k [(:artwork x) (:value k)])))
+                              (map vector wanted kept))))))))
 
 (defn ^:dev/after-load reload!
   "Start the router again with the routes and views that shadow-cljs just
@@ -861,7 +914,9 @@
   The first page waits for both, since what it shows can depend on them,
   e.g. a search asks the Podcast Index too when the server signs for it,
   only the Podcast Index finds a show by its guid alone, and a show that
-  the library keeps needs neither the index nor a fetch."
+  the library keeps needs neither the index nor a fetch. It waits for the
+  colours that the cache keeps of its artwork too, so that it opens in
+  them rather than turns to them."
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
   (tabs/watch! player/element-name #(audio/shared! store %))
@@ -873,8 +928,10 @@
   (audio/volume-locked! store)
   (swap! store assoc :library-view (saved-library-view))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
+      (.finally #(swap! store audio/restored (audio/kept-position)))
+      (.then #(kept-colors! store) #(kept-colors! store))
       (.finally (fn []
-                  (swap! store audio/restored (audio/kept-position))
                   (add-watch store ::render (fn [_ _ _ state] (render! state)))
+                  (add-watch store ::colors (fn [_ _ _ state] (colored! store state)))
                   (start-router!)
                   (refresh/refresh-if-due! store)))))

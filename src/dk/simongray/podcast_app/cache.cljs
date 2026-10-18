@@ -1,7 +1,8 @@
 (ns dk.simongray.podcast-app.cache
   "What this browser keeps between visits besides the library: the lists
   of the directories, the URLs of the feeds that the Podcast Index found by
-  guid, and the feeds of shows outside the library.
+  guid, the feeds of shows outside the library, and the colours of
+  artwork.
 
   They're caches of like-minded in an IndexedDB database of their own, so
   that the button in Settings empties them without touching the library.
@@ -49,6 +50,17 @@
 ;; Fetch, request cache mode: no-store neither reads nor writes the HTTP
 ;; cache
 ;; https://fetch.spec.whatwg.org/#concept-request-cache-mode
+;; An artwork whose image changes usually changes its URL too, so its
+;; colours keep for long
+(def colors
+  "The colours of artwork by the URL of each, as colors/wanted names
+  them, at most 500 and for 90 days."
+  {:store       store
+   :prefix      "colors."
+   :max-count   500
+   :max-seconds (* 90 24 60 60)
+   :codec       transit/codec})
+
 (defn send
   "Send the `request` through the proxy of the app's server, past the
   browser's HTTP cache, as the requests to the directories go."
@@ -79,4 +91,4 @@
 (defn clear!
   "A promise that every cache is empty."
   []
-  (js/Promise.all (into-array (map cache/clear! [searches feed-urls shows]))))
+  (js/Promise.all (into-array (map cache/clear! [searches feed-urls shows colors]))))

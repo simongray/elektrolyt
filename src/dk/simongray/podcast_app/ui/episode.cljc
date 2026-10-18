@@ -79,8 +79,8 @@
   plays it."
   [page player entry t]
   (if (and (= (:id page) (:id player)) (false? (get-in player [:media :paused])))
-    [:button {:type "button" :on {:click [[:player/pause]]}} "Pause"]
-    [:button {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
+    [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
+    [:button.primary {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
      (play-label page entry t)]))
 
 ;; The two places of Apple, Pocket Casts, Castro and Overcast: right after

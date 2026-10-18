@@ -8,7 +8,8 @@
   has. It holds the listener's library from podcast-clj as :library, once
   it's restored, and the last thing to tell a screen reader as
   :announcement."
-  (:require [dk.simongray.podcast-app.inbox :as inbox]
+  (:require [dk.simongray.podcast-app.colors :as colors]
+            [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.show :as show]
@@ -157,9 +158,10 @@
 
   The landmarks come in the same order at every width, so that the order of
   the focus doesn't change with the layout: the header, the navigation, the
-  main content and the player."
+  main content and the player. The page takes the colours of the artwork
+  of what it's about, or else of what plays, as colors/focus has it."
   [state]
-  [:div.shell
+  [:div.shell (colors/attrs state (colors/focus state))
    skip-link
    (banner state)
    (main-nav state)

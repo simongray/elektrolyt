@@ -1,7 +1,8 @@
 (ns dk.simongray.podcast-app.ui.settings
-  "The views of the Settings page: how the listener plays, where new
-  episodes go, the directories that a search asks, the import and export
-  of their subscriptions, and how this browser keeps the library.
+  "The views of the Settings page: the app's colours, how the listener
+  plays, where new episodes go, the directories that a search asks, the
+  import and export of their subscriptions, and how this browser keeps the
+  library.
 
   Each change applies at once, with no Save button, which NN/g, Microsoft
   and GNOME advise for settings, and which a field-by-field profile makes
@@ -63,6 +64,14 @@
                 :selected (= (option-value v) (option-value chosen))}
        text])]])
 
+(defn appearance
+  "The choice of the app's colours, by the listener's preferences `prefs`,
+  which syncs with the profile as the other preferences do."
+  [{:keys [appearance] :as prefs}]
+  (group :appearance "Appearance"
+         (choice "colours" "Colours" settings/appearances
+                 appearance [:settings/prefer :appearance [:event/target-keyword]])))
+
 (defn playback
   "The settings of how the listener plays, by their preferences `prefs`."
   [{:keys [skip-back skip-forward playback-rate continuous? track-buttons] :as prefs}]
@@ -77,13 +86,11 @@
                  (for [s player/speeds] [s (str s "×")])
                  playback-rate [:settings/prefer :playback-rate [:event/target-number]])
          ;; WAI-ARIA APG, switch pattern: a checkbox with role="switch",
-         ;; which every browser announces as a switch, and which Safari
-         ;; also draws as one for the switch attribute. Its label stays the
-         ;; same as it turns on and off.
+         ;; which every browser announces as a switch, and which look.css
+         ;; draws as one in every browser. Its label stays the same as it
+         ;; turns on and off.
          ;; https://www.w3.org/WAI/ARIA/apg/patterns/switch/
          ;; https://webkit.org/blog/15054/an-html-switch-control/
-         ;; TODO: draw it as a switch in every browser, with appearance:
-         ;; none, once the app has its look
          [:div.setting
           [:input {:type             "checkbox"
                    :switch           true
@@ -208,6 +215,7 @@
   (if-not library
     [:p "The library couldn't be read."]
     (list
+     (appearance (settings/preferences state))
      (playback (settings/preferences state))
      (new-episodes state)
      (search-directories state)

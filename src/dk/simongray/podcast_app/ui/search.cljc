@@ -48,7 +48,7 @@
                              [:search/submit [:form/field "q"]]]}}
     [:label {:for "search-query"} "Search for podcasts, or paste a link"]
     [:input#search-query {:type "search" :name "q" :value (or q "")}]
-    [:button {:type "submit"} "Search"]]
+    [:button.primary {:type "submit"} "Search"]]
    [:p "Searches " (listing (map search/source-name sources)) ". "
     [:a {:href (settings-ui/group-href :search)}
      "Change" [:span.visually-hidden " the directories"]]]])

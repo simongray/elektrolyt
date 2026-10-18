@@ -61,12 +61,15 @@ test('continuous play is a switch', async ({ page }) => {
   await expect(continuous).toBeChecked();
 });
 
-/** The distance of the `heading` from the top of the main content, and how far the whole page scrolled. */
+/** The distance of the `heading` from the top of the main content, inside its edge, and how far the whole page scrolled. */
 function landing(heading) {
-  return heading.evaluate(h => ({
-    below: h.getBoundingClientRect().top - h.closest('main').getBoundingClientRect().top,
-    scrolled: window.scrollY,
-  }));
+  return heading.evaluate(h => {
+    const main = h.closest('main');
+    return {
+      below: h.getBoundingClientRect().top - (main.getBoundingClientRect().top + main.clientTop),
+      scrolled: window.scrollY,
+    };
+  });
 }
 
 test('a link to a group of the settings shows it at the top, from another page and on a reload', async ({ page }) => {
@@ -84,4 +87,26 @@ test('a link to a group of the settings shows it at the top, from another page a
   await page.reload();
   await expect(heading).toBeFocused();
   expect(Math.abs((await landing(heading)).below)).toBeLessThan(1);
+});
+
+/** The colour scheme that the page of `page` is in. */
+function scheme(page) {
+  return page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+}
+
+test("the colours are the device's, or light or dark as the listener chooses, in the profile", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/settings');
+  const colours = page.getByRole('main').getByLabel('Colours');
+  await expect(colours).toHaveValue('auto');
+  expect(await scheme(page)).toBe('light dark');
+
+  await colours.selectOption('Dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await scheme(page), 'dark on a light device').toBe('dark');
+
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('main').getByLabel('Colours').selectOption('Automatic, as the device');
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme');
 });

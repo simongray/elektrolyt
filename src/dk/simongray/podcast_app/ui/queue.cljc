@@ -43,8 +43,9 @@
   after a removal."
   [{:keys [id title] :as episode} position n next-focus]
   [:div.queue-actions
-   (rows/button "Play" title {:id (control-id id :play)
-                              :on {:click [[:player/play {:id id} nil]]}})
+   (rows/button "Play" title {:id    (control-id id :play)
+                              :class "primary"
+                              :on    {:click [[:player/play {:id id} nil]]}})
    (rows/move-buttons title position n
                       #(control-id id %)
                       #(vector :queue/move id %))

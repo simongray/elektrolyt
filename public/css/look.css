@@ -1,0 +1,541 @@
+/* The look: Charis on white paper, black ink, and bars in the colour of
+   the artwork of what plays. Every value comes from tokens.css, or from
+   the --seed of an artwork, which the views set.
+
+   The design and its rounds, with the contrast of every pair at every hue
+   of a seed: https://claude.ai/artifact/EJpYHsu9jDjgAG4ancc12m */
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  line-height: var(--leading);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--step-3);
+  font-weight: var(--weight-display);
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: var(--step-2);
+  font-weight: var(--weight-heading);
+  line-height: 1.2;
+}
+
+h3,
+h4 {
+  font-size: var(--step-1);
+  font-weight: var(--weight-heading);
+  line-height: 1.3;
+}
+
+/* The headings of the sections as a book's running heads, in the face's
+   own small caps, but not the headings that title an item of a list */
+main h2:not(.inbox-episode h2, .library-show h2) {
+  font-size: var(--step-0);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* One ring for the keyboard, an outline 2 px wide and 2 px off, which
+   meets WCAG 2.2, SC 2.4.13, and which forced colours keep, as they don't
+   a box shadow. The headings that a link moves the focus to show it after
+   a click too, so that the page shows where it went. */
+:focus-visible,
+.search-list h2:focus,
+.settings-group legend h2:focus,
+.details h2:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+time,
+.queue-summary,
+.player-seek {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+
+/* The bars: the header and the player, and the tab bar on a phone, in a
+   strong colour from the --seed that the view sets on the shell, of the
+   artwork of what the page is about, or else of what plays. It's the
+   seed's complement, its hue turned halfway round, so that the artwork in
+   the player doesn't sit on a colour like its own, at a lightness of its
+   own for each token, so that the contrast holds at every hue. The bars
+   are the same in light and dark, and their controls are drawn for a dark
+   ground. */
+.shell {
+  --bar: oklch(from var(--seed) 33% min(c, 0.1) calc(h + 180));
+  --on-bar: oklch(from var(--seed) 97% min(c, 0.012) calc(h + 180));
+  --on-bar-2: oklch(from var(--seed) 84% min(c, 0.035) calc(h + 180));
+  --bar-rule: oklch(from var(--seed) 68% min(c, 0.05) calc(h + 180));
+  --bar-fill: oklch(from var(--seed) 94% min(c, 0.025) calc(h + 180));
+  --on-bar-fill: oklch(from var(--seed) 30% min(c, 0.1) calc(h + 180));
+  /* the paper's edge where it meets a bar, a deeper shade of it */
+  --edge: light-dark(oklch(from var(--seed) 24% min(c, 0.08) calc(h + 180)), oklch(from var(--seed) 11% min(c, 0.03) calc(h + 180)));
+  /* behind the bars, so that no seam shows between them */
+  background: var(--bar);
+}
+
+/* Inside a bar, the content's tokens take the bar's values, so that every
+   rule below applies there unchanged */
+.shell > header,
+.shell > nav,
+#player {
+  color-scheme: dark;
+  color: var(--on-bar);
+  --ink: var(--on-bar);
+  --ink-2: var(--on-bar-2);
+  --ink-3: var(--bar-rule);
+  --rule: var(--bar-rule);
+  --rule-soft: transparent;
+  --field: transparent;
+  --accent: var(--bar-fill);
+  --accent-ink: var(--on-bar-fill);
+  --accent-soft: oklch(from var(--on-bar) l c h / 0.14);
+  --focus: var(--on-bar);
+}
+
+.shell > header {
+  align-items: center;
+  padding-inline: var(--gutter);
+}
+
+.shell > header a {
+  color: var(--on-bar);
+  text-decoration: none;
+}
+
+.shell > header a:first-of-type {
+  font-size: var(--step-1);
+}
+
+.shell > header a:last-of-type,
+.shell > nav a {
+  font-size: var(--step--1);
+  font-variant-caps: all-small-caps;
+  letter-spacing: var(--caps-tracking);
+}
+
+.shell > nav a {
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.shell > nav a[aria-current="page"],
+.shell > header a[aria-current="page"] {
+  color: var(--ink);
+  font-weight: var(--weight-strong);
+  text-decoration: underline 2px;
+  text-underline-offset: 0.45em;
+}
+
+/* The paper, with an edge where it meets the bars, above and below. Its
+   links, buttons and focus ring take the seed's own hue. */
+.shell > main {
+  padding: var(--space-4) var(--gutter) var(--space-5);
+  border-block: 1px solid var(--edge);
+  background: var(--paper);
+  --accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
+  --accent-ink: light-dark(oklch(100% 0 0), oklch(from var(--seed) 18% min(c, 0.03) h));
+  --accent-soft: light-dark(oklch(from var(--seed) 95% min(c, 0.02) h), oklch(from var(--seed) 26% min(c, 0.03) h));
+  --focus: var(--accent);
+}
+
+/* Lines of reading text no longer than a measure, while the wrappers of
+   the Search lists and of the Details beside the content take the room */
+.shell > main > :not(div, search, .search-jump),
+.show-notes,
+.chapters,
+.transcript {
+  max-inline-size: var(--measure);
+}
+
+/* Wider than a phone, the rail lies on the paper beside the text, as a
+   book's contents would, its tokens the content's again, with a thick,
+   light line between them that stops short of the bars */
+@media (min-width: 37.5em) {
+  .shell > nav {
+    position: relative;
+    padding: var(--space-3) var(--space-3) 0;
+    border-block: 1px solid var(--edge);
+    background: var(--paper);
+    color-scheme: inherit;
+    --ink: inherit;
+    --ink-2: inherit;
+    --ink-3: inherit;
+    --rule: inherit;
+    --rule-soft: inherit;
+    --field: inherit;
+    --accent: inherit;
+    --accent-ink: inherit;
+    --accent-soft: inherit;
+    --focus: inherit;
+    color: var(--ink);
+  }
+
+  .shell > nav::after {
+    content: "";
+    position: absolute;
+    inset-block: var(--space-4);
+    inset-inline-end: 0;
+    border-inline-end: 3px solid var(--divider);
+  }
+
+  /* larger, and against the line, which they face, as a book's contents
+     face their page numbers */
+  .shell > nav a {
+    justify-content: flex-end;
+    padding-inline: var(--space-4) var(--space-3);
+    font-size: var(--step-1);
+    text-align: end;
+  }
+}
+
+
+/* Controls: one button, one field, and a filled button for the main
+   action of a place, e.g. Play */
+button,
+select,
+input[type="search"],
+::file-selector-button,
+summary {
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: var(--field);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+button,
+::file-selector-button,
+summary {
+  padding: 0.55em 1em;
+  font-weight: var(--weight-strong);
+  cursor: pointer;
+}
+
+button:hover,
+summary:hover {
+  background: var(--accent-soft);
+}
+
+button.primary {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+button.primary:hover {
+  background: color-mix(in oklch, var(--accent), var(--ink) 18%);
+}
+
+button[aria-disabled="true"] {
+  color: var(--ink-3);
+  border-color: var(--rule-soft);
+  background: transparent;
+  cursor: default;
+}
+
+select {
+  padding: 0.5em 0.6em;
+}
+
+input[type="search"] {
+  min-height: 44px;
+  padding: 0.5em 0.8em;
+  font-size: var(--step-0);
+}
+
+input[type="checkbox"],
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+input[type="checkbox"] {
+  width: 1.15em;
+  height: 1.15em;
+}
+
+label {
+  font-size: var(--step--1);
+}
+
+/* WAI-ARIA APG, switch: a track and a knob, drawn the same in every
+   browser, with no ::before, which Firefox draws on no input, and in
+   system colours where forced colours replace the others
+   https://www.w3.org/WAI/ARIA/apg/patterns/switch/ */
+input[role="switch"] {
+  appearance: none;
+  flex: none;
+  width: 2.75rem;
+  height: 1.5rem;
+  margin: 0;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  background: radial-gradient(circle at 0.62rem 50%, var(--ink-2) 0.42rem, transparent 0.47rem) var(--field);
+  cursor: pointer;
+}
+
+input[role="switch"]:checked {
+  border-color: var(--accent);
+  background: radial-gradient(circle at calc(100% - 0.62rem) 50%, var(--accent-ink) 0.42rem, transparent 0.47rem) var(--accent);
+}
+
+
+/* Lists of episodes and shows: a hairline between rows, the title in ink,
+   and the facts below it smaller and lighter */
+.queue > li,
+.inbox > li,
+.episodes > li,
+.search-results > li {
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.queue-episode h3,
+.inbox-episode h2,
+.episodes h3,
+.search-results h3,
+.library-show h2 {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 400;
+}
+
+.queue-episode h3 a,
+.inbox-episode h2 a,
+.episodes h3 a,
+.search-results h3 a,
+.library-show h2 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.queue-episode h3 a:hover,
+.inbox-episode h2 a:hover,
+.episodes h3 a:hover,
+.search-results h3 a:hover,
+.library-show h2 a:hover {
+  text-decoration: underline;
+}
+
+.queue-episode p,
+.inbox-episode p,
+.episodes p,
+.search-results p,
+.library-show p,
+.queue-summary,
+[role="status"] {
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
+
+.queue-actions,
+.inbox-actions {
+  margin-top: var(--space-2);
+}
+
+img {
+  outline: 1px solid var(--rule-soft);
+  outline-offset: -1px;
+}
+
+
+/* An episode's page: the notes as reading text, with the first line in
+   small caps, as a book's chapter opens, and the chapters as a contents of
+   times and titles */
+.episode-intro p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
+
+.episode-intro .episode-actions {
+  margin-top: var(--space-3);
+}
+
+.show-notes {
+  font-family: var(--font-text);
+  font-size: var(--step-text);
+  line-height: var(--leading-text);
+  hyphens: auto;
+  text-wrap: pretty;
+}
+
+.show-notes > p:first-of-type::first-line {
+  font-variant-caps: small-caps;
+  letter-spacing: 0.03em;
+}
+
+.show-notes h3,
+.show-notes h4 {
+  margin: var(--space-4) 0 var(--space-1);
+}
+
+.show-notes p {
+  margin: 0 0 var(--space-3);
+}
+
+.chapters {
+  margin: 0;
+}
+
+.chapters li {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.chapters li > a:first-child {
+  font-size: var(--step--1);
+  padding-top: 0.15em;
+}
+
+details summary {
+  display: inline-block;
+}
+
+/* The Details of a show or an episode: each name in small caps above its
+   values */
+.details dt {
+  color: var(--ink-2);
+  font-size: var(--step--1);
+  font-variant-caps: all-small-caps;
+  letter-spacing: var(--caps-tracking);
+}
+
+.people img {
+  border-radius: 50%;
+}
+
+
+/* The player, on its bar: the title strong and the show lighter */
+#player {
+  padding: var(--space-2) var(--gutter);
+}
+
+.player-title p:first-child a {
+  color: var(--on-bar);
+  font-weight: var(--weight-strong);
+  text-decoration: none;
+}
+
+.player-title p + p,
+.player-seek time,
+.player-next a {
+  color: var(--on-bar-2);
+  font-size: var(--step--1);
+}
+
+
+/* Search: the field and its button, then the lists */
+search {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+search p {
+  margin-top: var(--space-2);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
+
+.search-jump {
+  margin-block: var(--space-3);
+  font-size: var(--step--1);
+}
+
+.search-jump a[aria-current="true"] {
+  font-weight: var(--weight-strong);
+}
+
+.search-list h2 {
+  margin-top: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+
+/* Settings: each group under a rule, rather than in the fieldset's box */
+.settings-group {
+  padding: var(--space-3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--rule-soft);
+}
+
+/* A floated legend leaves the border, which it would otherwise break, so
+   the rule runs whole above its heading */
+.settings-group legend {
+  float: inline-start;
+  inline-size: 100%;
+  padding: 0;
+}
+
+.settings-group legend + * {
+  clear: both;
+}
+
+.setting p,
+.settings-group > p {
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
+
+
+/* Forced colours, e.g. Windows' contrast themes, replace the colours and
+   drop gradients, so the switch draws itself in system colours, and keeps
+   its state in the knob's place
+   https://developer.mozilla.org/en-US/docs/Web/CSS/@media/forced-colors */
+@media (forced-colors: active) {
+  input[role="switch"] {
+    forced-color-adjust: none;
+    border-color: ButtonText;
+    background: radial-gradient(circle at 0.62rem 50%, ButtonText 0.42rem, transparent 0.47rem) Canvas;
+  }
+
+  input[role="switch"]:checked {
+    border-color: Highlight;
+    background: radial-gradient(circle at calc(100% - 0.62rem) 50%, HighlightText 0.42rem, transparent 0.47rem) Highlight;
+  }
+}
+
+/* Motion only where the listener allows it: the colours turn from one
+   artwork's to the next as the page's focus moves, in all its parts at
+   once, since they all derive from the seed
+   https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  .shell {
+    transition: --seed 0.6s ease-in-out;
+  }
+
+  button,
+  a {
+    transition: background-color 0.15s, text-decoration-thickness 0.15s;
+  }
+}

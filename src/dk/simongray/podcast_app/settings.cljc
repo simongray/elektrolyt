@@ -33,11 +33,27 @@
    [:queue "The episodes of the queue"]
    [:chapters-first "Chapters, then the queue"]])
 
+;; web.dev, prefers-color-scheme: follow the device by default, and let the
+;; listener choose, since some want a dark device but light pages
+;; https://web.dev/articles/prefers-color-scheme
+(def appearances
+  "The colours that the app can have, as profile/default-preferences names
+  them for :appearance, with the text of each."
+  [[:auto "Automatic, as the device"]
+   [:light "Light"]
+   [:dark "Dark"]])
+
 (defn preferences
   "The listener's preferences in the library of the `state`, or nil before
   it's restored."
   [state]
   (some-> (:library state) :profile profile/preferences))
+
+(defn theme
+  "The colours that the listener chose in the `state`, \"light\" or
+  \"dark\", or nil for the device's."
+  [state]
+  (some-> (#{:light :dark} (:appearance (preferences state))) name))
 
 (defn new-episodes
   "Where the new episodes of a new show go by the preferences of the

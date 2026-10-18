@@ -16,8 +16,10 @@ Principles
   screen reader, and so do the scripts behind it.
 - **Responsive.** Every view works on a phone and on a desktop, down to a
   width of 320 CSS pixels.
-- **Layout first.** The CSS solves the layout and nothing more. The look of
-  the app comes later.
+- **Layout apart from look.** The CSS keeps how things are laid out in one
+  part and how they look in another, so that either can change without the
+  other. The colours come from tokens, defined once for light and dark,
+  which take their hue from the artwork.
 - **A thick client and a thin server.** The browser keeps as much as is
   practical, and the server does only what a browser can't. The app is for
   one listener on a server of their own, but nothing should stand in the

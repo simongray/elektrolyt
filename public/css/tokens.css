@@ -1,0 +1,121 @@
+/* The tokens of the look: its type, its spacing and its colours, which
+   look.css takes its values from. Each colour is defined once for light
+   and dark with light-dark(), in oklch(), whose lightness predicts the
+   contrast; every pair of text and ground meets WCAG 2.2's 4.5:1, and of a
+   control's border or the focus ring 3:1.
+   https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/light-dark
+   https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl */
+
+/* Charis, from SIL, self-hosted, since loading a font from Google sends
+   the listener's address there (LG München I, 3 O 17493/20, 2022). Its
+   files are SIL's, unmodified, as the OFL's Reserved Font Names ask.
+   https://software.sil.org/charis/ */
+@font-face {
+  font-family: Charis;
+  src: url("/fonts/charis/Charis-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Charis;
+  src: url("/fonts/charis/Charis-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Charis;
+  src: url("/fonts/charis/Charis-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Charis;
+  src: url("/fonts/charis/Charis-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* The seed of the colours, which the view sets from an artwork, as a
+   colour that CSS can animate: as it moves from one artwork's to the
+   next, every colour that derives from it moves with it (look.css)
+   https://developer.mozilla.org/en-US/docs/Web/CSS/@property */
+@property --seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(44% 0.085 158);
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* Charis for everything, with Modern Font Stacks' Transitional stack
+     behind it while it loads, or where it can't; Charis is drawn from
+     Charter, so the two differ little. Its small caps are its own.
+     https://modernfontstacks.com/ */
+  --font-text: Charis, Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+  --font-display: var(--font-text);
+  --font-ui: var(--font-text);
+
+  /* sizes in rem, and fluid only as rem plus vw, so that zooming to 200%
+     still enlarges them (WCAG 2.2, SC 1.4.4)
+     https://adrianroselli.com/2019/12/responsive-type-and-zoom.html */
+  --step--1: 0.9375rem;
+  --step-0: clamp(1.0625rem, 1rem + 0.2vw, 1.125rem);
+  --step-1: 1.25rem;
+  --step-2: 1.5rem;
+  --step-3: clamp(1.75rem, 1.45rem + 1.2vw, 2.25rem);
+  --step-text: 1.125rem;
+  --leading: 1.45;
+  --leading-text: 1.6;
+  --weight-display: 400;
+  --weight-heading: 700;
+  --weight-strong: 700;
+  --caps-tracking: 0.06em;
+
+  --gutter: clamp(16px, 4vw, 32px);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --measure: 36em;
+  --radius: 2px;
+
+  /* the app's own colour, which the bars take while nothing plays */
+  --seed: oklch(44% 0.085 158);
+
+  /* black ink on white paper */
+  --paper: light-dark(oklch(100% 0 0), oklch(17.5% 0.003 80));
+  --ink: light-dark(oklch(21% 0.004 80), oklch(93% 0.004 80));
+  --ink-2: light-dark(oklch(44% 0.005 80), oklch(76% 0.005 80));
+  --ink-3: light-dark(oklch(62% 0.004 80), oklch(56% 0.004 80));
+  --rule: light-dark(oklch(56% 0.005 80), oklch(60% 0.005 80));
+  --rule-soft: light-dark(oklch(90% 0.003 80), oklch(30% 0.004 80));
+  --field: var(--paper);
+  /* the line between the rail and the text */
+  --divider: light-dark(oklch(88% 0.004 80), oklch(33% 0.004 80));
+
+  /* links, buttons and the focus ring, in the text's own ink until a part
+     of the page takes the colour of an artwork (see look.css) */
+  --accent: var(--ink);
+  --accent-ink: var(--paper);
+  --accent-soft: light-dark(oklch(95% 0.003 80), oklch(25% 0.004 80));
+  --focus: var(--ink);
+}
+
+/* The listener's choice in Settings, over the device's: light-dark()
+   follows color-scheme, so one attribute switches every colour */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
