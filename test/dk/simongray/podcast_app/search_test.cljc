@@ -44,6 +44,34 @@
       (is (= ["A" "B"] (map :title (search/results-of done))) "every result, in the order of the lists")))
   (is (= [{:title "C"}] (search/results-of {:status :done :results [{:title "C"}]})) "or of a link"))
 
+(deftest a-list-from-the-cache
+  (let [kept {:value {:status :done :results [{:title "A"}]}
+              :at  #inst "2026-10-18T12:00:00Z"}]
+    (is (= [:apple "podcasting 2.0"] (search/cache-key :apple "  Podcasting   2.0 "))
+        "the same words, whatever their case and spacing")
+    (is (search/fresh? kept #inst "2026-10-19T11:59:59Z") "for a day")
+    (is (not (search/fresh? kept #inst "2026-10-19T12:00:01Z")))
+    (is (not (search/fresh? nil #inst "2026-10-19T12:00:00Z")))
+    (is (= {:status  :failed
+            :results [{:title "A"}]
+            :reason  "Apple answered 503"
+            :kept-at #inst "2026-10-18T12:00:00Z"}
+           (search/stale-list (search/failed "Apple answered 503") kept))
+        "a directory that fails shows the list that the cache kept, with its date")
+    (is (= (search/failed "x")
+           (search/stale-list (search/failed "x")
+                              (assoc-in kept [:value :results] []))
+           (search/stale-list (search/failed "x") nil))
+        "but not an empty one, nor none")))
+
+(deftest a-search-that-failed
+  (is (not (search/failed? nil)))
+  (is (not (search/failed? (search/searching [:apple]))))
+  (is (search/failed? {:lists {:apple {:status :failed} :fyyd {:status :done}}})
+      "in one of its directories")
+  (is (search/failed? {:status :done :results [] :error "No such site"})
+      "or a search of a link"))
+
 (deftest the-directories-of-a-search
   (is (= [:podcastindex :apple :fyyd] (search/sources nil true)) "the defaults, before the library is restored")
   (is (= [:apple :fyyd] (search/sources nil false)) "without the Podcast Index, where the server doesn't sign for it")

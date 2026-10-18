@@ -78,6 +78,9 @@
 (deftest while-there-is-no-episode
   (is (= :loading (episode/status (loaded false :loading) g)) "the whole feed may have it")
   (is (= :not-found (episode/status (loaded true :done) g)))
+  (is (= :loading (episode/status (assoc-in (loaded true :done) [:shows g :checking?] true) g))
+      "but a feed from the cache that's fetched again may have it")
+  (is (= :loading (episode/status (loaded false :opening) g)) "as may the cache")
   (is (= :looking-up (episode/status {:shows {g {:status :looking-up}}} g)))
   (is (= :failed (episode/status (loaded false :failed) g)))
   (is (= :no-show (episode/status {:shows {g {:status :not-found}}} g)) "the index doesn't know it")

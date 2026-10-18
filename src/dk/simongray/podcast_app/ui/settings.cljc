@@ -181,7 +181,7 @@
 ;; https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate
 (defn this-browser
   "How this browser keeps the library, as the :storage of the `state`
-  says."
+  says, and the button that clears what the cache keeps."
   [{{:keys [supported? persisted? usage] :as storage} :storage :as state}]
   (group :this-browser "This browser"
          [:p "Unlike the rest, this belongs to this browser alone."]
@@ -196,6 +196,10 @@
                               "Ask the browser to keep it"]))
          (when usage
            [:p (str "The app uses " (settings/megabytes usage) " here.")])
+         [:p "It also keeps your searches for a month and the shows you "
+          "opened for a week, so that they show at once."]
+         [:button {:type "button" :on {:click [[:cache/clear]]}}
+          "Clear the searches and shows"]
          (status state :this-browser)))
 
 (defn content

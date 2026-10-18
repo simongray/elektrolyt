@@ -13,8 +13,15 @@
   else the one that its URL gives.
 
   Each directory's list is its own answer, in its own order, which no
-  other answer changes, so a list stays as it appeared."
-  (:require [dk.simongray.podcast.directory :as directory]
+  other answer changes, so a list stays as it appeared.
+
+  The cache keeps each list that a directory gave. One that's less than a
+  day old answers the search without asking the directory, and an older
+  one stands in for a directory that fails, with the :kept-at that it was
+  kept."
+  (:require [clojure.string :as str]
+            [dk.simongray.like-minded.cache :as cache]
+            [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
@@ -77,6 +84,35 @@
   "The list of a directory whose search threw `reason`, a message."
   [reason]
   {:status :failed :results [] :reason reason})
+
+(defn cache-key
+  "The key in the cache of the list of the directory `source` for the
+  words `q`, which ignores their case and spacing, as the directories do."
+  [source q]
+  [source (str/lower-case (str/join " " (str/split (str/trim q) #"\s+")))])
+
+;; Apple's Search API has its answers cached for a day, by their max-age
+;; https://performance-partners.apple.com/search-api
+(defn fresh?
+  "Whether the list that the cache `kept` answers a search at the instant
+  `at` without asking the directory: when it's less than a day old."
+  [kept at]
+  (boolean (and kept (< (cache/age kept at) 86400))))
+
+;; RFC 5861, section 4: stale-if-error
+(defn stale-list
+  "The list of a directory that didn't answer, `l`, with the results of
+  the list that the cache `kept` of it and the :kept-at of those, when it
+  kept any."
+  [l kept]
+  (if (seq (get-in kept [:value :results]))
+    (assoc l :results (get-in kept [:value :results]) :kept-at (:at kept))
+    l))
+
+(defn failed?
+  "Whether the `search` failed, as a whole or in one of its directories."
+  [{:keys [error lists] :as search}]
+  (boolean (or error (some #(= :failed (:status %)) (vals lists)))))
 
 (defn results-of
   "Every result of the `search`, of a link or of the directories, the

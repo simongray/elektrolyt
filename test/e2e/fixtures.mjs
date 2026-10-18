@@ -87,12 +87,14 @@ export function navLink(page, title) {
 }
 
 /**
- * The show that the routes serve. A test can publish an episode, or hold
- * the fetches of the feed until it releases them.
+ * The show that the routes serve. A test can publish an episode, hold the
+ * fetches of the feed until it releases them, or give the feed headers,
+ * e.g. a Cache-Control.
  */
 class Show {
   episodes = [...episodes];
   held = null;
+  headers = {};
 
   publish(episode) {
     this.episodes.push(episode);
@@ -108,10 +110,10 @@ class Show {
     };
   }
 
-  /** The type and the body of the file at `url`, or undefined when there's none. */
+  /** The type, the body and the headers of the file at `url`, or undefined when there's none. */
   file(url) {
     if (url === feedUrl) {
-      return { type: 'application/rss+xml', body: Buffer.from(rss(this.episodes)) };
+      return { type: 'application/rss+xml', body: Buffer.from(rss(this.episodes)), headers: this.headers };
     }
     if (url?.startsWith('https://media.example/')) {
       return { type: 'audio/mpeg', body: audio };
@@ -124,11 +126,16 @@ class Show {
 /** Answer the `route` with the `file`, or the range of it that it asks for. */
 function answer(route, file) {
   if (!file) return route.fulfill({ status: 404 });
-  const { type, body } = file;
+  const { type, body, headers } = file;
+  // RFC 9110, section 13.1.2: a request that names the ETag of the file has it already
+  const etag = headers?.ETag;
+  if (etag && route.request().headers()['if-none-match']?.includes(etag)) {
+    return route.fulfill({ status: 304, headers });
+  }
   const size = body.length;
   const range = /^bytes=(\d*)-(\d*)$/.exec(route.request().headers().range ?? '');
   if (!range || (!range[1] && !range[2])) {
-    return route.fulfill({ contentType: type, body, headers: { 'Accept-Ranges': 'bytes' } });
+    return route.fulfill({ contentType: type, body, headers: { 'Accept-Ranges': 'bytes', ...headers } });
   }
   const [, from, to] = range;
   const start = from ? Number(from) : Math.max(0, size - Number(to));

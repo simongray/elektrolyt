@@ -76,8 +76,9 @@ reload the server's namespace, `(restart!)` starts it again with the new
 handlers.
 
 The `:local` alias takes podcast-clj and play-nice from the checkouts beside
-this one, `../podcasting` and `../play-nice`, so that a fix in either shows
-in the app at once. Without it, both come from the commits in `deps.edn`.
+this one, `../podcasting` and `../play-nice`, and like-minded, mind-meld and
+wary-fetch below podcast-clj too, so that a fix in any of them shows in the
+app at once. Without it, they come from the versions in `deps.edn`.
 
 The watch starts an nREPL server, whose port is in `.shadow-cljs/nrepl.port`.
 Evaluate `(shadow.cljs.devtools.api/repl :app)` there to reach the app in an

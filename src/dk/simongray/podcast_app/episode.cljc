@@ -114,17 +114,19 @@
 
 (defn status
   "Where the Episode page of the show `guid` in the `state` stands while it
-  has no episode to show: :looking-up its show, :loading its feed, :failed
-  to, the episode :not-found in it, or :no-show at all."
+  has no episode to show: :looking-up its show, :loading its feed, or
+  checking the one from the cache again, :failed to, the episode
+  :not-found in it, or :no-show at all."
   [state guid]
-  (let [src              (source state guid)
-        {:keys [status]} (get-in state [:shows guid])]
+  (let [src                        (source state guid)
+        {:keys [status checking?]} (get-in state [:shows guid])]
     (cond
-      (= :looking-up status)                      :looking-up
-      (= :failed status)                          :failed
-      (:whole? src)                               :not-found
-      (#{:previewing :previewed :loading} status) :loading
-      :else                                       :no-show)))
+      (= :looking-up status)                               :looking-up
+      (= :failed status)                                   :failed
+      checking?                                            :loading
+      (:whole? src)                                        :not-found
+      (#{:opening :previewing :previewed :loading} status) :loading
+      :else                                                :no-show)))
 
 (defn shown-chapters
   "The chapters to list for the `page` of an episode, with what its `files`

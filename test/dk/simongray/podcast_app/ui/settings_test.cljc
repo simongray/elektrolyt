@@ -67,4 +67,8 @@
                  (shown {:supported? true :persisted? false :usage 1234567})))
     (is (re-find #"keeps the library until you clear.*1\.2 MB"
                  (shown {:supported? true :persisted? true :usage 1234567})))
-    (is (re-find #"doesn't say" (shown {:supported? false})))))
+    (is (re-find #"doesn't say" (shown {:supported? false}))))
+  (let [button (->> (elements :button (settings-ui/this-browser {:storage nil}))
+                    (some #(when (= [[:cache/clear]] (get-in % [1 :on :click])) %)))]
+    (is (= "Clear the searches and shows" (last button))
+        "and a button that clears what the cache keeps")))

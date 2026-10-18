@@ -71,24 +71,34 @@
 
 (defn status-text
   "What the status line of the episodes says, at the `status` of the load of
-  the feed, with `n` episodes so far and the `error` of a fetch that failed."
-  [status n error]
+  the feed, with `n` episodes so far, the `error` of a fetch that failed and
+  the count of `newer` episodes that wait."
+  [status n error newer]
   (case status
-    (:previewing :previewed :loading) "Loading episodes…"
+    (:opening :previewing :previewed :loading) "Loading episodes…"
     :failed (str "The feed couldn't be fetched. " (:message error))
-    (str n (if (= 1 n) " episode." " episodes."))))
+    (str n (if (= 1 n) " episode." " episodes.")
+         (when newer
+           (str " " newer (if (= 1 newer) " new episode is in." " new episodes are in."))))))
 
 ;; A button that lists more, rather than a list that grows as it scrolls,
 ;; which a keyboard or a voice can't reach the end of (GitLab's audit of
-;; infinite scrolling, issue 1196 of gitlab-ui, and Deque on role=feed)
+;; infinite scrolling, issue 1196 of gitlab-ui, and Deque on role=feed).
+;; New episodes that arrive while the list shows wait for a button, as the
+;; offline cookbook has it, so that the list doesn't move by itself.
+;; https://web.dev/articles/offline-cookbook#cache-then-network
 (defn episodes
   "The episodes of the show `guid`, the `rows`, at the `status` of its load
-  with the `error` of a fetch that failed, as many of them as `shown`. The
-  link to each goes to what `href-fn` gives for its row."
-  [guid href-fn rows status shown error]
+  with the `error` of a fetch that failed, as many of them as `shown`, and
+  a button for the count of `newer` episodes that wait. The link to each
+  goes to what `href-fn` gives for its row."
+  [guid href-fn rows status shown error newer]
   [:section {:aria-labelledby "episodes"}
-   [:h2#episodes "Episodes"]
-   [:p {:role "status"} (status-text status (count rows) error)]
+   [:h2#episodes {:tabindex -1} "Episodes"]
+   [:p {:role "status"} (status-text status (count rows) error newer)]
+   (when newer
+     [:button {:type "button" :on {:click [[:show/newer guid]]}}
+      (if (= 1 newer) "Show the new episode" "Show the new episodes")])
    (when (seq rows)
      [:ol.episodes {:role "list"}
       (for [row (take shown rows)]
@@ -113,12 +123,12 @@
         url                                   (show/feed-url state g)
         k                                     (some-> (:library state) (show/library-key g url))
         {:keys [title author notes] :as page} (show/page state g)
-        {:keys [status shown error]}          (get-in state [:shows g])]
+        {:keys [status shown error newer]}    (get-in state [:shows g])]
     (if-not page
       (case status
-        :looking-up          [:p {:role "status"} "Looking for the show in the Podcast Index…"]
-        (:previewing :loading) [:p {:role "status"} "Loading the show…"]
-        :failed              [:p {:role "status"} (status-text status 0 error)]
+        :looking-up                     [:p {:role "status"} "Looking for the show in the Podcast Index…"]
+        (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
+        :failed                         [:p {:role "status"} (status-text status 0 error nil)]
         not-found)
       (list (artwork/img page 160 {:fetchpriority "high"})
             (when author
@@ -135,4 +145,5 @@
               [:div.show-notes notes])
             (episodes g
                       #(routes/episode-href (or k g) (:guid %) (:title %) (when-not k url))
-                      (:episodes page) status (or shown show/page-size) error)))))
+                      (:episodes page) status (or shown show/page-size) error
+                      (:count newer))))))

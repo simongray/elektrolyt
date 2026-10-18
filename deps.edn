@@ -52,10 +52,11 @@
          :exec-args   {:patterns ["dk\\.simongray\\.podcast-app\\.server.*"]}}
 
   ;; podcast-clj and play-nice from the checkouts beside this one, and
-  ;; like-minded and mind-meld below podcast-clj, so that a fix in any of
-  ;; them shows in the app at once
+  ;; like-minded, mind-meld and wary-fetch below podcast-clj, so that a fix
+  ;; in any of them shows in the app at once
   :local {:override-deps
           {dk.simongray/podcast-clj {:local/root "../podcasting"}
            dk.simongray/play-nice   {:local/root "../play-nice"}
            dk.simongray/like-minded {:local/root "../like-minded"}
-           dk.simongray/mind-meld   {:local/root "../mind-meld"}}}}}
+           dk.simongray/mind-meld   {:local/root "../mind-meld"}
+           dk.simongray/wary-fetch  {:local/root "../wary-fetch"}}}}}

@@ -99,10 +99,30 @@
     (is (nil? (main/canonical-path {:route route})) "before the title is known")))
 
 (deftest a-submitted-search
-  (is (= [[:search/run "pc20"] [:route/push :route/search {} {:q "pc20"}]]
-         (main/submitted {} "  pc20 ")))
+  (is (= [[:route/push :route/search {} {:q "pc20"}]]
+         (main/submitted {} "  pc20 "))
+      "the navigation searches, from the cache or the directories")
   (is (= [[:route/push :route/search]]
-         (main/submitted {} " "))))
+         (main/submitted {} " ")))
+  (let [listed (fn [status]
+                 {:searches {"pc20" {:sources [:apple]
+                                     :lists   {:apple {:status status :results []}}}}})]
+    (is (= [[:route/push :route/search {} {:q "pc20"}]]
+           (main/submitted (listed :done) "pc20"))
+        "a search that went well stays")
+    (is (= [[:search/run "pc20"] [:route/push :route/search {} {:q "pc20"}]]
+           (main/submitted (listed :failed) "pc20"))
+        "one that failed somewhere runs again, before the navigation")))
+
+(deftest clearing-the-cache
+  (let [state {:searches {"pc20" {}} :shows {"g" {}} :route {:name :route/settings}}]
+    (is (= {:route           {:name :route/settings}
+            :settings-status {:group :this-browser
+                              :text  "Cleared the searches and shows."}}
+           (main/cleared state nil))
+        "the tab forgets them too")
+    (is (= {"pc20" {}} (:searches (main/cleared state (js/Error. "no"))))
+        "and keeps them when the cache couldn't be cleared")))
 
 (deftest a-subscription
   (let [url   "https://feeds.podcastindex.org/pc20.xml"

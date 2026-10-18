@@ -63,6 +63,15 @@
                        :shown  40
                        :page   (assoc known :episodes (rows 207))})))
 
+(defscene new-episodes-that-wait
+  "A feed from the cache that was fetched again while the page showed it,
+  and brought new episodes, which wait for the button so that the list
+  doesn't move by itself."
+  (ui/page (show-page {:url    url
+                       :status :done
+                       :page   (assoc known :episodes (rows 207))
+                       :newer  {:count 2}})))
+
 (defscene a-feed-that-failed
   "A fetch of the feed that failed, after what the search knew."
   (ui/page (show-page {:url    url

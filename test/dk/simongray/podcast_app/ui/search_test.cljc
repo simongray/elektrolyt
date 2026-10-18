@@ -90,7 +90,14 @@
     (is (re-find #"Didn't answer" (text-of x)))
     (is (= [[:search/retry "x" :apple]]
            (get-in (first (elements :button (elements :section.search-list x))) [1 :on :click]))
-        "which can be asked again")))
+        "which can be asked again"))
+  (let [kept (app-search/stale-list (app-search/failed "timeout")
+                                    {:value {:results [{:url "https://a.example/feed.xml" :title "A"}]}
+                                     :at    #inst "2026-10-12T12:00:00Z"})
+        x    (page "x" (listed [:apple] {:apple kept}))]
+    (is (re-find #"Didn't answer, so these are its shows of \S+.*2026\." (text-of x))
+        "with the list that the cache kept, and its date")
+    (is (= 1 (count (elements :ol.search-results x))))))
 
 (deftest where-a-search-looks
   (let [x (search/search-form nil [:apple :fyyd])]

@@ -7,9 +7,17 @@
   :shows, as a map of the :url of its feed, the :page that the views
   render, the :status of its load, the :head of the feed, i.e. its start,
   and the :feed once it's whole, which a subscription takes without a
-  fetch of its own. The status is :previewed
-  once the start of the feed is in, :loading while the whole feed is
-  fetched, :done once it's in, and :failed with the :error of the fetch."
+  fetch of its own. The status is :opening while the cache is read,
+  :previewed once the start of the feed is in, :loading while the whole
+  feed is fetched, :done once it's in, and :failed with the :error of the
+  fetch.
+
+  A whole feed comes with the :validators of its fetch and the :fetched-at
+  of it, from the cache or the network, and :checked? once this visit has
+  fetched it or found it fresh, with :checking? while it's fetched again.
+  A fetch that brings new episodes while the page lists the episodes waits
+  as :newer, with its :count of them, so that the list on screen doesn't
+  change until the listener asks."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.show :as show]
             [dk.simongray.podcast.feed.guid :as guid]
@@ -162,3 +170,82 @@
                                          :else                           :previewed))
                   whole?       (-> (assoc :feed feed) (dissoc :head))
                   (not whole?) (assoc :head feed))))))
+
+(defn cache-key
+  "The key in the cache of the feed at `url`, as podcast-clj normalizes the
+  URL."
+  [url]
+  (guid/normal-url url))
+
+(defn kept
+  "What the cache keeps of the whole feed that a fetch gave, `fetched`: the
+  feed and the validators of the fetch."
+  [fetched]
+  (select-keys fetched [:url :feed :etag :last-modified :not-before]))
+
+(defn validators
+  "The validators of the fetch `fetched`, which a subscription and the next
+  fetch of the feed take."
+  [fetched]
+  (into {}
+        (remove (comp nil? val))
+        (select-keys fetched [:etag :last-modified :not-before])))
+
+;; podcast/fetch! reads the max-age of the feed's server into :not-before,
+;; an hour at most
+(defn fresh?
+  "Whether the whole feed that a fetch gave, `fetched` at the instant
+  `fetched-at`, is fresh at the instant `at`: until the time that its
+  server names runs out, or for an hour when it names none."
+  [fetched fetched-at at]
+  (< (inst-ms at)
+     (or (some-> (:not-before fetched) inst-ms)
+         (+ (inst-ms fetched-at) (* 60 60 1000)))))
+
+(defn whole
+  "The show `guid` in the `state` with the whole feed at `url` that a fetch
+  gave, `fetched` at the instant `fetched-at`, which this visit has
+  `checked?` when it came from the network or was fresh in the cache."
+  [state guid url fetched fetched-at checked?]
+  (-> (arrived state guid url (:feed fetched) true)
+      (update-in [:shows guid] assoc
+                 :validators (validators fetched)
+                 :fetched-at fetched-at
+                 :checked?   checked?)))
+
+(defn new-episodes
+  "How many episodes the feed `fresh` has that the feed `old` hasn't."
+  [old fresh]
+  (let [known (set (map guid/item-guid (:rss/items old)))]
+    (count (remove known (map guid/item-guid (:rss/items fresh))))))
+
+;; web.dev, CLS: a shift that follows the listener's own tap within 500 ms
+;; doesn't count, but one that comes on its own does
+;; https://web.dev/articles/cls#user-initiated_layout_shifts
+(defn listed?
+  "Whether the `state` shows the list of episodes of the show `guid`, i.e.
+  its Show page."
+  [{{:keys [name path-params]} :route :as state} guid]
+  (and (= :route/show name) (= guid (:guid path-params))))
+
+(defn refetched
+  "The show `guid` in the `state` once its feed at `url` was fetched again,
+  `fetched` at the instant `at`: in place of the feed that it had, unless
+  it brings new episodes while its list shows. Those wait as :newer until
+  the listener asks for them."
+  [state guid url fetched at]
+  (let [n (new-episodes (get-in state [:shows guid :feed]) (:feed fetched))]
+    (if (and (pos? n) (listed? state guid))
+      (assoc-in state [:shows guid :newer]
+                {:fetched fetched :fetched-at at :count n})
+      (whole state guid url fetched at true))))
+
+(defn newer-shown
+  "The show `guid` in the `state` with the :newer feed that waited, in
+  place of the one on the page."
+  [state guid]
+  (let [{:keys [url newer]} (get-in state [:shows guid])]
+    (if newer
+      (-> (whole state guid url (:fetched newer) (:fetched-at newer) true)
+          (update-in [:shows guid] dissoc :newer))
+      state)))

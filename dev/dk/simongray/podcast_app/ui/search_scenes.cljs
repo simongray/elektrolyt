@@ -92,6 +92,17 @@
                                  :podcastindex (search/failed "podcastindex answered 500")
                                  :fyyd         (search/failed "timeout")}))))
 
+(defscene a-directory-that-failed-with-a-kept-list
+  "A directory that didn't answer, with the list that the cache kept of it
+  less than a month ago, and its date."
+  (ui/page (search-page "podcasting"
+                        (listed {:apple        (found (take 1 results))
+                                 :podcastindex (search/stale-list
+                                                (search/failed "podcastindex answered 503")
+                                                {:value {:results (vec (drop 1 results))}
+                                                 :at    (js/Date. 1791800000000)})
+                                 :fyyd         (found [])}))))
+
 (defscene feeds-of-one-show
   "The feeds of one show at a link, e.g. in MP3 and in Opus, which share a
   title and so show their URLs."

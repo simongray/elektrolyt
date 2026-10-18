@@ -9,6 +9,7 @@
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.settings :as settings-ui]
+            [dk.simongray.podcast-app.ui.show :as show-ui]
             [dk.simongray.podcast-app.ui.subscription :as subscription]))
 
 (defn query
@@ -174,11 +175,16 @@
   (str "search-list-" (name source)))
 
 (defn list-text
-  "What the list of a directory says of itself, `l`, for the words `q`."
-  [q {:keys [status results] :as l}]
+  "What the list of a directory says of itself, `l`, for the words `q`,
+  e.g. the date of the list that the cache kept of a directory that didn't
+  answer."
+  [q {:keys [status results kept-at] :as l}]
   (case status
     :searching "Searching…"
-    :failed    "Didn't answer."
+    :failed    (if kept-at
+                 (str "Didn't answer, so these are its shows of "
+                      (show-ui/date-text kept-at) ".")
+                 "Didn't answer.")
     (if (seq results)
       (shows-text (count results))
       (str "No shows match “" q "”."))))

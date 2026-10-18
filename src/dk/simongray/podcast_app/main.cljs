@@ -18,6 +18,7 @@
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.audio :as audio]
+            [dk.simongray.podcast-app.cache :as app-cache]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.opml :as opml]
@@ -85,16 +86,20 @@
 
 (defn submitted
   "The actions of the search for the words or the link `q` that the listener
-  submitted: search at once, even for a query that was searched before, and
-  put the query in the URL.
+  submitted in the `state`: put the query in the URL, which searches when
+  the state has no search for it, and search again at once when the one in
+  the state failed somewhere.
 
-  The search comes first, so that the navigation finds it under way and
-  doesn't start another."
-  [_ q]
-  (let [q (str/trim (str q))]
-    (if (str/blank? q)
-      [[:route/push :route/search]]
-      [[:search/run q] [:route/push :route/search {} {:q q}]])))
+  A search that went well stays, since the cache would give the same
+  lists. One that's run again comes first, so that the navigation finds it
+  under way and doesn't start another."
+  [state q]
+  (let [q    (str/trim (str q))
+        push [:route/push :route/search {} {:q q}]]
+    (cond
+      (str/blank? q)                                [[:route/push :route/search]]
+      (search/failed? (get-in state [:searches q])) [[:search/run q] push]
+      :else                                         [push])))
 
 (defn subscribing
   "The `state` while the feed at `url` is fetched for a subscription."
@@ -132,15 +137,31 @@
 (defn search-directory!
   "Search the directory `source` for the words `q`, and keep its list under
   the query in the :searches of the state, through `dispatch`, with the
-  `index` credentials for the Podcast Index."
-  [dispatch q source index]
-  (let [listed! #(dispatch [[:store/assoc-in [:searches q :lists source] %]])]
+  `index` credentials for the Podcast Index.
+
+  A list that the cache kept less than a day ago answers at once, unless
+  the listener asks to `retry?`. A new list goes into the cache, and for a
+  directory that fails, the cache's list shows with its date."
+  [dispatch q source index retry?]
+  (let [listed! #(dispatch [[:store/assoc-in [:searches q :lists source] %]])
+        k       (search/cache-key source q)
+        ask!    (fn [kept]
+                  (-> (directory/search! q {:send        app-cache/send
+                                            :sources     [source]
+                                            :credentials index})
+                      (.then search/shows->list)
+                      (.catch #(search/failed (ex-message %)))
+                      (.then (fn [l]
+                               (if (= :failed (:status l))
+                                 (listed! (search/stale-list l kept))
+                                 (do (listed! l)
+                                     (app-cache/put! app-cache/searches k l)))))))]
     (listed! {:status :searching})
-    (-> (directory/search! q {:send        app-library/send
-                              :sources     [source]
-                              :credentials index})
-        (.then #(listed! (search/shows->list %)))
-        (.catch #(listed! (search/failed (ex-message %)))))))
+    (.then (app-cache/fetch! app-cache/searches k)
+           (fn [kept]
+             (if (and (not retry?) (search/fresh? kept (js/Date.)))
+               (listed! (:value kept))
+               (ask! kept))))))
 
 ;; Each directory answers in a list of its own, so that no answer reorders
 ;; or replaces what another showed, as one merged list did when the others
@@ -160,7 +181,7 @@
           (.catch #(found! {:status :done :results [] :error (ex-message %)}))))
     (do (dispatch [[:store/assoc-in [:searches q] (search/searching sources)]])
         (doseq [source sources]
-          (search-directory! dispatch q source index)))))
+          (search-directory! dispatch q source index false)))))
 
 (defn canonical-path
   "The path that the Show page or the Episode page of the `state` should
@@ -194,12 +215,13 @@
       (.replaceState js/history nil "" path))))
 
 (defn whole-feed
-  "The whole feed at `url` that the Show page loaded into the `state`, or
-  nil."
+  "The whole feed at `url` that the Show page loaded into the `state`, as a
+  fetch gives it, with its validators, or nil. A newer feed that waits for
+  the listener comes first, since a subscription should have the newest."
   [state url]
-  (some (fn [{:keys [feed] :as shown}]
+  (some (fn [{:keys [feed validators newer] :as shown}]
           (when (and feed (= url (:url shown)))
-            feed))
+            (or (:fetched newer) (assoc validators :feed feed))))
         (vals (:shows state))))
 
 (defn subscribe!
@@ -209,8 +231,8 @@
   [store url title]
   (app-library/persist!)
   (swap! store subscribing url)
-  (-> (if-let [feed (whole-feed @store url)]
-        (js/Promise.resolve feed)
+  (-> (if-let [fetched (whole-feed @store url)]
+        (js/Promise.resolve fetched)
         (worker/fetch! @app-library/web-worker url {:max-pages 20}))
       (.then #(swap! store subscribed url title %))
       ;; a show subscribed to from its page loses the URL of its feed from
@@ -223,59 +245,150 @@
 (declare load-show!)
 
 (defn look-up-show!
-  "Find the feed of the show `guid` in the Podcast Index, through the app's
-  server, and load the show into the `store` as load-show! does with
-  `preview?`. A show that the index doesn't know is :not-found."
-  [store guid preview?]
+  "Find the feed of the show `guid` in the cache, or else in the Podcast
+  Index through the app's server, and load the show into the `store` as
+  load-show! does with `preview?`. A show that the index doesn't know is
+  :not-found. When `fresh?`, only the index is asked, e.g. once the feed
+  at the URL from the cache is gone."
+  [store guid preview? fresh?]
   (let [not-found! (fn [_]
-                     (swap! store update-in [:shows guid] assoc :status :not-found))]
+                     (swap! store update-in [:shows guid] assoc :status :not-found))
+        found!     (fn [url cached?]
+                     (swap! store update-in [:shows guid] assoc
+                            :url url :status nil :cached-url? cached?)
+                     (load-show! store guid url preview?))
+        ask!       #(-> (directory/call! :podcastindex :lookup {:id guid}
+                                         {:send app-cache/send :credentials {}})
+                        (.then (fn [[show]]
+                                 (if-let [url (some-> show resolve/self-url)]
+                                   (do (app-cache/put! app-cache/feed-urls guid url)
+                                       (found! url false))
+                                   (not-found! nil))))
+                        (.catch not-found!))]
     (swap! store update-in [:shows guid] assoc :status :looking-up)
-    (-> (directory/call! :podcastindex :lookup {:id guid}
-                         {:send app-library/send :credentials {}})
-        (.then (fn [[show]]
-                 (if-let [url (some-> show resolve/self-url)]
-                   (do (swap! store update-in [:shows guid] assoc :url url :status nil)
-                       (load-show! store guid url preview?))
-                   (not-found! nil))))
-        (.catch not-found!))))
+    (if fresh?
+      (ask!)
+      (.then (app-cache/fetch! app-cache/feed-urls guid)
+             (fn [kept]
+               (if-let [url (:value kept)]
+                 (found! url true)
+                 (ask!)))))))
+
+(defn show-failed!
+  "Note in the `store` that the whole feed of the show `guid` failed with
+  `error`, or look the guid up in the Podcast Index again when the feed
+  is gone from the URL that the cache had for it."
+  [store guid error]
+  (if (and (get-in @store [:shows guid :cached-url?])
+           (#{404 410} (:status error)))
+    (do (swap! store update-in [:shows guid] dissoc :url :cached-url?)
+        (look-up-show! store guid false true))
+    (swap! store update-in [:shows guid] assoc :status :failed :error error)))
+
+(defn show-fetched!
+  "Put the whole feed of the show `guid` at `url` that the worker
+  `fetched` into the :shows of the `store`, and keep it in the cache."
+  [store guid url fetched]
+  (canonicalize! (swap! store show/whole guid url fetched (js/Date.) true))
+  (app-cache/put! app-cache/shows (show/cache-key url) (show/kept fetched)))
+
+(defn fetch-show!
+  "Fetch the show `guid` at `url` into the :shows of the `store`: the start
+  of its feed, and the whole feed too unless `preview?`. Each is fetched
+  once, however often it's asked for, but a whole feed whose fetch failed
+  is fetched again."
+  [store guid url preview?]
+  (let [status   (get-in @store [:shows guid :status])
+        arrived! #(canonicalize! (swap! store show/arrived guid url %1 %2))]
+    (when (nil? status)
+      (swap! store update-in [:shows guid] assoc :url url :status :previewing)
+      (.then (discovery/fetch-head! url {:items show/page-size :send app-library/send})
+             #(some-> (:feed %) (arrived! false))))
+    (when (and (not preview?) (contains? #{nil :previewing :previewed :failed} status))
+      (swap! store update-in [:shows guid] assoc :url url :status :loading)
+      ;; in the worker, since a feed of 20 MB takes a third of a second or
+      ;; more to parse; the start of the feed already shows the first
+      ;; episodes, parsed here, since it's small
+      (-> (worker/fetch! @app-library/web-worker url {:max-pages 20})
+          (.then (fn [{:keys [feed error] :as fetched}]
+                   (if feed
+                     (show-fetched! store guid url fetched)
+                     (show-failed! store guid error))))
+          (.catch #(show-failed! store guid {:message (ex-message %)}))))))
+
+;; RFC 9110, sections 13.1.1 and 13.1.3: the validators of the kept feed
+;; ask whether it changed, and a 304 says it didn't
+(defn check-show!
+  "Fetch the feed of the show `guid` at `url` in the `store` again, with
+  the validators of the one from the cache, once a visit and only when
+  it's past its time. A 304 keeps it for another while, and a new feed
+  goes into the cache and onto the page, or waits when it brings new
+  episodes."
+  [store guid url]
+  (let [{:keys [feed validators checked?]} (get-in @store [:shows guid])
+        keep! #(app-cache/put! app-cache/shows (show/cache-key url) (show/kept %))]
+    (when (and feed (not checked?))
+      (swap! store update-in [:shows guid] assoc :checked? true :checking? true)
+      (-> (worker/fetch! @app-library/web-worker url
+                         (merge {:max-pages 20}
+                                (select-keys validators [:etag :last-modified])))
+          (.then (fn [{:keys [status] :as fetched}]
+                   (cond
+                     (:feed fetched)
+                     (do (swap! store show/refetched guid url fetched (js/Date.))
+                         (keep! fetched))
+
+                     ;; the time of the old fetch has passed, so only the
+                     ;; 304's own counts
+                     (= 304 status)
+                     (keep! (merge {:url url :feed feed}
+                                   (dissoc validators :not-before)
+                                   (show/validators fetched))))))
+          (.catch #(js/console.warn "The show wasn't checked" %))
+          (.finally #(swap! store update-in [:shows guid] dissoc :checking?))))))
+
+(defn open-show!
+  "Open the show `guid` at `url` into the `store` from the feed that the
+  cache keeps, or else fetch it as fetch-show! does with `preview?`. A kept
+  feed past its time is checked once the page is open, i.e. unless every
+  ask while the cache was read was a `preview?`."
+  [store guid url preview?]
+  (swap! store update-in [:shows guid] assoc
+         :url url :status :opening :whole? (not preview?))
+  (.then (app-cache/fetch! app-cache/shows (show/cache-key url))
+         (fn [kept]
+           (let [whole? (get-in @store [:shows guid :whole?])]
+             (swap! store update-in [:shows guid] dissoc :whole?)
+             (if-let [fetched (:value kept)]
+               (let [fresh? (show/fresh? fetched (:at kept) (js/Date.))]
+                 (canonicalize! (swap! store show/whole guid url fetched (:at kept) fresh?))
+                 (when whole?
+                   (check-show! store guid url)))
+               (do (swap! store update-in [:shows guid] assoc :status nil)
+                   (fetch-show! store guid url (not whole?))))))))
 
 (defn load-show!
   "Load the show `guid` at `url` into the :shows of the `store`, unless the
-  library keeps it: the start of its feed, and the whole feed too unless
-  `preview?`. Each is fetched once, however often it's asked for, but a
-  whole feed whose fetch failed is fetched again.
+  library keeps it: from the cache, or else the start of its feed and the
+  whole feed too unless `preview?`, as open-show! has it.
 
-  Without a URL, the Podcast Index finds the feed by the guid, when the
-  app's server signs the requests to it."
+  Without a URL, the cache or the Podcast Index finds the feed by the
+  guid, when the app's server signs the requests to it."
   [store guid url preview?]
-  (let [state    @store
-        url      (or url (get-in state [:shows guid :url]))
-        status   (get-in state [:shows guid :status])
-        send     app-library/send
-        arrived! #(canonicalize! (swap! store show/arrived guid url %1 %2))
-        failed!  #(swap! store update-in [:shows guid] assoc
-                         :status :failed :error %)]
-    (when (and (nil? url)
-               (nil? status)
-               (index-credentials state)
-               (not (some-> (:library state) (show/library-key guid nil))))
-      (look-up-show! store guid preview?))
-    (when (and url (not (some-> (:library state) (show/library-key guid url))))
-      (when (nil? status)
-        (swap! store update-in [:shows guid] assoc :url url :status :previewing)
-        (.then (discovery/fetch-head! url {:items show/page-size :send send})
-               #(some-> (:feed %) (arrived! false))))
-      (when (and (not preview?) (contains? #{nil :previewing :previewed :failed} status))
-        (swap! store update-in [:shows guid] assoc :url url :status :loading)
-        ;; in the worker, since a feed of 20 MB takes a third of a second or
-        ;; more to parse; the start of the feed already shows the first
-        ;; episodes, parsed here, since it's small
-        (-> (worker/fetch! @app-library/web-worker url {:max-pages 20})
-            (.then (fn [{:keys [feed error]}]
-                     (if feed
-                       (arrived! feed true)
-                       (failed! error))))
-            (.catch #(failed! {:message (ex-message %)})))))))
+  (let [state       @store
+        url         (or url (get-in state [:shows guid :url]))
+        status      (get-in state [:shows guid :status])
+        in-library? #(some-> (:library state) (show/library-key guid %))]
+    (when (and (nil? url) (nil? status) (index-credentials state) (not (in-library? nil)))
+      (look-up-show! store guid preview? false))
+    (when (and url (not (in-library? url)))
+      (case status
+        nil      (open-show! store guid url preview?)
+        :opening (when-not preview?
+                   (swap! store assoc-in [:shows guid :whole?] true))
+        :done    (when-not preview?
+                   (check-show! store guid url))
+        (fetch-show! store guid url preview?)))))
 
 (defonce ^{:doc "The timeout of the prefetch that a pointer resting on a
   link to a show starts, which leaving the link cancels."}
@@ -373,7 +486,7 @@
 
 (nxr/register-effect! :search/retry
   (fn [{:keys [dispatch]} store q source]
-    (search-directory! dispatch q source (index-credentials @store))))
+    (search-directory! dispatch q source (index-credentials @store) true)))
 
 (nxr/register-effect! :library/subscribe
   (fn [_ store url title]
@@ -392,6 +505,13 @@
   (fn [_ _]
     (some-> @prefetch-timeout js/clearTimeout)
     (reset! prefetch-timeout nil)))
+
+;; the button goes as the list takes the new episodes, so the focus moves
+;; to the heading of the list
+(nxr/register-effect! :show/newer
+  (fn [_ store guid]
+    (swap! store show/newer-shown guid)
+    (some-> (js/document.getElementById "episodes") .focus)))
 
 ;; dispatched as the page of the episode mounts, so it changes the store
 ;; once the render is done
@@ -604,6 +724,28 @@
                            :text  "The browser didn't agree to keep it."}))
                  (app-library/storage!)))
         (.then #(swap! store assoc :storage %)))))
+
+(defn cleared
+  "The `state` once the cache is empty, or not, by `error`: without the
+  searches and shows that the tab had too, so that Back doesn't bring them
+  back, and with a status that says how it went."
+  [state error]
+  (if error
+    (assoc state :settings-status
+           {:group :this-browser
+            :text  "The searches and shows couldn't be cleared."})
+    (-> (dissoc state :searches :shows)
+        (assoc :settings-status {:group :this-browser
+                                 :text  "Cleared the searches and shows."}))))
+
+(nxr/register-effect! :cache/clear
+  (fn [_ store]
+    (-> (app-cache/clear!)
+        (.then #(swap! store cleared nil))
+        (.catch (fn [e]
+                  (js/console.error "The cache wasn't cleared" e)
+                  (swap! store cleared e)))
+        (.then #(.then (app-library/storage!) (fn [s] (swap! store assoc :storage s)))))))
 
 (nxr/register-effect! :queue/add
   (fn [_ store {:keys [id] :as playable} title next?]

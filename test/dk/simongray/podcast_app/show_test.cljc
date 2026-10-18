@@ -69,6 +69,52 @@
     (is (= "Kept" (:title (show/page {:library lib} k))))
     (is (= url (show/feed-url {:library lib} k)))))
 
+(deftest a-feed-from-the-cache
+  (let [at      #inst "2026-10-18T12:00:00Z"
+        fetched {:url url :feed (feed "A Show" "One") :etag "\"v1\"" :status 200}]
+    (is (= {:url url :feed (feed "A Show" "One") :etag "\"v1\""} (show/kept fetched))
+        "the feed and the validators of its fetch")
+    (is (show/fresh? fetched at #inst "2026-10-18T12:59:59Z")
+        "for an hour when its server names no time")
+    (is (not (show/fresh? fetched at #inst "2026-10-18T13:00:01Z")))
+    (is (not (show/fresh? (assoc fetched :not-before #inst "2026-10-18T12:01:00Z")
+                          at #inst "2026-10-18T12:02:00Z"))
+        "until the time that its server names")
+    (let [state (show/whole {} "g" url fetched at false)]
+      (is (= {:status :done :validators {:etag "\"v1\""} :fetched-at at :checked? false}
+             (select-keys (get-in state [:shows "g"]) [:status :validators :fetched-at :checked?])))
+      (is (= ["One"] (map :title (get-in state [:shows "g" :page :episodes])))))))
+
+(deftest a-feed-fetched-again
+  (let [at     #inst "2026-10-18T12:00:00Z"
+        page   {:name :route/show :path-params {:guid "g"}}
+        state  (-> (show/whole {} "g" url {:feed (feed "A Show" "One")} at false)
+                   (assoc :route page))
+        newer  {:feed (feed "A Show" "Two" "One") :etag "\"v2\""}
+        later  #inst "2026-10-18T14:00:00Z"]
+    (is (= 1 (show/new-episodes (feed "A Show" "One") (feed "A Show" "Two" "One"))))
+    (let [waiting (show/refetched state "g" url newer later)]
+      (is (= ["One"] (map :title (get-in waiting [:shows "g" :page :episodes])))
+          "the list on screen stays as it is")
+      (is (= 1 (get-in waiting [:shows "g" :newer :count])))
+      (let [shown (show/newer-shown waiting "g")]
+        (is (= ["Two" "One"] (map :title (get-in shown [:shows "g" :page :episodes])))
+            "until the listener asks for the new episodes")
+        (is (nil? (get-in shown [:shows "g" :newer])))
+        (is (= {:etag "\"v2\""} (get-in shown [:shows "g" :validators])))))
+    (is (= ["Two" "One"]
+           (->> (show/refetched (assoc state :route {:name :route/episode :path-params {:guid "g"}})
+                                "g" url newer later)
+                :shows (#(get % "g")) :page :episodes (map :title)))
+        "or at once where the page doesn't list them, e.g. an episode's")
+    (is (= ["One, edited"]
+           (->> (show/refetched state "g" url
+                                {:feed (assoc-in (feed "A Show" "One")
+                                                 [:rss/items 0 :rss/title] "One, edited")}
+                                later)
+                :shows (#(get % "g")) :page :episodes (map :title)))
+        "and at once when the feed brings no new episode, e.g. an edit")))
+
 (deftest a-show-that-the-library-keeps-for-one-episode
   (let [other "https://example.org/other.xml"
         lib   (library/add-episode (library/make "test") other (feed "Played" "One" "Two") "One")
