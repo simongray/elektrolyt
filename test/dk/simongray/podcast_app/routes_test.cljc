@@ -23,7 +23,16 @@
 (deftest a-page-with-another-query-is-the-same-page
   (let [search {:name :route/search :path-params {} :query-params {:q "a"}}]
     (is (routes/same-page? search (assoc search :query-params {:q "b"})))
+    (is (routes/same-page? search (assoc search :fragment "apple")))
     (is (not (routes/same-page? search (assoc search :name :route/inbox))))))
+
+(deftest a-link-to-a-part-of-a-page
+  (is (= "/settings#search" (routes/href :route/settings nil nil "search")))
+  (is (= {:name :route/settings :path-params {} :query-params {} :fragment "search"}
+         ;; reitit.frontend's match, unlike reitit.core's, has the fragment
+         (routes/match->route (assoc (reitit/match-by-path routes/router "/settings")
+                                     :fragment "search"))))
+  (is (not (contains? (route-of "/settings") :fragment))))
 
 (deftest the-slug-of-a-title
   (is (= "podcasting-2-0" (routes/slug "Podcasting 2.0")))

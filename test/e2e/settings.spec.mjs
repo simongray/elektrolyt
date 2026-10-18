@@ -60,3 +60,28 @@ test('continuous play is a switch', async ({ page }) => {
   await continuous.check();
   await expect(continuous).toBeChecked();
 });
+
+/** The distance of the `heading` from the top of the main content, and how far the whole page scrolled. */
+function landing(heading) {
+  return heading.evaluate(h => ({
+    below: h.getBoundingClientRect().top - h.closest('main').getBoundingClientRect().top,
+    scrolled: window.scrollY,
+  }));
+}
+
+test('a link to a group of the settings shows it at the top, from another page and on a reload', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 700 });
+  const main = page.getByRole('main');
+  const heading = main.getByRole('heading', { name: 'Search', level: 2 });
+  await page.goto('/search');
+  await main.getByRole('link', { name: 'Change the directories' }).click();
+  await expect(page).toHaveURL(/\/settings#search$/);
+  await expect(heading).toBeFocused();
+  const shown = await landing(heading);
+  expect(Math.abs(shown.below)).toBeLessThan(1);
+  expect(shown.scrolled, 'the main content scrolled, but not the header').toBe(0);
+
+  await page.reload();
+  await expect(heading).toBeFocused();
+  expect(Math.abs((await landing(heading)).below)).toBeLessThan(1);
+});

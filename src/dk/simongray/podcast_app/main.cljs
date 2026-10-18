@@ -43,11 +43,13 @@
   "The actions of the navigation to the `route` from the `state`: keep the
   route, move the focus to the heading of a page that replaces another,
   search for the query of a Search page that has no search for it yet,
-  load the show of a Show page or an Episode page, and ask the browser how
-  it keeps the library for the Settings page.
+  load the show of a Show page or an Episode page, ask the browser how it
+  keeps the library for the Settings page, and show the part of the page
+  that the URL's fragment names.
 
   The page that loads first keeps the focus at the start of the document,
-  and so does a page that only changes its query."
+  and so does a page that only changes its query, unless the fragment
+  names a part of it."
   [state route]
   (let [{:keys [q url]} (:query-params route)]
     (cond-> [[:store/assoc :route route]]
@@ -64,7 +66,12 @@
       (conj [:show/load (get-in route [:path-params :guid]) url false])
 
       (= :route/settings (:name route))
-      (conj [:storage/check]))))
+      (conj [:storage/check])
+
+      ;; last, once the page shows, and so after the focus moves to its
+      ;; heading, which this moves on
+      (:fragment route)
+      (conj [:page/scroll-to (:fragment route)]))))
 
 (defn more-shown
   "The actions of the listener's ask for more of the `total` episodes of the
@@ -472,6 +479,16 @@
         (.scrollIntoView heading #js {:block  (if seen? "nearest" "start")
                                       :inline "start"})
         (.focus heading #js {:preventScroll true})))))
+
+;; HTML, scroll to the fragment, which a navigation by pushState leaves
+;; undone: the start of the element at the top, as far as the page
+;; scrolls. The focus moves there too, as the skip link moves it.
+;; https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-fragid
+(nxr/register-effect! :page/scroll-to
+  (fn [_ _ id]
+    (when-let [^js target (js/document.getElementById id)]
+      (.scrollIntoView target #js {:block "start" :inline "nearest"})
+      (.focus target #js {:preventScroll true}))))
 
 (nxr/register-effect! :dialog/open
   (fn [_ _ id]

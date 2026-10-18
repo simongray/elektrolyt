@@ -8,6 +8,7 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.settings :as settings-ui]
             [dk.simongray.podcast-app.ui.subscription :as subscription]))
 
 (defn query
@@ -34,7 +35,7 @@
     (first xs)))
 
 ;; NN/g, scoped search: say where a search looks, near the box, with a way
-;; to change it, which the Settings page has
+;; to change it, which is the Search group of the Settings page
 ;; https://www.nngroup.com/articles/scoped-search/
 (defn search-form
   "The form that searches for words or a link, which shows the query `q`,
@@ -48,7 +49,7 @@
     [:input#search-query {:type "search" :name "q" :value (or q "")}]
     [:button {:type "submit"} "Search"]]
    [:p "Searches " (listing (map search/source-name sources)) ". "
-    [:a {:href (routes/href :route/settings)}
+    [:a {:href (settings-ui/group-href :search)}
      "Change" [:span.visually-hidden " the directories"]]]])
 
 (defn shows-text

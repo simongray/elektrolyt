@@ -12,6 +12,7 @@
   https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings
   https://design-system.service.gov.uk/components/fieldset/"
   (:require [dk.simongray.podcast-app.player :as player]
+            [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui.rows :as rows]
@@ -27,12 +28,21 @@
   (let [{:keys [group text]} (:settings-status state)]
     [:p.settings-status {:role "status"} (when (= k group) text)]))
 
+;; Wikipedia's and GOV.UK's contents link to the headings of a page by
+;; their ids, as a link from another page does here, e.g. from the Search
+;; page to its directories. The heading takes the focus, as a page's does.
 (defn group
-  "A group of settings headed `heading`, with the `children`."
-  [heading & children]
+  "A group of settings named `k`, headed `heading`, with the `children`,
+  whose heading has the id that a link to the group names."
+  [k heading & children]
   [:fieldset.settings-group
-   [:legend [:h2 heading]]
+   [:legend [:h2 {:id (name k) :tabindex -1} heading]]
    children])
+
+(defn group-href
+  "The path of the group of settings named `k`, e.g. \"/settings#search\"."
+  [k]
+  (routes/href :route/settings nil nil (name k)))
 
 (defn option-value
   "The value of an option of a select for the value `v`, a number or a
@@ -56,7 +66,7 @@
 (defn playback
   "The settings of how the listener plays, by their preferences `prefs`."
   [{:keys [skip-back skip-forward playback-rate continuous? track-buttons] :as prefs}]
-  (group "Playback"
+  (group :playback "Playback"
          (choice "skip-back" "Skip back"
                  (for [s (settings/skip-options skip-back)] [s (str s " seconds")])
                  skip-back [:settings/prefer :skip-back [:event/target-number]])
@@ -94,7 +104,7 @@
   "The default of where the new episodes of a new show go, in the `state`,
   and the button that applies it to every show."
   [state]
-  (group "New episodes"
+  (group :new-episodes "New episodes"
          (choice "default-new-episodes" "New episodes of a new show go to"
                  subscription/new-episodes-options
                  (settings/new-episodes state)
@@ -117,7 +127,7 @@
   (let [listed (settings/directory-rows state)
         n      (count (filter second listed))
         index? (get-in state [:server :podcastindex?])]
-    (group "Search"
+    (group :search "Search"
            [:p "A search asks each directory that's on, and shows what each "
             "found in a list of its own, in this order."]
            [:ol.settings-directories {:role "list"}
@@ -150,7 +160,7 @@
   "The import and export of the listener's subscriptions as OPML, in the
   `state`."
   [state]
-  (group "Subscriptions"
+  (group :subscriptions "Subscriptions"
          [:div.setting
           [:label {:for "opml-import"} "Import from an OPML file"]
           [:input {:type             "file"
@@ -173,7 +183,7 @@
   "How this browser keeps the library, as the :storage of the `state`
   says."
   [{{:keys [supported? persisted? usage] :as storage} :storage :as state}]
-  (group "This browser"
+  (group :this-browser "This browser"
          [:p "Unlike the rest, this belongs to this browser alone."]
          (cond
            (nil? storage)   [:p "Asking the browser…"]

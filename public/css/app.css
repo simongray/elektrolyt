@@ -47,9 +47,13 @@ body {
   grid-area: nav;
 }
 
+/* Positioned, so that the text that only a screen reader reads, which is
+   positioned absolutely, stays in the main content's scroller, rather than
+   make the whole page scroll past the end of the shell */
 .shell > main {
   grid-area: main;
   overflow-y: auto;
+  position: relative;
 }
 
 .shell > section {
@@ -580,6 +584,12 @@ main section > button {
 
 .settings-group legend h2 {
   margin: 0;
+}
+
+/* The ring on the heading of the group that a link went to, as on the
+   lists of the Search page */
+.settings-group legend h2:focus {
+  outline: auto;
 }
 
 .setting {

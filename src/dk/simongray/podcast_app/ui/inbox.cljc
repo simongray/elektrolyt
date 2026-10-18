@@ -13,6 +13,7 @@
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
+            [dk.simongray.podcast-app.ui.settings :as settings-ui]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
 (defn control-id
@@ -126,7 +127,7 @@
    [:p "The new episodes of your shows arrive here, unless you choose the "
     "queue for them, or nowhere, on the page of a show in your "
     [:a {:href (routes/href :route/library)} "Library"] ", or for every "
-    "new show in " [:a {:href (routes/href :route/settings)} "Settings"] "."]))
+    "new show in " [:a {:href (settings-ui/group-href :new-episodes)} "Settings"] "."]))
 
 (defn content
   "The content of the Inbox page of the `state`, below its heading."

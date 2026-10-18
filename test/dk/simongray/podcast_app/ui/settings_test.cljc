@@ -22,6 +22,10 @@
     (is (= ["Playback" "New episodes" "Search" "Subscriptions" "This browser"]
            (map text-of (elements :h2 (elements :legend x))))
         "each group a fieldset, its heading in its legend")
+    (is (= [["playback" -1] ["new-episodes" -1] ["search" -1] ["subscriptions" -1] ["this-browser" -1]]
+           (map #((juxt :id :tabindex) (second %)) (elements :h2 x)))
+        "which a link to the group names, and which takes the focus")
+    (is (= "/settings#search" (settings-ui/group-href :search)))
     (testing "the preferences as they are, the defaults at first"
       (is (= "15" (chosen x "skip-back")))
       (is (= "30" (chosen x "skip-forward")))

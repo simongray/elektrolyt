@@ -42,6 +42,21 @@
   (is (= [[:store/assoc :route (search-page nil)]]
          (main/navigated {} (search-page nil)))))
 
+(deftest a-fragment-shows-a-part-of-the-page
+  (let [settings {:name :route/settings :path-params {} :query-params {} :fragment "search"}]
+    (is (= [[:store/assoc :route settings]
+            [:page/focus-heading]
+            [:storage/check]
+            [:page/scroll-to "search"]]
+           (main/navigated {:route inbox} settings))
+        "from another page, once the page shows")
+    (is (= [[:store/assoc :route settings] [:storage/check] [:page/scroll-to "search"]]
+           (main/navigated {} settings))
+        "a link from elsewhere, or a reload")
+    (is (= [[:store/assoc :route settings] [:storage/check] [:page/scroll-to "search"]]
+           (main/navigated {:route (dissoc settings :fragment)} settings))
+        "on the same page")))
+
 (deftest the-page-of-a-show-loads-it
   (let [route {:name         :route/show
                :path-params  {:guid "g"}

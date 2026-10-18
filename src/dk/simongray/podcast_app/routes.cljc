@@ -30,14 +30,18 @@
 
 (defn href
   "The path of the route named `route-name`, with its `path-params` and
-  `query-params`."
+  `query-params`, and the `fragment` that names a part of its page, e.g.
+  \"/settings#search\"."
   ([route-name]
    (href route-name nil nil))
   ([route-name path-params]
    (href route-name path-params nil))
   ([route-name path-params query-params]
-   (-> (reitit/match-by-name router route-name path-params)
-       (reitit/match->path query-params))))
+   (href route-name path-params query-params nil))
+  ([route-name path-params query-params fragment]
+   (cond-> (-> (reitit/match-by-name router route-name path-params)
+               (reitit/match->path query-params))
+     fragment (str "#" fragment))))
 
 (defn- decomposed
   "The string `s` with each accented letter as its letter and its accents,
@@ -98,20 +102,24 @@
 
 (defn match->route
   "The route of the reitit `match` as it's kept in the state: the :name of
-  its page, its :path-params but the slug, which is its :slug, and its
-  :query-params, or nil for a path of no route."
-  [{:keys [data path-params query-params] :as match}]
+  its page, its :path-params but the slug, which is its :slug, its
+  :query-params, and the :fragment of the URL where it has one, or nil for
+  a path of no route."
+  [{:keys [data path-params query-params fragment] :as match}]
   (when match
     (cond-> {:name         (or (:page data) (:name data))
              :path-params  (dissoc path-params :slug)
              :query-params (or query-params {})}
-      (:slug path-params) (assoc :slug (:slug path-params)))))
+      (:slug path-params) (assoc :slug (:slug path-params))
+      (seq fragment)      (assoc :fragment fragment))))
 
 (defn same-page?
   "Whether the routes `a` and `b` are the same page, perhaps with another
-  slug or other query parameters, e.g. the Search page of another query."
+  slug, other query parameters or another fragment, e.g. the Search page of
+  another query."
   [a b]
-  (= (dissoc a :query-params :slug) (dissoc b :query-params :slug)))
+  (= (dissoc a :query-params :slug :fragment)
+     (dissoc b :query-params :slug :fragment)))
 
 (comment
   (href :route/library)
