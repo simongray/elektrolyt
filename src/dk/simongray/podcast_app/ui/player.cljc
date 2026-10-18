@@ -160,8 +160,12 @@
                               :aria-controls "player-controls"
                               :on            {:click [[:player/expand (not expanded?)]]}}
          "Controls"]]
-       [:div {:id    "player-controls"
-              :class (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
+       ;; a group named as the button that shows it on a phone, which a
+       ;; screen reader names as it enters the controls
+       [:div {:id         "player-controls"
+              :role       "group"
+              :aria-label "Controls"
+              :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
         (seek-bar (player/with-duration media playback) seeking)
         (skip-buttons back forward)
         (chapter-buttons playback)

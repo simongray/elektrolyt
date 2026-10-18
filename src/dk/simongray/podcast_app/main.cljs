@@ -840,13 +840,28 @@
                                         (transit/read (transit/reader :json) text)]])))
       (.catch #(js/console.error "The server didn't say what it offers" %))))
 
+(def theme-key
+  "The key in localStorage of a copy of the colours that the listener
+  chose, which public/theme.js applies before the page first renders,
+  rather than show the device's until the library is restored."
+  "dk.simongray.podcast-app.theme")
+
 (defn themed!
   "Give the document the colours that the listener chose in the `state`
-  as its data-theme, or else none, for the device's."
+  as its data-theme, or else none, for the device's, and keep a copy of
+  them in this browser, as they change."
   [state]
-  (if-let [theme (settings/theme state)]
-    (.setAttribute js/document.documentElement "data-theme" theme)
-    (.removeAttribute js/document.documentElement "data-theme")))
+  (let [theme (settings/theme state)
+        root  js/document.documentElement]
+    (when (not= theme (.getAttribute root "data-theme"))
+      (if theme
+        (.setAttribute root "data-theme" theme)
+        (.removeAttribute root "data-theme"))
+      (try
+        (if theme
+          (.setItem js/localStorage theme-key theme)
+          (.removeItem js/localStorage theme-key))
+        (catch :default _ nil)))))
 
 (defn render!
   "Render the page for `state` into the element of the app, and give the

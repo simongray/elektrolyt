@@ -66,7 +66,10 @@
     (is (= "false" (:aria-expanded (button (player-ui/region (state {}))))))
     (is (= ["player-controls" "collapsed"] (shown (player-ui/region (state {})))))
     (is (= "true" (:aria-expanded (button (player-ui/region (state {:expanded? true}))))))
-    (is (= ["player-controls"] (shown (player-ui/region (state {:expanded? true})))))))
+    (is (= ["player-controls"] (shown (player-ui/region (state {:expanded? true})))))
+    (is (= ["group" "Controls"]
+           ((juxt :role :aria-label) (attributes-of "player-controls" (player-ui/region (state {})))))
+        "a group named as the button")))
 
 (deftest the-volume
   (is (= {:disabled false :aria-valuetext "50%"}

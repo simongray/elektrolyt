@@ -105,8 +105,11 @@ test("the colours are the device's, or light or dark as the listener chooses, in
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await scheme(page), 'dark on a light device').toBe('dark');
 
-  await page.reload();
+  // dark from the first paint, before the app has restored the library
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('main').getByLabel('Colours').selectOption('Automatic, as the device');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme');
+  expect(await page.evaluate(() => localStorage.getItem('dk.simongray.podcast-app.theme'))).toBeNull();
 });
