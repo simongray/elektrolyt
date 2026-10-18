@@ -29,7 +29,8 @@
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
 ;; Pause, has no aria-pressed
 (defn play-button
-  "The button that plays the episode of the `media` state, or pauses it."
+  "The button that plays the episode of the `media` state, or pauses it,
+  wherever it plays."
   [{:keys [paused] :as media}]
   (if (false? paused)
     [:button {:type "button" :on {:click [[:player/pause]]}} "Pause"]
@@ -131,10 +132,12 @@
 ;; and hides the controls below it, which leaves the history and the focus
 ;; as they are
 (defn content
-  "The content of the player of the `state`: the episode that plays, and
-  its controls."
+  "The content of the player of the `state`: the episode that plays, in
+  this tab or another, and its controls."
   [{:keys [player library] :as state}]
-  (let [{:keys [id playback media seeking expanded? volume volume-locked?]} player
+  (let [{:keys [id seeking expanded? volume volume-locked?]} player
+        playback       (player/shown-playback player)
+        media          (player/shown-media player)
         [back forward] (player/skips (:profile library))]
     (if-not (and id playback)
       [:p "Nothing is playing."]

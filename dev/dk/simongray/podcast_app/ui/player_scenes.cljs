@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.ui.player-scenes
   "Scenes of the player: nothing playing, an episode that plays with its
-  chapters, its controls on a phone, and the ways it can fail to play."
+  chapters, its controls on a phone, an episode that plays in another tab,
+  and the ways it can fail to play."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
@@ -67,6 +68,15 @@
   browser can't play."
   (ui/page (playing {:media (assoc media :paused true :status :error
                                    :error {:code :src-not-supported})})))
+
+(defscene playing-in-another-tab
+  "The playback of another tab, 15 minutes in, which this tab's player
+  shows and controls, with its own element paused where it loaded."
+  (ui/page (playing {:media           (assoc media :paused true)
+                     :shared          (assoc media :id (:id playback) :at 0 :changed 0
+                                             :current-time 900)
+                     :shared-position 900
+                     :shared-playback playback})))
 
 (defscene a-play-that-the-browser-refused
   "A play before the page may play, e.g. after a reload, which the

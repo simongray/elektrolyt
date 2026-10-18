@@ -17,10 +17,16 @@
   - :answer, the browser's last refusal to play, e.g. {:refused
     :not-allowed}
   - :buffering?, whether it has waited for data for half a second
+  - :shared, the newest playback across the tabs, as play-nice's
+    tabs/watch! gives it, with :shared-position, where it is by now, and
+    :shared-playback, what library/playback gives for its episode
 
   Every move goes through library/step, as podcast-clj's inspector does it,
   so that the profile keeps the position and the played marks, and syncs
-  them."
+  them. The tabs share one playback, which every tab's player shows, and
+  only the tab whose playback is the newest tells the library where it
+  is: the one that plays, or the one where the listener last changed it
+  while nothing played."
   (:require [dk.simongray.podcast.format.chapters :as chapters]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.util.time :as time]
@@ -64,6 +70,46 @@
   (boolean
    (or (and paused (false? (:paused old)))
        (and (not paused) (>= (- now (or saved 0)) save-ms)))))
+
+(defn elsewhere
+  "The newest playback across the tabs, in the :shared of the `player`,
+  when it's another tab's, or nil."
+  [{:keys [shared] :as player}]
+  (when (and shared (not (:here? shared)))
+    shared))
+
+(defn playing-elsewhere?
+  "Whether another tab plays the playback that the `player` shows."
+  [player]
+  (false? (:paused (elsewhere player))))
+
+;; Only one writer of the position at a time, which the play lock settles
+;; while an episode plays. Another tab's write of an older position would
+;; take the newer one's place in the profile, by its newer stamp, and its
+;; reports would count time as listened that no one heard.
+(defn writes?
+  "Whether the `player` of this tab tells the library where it is: unless
+  another tab's playback is the newest."
+  [player]
+  (nil? (elsewhere player)))
+
+(defn shown-media
+  "The media state that the `player` shows: another tab's newest playback,
+  at the position it has reached by now, or else its own element's."
+  [{:keys [media shared-position] :as player}]
+  (if-let [shared (elsewhere player)]
+    (assoc (select-keys shared [:paused :ended :duration :playback-rate :volume :muted :status])
+           :current-time shared-position)
+    media))
+
+(defn shown-playback
+  "What library/playback gives for the episode that the `player` shows:
+  another tab's, where its newest playback is of another, or else its
+  own."
+  [{:keys [playback shared-playback] :as player}]
+  (if (and (elsewhere player) shared-playback)
+    shared-playback
+    playback))
 
 (defn whole-seconds
   "The `media` state of the audio element with its position to the whole
@@ -131,11 +177,17 @@
   (when (and (number? duration) (number? current-time) (time/finite? duration))
     (max 0 (- duration current-time))))
 
+;; W3C Remote Playback API: the player shows where the media plays, while
+;; it plays elsewhere
+;; https://www.w3.org/TR/remote-playback/
 (defn status-text
-  "What the status line of the `player` says: why it doesn't play, or that
-  it waits for data, or nil."
+  "What the status line of the `player` says: that another tab plays, or
+  why it doesn't play, or that it waits for data, or nil."
   [{:keys [media answer buffering?] :as player}]
   (cond
+    (playing-elsewhere? player)
+    "Playing in another tab."
+
     (:error media)
     ;; HTML, §4.8.11.5: a dead file and a format that the browser can't
     ;; play both end in MEDIA_ERR_SRC_NOT_SUPPORTED

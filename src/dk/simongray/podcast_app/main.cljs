@@ -9,7 +9,7 @@
             [clojure.string :as str]
             [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
-            [dk.simongray.play-nice.media :as media]
+            [dk.simongray.play-nice.page.tabs :as tabs]
             [dk.simongray.podcast.app.episode :as episode]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.worker :as worker]
@@ -21,6 +21,7 @@
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.opml :as opml]
+            [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.refresh :as refresh]
             [dk.simongray.podcast-app.routes :as routes]
@@ -392,25 +393,28 @@
   (fn [_ store playable t]
     (audio/play! store playable t)))
 
+;; the controls act on the playback that the player shows, wherever it
+;; plays (see audio/act!)
 (nxr/register-effect! :player/resume
   (fn [_ store]
-    (audio/resume! store)))
+    (audio/resume-shown! store)))
 
 (nxr/register-effect! :player/pause
-  (fn [_ _]
-    (some-> (audio/element) media/pause!)))
+  (fn [_ store]
+    (audio/pause-shown! store)))
 
 (nxr/register-effect! :player/press
   (fn [_ store details]
-    (audio/press! store details)))
+    (audio/act! store details #(audio/press! store details))))
 
 (nxr/register-effect! :player/drag
   (fn [_ store details]
-    (audio/drag! store details)))
+    (audio/drag-shown! store details)))
 
 (nxr/register-effect! :player/chapter
   (fn [_ store direction]
-    (audio/chapter! store direction)))
+    (audio/act! store {:action :chapter :direction direction}
+                #(audio/chapter! store direction))))
 
 (nxr/register-effect! :player/ended
   (fn [_ store]
@@ -418,15 +422,15 @@
 
 (nxr/register-effect! :player/rate
   (fn [_ store rate]
-    (audio/rate! store rate)))
+    (audio/act! store {:action :rate :rate rate} #(audio/rate! store rate))))
 
 (nxr/register-effect! :player/volume
   (fn [_ store level]
-    (audio/volume! store level)))
+    (audio/volume-shown! store level)))
 
 (nxr/register-effect! :player/mute
-  (fn [_ _ muted?]
-    (audio/mute! muted?)))
+  (fn [_ store muted?]
+    (audio/mute-shown! store muted?)))
 
 (nxr/register-effect! :player/expand
   (fn [_ store expanded?]
@@ -647,11 +651,12 @@
   (start-router!))
 
 (defn ^:export init
-  "Start the app: send the actions of the views to Nexus, restore the
-  library, and once the server has said what it offers, put the current
-  episode in the player, render the page at each change of the store and
-  follow the window's history. Tell the library where the player is, and
-  save it, when the page is hidden.
+  "Start the app: send the actions of the views to Nexus, follow the
+  playback that the tabs share, restore the library, and once the server
+  has said what it offers, put the current episode in the player, render
+  the page at each change of the store and follow the window's history.
+  Tell the library where the player is, and save it, when the page is
+  hidden.
 
   The first page waits for both, since what it shows can depend on them,
   e.g. a search asks the Podcast Index too when the server signs for it,
@@ -659,6 +664,7 @@
   the library keeps needs neither the index nor a fetch."
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
+  (tabs/watch! player/element-name #(audio/shared! store %))
   (.addEventListener js/document "visibilitychange"
                      #(if (= "hidden" js/document.visibilityState)
                         (audio/hidden! store)

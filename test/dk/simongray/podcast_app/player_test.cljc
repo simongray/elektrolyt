@@ -50,8 +50,28 @@
   (is (= 4755 (player/remaining {:current-time 630 :duration 5385})))
   (is (nil? (player/remaining {:current-time 630 :duration nil}))))
 
+(def playing-there
+  "The newest playback across the tabs, of another tab, which plays."
+  {:id [:feed "ep"] :paused false :status :ready :current-time 100 :duration 600 :playback-rate 1})
+
+(deftest one-playback-across-the-tabs
+  (let [here  {:media {:paused true :current-time 30} :shared (assoc playing-there :here? true)}
+        there {:media {:paused true :current-time 30} :shared playing-there :shared-position 112}]
+    (is (player/writes? here) "this tab tells the library where it is, when its playback is the newest")
+    (is (player/writes? {:media {:paused true}}) "and before any tab has played")
+    (is (not (player/writes? there)) "but not while another tab's is")
+    (is (not (player/writes? (assoc-in there [:shared :paused] true)))
+        "nor after another tab paused it, where this tab's position is older")
+    (is (player/playing-elsewhere? there))
+    (is (= [false 112 600] ((juxt :paused :current-time :duration) (player/shown-media there)))
+        "the player shows another tab's playback, where it has come to by now")
+    (is (= {:paused true :current-time 30} (player/shown-media here)) "or its own")
+    (is (= {:title "There"} (player/shown-playback (assoc there :playback {:title "Here"}
+                                                          :shared-playback {:title "There"}))))))
+
 (deftest what-the-status-line-says
   (is (nil? (player/status-text {:media {:paused false}})))
+  (is (= "Playing in another tab." (player/status-text {:shared playing-there})))
   (is (re-find #"couldn't be played" (player/status-text {:media {:error {:code :src-not-supported}}})))
   (is (= "Press Play to start." (player/status-text {:answer {:refused :not-allowed}})))
   (is (= "Loading…" (player/status-text {:buffering? true}))))
