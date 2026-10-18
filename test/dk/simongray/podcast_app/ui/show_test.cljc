@@ -25,15 +25,26 @@
   [x]
   (apply str (filter string? (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x))))
 
+(defn spoken
+  "The text of the Hiccup `x` that a screen reader reads, as one string:
+  all of it but what's aria-hidden."
+  [x]
+  (let [hidden? #(and (vector? %) (= "true" (:aria-hidden (second %))))]
+    (->> (tree-seq #(and ((some-fn vector? seq?) %) (not (hidden? %)))
+                   #(if (vector? %) (rest %) %)
+                   x)
+         (filter string?)
+         (apply str))))
+
 (deftest a-show-that-is-still-on-its-way
   (let [state #(hash-map :route {:name :route/show :path-params {:guid "g"} :query-params {}}
                          :shows {"g" {:status %}})]
-    (is (= "Looking for the show in the Podcast Index…" (text-of (show/content (state :looking-up)))))
-    (is (= "Loading the show…" (text-of (show/content (state :loading))))
+    (is (= "Looking for the show in the Podcast Index…" (text-of (show/content (state :looking-up) nil))))
+    (is (= "Loading the show…" (text-of (show/content (state :loading) nil)))
         "rather than say there's no such show")
-    (is (= "Loading the show…" (text-of (show/content (state :opening))))
+    (is (= "Loading the show…" (text-of (show/content (state :opening) nil)))
         "nor while the cache is read")
-    (is (re-find #"isn't in the library" (text-of (show/content (state :not-found)))))))
+    (is (re-find #"isn't in the library" (text-of (show/content (state :not-found) nil))))))
 
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
@@ -92,14 +103,15 @@
                             :page   {:title "A Show" :link "https://example.org" :explicit? true
                                      :people [{:name "Adam" :role "host" :img "https://example.org/adam.jpg"}]
                                      :episodes [{:guid "1" :title "One"}]}}}}
-        x     (show/content state)
-        [_ main aside] x]
-    (is (= :div.with-details (first x)))
-    (is (= "Explicit" (text-of (some #(when (= [:p "Explicit"] %) %) main))))
-    (is (some #(= [:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
-                                    "Details" [:span {:aria-hidden "true"} " ↓"]]]
-                  %)
-              main)
+        x     (show/content state [:h1 "A Show"])
+        [_ _ main aside] x
+        header (first (elements :header main))]
+    (is (= :article.with-details (first x)) "the show as an article")
+    (is (= [:hgroup [:h1 "A Show"] nil] (second header)) "its header beginning with its heading")
+    (is (= [:p "Explicit"] (first (elements :p header))))
+    (is (= [[:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
+                              "Details" [:span {:aria-hidden "true"} " ↓"]]]]
+           (elements :p.details-link header))
         "a link to the Details, which a phone shows after the episodes")
     (is (= [:aside.details {:aria-labelledby "details"} [:h2 {:id "details" :tabindex -1} "Details"]]
            (subvec aside 0 3))
@@ -112,9 +124,16 @@
   (testing "no Details, and no link to them, before the feed has any"
     (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
                  :shows {"g" {:status :loading :page {:title "A Show" :episodes []}}}}
-          [_ main aside] (show/content state)]
+          [_ _ main aside] (show/content state [:h1 "A Show"])]
       (is (nil? aside))
-      (is (not-any? #(= "Details" (text-of %)) (filter vector? main))))))
+      (is (empty? (elements :p.details-link main))))))
+
+(deftest a-show-that-has-no-page-yet
+  (is (= [[:h1 "Show"] [:p {:role "status"} "Loading the show…"]]
+         (show/content {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
+                        :shows {"g" {:status :loading}}}
+                       [:h1 "Show"]))
+      "its heading, with no article around it"))
 
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]

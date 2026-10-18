@@ -11,6 +11,7 @@
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
@@ -62,7 +63,7 @@
    [:h3 [:a {:href (episode-href lib id title)} title]]
    [:p show
     (when-let [left (time-left episode)]
-      (list [:span {:aria-hidden "true"} " · "] left))]))
+      (list facts-ui/separator left))]))
 
 (defn now-playing
   "The section of the episode that the player has, of the `state`."

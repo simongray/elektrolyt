@@ -4,7 +4,7 @@
             [dk.simongray.podcast-app.episode-test :as episode-test]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
-            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
+            [dk.simongray.podcast-app.ui.show-test :refer [spoken text-of]]
             [dk.simongray.podcast-app.ui-test :refer [elements]]))
 
 (defn episode-page
@@ -86,14 +86,14 @@
            (keep #(when (vector? %) (re-find #"^h[1-6]" (name (first %))))
                  (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) (elements :main#main x))))
         "the title, Show notes, the notes' own heading below it, and the Details")
-    (is (= [(pr-str [episode-test/g "https://example.org/?p=2"])]
-           (keep #(:replicant/key (second %))
-                 (filter #(:replicant/on-mount (second %)) (filter (comp map? second) (elements :div x)))))
-        "a key of its own for each episode, so that its files are read when it mounts")
-    (is (= [:aside.details {:aria-labelledby "details"}]
-           (subvec (last (first (elements :div.with-details x))) 0 2))
-        "the Details last, after the show notes")
-    (is (re-find #"A Show" (text-of (elements :div.episode-intro x))))))
+    (let [[article] (elements :article.with-details x)]
+      (is (= (pr-str [episode-test/g "https://example.org/?p=2"]) (:replicant/key (second article)))
+          "the episode as an article, with a key of its own, so that its files are read when it mounts")
+      (is (= [:aside.details {:aria-labelledby "details"}] (subvec (last article) 0 2))
+          "the Details last, after the show notes")
+      (let [[header] (elements :header.episode-intro article)]
+        (is (= ["Episode 2: The Present" "A Show"] (map text-of (rest (second header))))
+            "its header beginning with its heading, and its show as the subtitle")))))
 
 (deftest the-numbers-of-an-episode
   (is (= ["Season 2" "Episode 3" nil] (episode-ui/numbering-facts {:type "full" :season 2 :episode 3})))
@@ -106,15 +106,16 @@
 
 (deftest the-facts-of-an-episode
   (let [page  (episode-ui/route-page (episode-page nil))
-        intro #(episode-ui/intro (merge page %) nil nil nil nil true)]
-    (is (= "Episode 2 · 1 h · Explicit"
-           (text-of (second (elements :p (intro {:numbering {:type "full" :episode 2} :published nil
-                                                  :explicit? true}))))))
+        intro #(episode-ui/intro [:h1 "Episode 2"] (merge page %) nil nil nil nil true)]
+    (is (= "Episode 2, 1 h, Explicit"
+           (spoken (second (elements :p (intro {:numbering {:type "full" :episode 2} :published nil
+                                                :explicit? true})))))
+        "after the show, which is the heading's subtitle")
     (is (= [[:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
                               "Details" [:span {:aria-hidden "true"} " ↓"]]]]
            (elements :p.details-link (intro {})))
         "and a link to its Details")
-    (is (empty? (elements :p.details-link (episode-ui/intro page nil nil nil nil false)))
+    (is (empty? (elements :p.details-link (episode-ui/intro [:h1 "Episode 2"] page nil nil nil nil false)))
         "but none when it has no Details")
     (is (= "Support the show: Give, example.org"
            (text-of (last (elements :p (intro {:funding [{:url "https://pay.example/1" :content "Give"}

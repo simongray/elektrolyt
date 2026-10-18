@@ -33,6 +33,19 @@ p {
   margin: 0 0 var(--space-2);
 }
 
+/* A heading with its subtitle, e.g. an episode's show, close below it */
+hgroup {
+  margin-bottom: var(--space-3);
+}
+
+hgroup > h1 {
+  margin-bottom: var(--space-1);
+}
+
+hgroup > p {
+  margin: 0;
+}
+
 
 /* The shell fills the viewport and only the main content scrolls, so that
    the header, the player and the navigation stay in view. The dynamic
@@ -266,13 +279,17 @@ search input {
 }
 
 
-/* An episode's show, date and Play button beside its artwork, which is
-   smaller on a phone */
+/* An episode's header: its title and show across the top, and its facts
+   and Play button beside its artwork, which is smaller on a phone */
 .episode-intro {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
   column-gap: 1em;
   align-items: start;
+}
+
+.episode-intro > hgroup {
+  grid-column: 1 / -1;
 }
 
 .episode-intro img {
@@ -281,7 +298,7 @@ search input {
   object-fit: cover;
 }
 
-.episode-intro > :not(img) {
+.episode-intro > :not(img, hgroup) {
   grid-column: 2;
 }
 

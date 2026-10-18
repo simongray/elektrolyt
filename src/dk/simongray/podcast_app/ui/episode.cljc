@@ -122,18 +122,23 @@
    (or episode-display (some->> episode number-text (str "Episode ")))
    (case type "trailer" "Trailer" "bonus" "Bonus" nil)])
 
+;; HTML, header and hgroup: the introduction of the episode's article, its
+;; heading first, with its show as its subtitle
+;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
+;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
-  "The show, the facts and the artwork of the episode `page`, whether its
-  `entry` in the profile is played, the button that plays it as the
-  `player` and the start time `t` have it, the buttons that queue it, by
-  where it's `queued`, the link to its Details when it has them, `aside?`,
-  and the links that support its show."
-  [{:keys [show numbering published duration explicit? ai-content? funding]
-    :as   page}
+  "The header of the article of the episode `page`: its `heading` with its
+  show, its artwork and facts, whether its `entry` in the profile is
+  played, the button that plays it as the `player` and the start time `t`
+  have it, the buttons that queue it, by where it's `queued`, the link to
+  its Details when it has them, `aside?`, and the links that support its
+  show."
+  [heading {:keys [show numbering published duration explicit? ai-content? funding]
+            :as   page}
    player entry t queued aside?]
-  [:div.episode-intro
+  [:header.episode-intro
+   [:hgroup heading [:p [:a {:href (:href show)} (:title show)]]]
    (artwork/img page 160 {:fetchpriority "high"})
-   [:p [:a {:href (:href show)} (:title show)]]
    (details/facts-line
     (concat (numbering-facts numbering)
             [(some-> published show-ui/date)
@@ -248,29 +253,31 @@
              " for its other episodes."]))))
 
 (defn content
-  "The content of the Episode page of the `state`, below its heading."
-  [state]
+  "The content of the Episode page of the `state` under its `heading`: an
+  article, whose header has the heading, or else the heading and what
+  became of the episode."
+  [state heading]
   (if-let [{:keys [id notes view] :as page} (route-page state)]
     (let [files (get-in state [:episodes id])
           shown (episode/shown-chapters page files)
           aside (details/aside (details-rows page) (:people page))]
       ;; the files are read once the page of the episode is in the document,
       ;; and again for the page of another one
-      [:div {:replicant/key      (pr-str id)
-             :replicant/on-mount [[:episode/read-files id view]]}
-       (details/with-aside
-         [(intro page (:player state) (player/entry (:library state) id) (start-time state)
-                 (cond
-                   (= id (:id (first (:episodes (some-> (:library state) queue/view))))) :current
-                   (queue/queued? state id)                                              :queued)
-                 (some? aside))
-          (when (seq notes)
-            [:section {:aria-labelledby "notes"}
-             [:h2#notes "Show notes"]
-             [:div.show-notes notes]])
-          (when shown
-            (chapters page shown))
-          (when (:transcript view)
-            (transcript page files))]
-         aside)])
-    (missing state)))
+      (details/article
+       {:replicant/key      (pr-str id)
+        :replicant/on-mount [[:episode/read-files id view]]}
+       [(intro heading page (:player state) (player/entry (:library state) id) (start-time state)
+               (cond
+                 (= id (:id (first (:episodes (some-> (:library state) queue/view))))) :current
+                 (queue/queued? state id)                                              :queued)
+               (some? aside))
+        (when (seq notes)
+          [:section {:aria-labelledby "notes"}
+           [:h2#notes "Show notes"]
+           [:div.show-notes notes]])
+        (when shown
+          (chapters page shown))
+        (when (:transcript view)
+          (transcript page files))]
+       aside))
+    (list heading (missing state))))

@@ -12,6 +12,7 @@
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.details :as details]
+            [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.podcast-app.ui.subscription :as subscription]))
 
 (defn guid
@@ -145,7 +146,7 @@
       (when published
         [:time {:datetime (date-attribute published)} (date-text published)])
       (when (and published duration)
-        [:span {:aria-hidden "true"} " · "])
+        facts-ui/separator)
       (when duration
         [:time {:datetime (str "PT" (long duration) "S")}
          (duration-text duration)])])])
@@ -197,41 +198,58 @@
    [:a {:href (routes/href :route/search)} "Search"]
    " instead."])
 
+;; HTML, header and hgroup: the introduction of the show's article, its
+;; heading first, with its author as its subtitle, and its description as
+;; its summary
+;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
+;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
+(defn intro
+  "The header of the article of the show `page` at `url` in the `state`: its
+  `heading` with its author, its artwork and facts, the link to its
+  Details when it has them, `aside?`, its subscription as the library key
+  `k` has it, the links that support it, and its description."
+  [state heading {:keys [title author notes funding] :as page} url k aside?]
+  [:header
+   [:hgroup heading (when author [:p author])]
+   (artwork/img page 160 {:fetchpriority "high"})
+   (details/facts-line (facts page))
+   (when aside?
+     details/link)
+   (when url
+     (let [status (subscription/status state
+                                       (search/subscribed-urls (:library state))
+                                       url)]
+       (list (subscription/button status url title true)
+             (when (= :subscribed status)
+               (subscription/new-episodes (:library state) k))
+             (subscription/error state url))))
+   (details/support funding)
+   (when notes
+     [:div.show-notes notes])])
+
 (defn content
-  "The content of the Show page of the `state`, below its heading."
-  [state]
-  (let [g                                     (guid state)
-        url                                   (show/feed-url state g)
-        k                                     (some-> (:library state) (show/library-key g url))
-        {:keys [title author notes] :as page} (show/page state g)
-        {:keys [status shown error newer]}    (get-in state [:shows g])]
+  "The content of the Show page of the `state` under its `heading`: an
+  article, whose header has the heading, or else the heading and what
+  became of the show."
+  [state heading]
+  (let [g                                  (guid state)
+        url                                (show/feed-url state g)
+        k                                  (some-> (:library state) (show/library-key g url))
+        page                               (show/page state g)
+        {:keys [status shown error newer]} (get-in state [:shows g])]
     (if-not page
-      (case status
-        :looking-up                     [:p {:role "status"} "Looking for the show in the Podcast Index…"]
-        (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
-        :failed                         [:p {:role "status"} (status-text status 0 error nil)]
-        not-found)
+      (list heading
+            (case status
+              :looking-up                     [:p {:role "status"} "Looking for the show in the Podcast Index…"]
+              (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
+              :failed                         [:p {:role "status"} (status-text status 0 error nil)]
+              not-found))
       (let [aside (details/aside (details-rows page url) (:people page))]
-        (details/with-aside
-          [(artwork/img page 160 {:fetchpriority "high"})
-           (when author
-             [:p author])
-           (details/facts-line (facts page))
-           (when aside
-             details/link)
-           (when url
-             (let [status (subscription/status state
-                                               (search/subscribed-urls (:library state))
-                                               url)]
-               (list (subscription/button status url title true)
-                     (when (= :subscribed status)
-                       (subscription/new-episodes (:library state) k))
-                     (subscription/error state url))))
-           (details/support (:funding page))
-           (when notes
-             [:div.show-notes notes])
-           (episodes g
-                     #(routes/episode-href (or k g) (:guid %) (:title %) (when-not k url))
-                     (:episodes page) status (or shown show/page-size) error
-                     (:count newer))]
-          aside)))))
+        (details/article
+         {}
+         [(intro state heading page url k (some? aside))
+          (episodes g
+                    #(routes/episode-href (or k g) (:guid %) (:title %) (when-not k url))
+                    (:episodes page) status (or shown show/page-size) error
+                    (:count newer))]
+         aside)))))

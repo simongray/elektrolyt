@@ -9,7 +9,8 @@
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
-            [dk.simongray.podcast-app.ui.artwork :as artwork]))
+            [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.facts :as facts-ui]))
 
 (defn now-playing
   "The artwork, the title and the show of the `playback`, with its title of
@@ -24,7 +25,7 @@
       [:p [:a {:href (routes/episode-href (first id) (second id) title nil)} title]]
       [:p show
        (when-let [t (:title chapter)]
-         (list [:span {:aria-hidden "true"} " · "] t))]])))
+         (list facts-ui/separator t))]])))
 
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
 ;; Pause, has no aria-pressed

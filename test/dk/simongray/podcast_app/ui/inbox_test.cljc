@@ -6,7 +6,7 @@
             [dk.simongray.podcast-app.ui.inbox :as inbox-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.queue-test :refer [button-of]]
-            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
+            [dk.simongray.podcast-app.ui.show-test :refer [spoken text-of]]
             [dk.simongray.podcast-app.ui-test :refer [elements]]))
 
 (defn clicked
@@ -19,8 +19,8 @@
   (let [x (inbox-ui/content (state 1 2 3))]
     (is (re-find #"^3 new episodes" (text-of x)))
     (is (= ["Episode 3" "Episode 2" "Episode 1"] (map text-of (elements :h2 (elements :ul.inbox x)))))
-    (is (re-find #"A Show · Oct 2, 2026" (text-of (elements :p (elements :ul.inbox x))))
-        "each with its show and date")
+    (is (re-find #"A Show, Oct 2, 2026" (spoken (elements :p (elements :ul.inbox x))))
+        "each with its show and date, apart when read aloud")
     (testing "the buttons of a row, named by the episode, which move the focus to the next row's"
       (is (= [[:player/play {:id (id 2)} nil] [:page/focus (inbox-ui/control-id (id 1) :play)]]
              (clicked x "Play Episode 2")))

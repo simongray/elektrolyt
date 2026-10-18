@@ -136,22 +136,26 @@
   [:p.visually-hidden {:role "status"} announcement])
 
 (defn main-content
-  "The main content of the page of the `state`."
+  "The main content of the page of the `state`, under its heading, which
+  the page of a show or an episode puts in the header of its article."
   [state]
-  [:main#main
-   (page-heading state)
-   (case (get-in state [:route :name])
-     nil             not-found
-     :route/queue    (queue-ui/content state)
-     :route/inbox    (inbox-ui/content state)
-     :route/library  (library-ui/content state)
-     :route/search   (search/content state)
-     :route/settings (settings-ui/content state)
-     :route/show     (show-ui/content state)
-     :route/episode  (episode-ui/content state)
-     nil)
-   (announcer (:announcement state))
-   [:p.visually-hidden {:id links/note-id} "Opens in a new tab"]])
+  (let [route   (get-in state [:route :name])
+        heading (page-heading state)]
+    [:main#main
+     (when-not (#{:route/show :route/episode} route)
+       heading)
+     (case route
+       nil             not-found
+       :route/queue    (queue-ui/content state)
+       :route/inbox    (inbox-ui/content state)
+       :route/library  (library-ui/content state)
+       :route/search   (search/content state)
+       :route/settings (settings-ui/content state)
+       :route/show     (show-ui/content state heading)
+       :route/episode  (episode-ui/content state heading)
+       nil)
+     (announcer (:announcement state))
+     [:p.visually-hidden {:id links/note-id} "Opens in a new tab"]]))
 
 (defn page
   "The whole page for the `state` of the app.

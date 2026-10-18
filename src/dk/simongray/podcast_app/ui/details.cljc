@@ -9,6 +9,7 @@
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast-app.links :as links]
+            [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.wary-fetch.url :as url]))
 
 (def id
@@ -16,14 +17,12 @@
   focus to."
   "details")
 
-;; HTML, section 4.5.14 as in the list of episodes: the dot between two
-;; facts is decoration, which a screen reader skips
 (defn facts-line
   "The `facts` in a line, e.g. Technology · Explicit, or nil when none of
   them has a value."
   [facts]
   (when-let [facts (seq (remove nil? facts))]
-    (into [:p] (interpose [:span {:aria-hidden "true"} " · "] facts))))
+    (into [:p] (interpose facts-ui/separator facts))))
 
 ;; As the jump row of the Search page: a link to a part of the same page,
 ;; which brings its heading into view and moves the focus to it. On a
@@ -133,14 +132,21 @@
                   (map #(vector :dd %) vs)))])
        made])))
 
+;; HTML, the article element: "a complete, or self-contained, composition
+;; in a document, page, application, or site and that is, in principle,
+;; independently distributable or reusable, e.g. in syndication", as a show
+;; and an episode of a feed are. Its Details are an aside within it.
+;; https://html.spec.whatwg.org/multipage/sections.html#the-article-element
+;;
 ;; Every Layout, Sidebar: the Details beside the content where there's
 ;; room for both, and below it where there isn't. They come last, so that
 ;; the order is the same at every width (WCAG 2.2, SC 1.3.2 and 2.4.3).
 ;; The content keeps its place without them, e.g. while the feed of a show
 ;; is on its way, so that its elements stay as they are when they arrive.
 ;; https://every-layout.dev/layouts/sidebar/
-(defn with-aside
-  "The `content` of a page, a sequence of Hiccup, with its `aside` beside
+(defn article
+  "The article of a show or an episode with the `attrs`: its `content`, a
+  sequence of Hiccup that begins with its header, with its `aside` beside
   it, when there's one."
-  [content aside]
-  [:div.with-details (into [:div] content) aside])
+  [attrs content aside]
+  [:article.with-details attrs (into [:div] content) aside])

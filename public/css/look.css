@@ -167,8 +167,9 @@ time,
 }
 
 /* Lines of reading text no longer than a measure, while the wrappers of
-   the Search lists and of the Details beside the content take the room */
-.shell > main > :not(div, search, .search-jump),
+   the Search lists and the articles with their Details beside them take
+   the room */
+.shell > main > :not(div, article, search, .search-jump),
 .show-notes,
 .chapters,
 .transcript {
@@ -374,6 +375,11 @@ img {
   margin: 0;
   color: var(--ink-2);
   font-size: var(--step--1);
+}
+
+/* the subtitle under a page's title, e.g. a show's author */
+hgroup > p {
+  color: var(--ink-2);
 }
 
 .episode-intro .episode-actions {

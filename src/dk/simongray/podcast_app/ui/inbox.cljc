@@ -11,6 +11,7 @@
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.settings :as settings-ui]
@@ -26,22 +27,17 @@
   "The id of the button that undoes the last dismissal."
   "inbox-undo")
 
-(def separator
-  "What stands between the parts of a row's details, which a screen reader
-  leaves out."
-  [:span {:aria-hidden "true"} " · "])
-
 (defn details
   "The show of the `episode` of the inbox, when it came out, and how long
   it is, or has left once it has started."
   [{:keys [show published] :as episode}]
   [:p show
    (when published
-     (list separator
+     (list facts-ui/separator
            [:time {:datetime (show-ui/date-attribute published)}
             (show-ui/date-text published)]))
    (when-let [left (queue-ui/time-left episode)]
-     (list separator left))])
+     (list facts-ui/separator left))])
 
 (defn row
   "The `episode` of the inbox, its artwork, title and details, in the
