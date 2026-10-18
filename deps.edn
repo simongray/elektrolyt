@@ -12,7 +12,7 @@
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
-                                   :git/sha "906fd79d175d87b4f4dd29d2d6218e9db4aa19d0"}
+                                   :git/sha "f45166e7d22afd21f4ea5c5d96e39ad0aa97e25b"}
          dk.simongray/play-nice   {:mvn/version "0.4.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
