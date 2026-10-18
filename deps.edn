@@ -2,8 +2,8 @@
 
  ;; podcast-clj for the feeds and the listener's library, play-nice for the
  ;; playing, Replicant for the rendering, Nexus for the actions that the
- ;; views dispatch, and reitit for the routes. Both of the podcast libraries
- ;; are ahead of their releases, so they come from Git.
+ ;; views dispatch, and reitit for the routes. podcast-clj is ahead of its
+ ;; release, so it comes from Git.
  ;;
  ;; Replicant comes from the commit of its PR #83 too, which fixes issue #81:
  ;; a keyed child that moves to the front and changes keeps its old vdom, so
@@ -12,9 +12,8 @@
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
-                                   :git/sha "28b695809e7632bacab9d9b446a35c43e58911c8"}
-         dk.simongray/play-nice   {:git/url "https://github.com/simongray/play-nice.git"
-                                   :git/sha "2e2a4c68a2e3f27b29586c4d8a3970a02fbfcf3f"}
+                                   :git/sha "d9b94113f595dadd60f3e9a2ccc0c0b6fe2514aa"}
+         dk.simongray/play-nice   {:mvn/version "0.3.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
