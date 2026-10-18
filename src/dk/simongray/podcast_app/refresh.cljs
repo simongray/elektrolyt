@@ -1,17 +1,21 @@
 (ns dk.simongray.podcast-app.refresh
   "Keeping the feeds of the library current with podcast-clj's
-  library/refresh!: as the app starts, whenever the library is due again
-  while the page is visible, and when the listener asks.
+  library/refresh!, in the app's web worker: as the app starts, whenever
+  the library is due again while the page is visible, and when the
+  listener asks.
 
   A refresh fetches only the feeds that are due, by each feed's own
   schedule, and those that answer 304 cost no body. A feed whose server
   can't answer 304 is checked by its start first, its :head-check?, so
   that only a feed with something new is fetched whole and parsed.
 
-  TODO: refresh in a web worker, as podcast-clj's guide describes it, with
-  a Web Lock around each save and restore of the library, since a feed that
-  changed is still parsed on the main thread, about a second for 20 MB."
+  The page saves the library first, so that the worker reads what it has,
+  and catches up with what the worker saved after. One refresh runs at a
+  time across the tabs, so a tab whose worker finds another refreshing
+  waits for what that one saves. A hidden tab doesn't refresh, so with
+  every tab hidden, nothing does."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.background :as background]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.shows :as shows]))
 
@@ -46,39 +50,48 @@
                              wait)))))
 
 (defn refreshed
-  "The `state` once the refresh that gave the library `refreshed` is done,
-  which the listener asked for when `asked?`."
-  [state refreshed asked?]
-  (let [result (:refresh refreshed)]
-    (-> state
-        (update :library library/merge refreshed)
-        (assoc :refresh {:running? false
-                         :result   (select-keys result [:at :counts :added])})
-        (cond-> (shows/summary result asked?)
-          (assoc :announcement (shows/summary result asked?))))))
+  "The `state` once the refresh that gave the :refresh `result` is done,
+  which the listener asked for when `asked?`. The library keeps the
+  result, which the store doesn't, since next-refresh reads which feeds
+  failed from it."
+  [state result asked?]
+  (-> state
+      (update :library #(cond-> % result (assoc :refresh result)))
+      (assoc :refresh {:running? false
+                       :result   (select-keys result [:at :counts :added])})
+      (cond-> (shows/summary result asked?)
+        (assoc :announcement (shows/summary result asked?)))))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: one message as a refresh that the
 ;; listener asked for starts, and one with what it found, rather than one
 ;; for each feed, which would be too chatty
 (defn refresh!
-  "Refresh the library of the `store`: the feeds that are due, or, when
-  the listener `asked?`, every feed of a subscription. Save it, and wait
-  for the next. Nothing starts while a refresh is under way."
+  "Refresh the library of the `store` in the worker: the feeds that are
+  due, or, when the listener `asked?`, every feed of a subscription. Save
+  it first, catch up with what the worker saved after, and wait for the
+  next. Nothing starts while a refresh is under way."
   [store asked?]
   (let [{:keys [library refresh]} @store]
     (when (and library (not (:running? refresh)))
       (some-> @timer js/clearTimeout)
       (swap! store #(cond-> (assoc % :refresh {:running? true :done 0})
                       asked? (assoc :announcement "Checking for new episodes…")))
-      (-> (library/refresh! library
-                            (cond-> {:head-check? true
-                                     :online?     (.-onLine js/navigator)
-                                     :on-feed-fn  #(swap! store update :refresh merge
-                                                          (select-keys % [:done :total]))}
-                              asked? (assoc :feed-guids (vec (keys (library/subscriptions library))))))
-          (.then (fn [lib]
-                   (swap! store refreshed lib asked?)
-                   (app-library/save! (:library @store))))
+      (-> (app-library/save! store)
+          (.then (fn [_]
+                   (background/refresh!
+                    (:device library)
+                    (cond-> {:head-check? true
+                             :online?     (.-onLine js/navigator)}
+                      asked? (assoc :feed-guids (vec (keys (library/subscriptions library)))))
+                    #(swap! store update :refresh merge %))))
+          (.then (fn [{:keys [refresh busy? failed]}]
+                   (when failed
+                     (throw (js/Error. failed)))
+                   (.then (app-library/catch-up! store)
+                          (fn [_]
+                            (if busy?
+                              (swap! store assoc :refresh {:running? false})
+                              (swap! store refreshed refresh asked?))))))
           (.catch (fn [e]
                     (js/console.error "The library didn't refresh" e)
                     (swap! store assoc :refresh {:running? false})))

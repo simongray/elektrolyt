@@ -12,7 +12,7 @@
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
-                                   :git/sha "a47d379c3310d99ac6cb19c6d5ac180764614f77"}
+                                   :git/sha "796978057ed9afa00831648d8a1cf569b5a555b9"}
          dk.simongray/play-nice   {:git/url "https://github.com/simongray/play-nice.git"
                                    :git/sha "2e2a4c68a2e3f27b29586c4d8a3970a02fbfcf3f"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
@@ -52,8 +52,11 @@
          :exec-fn     cognitect.test-runner.api/test
          :exec-args   {:patterns ["dk\\.simongray\\.podcast-app\\.server.*"]}}
 
-  ;; podcast-clj and play-nice from the checkouts beside this one, so that
-  ;; a fix in either shows in the app at once
+  ;; podcast-clj and play-nice from the checkouts beside this one, and
+  ;; like-minded and mind-meld below podcast-clj, so that a fix in any of
+  ;; them shows in the app at once
   :local {:override-deps
           {dk.simongray/podcast-clj {:local/root "../podcasting"}
-           dk.simongray/play-nice   {:local/root "../play-nice"}}}}}
+           dk.simongray/play-nice   {:local/root "../play-nice"}
+           dk.simongray/like-minded {:local/root "../like-minded"}
+           dk.simongray/mind-meld   {:local/root "../mind-meld"}}}}}

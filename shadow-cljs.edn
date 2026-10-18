@@ -4,10 +4,17 @@
  :dev-http {;; the workbench of the views, at http://localhost:8402, with
             ;; the app's stylesheet and Portfolio's own files
             8402 ["dev-resources/public" "public" "classpath:public"]}
- :builds   {:app       {:target     :browser
+ :builds   {;; the page at /js/shared.js and /js/main.js, and its web worker
+            ;; at /js/worker.js, which share the code of the library
+            :app       {:target     :browser
                         :output-dir "public/js"
                         :asset-path "/js"
-                        :modules    {:main {:init-fn dk.simongray.podcast-app.main/init}}}
+                        :modules    {:shared {:entries []}
+                                     :main   {:init-fn    dk.simongray.podcast-app.main/init
+                                              :depends-on #{:shared}}
+                                     :worker {:init-fn    dk.simongray.podcast-app.worker/init
+                                              :depends-on #{:shared}
+                                              :web-worker true}}}
             ;; a scene for each state of each view, from the namespaces of
             ;; dev/ that end in -scenes
             :portfolio {:target     :portfolio
