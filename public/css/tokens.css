@@ -88,7 +88,11 @@
   --measure: 36em;
   --radius: 2px;
 
-  /* the app's own colour, which the bars take while nothing plays */
+  /* the app's own colour, whose complement, a plum, colours the bars
+     while no artwork does.
+     TODO: maybe reconsider giving the bars this green itself, since the
+     complement is there to set the bars off from an artwork, and here
+     there's none */
   --seed: oklch(44% 0.085 158);
 
   /* black ink on white paper */
