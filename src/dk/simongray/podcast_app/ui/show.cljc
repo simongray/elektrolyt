@@ -237,7 +237,11 @@
         url                                (show/feed-url state g)
         k                                  (some-> (:library state) (show/library-key g url))
         page                               (show/page state g)
-        {:keys [status shown error newer]} (get-in state [:shows g])]
+        ;; a show that the library keeps is in it whole, so a load of its
+        ;; feed from before the subscription, e.g. the preview of a link,
+        ;; says nothing of it, only how many episodes the page lists
+        {:keys [status shown error newer]} (cond-> (get-in state [:shows g])
+                                             k (select-keys [:shown]))]
     (if-not page
       (list heading
             (case status

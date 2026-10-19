@@ -1,5 +1,6 @@
 (ns dk.simongray.podcast-app.ui.show-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast-app.inbox-test :as inbox-test]
             [dk.simongray.podcast-app.ui.show :as show]
             [dk.simongray.podcast-app.ui-test :refer [elements]]))
 
@@ -45,6 +46,15 @@
     (is (= "Loading the show…" (text-of (show/content (state :opening) nil)))
         "nor while the cache is read")
     (is (re-find #"isn't in the library" (text-of (show/content (state :not-found) nil))))))
+
+(deftest a-show-that-the-library-keeps
+  (let [state  {:route   {:name :route/show :path-params {:guid inbox-test/k} :query-params {}}
+                :library inbox-test/lib
+                :shows   {inbox-test/k {:status :previewed :url inbox-test/url :shown 20}}}
+        status (some #(when (= "status" (:role (second %))) (text-of %))
+                     (elements :p (show/content state [:h1 "A Show"])))]
+    (is (re-find #"^\d+ episodes?\.$" status)
+        "lists its episodes from the library, whatever a load of the show before its subscription left")))
 
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
