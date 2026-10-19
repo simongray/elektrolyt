@@ -267,8 +267,9 @@
 
 (defn content
   "The content of the Show page of the `state` under its `heading`: an
-  article, whose header has the heading, the shows that it links to, and
-  the picks like it, or else the heading and what became of the show."
+  article, whose header has the heading, with the picks like it after its
+  Details, and the shows that it links to, or else the heading and what
+  became of the show."
   [state heading]
   (let [page                  (show/page state (guid state))
         {:keys [status error]} (loaded state)]
@@ -286,7 +287,7 @@
           {}
           [(intro state heading page (some? aside))
            (episodes state page)]
-          aside)
+          aside
+          (picks-ui/section state picks-section (picks/like-show state (guid state))))
          (when source
-           (linked-shows state (:title page) source))
-         (picks-ui/section state picks-section (picks/like-show state (guid state))))))))
+           (linked-shows state (:title page) source)))))))

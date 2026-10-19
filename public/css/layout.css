@@ -488,23 +488,36 @@ details summary {
   gap: var(--space-5) 2em;
 }
 
+/* the gap above the picks after the Details, rather than their heading's
+   margin, which a grid's items don't collapse */
+.with-details > .picks > h2 {
+  margin-top: 0;
+}
+
+/* The content beside the column of the artwork, the Details and the picks
+   below them, with a last row that takes what the content is taller */
 @container (min-width: 48rem) {
   .with-details {
     --column: 16rem;
     position: relative;
     column-gap: 3em;
     grid-template-columns: var(--column) minmax(0, 1fr);
-    grid-template-rows: var(--column) auto;
+    grid-template-rows: var(--column) auto auto 1fr;
   }
 
   .with-details > :first-child {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1 / -1;
   }
 
   .with-details > aside {
     grid-column: 1;
     grid-row: 2;
+  }
+
+  .with-details > .picks {
+    grid-column: 1;
+    grid-row: 3;
   }
 
   .with-details:not(:has(.episode-intro > img, .show-intro > img)) > aside {
@@ -546,6 +559,25 @@ details summary {
 
   .with-details .person {
     flex-direction: row-reverse;
+  }
+
+  /* and the picks below them too, each its artwork on that side */
+  .with-details > .picks {
+    text-align: end;
+  }
+
+  .with-details > .picks .pick {
+    grid-template-columns: minmax(0, 1fr) 48px;
+  }
+
+  .with-details > .picks .pick img {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .with-details > .picks .pick > :not(img) {
+    grid-column: 1;
+    justify-self: end;
   }
 }
 

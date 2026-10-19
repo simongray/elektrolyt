@@ -152,6 +152,10 @@
 (defn article
   "The article of a show or an episode with the `attrs`: its `content`, a
   sequence of Hiccup that begins with its header, with its `aside` beside
-  it, when there's one."
-  [attrs content aside]
-  [:article.with-details attrs (into [:div] content) aside])
+  it, when there's one, and `more` below the aside, e.g. the picks like
+  the show."
+  ([attrs content aside]
+   (article attrs content aside nil))
+  ([attrs content aside more]
+   (cond-> [:article.with-details attrs (into [:div] content) aside]
+     more (conj more))))

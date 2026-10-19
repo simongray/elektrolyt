@@ -43,7 +43,7 @@ h4 {
 /* The headings of the sections as a book's running heads, in the face's
    own small caps, but not the headings that title an item of a list */
 main h2:not(.inbox-episode h2) {
-  font-size: var(--step-0);
+  font-size: var(--step-2);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.08em;
   color: var(--ink-2);
@@ -244,11 +244,10 @@ time,
 
 /* Lines of reading text no longer than a measure, while the wrappers of
    the Search lists and the articles with their Details beside them take
-   the room */
+   the room. The whole of an article's content keeps to the measure, so
+   that e.g. a show's episodes end where its description does. */
 .shell > main > :not(div, article, search, .search-jump),
-.show-notes,
-.chapters,
-.transcript {
+.with-details > :first-child {
   max-inline-size: var(--measure);
 }
 
@@ -396,11 +395,11 @@ input[role="switch"]:checked {
 
 /* Lists of episodes and shows: a hairline between rows, the title in ink,
    and the facts below it smaller and lighter */
-.queue > li,
-.inbox > li,
-.picks > li,
-.episodes > li,
-.search-results > li {
+.queue > li:not(:last-child),
+.inbox > li:not(:last-child),
+.picks > li:not(:last-child),
+.episodes > li:not(:last-child),
+.search-results > li:not(:last-child) {
   border-bottom: 1px solid var(--rule-soft);
 }
 
@@ -542,7 +541,7 @@ hgroup > p {
   letter-spacing: 0.03em;
 }
 
-.chapters li {
+.chapters li:not(:last-child) {
   border-bottom: 1px solid var(--rule-soft);
 }
 

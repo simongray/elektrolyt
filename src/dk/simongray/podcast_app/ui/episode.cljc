@@ -269,8 +269,8 @@
 ;; https://www.nngroup.com/articles/recommendation-expectations/
 (defn content
   "The content of the Episode page of the `state` under its `heading`: an
-  article, whose header has the heading, and the picks like it, or else
-  the heading and what became of the episode."
+  article, whose header has the heading, with the picks like it after its
+  Details, or else the heading and what became of the episode."
   [state heading]
   (if-let [{:keys [id notes view language] :as page} (route-page state)]
     (let [files (get-in state [:episodes id])
@@ -293,6 +293,6 @@
            (chapters page shown))
          (when (:transcript view)
            (transcript page files))]
-        aside)
-       (picks-ui/section state picks-section (picks/like-episode state page))))
+        aside
+        (picks-ui/section state picks-section (picks/like-episode state page)))))
     (list heading (missing state))))
