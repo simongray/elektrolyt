@@ -84,6 +84,7 @@
   "The colours that the links of the navigation can have, as the app keeps
   them for :navigation-palette, with the text of each."
   [[:pages "A colour for each page"]
+   [:player "The player's colour"]
    [:color-blind "Colours for colour blindness"]
    [:none "None"]])
 

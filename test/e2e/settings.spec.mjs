@@ -144,10 +144,13 @@ async function labelsAlike(page) {
   return queue === library;
 }
 
-test("the navigation's colours can be none, which leaves its labels in the same ink", async ({ page }) => {
+test("the navigation's colours are a page's, the player's, or none, which leaves its labels in the same ink", async ({ page }) => {
   await page.goto('/settings');
   expect(await labelsAlike(page), 'a colour for each page').toBe(false);
   const colours = page.getByRole('main').getByLabel('Colours in the navigation');
+  await colours.selectOption("The player's colour");
+  await expect(page.locator('.shell')).toHaveAttribute('data-palette', 'player');
+  await expect.poll(() => labelsAlike(page), "or the player's colour, the same for every page").toBe(true);
   await colours.selectOption('Colours for colour blindness');
   await expect(page.locator('.shell')).toHaveAttribute('data-palette', 'color-blind');
   expect(await labelsAlike(page), 'or one for colour blindness').toBe(false);

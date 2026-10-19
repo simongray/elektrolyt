@@ -54,10 +54,9 @@
 (defn page-name
   "The name of the page of the navigation that the route named
   `route-name` is, e.g. \"queue\", whose colour look.css has, or nil for a
-  page that has no colour: Home, whose label is in the ink, and a page
-  that the navigation doesn't link to."
+  page that the navigation doesn't link to."
   [route-name]
-  (when (and (some #{route-name} destinations) (not= :route/home route-name))
+  (when (some #{route-name} destinations)
     (name route-name)))
 
 (defn page-title

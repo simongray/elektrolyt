@@ -88,9 +88,8 @@
         "or the app's own, for artwork without a hue")))
 
 (deftest each-link-of-the-navigation-names-its-page
-  (is (= [nil "queue" "library" "search" "settings"]
-         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}}))))
-      "but Home, whose label is in the ink")
+  (is (= ["home" "queue" "library" "search" "settings"]
+         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}})))))
   (let [preferring #(-> {:route {:name :route/queue} :library inbox-test/lib}
                         (settings/preferred {:navigation-palette %}))]
     (is (= "color-blind" (:data-palette (second (ui/page (preferring :color-blind)))))

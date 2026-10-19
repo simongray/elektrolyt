@@ -99,6 +99,10 @@ time,
 
 /* The colour of each page of the navigation, which the view names with
    data-page on the page's item, for its link */
+[data-page="home"] {
+  --page: var(--home);
+}
+
 [data-page="queue"] {
   --page: var(--queue);
 }
@@ -187,6 +191,10 @@ time,
    hex rather than from one tone. These are on a bar, and the paper's
    are below.
    https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html */
+.shell[data-palette="color-blind"] > nav li[data-page="home"] {
+  --label: #fd7933;
+}
+
 .shell[data-palette="color-blind"] > nav li[data-page="queue"] {
   --label: #ffa0a5;
 }
@@ -204,6 +212,10 @@ time,
 }
 
 @media (min-width: 37.5em) {
+  .shell[data-palette="color-blind"] > nav li[data-page="home"] {
+    --label: light-dark(#bf3a00, #a1790c);
+  }
+
   .shell[data-palette="color-blind"] > nav li[data-page="queue"] {
     --label: light-dark(#87182f, #ef8f94);
   }
@@ -219,6 +231,13 @@ time,
   .shell[data-palette="color-blind"] > nav li[data-page="settings"] {
     --label: light-dark(#686868, #c1c1c1);
   }
+}
+
+/* The player's colour, the listener's other choice: every label in a tone
+   of the bar's colour, the complement of the hue of what plays, which
+   changes with it, light on a bar, as the page colours are */
+.shell[data-palette="player"] > nav li {
+  --label: oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180));
 }
 
 /* The current page underlined, or the page that it's a part of, e.g. the
@@ -277,9 +296,14 @@ time,
     box-shadow: none;
   }
 
-  /* on the paper, a tone of each page's colour that reads as text */
+  /* on the paper, a tone of each page's colour that reads as text, or of
+     the player's */
   .shell > nav li {
     --label: light-dark(lch(from var(--page) 42 min(c, 50) h), lch(from var(--page) 78 min(c, 40) h));
+  }
+
+  .shell[data-palette="player"] > nav li {
+    --label: light-dark(oklch(from var(--bar-seed) 44% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 80% min(c, 0.08) calc(h + 180)));
   }
 
   /* the line, as thick as an hr */
@@ -688,6 +712,10 @@ search p {
   :root:not([data-contrast="standard"]) .shell > nav li {
     --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
   }
+
+  :root:not([data-contrast="standard"]) .shell[data-palette="player"] > nav li {
+    --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
+  }
 }
 
 :root[data-contrast="more"] .shell {
@@ -706,6 +734,10 @@ search p {
 @media (min-width: 37.5em) {
   :root[data-contrast="more"] .shell > nav li {
     --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
+  }
+
+  :root[data-contrast="more"] .shell[data-palette="player"] > nav li {
+    --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
   }
 }
 
