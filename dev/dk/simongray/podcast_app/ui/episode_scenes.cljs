@@ -1,8 +1,8 @@
 (ns dk.simongray.podcast-app.ui.episode-scenes
   "Scenes of the Episode page: an episode from the start of its show's
   feed, with its chapters once they're read, with the Details of one that
-  says much of itself, in another language, while it plays, and the ways
-  it can be missing."
+  says much of itself, in another language, with a transcript in another
+  language than its feed, while it plays, and the ways it can be missing."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.scenes :refer [artwork url]]
@@ -133,6 +133,35 @@
   them by German rules and a screen reader reads them in German, while
   the app's own words stay English."
   (ui/page (episode-page {:url url :status :loading :head german})))
+
+(def spanish-transcript
+  "The reference to a transcript in Spanish, which the podcast namespace's
+  transcript tag names."
+  {:url "https://example.org/275.es.vtt" :type "text/vtt" :language "es"})
+
+(def read-spanish-transcript
+  "What the files of the scenes' episode say once its transcript in Spanish
+  is read."
+  {:transcript-status :read
+   :transcript        (assoc spanish-transcript
+                             :document {:segments [{:start-time 0 :end-time 9 :speaker "Adam Curry"
+                                                    :body "Bienvenidos a Podcasting 2.0. Hoy hablamos del futuro de las aplicaciones independientes de pódcast."}
+                                                   {:start-time 9 :end-time 21 :speaker "Dave Jones"
+                                                    :body "Y de la interoperabilidad, que es extraordinariamente importante para la descentralización."}
+                                                   {:start-time 754 :end-time 760 :speaker "Adam Curry"
+                                                    :body "Aquí, desafortunadamente, no estamos de acuerdo."}]})})
+
+(defscene with-a-transcript-in-another-language
+  "An episode of a show in English whose transcript is in Spanish: once
+  it's shown, the transcript has the language that its tag names, so that
+  a screen reader reads it in Spanish, while the show notes have the
+  feed's."
+  (ui/page (episode-page {:url    url
+                          :status :loading
+                          :head   (assoc feed
+                                         :rss/language "en"
+                                         :rss/items [(assoc item :podcast/transcripts [spanish-transcript])])}
+                         {:episodes {(id) read-spanish-transcript}})))
 
 (defscene while-its-feed-loads
   "A link to an episode beyond the start of the feed, while the whole feed

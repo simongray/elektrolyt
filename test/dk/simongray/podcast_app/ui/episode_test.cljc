@@ -20,19 +20,21 @@
        (merge more))))
 
 (deftest the-chapters-and-their-links
-  (let [page  (episode-ui/route-page (episode-page nil))
+  (let [page  (assoc (episode-ui/route-page (episode-page nil)) :language "de")
         items (->> (episode-ui/chapters page [{:start-time 0 :title "Intro" :url "https://example.org/intro"}
                                               {:start-time 60 :title "Sneaky" :url "javascript:alert(1)"}
                                               {:start-time 90 :url "https://example.org/untitled"}
                                               {:start-time 120 :title "Plain"}])
                    (elements :li))]
-    (is (= [[:a {:href "https://example.org/intro" :target "_blank" :aria-describedby "new-tab-note"} "Intro"]
-            "Sneaky"
-            [:a {:href "https://example.org/untitled" :target "_blank" :aria-describedby "new-tab-note"}
+    (is (= [[:a {:href "https://example.org/intro" :lang "de" :target "_blank" :aria-describedby "new-tab-note"}
+             "Intro"]
+            [:span {:lang "de"} "Sneaky"]
+            [:a {:href "https://example.org/untitled" :lang "de" :target "_blank" :aria-describedby "new-tab-note"}
              "https://example.org/untitled"]
-            "Plain"]
+            [:span {:lang "de"} "Plain"]]
            (map last items))
-        "a link to the web alone, in a new tab, and the URL of a chapter without a title")))
+        "a link to the web alone, in a new tab, the URL of a chapter without a title, and the feed's language")
+    (is (nil? (lang-of :a (first items))) "but not on the time, which is the page's")))
 
 (deftest a-time-links-to-the-page-and-plays
   (let [page (episode-ui/route-page (episode-page nil))
@@ -152,6 +154,16 @@
            (shown {:transcript-status :read :transcript {:document doc}})))
     (is (= "TranscriptShow the transcriptThe transcript couldn't be read."
            (shown {:transcript-status :read :transcript {:error {:message "404"}}})))))
+
+(deftest a-transcript-in-its-own-language
+  (let [page (assoc (episode-ui/route-page (episode-page nil)) :language "de")
+        doc  {:segments [{:start-time 0.0 :speaker "Ana" :body "Hola."}]}
+        lang #(lang-of :div.transcript
+                       (episode-ui/transcript %1 {:transcript-status :read
+                                                  :transcript        {:document doc :language %2}}))]
+    (is (= "es" (lang page "es")) "the language that its tag names, rather than the feed's")
+    (is (= "de" (lang page nil)) "or else the feed's")
+    (is (nil? (lang (dissoc page :language) nil)) "and none where neither names one")))
 
 (deftest an-episode-that-isnt-there
   (testing "while the feed is on its way"

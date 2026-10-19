@@ -489,8 +489,9 @@ hr {
 
 
 /* An episode's page: the notes as reading text, with the first line in
-   small caps, as a book's chapter opens, and the chapters as a contents of
-   times and titles */
+   small caps, as a book's chapter opens, the chapters as a contents of
+   times and titles, and the transcript hyphenated as the notes are, by its
+   own language */
 .episode-intro p {
   color: var(--ink-2);
   font-size: var(--step--1);
@@ -529,6 +530,10 @@ hgroup > p {
 .chapters li > a:first-child {
   font-size: var(--step--1);
   padding-top: 0.15em;
+}
+
+.transcript {
+  hyphens: auto;
 }
 
 /* The Details of a show or an episode: each name in small caps above its

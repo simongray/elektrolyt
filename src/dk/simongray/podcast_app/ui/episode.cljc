@@ -170,33 +170,48 @@
                  (text/size-text length))]]])))
 
 ;; A chapters file is the publisher's, so a chapter's link is only one when
-;; it goes to the web, never e.g. a javascript: URL
+;; it goes to the web, never e.g. a javascript: URL. Chapters name no
+;; language of their own, so the titles take the feed's, while the times
+;; stay in the page's (WCAG 2.2, SC 3.1.2 Language of Parts, technique H58).
+;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/chapters/jsonChapters.md
+;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
+;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
 (defn chapters
   "The `chapters` of the episode `page` as a list of their times and titles,
   which link to the web page of a chapter that has one."
-  [page chapters]
-  [:section {:aria-labelledby "chapters"}
-   [:h2#chapters "Chapters"]
-   [:ol.chapters {:role "list"}
-    (for [{:keys [start-time title url]} chapters]
-      [:li {:replicant/key start-time}
-       (time-link page start-time (time-ui/clock start-time))
-       " "
-       (if (url/web-url? url)
-         (links/new-tab [:a {:href url} (or title url)])
-         title)])]])
+  [{:keys [language] :as page} chapters]
+  (let [lang (text/lang language)]
+    [:section {:aria-labelledby "chapters"}
+     [:h2#chapters "Chapters"]
+     [:ol.chapters {:role "list"}
+      (for [{:keys [start-time title url]} chapters]
+        [:li {:replicant/key start-time}
+         (time-link page start-time (time-ui/clock start-time))
+         " "
+         (if (url/web-url? url)
+           (links/new-tab [:a {:href url :lang lang} (or title url)])
+           (when title
+             [:span {:lang lang} title]))])]]))
 
 ;; WAI, Transcribing Audio to Text: the transcript is on the page of the
 ;; media itself, in paragraphs that name who speaks. It's behind a
 ;; disclosure, since an hour's transcript is ten thousand words, and it's
 ;; read once the listener opens it.
 ;; https://www.w3.org/WAI/media/av/transcripts/
+;;
+;; The transcript that resolve picks can be in another language than the
+;; feed. The podcast namespace's transcript tag names its language, and a
+;; transcript without one is in the feed's. Its text takes that language
+;; (WCAG 2.2, SC 3.1.2 Language of Parts, technique H58).
+;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/transcript.md
+;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
+;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
 (defn transcript
   "The transcript of the episode `page`, with the `files` read so far, in
   paragraphs of a speaker's turn or about a minute."
   [{:keys [id view] :as page} files]
-  (let [{:keys [transcript-status]} files
-        {:keys [document error]}    (:transcript files)]
+  (let [{:keys [transcript-status]}       files
+        {:keys [document error language]} (:transcript files)]
     [:section {:aria-labelledby "transcript"}
      [:h2#transcript "Transcript"]
      [:details {:on {:toggle [[:episode/read-transcript id view]]}}
@@ -209,7 +224,7 @@
         [:p {:role "status"} "The transcript couldn't be read."]
 
         document
-        [:div.transcript
+        [:div.transcript {:lang (text/lang (or language (:language page)))}
          (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
            [:p
             (when start-time
