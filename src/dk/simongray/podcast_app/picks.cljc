@@ -33,37 +33,38 @@
    :show    {:limit 5 :max-per-show 1}})
 
 ;; Feeds mark an episode explicit without saying why, e.g. for sex or for
-;; swearing, so every explicit episode counts
-(def explicit
-  "The criteria of the explicit episodes, which the picks leave out where
-  they don't start from one."
-  {:explicit? true})
+;; swearing, so every explicit episode counts, and so does every episode of
+;; an explicit show, which may mark some of them clean, as No Agenda does
+(def clean
+  "The criteria of the episodes that are neither explicit nor of an
+  explicit show, which the picks keep to where they don't start from
+  explicit ones."
+  {:explicit? false :show-explicit? false})
 
 (defn opts
   "The options of library/recommend at the `place` in the `state`: picks
-  that are unplayed and not queued, and not explicit, nor started from an
-  explicit episode, unless the episodes that they start from are,
-  `explicit?`, or the listener chose explicit picks."
+  that are unplayed and not queued, and clean, started from clean
+  episodes, unless the episodes that they start from aren't, `explicit?`,
+  or the listener chose explicit picks."
   [state place explicit?]
   (cond-> (assoc (places place) :where {:status :unplayed :queued? false})
     (not (or explicit? (settings/explicit-picks? state)))
-    (-> (assoc-in [:where :not] explicit)
-        (assoc :from {:not explicit}))))
+    (-> (update :where merge clean)
+        (assoc :from clean))))
 
 (defn explicit-in?
-  "Whether any of the episodes `ids` is explicit, as the library `lib`
-  has them, or as the parsed `feed` of a show outside it has them, when
-  given."
+  "Whether any of the episodes `ids` is explicit, or of an explicit show,
+  as the library `lib` has them, or as the parsed `feed` of a show outside
+  it has them, when given."
   ([lib ids]
    (explicit-in? lib ids nil))
   ([lib ids feed]
    (boolean
-    (some (fn [[_ item-guid :as id]]
-            (if-let [view (library/episode lib id {:except #{:notes :text :links :chapters}})]
-              (:explicit? view)
+    (some (fn [[feed-key item-guid]]
+            (let [show (or (get-in lib [:feeds feed-key :feed]) feed)]
               (when-let [item (some #(when (= item-guid (guid/item-guid %)) %)
-                                    (:rss/items feed))]
-                (resolve/explicit? feed item))))
+                                    (:rss/items show))]
+                (or (resolve/explicit? show) (resolve/explicit? show item)))))
           ids))))
 
 (defn picked

@@ -25,14 +25,16 @@
     (seq categories) (assoc :rss/categories (mapv #(hash-map :content %) categories))))
 
 (def shows
-  "Shows about coffee, two of them explicit, one about sex and one for
-  its swearing, and others, enough of them that the words about coffee
-  are of a few shows."
+  "Shows about coffee, three of them explicit: one about sex, one for its
+  swearing, and one that marks its episode clean. And others, enough of
+  them that the words about coffee are of a few shows."
   [(show "Coffee Talk" false [] [["Espresso grinders" "Burr grinders for espresso, and how fine to grind the beans."]
                                  ["Roasting at home" "Roasting espresso beans at home in a popcorn machine."]])
    (show "Brew Lab" false [] [["Grinders compared" "Conical and flat burr grinders for espresso beans."]])
    (show "After Dark" true ["Sexuality"] [["Espresso in bed" "Burr grinders, espresso beans and more."]])
    (show "Swear Jar" true ["Comedy"] [["Damn good espresso" "Espresso from burr grinders, and swearing."]])
+   (assoc-in (show "Late Night" true [] [["Fine grind" "How fine to grind for a moka pot."]])
+             [:rss/items 0 :itunes/explicit] false)
    (show "Bikes" false [] [["Gears" "The gears of a bicycle."]])
    (show "Gardens" false [] [["Roses" "Pruning roses in the spring."]])
    (show "History" false [] [["Rome" "The fall of the Roman republic."]])
@@ -61,10 +63,10 @@
 
 (deftest the-options-of-each-place
   (let [state {:library lib}]
-    (is (= {:status :unplayed :queued? false :not picks/explicit}
+    (is (= {:status :unplayed :queued? false :explicit? false :show-explicit? false}
            (:where (picks/opts state :episode false)))
-        "unplayed, not queued, and not explicit")
-    (is (= {:not picks/explicit} (:from (picks/opts state :home false)))
+        "unplayed, not queued, and neither explicit nor of an explicit show")
+    (is (= picks/clean (:from (picks/opts state :home false)))
         "nor started from an explicit episode")
     (is (= [{:status :unplayed :queued? false} nil]
            ((juxt :where :from) (picks/opts state :episode true)))
@@ -77,6 +79,7 @@
 
 (deftest explicit-episodes
   (is (picks/explicit-in? lib [grinders (id "Swear Jar" 0)]) "for swearing too")
+  (is (picks/explicit-in? lib [(id "Late Night" 0)]) "and of an explicit show, though it says it's clean")
   (is (not (picks/explicit-in? lib [grinders])))
   (let [outside (show "Outside" true [] [["Swearing" "Damn."]])]
     (is (picks/explicit-in? lib [["outside" "0"]] outside) "and in the feed of a show outside the library")))
@@ -85,7 +88,7 @@
   (let [state {:library lib}
         like  #(titles (picks/recommended lib [%] (picks/opts state :episode (picks/explicit-in? lib [%]))))]
     (is (= ["Grinders compared"] (like grinders)) "of other shows, but not the explicit ones")
-    (is (= ["Grinders compared" "Espresso in bed" "Damn good espresso"]
+    (is (= ["Fine grind" "Grinders compared" "Espresso in bed" "Damn good espresso"]
            (titles (picks/recommended lib [grinders]
                                       (picks/opts (preferring state {:explicit-picks? true}) :episode false))))
         "which the listener can choose")
@@ -105,7 +108,11 @@
     (let [heard (-> lib
                     (library/step [:play grinders])
                     (library/update-profile profile/progress grinders 60))]
-      (is (= ["Grinders compared"] (titles (picks/home {:library heard}))))))
+      (is (= ["Grinders compared"] (titles (picks/home {:library heard})))
+          "but no episode of an explicit show, though it says it's clean")
+      (is (some #{"Fine grind"}
+                (titles (picks/home (preferring {:library heard} {:explicit-picks? true}))))
+          "which the listener can choose")))
   (testing "the end of the queue, like what's in it, of its shows too"
     (is (nil? (picks/after-queue {:library lib})) "none for an empty queue")
     (let [queued (library/update-profile lib profile.queue/enqueue grinders)]
