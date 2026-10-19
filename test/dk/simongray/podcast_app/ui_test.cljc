@@ -52,9 +52,9 @@
     (is (= ["Library"] (current-links inbox "true")) "but whose Library is marked")))
 
 (deftest the-window-title-starts-with-the-page
-  (is (= "Library – Podcasts"
+  (is (= "Library – Elektrolyt"
          (ui/document-title {:route {:name :route/library}})))
-  (is (= "Page not found – Podcasts"
+  (is (= "Page not found – Elektrolyt"
          (ui/document-title {:route nil}))))
 
 (deftest the-landmarks-keep-their-order

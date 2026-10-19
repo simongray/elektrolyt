@@ -75,7 +75,7 @@
 
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]
-    (is (= "Episode 2: The Present – Podcasts" (ui/document-title (episode-page nil))))
+    (is (= "Episode 2: The Present – Elektrolyt" (ui/document-title (episode-page nil))))
     (is (= ["h1" "h2" "h3" "h2"]
            (keep #(when (vector? %) (re-find #"^h[1-6]" (name (first %))))
                  (nodes (elements :main#main x))))

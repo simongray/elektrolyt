@@ -171,7 +171,7 @@ hgroup > p {
 
   .shell > nav .app-name {
     display: flex;
-    margin-bottom: var(--space-3);
+    margin: 0 0 var(--space-3);
   }
 
   .shell > nav ul {

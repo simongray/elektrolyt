@@ -27,7 +27,7 @@
 
 (def app-name
   "The name of the app, as the navigation and the window's title show it."
-  "Podcasts")
+  "Elektrolyt")
 
 (def titles
   "The title of each page by the name of its route."
@@ -144,10 +144,11 @@
 ;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
 ;; list's role is explicit, since the CSS removes its markers (see layout.css).
-;; The app's name comes first and links to Home, as a site's name links
-;; to its home page; a phone, whose tab bar has no room for it, leaves it
-;; out. Each page's link names its page for its colour, from the
-;; palette that the listener chose, unless they chose none.
+;; The app's name comes first, as text, since the Home link beside it
+;; goes where a link of the name would; a phone, whose tab bar has no
+;; room for it, leaves it out. Each page's link names its page for its
+;; colour, from the palette that the listener chose, unless they chose
+;; none.
 (defn main-nav
   "The navigation between the pages for the `state`: the app's name, the
   main pages and Settings, as a tab bar on a phone and a rail on a wider
@@ -155,7 +156,7 @@
   [state]
   (let [palette (settings/navigation-palette state)]
     [:nav {:aria-label "Main"}
-     [:a.app-name {:href (routes/href :route/home)} app-name]
+     [:p.app-name app-name]
      [:ul {:role "list"}
       (for [route-name destinations]
         [:li {:data-page (when-not (= :none palette) (page-name route-name))}
