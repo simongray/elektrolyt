@@ -9,6 +9,7 @@
   its button, the :ids that it dismissed, and what a screen reader hears
   once it's undone, the :done."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.changes :as changes]
             [dk.simongray.podcast-app.memo :as memo]
@@ -19,6 +20,35 @@
   feeds or its profile change, since every page counts the inbox in its
   navigation."
   (memo/remember-last library/inbox (juxt :feeds :profile)))
+
+(def to-inbox
+  "The settings that send the new episodes of a show to the inbox."
+  (profile/new-episodes-settings :inbox))
+
+(defn to-inbox?
+  "Whether the `settings` of a show send its new episodes to the inbox."
+  [settings]
+  (= :inbox (profile/new-episodes (merge profile/default-settings settings))))
+
+;; The app offers no choice of where new episodes go, so every one of them
+;; arrives in the inbox, though an earlier version of the app, or another
+;; app, chose the queue or nowhere for a show, or for every new show
+(defn inbox-only
+  "The `state` with the new episodes of each show, and of a new show, going
+  to the inbox, or the `state` itself where they all do already."
+  [state]
+  (let [p        (some-> (:library state) :profile)
+        ks       (remove #(to-inbox? (profile/settings p %))
+                         (keys (profile/subscriptions p)))
+        defaults (:subscription-defaults (profile/preferences p))]
+    (cond-> state
+      (seq ks)
+      (update :library library/update-profile
+              (fn [p at] (reduce #(profile/configure %1 %2 to-inbox at) p ks)))
+
+      (and p (not (to-inbox? defaults)))
+      (update :library library/update-profile profile/prefer
+              {:subscription-defaults (merge defaults to-inbox)}))))
 
 (defn episodes
   "The episodes in the inbox of the `state`, the newest first."

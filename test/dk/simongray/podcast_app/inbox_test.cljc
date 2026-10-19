@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.mind-meld :as crdt]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.inbox :as inbox]))
 
@@ -68,3 +69,26 @@
     (is (= [(id 1) (id 2) (id 3)] (profile.queue/queue (:profile (:library queued))))
         "the oldest first, as a refresh queues them")
     (is (= "Added 3 episodes to the queue" (:announcement queued)))))
+
+(defn new-episodes
+  "Where the new episodes of the show of the `state` go, and those of a
+  new show."
+  [state]
+  (let [p (:profile (:library state))]
+    [(profile/new-episodes (profile/settings p k))
+     (profile/new-episodes (merge profile/default-settings
+                                  (:subscription-defaults (profile/preferences p))))]))
+
+(deftest every-new-episode-arrives-in-the-inbox
+  (let [state {:library lib}]
+    (is (identical? state (inbox/inbox-only state)) "as they do at first")
+    (is (identical? {} (inbox/inbox-only {})) "and before the library is restored"))
+  (let [elsewhere {:library (-> lib
+                                (library/update-profile profile/configure k
+                                                        (profile/new-episodes-settings :queue))
+                                (library/update-profile profile/prefer
+                                                        {:subscription-defaults
+                                                         (profile/new-episodes-settings :none)}))}]
+    (is (= [:queue :none] (new-episodes elsewhere)))
+    (is (= [:inbox :inbox] (new-episodes (inbox/inbox-only elsewhere)))
+        "though an earlier version of the app sent them elsewhere")))

@@ -372,6 +372,9 @@
   (-> (app-library/open! store)
       ;; the title of a show that only the library keeps is known now
       (.then #(page/canonicalize! @store))
+      (.then #(let [s @store]
+                (when-not (identical? s (inbox/inbox-only s))
+                  (profile-changed! store inbox/inbox-only))))
       (.catch #(js/console.error "The library didn't restore" %))))
 
 (defn load-server-info!
