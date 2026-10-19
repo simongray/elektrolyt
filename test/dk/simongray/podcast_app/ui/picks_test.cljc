@@ -18,9 +18,9 @@
 (deftest a-section-of-picks
   (let [x (picks-ui/section {:library lib} section picked)]
     (is (= [:h2 {:id "episode-picks" :tabindex -1} "More like this"] (first (elements :h2 x))))
-    (is (= "About burr, espresso and beans" (text-of (elements :p.picks-why x)))
-        "the first three of the words that found them, as a list")
-    (is (= ["/search?q=burr" "/search?q=espresso" "/search?q=beans"]
+    (is (= "About burr, espresso, beans and grind" (text-of (elements :p.picks-why x)))
+        "the first five of the words that they share, as a list")
+    (is (= ["/search?q=burr" "/search?q=espresso" "/search?q=beans" "/search?q=grind"]
            (map #(:href (second %)) (elements :a (elements :p.picks-why x))))
         "each a link to a search for it")
     (is (= ["Grinders compared" "Gears"] (map text-of (elements :h3 x))))

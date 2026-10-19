@@ -24,17 +24,15 @@
   [term]
   [:a {:href (routes/href :route/search nil {:q term})} term])
 
-;; Nielsen Norman Group's guidelines for recommendations: say exactly what
-;; they're based on. The words are those that set the episodes apart, as
-;; drop-in-search's more-like-this weighs them, and each is a link to a
-;; search for it, e.g. for shows about it.
-;; https://www.nngroup.com/articles/recommendation-guidelines/
+;; The words are those that the picks share with what they're like, as
+;; picks/shared ranks them, and each is a link to a search for it, e.g. for
+;; shows about it
 (defn why
-  "The line that says why the picks came up, `lead` and then the first
-  three of their `terms`, each a link to a search for it, e.g. \"About
-  relays, zaps and Clojure\", or nil without terms."
+  "The line that says why the picks came up, `lead` and then the first five
+  of their `terms`, each a link to a search for it, e.g. \"About relays,
+  zaps and Clojure\", or nil without terms."
   [lead terms]
-  (when-let [terms (seq (take 3 terms))]
+  (when-let [terms (seq (take 5 terms))]
     (into [:p.picks-why lead " "]
           (map (fn [[kind s]] (if (= :element kind) (search-link s) s)))
           (text/listing-parts terms))))

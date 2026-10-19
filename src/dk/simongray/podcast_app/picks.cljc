@@ -67,13 +67,27 @@
                 (or (resolve/explicit? show) (resolve/explicit? show item)))))
           ids))))
 
+;; Nielsen Norman Group: say exactly what a recommendation is based on. The
+;; words of the query that no pick holds say nothing of why they came up.
+;; https://www.nngroup.com/articles/recommendation-guidelines/
+(defn shared
+  "The words that the picks that library/recommend `found` share with what
+  they're like, the most telling first: by their weight in the query times
+  how many of the picks hold them."
+  [found]
+  (let [weight (into {} (:terms (meta found)))]
+    (->> (mapcat :terms found)
+         frequencies
+         (sort-by (fn [[t n]] [(- (* n (weight t 0))) t]))
+         (mapv first))))
+
 (defn picked
   "The picks of the library `lib` that library/recommend `found`, as a map
   of their :episodes, each as library/listed gives it, and the :terms that
-  found them, the best first."
+  they share with what they're like, the most telling first."
   [lib found]
   {:episodes (into [] (keep #(library/listed lib (:id %))) found)
-   :terms    (mapv first (:terms (meta found)))})
+   :terms    (shared found)})
 
 (defn recommended
   "The picks of the library `lib` like the episodes `ids`, or like those

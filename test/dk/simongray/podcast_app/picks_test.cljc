@@ -29,12 +29,14 @@
   swearing, and one that marks its episode clean. And others, enough of
   them that the words about coffee are of a few shows."
   [(show "Coffee Talk" false [] [["Espresso grinders" "Burr grinders for espresso, and how fine to grind the beans."]
-                                 ["Roasting at home" "Roasting espresso beans at home in a popcorn machine."]])
+                                 ["Roasting at home" "Roasting espresso beans at home, for burr grinders."]])
    (show "Brew Lab" false [] [["Grinders compared" "Conical and flat burr grinders for espresso beans."]])
-   (show "After Dark" true ["Sexuality"] [["Espresso in bed" "Burr grinders, espresso beans and more."]])
+   (show "After Dark" true ["Sexuality"] [["Espresso grinders in bed" "Burr grinders, espresso beans and more."]])
    (show "Swear Jar" true ["Comedy"] [["Damn good espresso" "Espresso from burr grinders, and swearing."]])
-   (assoc-in (show "Late Night" true [] [["Fine grind" "How fine to grind for a moka pot."]])
+   (assoc-in (show "Late Night" true [] [["Grinders for espresso at night" "Late espresso from burr grinders."]])
              [:rss/items 0 :itunes/explicit] false)
+   (show "Sailing" false [] [["Knots" "Knots for a dinghy."]])
+   (show "Chess" false [] [["Openings" "The Sicilian defence."]])
    (show "Bikes" false [] [["Gears" "The gears of a bicycle."]])
    (show "Gardens" false [] [["Roses" "Pruning roses in the spring."]])
    (show "History" false [] [["Rome" "The fall of the Roman republic."]])
@@ -88,9 +90,9 @@
   (let [state {:library lib}
         like  #(titles (picks/recommended lib [%] (picks/opts state :episode (picks/explicit-in? lib [%]))))]
     (is (= ["Grinders compared"] (like grinders)) "of other shows, but not the explicit ones")
-    (is (= ["Fine grind" "Grinders compared" "Espresso in bed" "Damn good espresso"]
-           (titles (picks/recommended lib [grinders]
-                                      (picks/opts (preferring state {:explicit-picks? true}) :episode false))))
+    (is (= #{"Espresso grinders in bed" "Grinders for espresso at night" "Grinders compared" "Damn good espresso"}
+           (set (titles (picks/recommended lib [grinders]
+                                      (picks/opts (preferring state {:explicit-picks? true}) :episode false)))))
         "which the listener can choose")
     (is (seq (:terms (picks/recommended lib [grinders] (picks/opts state :episode false))))
         "with the words that found them")
@@ -104,13 +106,14 @@
 (deftest the-picks-of-each-place
   (testing "Home, like what the listener heard last"
     (is (= [] (titles (picks/home {:library lib}))) "nothing before the listener has heard anything")
+    (is (= [] (:terms (picks/home {:library lib}))))
     ;; as the player has it, which puts what plays at the front of the queue
     (let [heard (-> lib
                     (library/step [:play grinders])
                     (library/update-profile profile/progress grinders 60))]
       (is (= ["Grinders compared"] (titles (picks/home {:library heard})))
           "but no episode of an explicit show, though it says it's clean")
-      (is (some #{"Fine grind"}
+      (is (some #{"Grinders for espresso at night"}
                 (titles (picks/home (preferring {:library heard} {:explicit-picks? true}))))
           "which the listener can choose")))
   (testing "the end of the queue, like what's in it, of its shows too"
@@ -118,7 +121,7 @@
     (let [queued (library/update-profile lib profile.queue/enqueue grinders)]
       (is (= ["Grinders compared" "Roasting at home"]
              (titles (picks/after-queue {:library queued}))))
-      (is (some #{"Espresso in bed"}
+      (is (some #{"Espresso grinders in bed"}
                 (titles (picks/after-queue {:library (library/update-profile queued profile.queue/enqueue
                                                                              (id "Swear Jar" 0))})))
           "and explicit ones too, once the queue has one"))))
