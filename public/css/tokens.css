@@ -122,8 +122,8 @@
   --rule: light-dark(oklch(56% 0.005 80), oklch(60% 0.005 80));
   --rule-soft: light-dark(oklch(90% 0.003 80), oklch(30% 0.004 80));
   --field: var(--paper);
-  /* the thick line beside the rail and of an hr */
-  --divider: light-dark(oklch(88% 0.004 80), oklch(33% 0.004 80));
+  /* the line beside the rail and of an hr */
+  --divider: light-dark(oklch(80% 0.004 80), oklch(40% 0.004 80));
 
   /* links, buttons and the focus ring, in the text's own ink until a part
      of the page takes the colour of an artwork (see look.css) */
