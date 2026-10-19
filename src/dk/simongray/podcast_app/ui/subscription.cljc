@@ -44,9 +44,9 @@
 (def new-episodes-options
   "Where the new episodes of a show can go, as profile/new-episodes names
   them, with the text of each, in the order of the select."
-  [[:inbox "The inbox"]
-   [:queue "The end of the queue"]
-   [:next  "Next in the queue"]
+  [[:inbox "Inbox"]
+   [:queue "End of queue"]
+   [:next  "Next in queue"]
    [:none  "Nowhere"]])
 
 ;; Castro and AntennaPod: a choice for each show of where its new episodes
@@ -62,8 +62,10 @@
   go, for the page of a show that the listener subscribes to."
   [library k]
   (let [chosen (profile/new-episodes (profile/settings (:profile library) k))]
+    ;; a short label beside the subscription, which says the rest only to
+    ;; a screen reader
     [:div.new-episodes
-     [:label {:for "new-episodes"} "New episodes go to"]
+     [:label {:for "new-episodes"} "Destination" [:span.visually-hidden " of new episodes"]]
      [:select {:id "new-episodes"
                :on {:change [[:library/new-episodes k [:event/target-keyword]]]}}
       (for [[option text] new-episodes-options]

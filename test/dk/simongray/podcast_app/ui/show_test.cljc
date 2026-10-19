@@ -118,10 +118,10 @@
                                      :episodes [{:guid "1" :title "One"}]}}}}
         x     (show/content state [:h1 "A Show"])
         [_ _ main aside] x
-        header (first (elements :header main))]
+        header (first (elements :header.show-intro main))]
     (is (= :article.with-details (first x)) "the show as an article")
-    (is (= [:hgroup [:h1 "A Show"] nil] (second header)) "its header beginning with its heading")
-    (is (= [:p "Explicit"] (first (elements :p header))))
+    (is (= [:hgroup [:h1 "A Show"] [:p "Explicit"]] (second header))
+        "its header beginning with its heading, and its author and facts below it")
     (is (= [[:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
                               "Details" [:span {:aria-hidden "true"} " ↓"]]]]
            (elements :p.details-link header))

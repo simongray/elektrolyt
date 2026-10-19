@@ -207,25 +207,27 @@
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
   "The header of the article of the show `page` at `url` in the `state`: its
-  `heading` with its author, its artwork and facts, the link to its
-  Details when it has them, `aside?`, its subscription as the library key
-  `k` has it, the links that support it, and its description."
-  [state heading {:keys [title author notes funding] :as page} url k aside?]
-  [:header
-   [:hgroup heading (when author [:p author])]
+  `heading` with its author and facts in a line below it, its artwork, and
+  beside it the link to its Details when it has them, `aside?`, and its
+  subscription as the library key `k` has it, beside where its new
+  episodes go, and its description below."
+  [state heading {:keys [title author notes] :as page} url k aside?]
+  [:header.show-intro
+   [:hgroup heading (details/facts-line (cons author (facts page)))]
    (artwork/img page 160 (merge {:fetchpriority "high"} (colors/placeholder state page)))
-   (details/facts-line (facts page))
-   (when aside?
-     details/link)
-   (when url
-     (let [status (subscription/status state
-                                       (search/subscribed-urls (:library state))
-                                       url)]
-       (list (subscription/button status url title true)
-             (when (= :subscribed status)
-               (subscription/new-episodes (:library state) k))
-             (subscription/error state url))))
-   (details/support funding)
+   [:div.show-intro-body
+    (when aside?
+      details/link)
+    (when url
+      (let [status (subscription/status state
+                                        (search/subscribed-urls (:library state))
+                                        url)]
+        (list [:div.show-subscription
+               (subscription/button status url title true)
+               (when (= :subscribed status)
+                 (list [:span {:aria-hidden "true"} "·"]
+                       (subscription/new-episodes (:library state) k)))]
+              (subscription/error state url))))]
    (when notes
      [:div.show-notes notes])])
 

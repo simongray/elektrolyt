@@ -44,13 +44,13 @@ test('exporting downloads the subscriptions as OPML', async ({ page }) => {
 test('the default of where new episodes go can apply to every show', async ({ page }) => {
   const main = page.getByRole('main');
   await subscribeAndOpenSettings(page);
-  await main.getByLabel('New episodes of a new show go to').selectOption('Next in the queue');
+  await main.getByLabel('New episodes of a new show go to').selectOption('Next in queue');
   await main.getByRole('button', { name: 'Apply to all shows' }).click();
   await expect(main.getByRole('status').filter({ hasText: 'Applied' })).toHaveText('Applied to 1 show');
 
   await navLink(page, 'Library').click();
   await main.getByRole('link', { name: showTitle }).click();
-  await expect(main.getByLabel('New episodes go to')).toHaveValue('next');
+  await expect(main.getByLabel('Destination of new episodes')).toHaveValue('next');
 });
 
 test('continuous play is a switch', async ({ page }) => {

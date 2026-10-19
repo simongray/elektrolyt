@@ -32,7 +32,7 @@
 (deftest where-new-episodes-go
   (let [k inbox-test/k
         x (subscription/new-episodes inbox-test/lib k)]
-    (is (= ["The inbox" "The end of the queue" "Next in the queue" "Nowhere"]
+    (is (= ["Inbox" "End of queue" "Next in queue" "Nowhere"]
            (map last (elements :option x))))
     (is (= "inbox" (chosen x)) "the inbox, by default")
     (is (= [[:library/new-episodes k [:event/target-keyword]]]

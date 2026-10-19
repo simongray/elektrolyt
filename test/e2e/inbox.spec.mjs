@@ -22,7 +22,7 @@ async function checkForNewEpisodes(page, show) {
 test('a new episode arrives in the inbox, and leaves it once dismissed or queued', async ({ page, show }) => {
   const main = page.getByRole('main');
   await subscribe(page);
-  await expect(main.getByLabel('New episodes go to')).toHaveValue('inbox');
+  await expect(main.getByLabel('Destination of new episodes')).toHaveValue('inbox');
   await checkForNewEpisodes(page, show);
 
   const inbox = navLink(page, 'Inbox');
@@ -51,7 +51,7 @@ test('a new episode arrives in the inbox, and leaves it once dismissed or queued
 test("a show's new episodes can go to the queue instead", async ({ page, show }) => {
   const main = page.getByRole('main');
   await subscribe(page);
-  await main.getByLabel('New episodes go to').selectOption('The end of the queue');
+  await main.getByLabel('Destination of new episodes').selectOption('End of queue');
   await checkForNewEpisodes(page, show);
 
   await expect(navLink(page, 'Inbox')).toHaveAccessibleName('Inbox');

@@ -304,42 +304,95 @@ search input {
 }
 
 
-/* An episode's header: its title and show across the top, and its facts
-   and Play button beside its artwork, which is smaller on a phone */
-.episode-intro {
+/* An episode's header and a show's: the title across the top, and the
+   facts, buttons and choices beside the artwork, which is smaller on a
+   phone, so that the header keeps to the artwork's height where it can.
+   A show's description runs below them all. */
+.episode-intro,
+.show-intro {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
   column-gap: 1em;
   align-items: start;
 }
 
-.episode-intro > hgroup {
+.episode-intro > hgroup,
+.show-intro > hgroup,
+.show-intro > .show-notes {
   grid-column: 1 / -1;
+}
+
+.episode-intro img,
+.show-intro img {
+  width: 96px;
+  object-fit: cover;
 }
 
 .episode-intro img {
   grid-row: span 3;
-  width: 96px;
-  object-fit: cover;
+}
+
+.show-intro img {
+  grid-column: 1;
 }
 
 .episode-intro > :not(img, hgroup) {
   grid-column: 2;
 }
 
-/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
-.episode-intro button {
+/* A show's parts beside its artwork, as tall as it at least, with the
+   subscription and its choice at the bottom, level with the artwork's */
+.show-intro-body {
+  display: flex;
+  flex-direction: column;
+  grid-column: 2;
+  align-self: stretch;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.show-intro-body > * {
+  margin: 0;
+}
+
+.show-subscription {
+  margin-top: auto;
+}
+
+/* WCAG 2.2, SC 2.5.8 Target Size (Minimum), at the height of a control */
+.episode-intro button,
+.show-intro button {
   justify-self: start;
   min-height: var(--control-height);
 }
 
 @media (min-width: 37.5em) {
-  .episode-intro {
+  .episode-intro,
+  .show-intro {
     grid-template-columns: 160px minmax(0, 1fr);
   }
 
-  .episode-intro img {
+  .episode-intro img,
+  .show-intro img {
     width: 160px;
+  }
+
+  /* a show's title and author beside its artwork too, where there's room,
+     above the rest */
+  .show-intro {
+    grid-template-rows: auto 1fr;
+  }
+
+  .show-intro > hgroup {
+    grid-column: 2;
+  }
+
+  .show-intro img {
+    grid-row: 1 / span 2;
+  }
+
+  .show-intro-body {
+    grid-row: 2;
   }
 }
 
@@ -634,15 +687,23 @@ main section > button {
 
 
 /* The Library page's choices and its refresh, the Inbox page's buttons,
-   and the choice of a show's page, in rows that wrap */
+   and a show page's subscription and its choice beside it, in rows that
+   wrap */
 .library-tools,
 .library-refresh,
 .inbox-tools,
-.new-episodes {
+.new-episodes,
+.show-subscription {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5em;
+}
+
+/* the dot between the subscription and its choice as far from each as a
+   space, as the dots of a line of text are */
+.show-subscription {
+  column-gap: 0.3em;
 }
 
 .library-refresh p {
