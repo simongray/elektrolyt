@@ -46,7 +46,7 @@
         [_ & xs] section
         items    (some #(when (and (vector? %) (= :ol.episodes (first %))) (last %)) xs)
         button   (some #(when (and (vector? %) (= :button (first %))) %) xs)
-        [_ {:keys [href]} title] (get-in (vec (first items)) [2 1 1])]
+        [_ {:keys [href]} title] (first (elements :a (first items)))]
     (is (= 20 (count items)))
     (is (= "Episode 0" title))
     (is (re-find #"^/shows/g/episodes/\w+/episode-0$" href)
@@ -55,6 +55,11 @@
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
                     (show/episodes (show-page {:status :done :shown 45}) {:episodes rows})))
         "no button once they're all listed")))
+
+(deftest an-episode-beside-its-artwork
+  (let [src #(:src (second (first (elements :img (show/episode "/e" % nil {:artwork "https://example.org/show.jpg"})))))]
+    (is (= "https://example.org/episode.jpg" (src {:title "One" :artwork "https://example.org/episode.jpg"})))
+    (is (= "https://example.org/show.jpg" (src {:title "One"})) "or the show's, where it has none")))
 
 (deftest how-often-a-show-publishes
   (let [day (* 24 3600 1000)]

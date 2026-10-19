@@ -117,9 +117,11 @@
 (defn episode
   "An episode in the list of episodes, the `row` of its :title, its date of
   :published and its :duration in seconds, whose title in the language
-  `lang` links to the `href` of its page."
-  [href {:keys [title published duration] :as row} lang]
+  `lang` links to the `href` of its page, beside its artwork, or else the
+  `show`'s."
+  [href {:keys [title published duration] :as row} lang show]
   [:article
+   (artwork/img (if (:artwork row) row show) 48 {:loading "lazy"})
    [:h3 [:a {:href href :lang lang} title]]
    (facts-ui/line [(some-> published time-ui/date)
                    (some-> duration time-ui/duration)])])
@@ -165,7 +167,7 @@
        [:ol.episodes {:role "list"}
         (for [row (take shown rows)]
           [:li {:replicant/key (:guid row)}
-           (episode (routes/episode-href (or k g) (:guid row) (:title row) url) row lang)])])
+           (episode (routes/episode-href (or k g) (:guid row) (:title row) url) row lang page)])])
      (when (< shown (count rows))
        [:button {:type "button"
                  :on   {:click [[:show/more g (count rows)]]}}

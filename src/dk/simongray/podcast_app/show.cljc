@@ -42,12 +42,15 @@
    :link-fn       links/new-tab})
 
 (defn episode-row
-  "The episode `item` as a row of the list of episodes."
+  "The episode `item` as a row of the list of episodes, with its own
+  artwork, if it has any."
   [item]
-  {:guid      (guid/item-guid item)
-   :title     (resolve/title item)
-   :published (resolve/published item)
-   :duration  (resolve/duration item)})
+  {:guid          (guid/item-guid item)
+   :title         (resolve/title item)
+   :published     (resolve/published item)
+   :duration      (resolve/duration item)
+   :artwork       (resolve/artwork item)
+   :artwork-sizes (resolve/artwork-sizes item)})
 
 (def facts
   "The properties of a show view that its page shows besides the title,

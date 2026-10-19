@@ -340,13 +340,31 @@ search p {
 }
 
 
-/* The episodes of a show */
+/* The episodes of a show, each its artwork beside its title and facts, as
+   the queue's are */
 .episodes {
   margin: 0;
 }
 
 .episodes > li {
   padding-block: var(--space-3);
+}
+
+.episodes article {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  column-gap: 1em;
+  align-items: start;
+}
+
+.episodes img {
+  grid-row: span 2;
+  width: 48px;
+  object-fit: cover;
+}
+
+.episodes article > :not(img) {
+  grid-column: 2;
 }
 
 .episodes h3,
