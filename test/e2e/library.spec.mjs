@@ -9,7 +9,7 @@ test('checking for new episodes marks the shows busy, then says what it found', 
   await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
   await navLink(page, 'Library').click();
 
-  const shows = main.getByRole('list');
+  const shows = main.getByRole('region', { name: 'Shows' }).getByRole('list');
   await expect(shows.getByRole('heading', { name: showTitle })).toBeVisible();
   await expect(shows).toHaveAttribute('aria-busy', 'false');
 

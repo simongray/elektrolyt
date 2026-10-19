@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.ui.show
   "The views of the Show page: the show, the button that subscribes to it,
-  and its episodes, a page of them at a time.
+  its episodes, a page of them at a time, the shows that it links to, and
+  the picks like it.
 
   The page comes from the best source at hand, as
   dk.simongray.podcast-app.show describes it, so it shows what a search
@@ -8,6 +9,9 @@
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.spec :as spec]
             [dk.simongray.podcast-app.colors :as colors]
+            [dk.simongray.podcast-app.episode :as episode]
+            [dk.simongray.podcast-app.linked :as linked]
+            [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
@@ -15,6 +19,7 @@
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.details :as details]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
+            [dk.simongray.podcast-app.ui.picks :as picks-ui]
             [dk.simongray.podcast-app.ui.subscription :as subscription]
             [dk.simongray.podcast-app.ui.time :as time-ui]))
 
@@ -210,10 +215,58 @@
      (when notes
        [:div.show-notes notes])]))
 
+;; Inclusive Components, Cards: the title is the link, and the artwork
+;; beside it decoration, as in the Library's shows
+;; https://inclusive-components.design/cards/
+(defn show-cards
+  "The list of the show `cards` of linked/card in the `state`, each its
+  artwork, or a blank in its place, and its title, which links to its
+  page."
+  [state cards]
+  [:ul.linked-shows {:role "list"}
+   (for [{show-guid :guid :keys [title url] :as card} cards]
+     [:li {:replicant/key show-guid}
+      [:article.linked-show
+       (or (artwork/img card 96 (colors/placeholder state card))
+           [:div.no-artwork])
+       [:h3 [:a {:href (routes/show-href show-guid title url)} (or title "Untitled show")]]]])])
+
+;; Pocket Casts puts a show's podroll first among its recommendations, as
+;; "Recommended shows by the creator", and Apple Podcasts ends a show's
+;; page with More From its publisher. The shows are fetched as their part
+;; of the page mounts.
+;; https://support.pocketcasts.com/knowledge-base/podroll-podcast-recommendations/
+;; https://podcasts.apple.com/us/podcast/the-daily/id1200361736
+;; https://podcasting2.org/docs/podcast-namespace/tags/podroll
+(defn linked-shows
+  "The shows that the show of the Show page of the `state`, titled `title`,
+  links to: those of its podroll, and the other shows of its publisher,
+  or nil when its feed `source`, as episode/source gives it, links to
+  none."
+  [state title {:keys [feed url] :as source}]
+  (let [show-guid                   (guid state)
+        {:keys [podroll publisher]} (get-in state [:linked show-guid])]
+    (when (linked/links? feed)
+      [:div.linked {:replicant/key      show-guid
+                    :replicant/on-mount [[:show/fetch-linked show-guid feed url]]}
+       (when (seq podroll)
+         [:section {:aria-labelledby "podroll"}
+          [:h2#podroll (str "Recommended by " title)]
+          (show-cards state podroll)])
+       (when publisher
+         [:section {:aria-labelledby "publisher"}
+          [:h2#publisher (str "More from " (or (:title publisher) "its publisher"))]
+          (show-cards state (:shows publisher))])])))
+
+(def picks-section
+  "The section of the picks under a show: its heading's id and text, and
+  the lead of its line of why."
+  {:id "show-picks" :heading "More like this show" :lead "About"})
+
 (defn content
   "The content of the Show page of the `state` under its `heading`: an
-  article, whose header has the heading, or else the heading and what
-  became of the show."
+  article, whose header has the heading, the shows that it links to, and
+  the picks like it, or else the heading and what became of the show."
   [state heading]
   (let [page                  (show/page state (guid state))
         {:keys [status error]} (loaded state)]
@@ -224,9 +277,14 @@
               (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
               :failed                         [:p {:role "status"} (status-text status 0 error nil)]
               not-found))
-      (let [aside (details/aside (details-rows page (feed-url state)) (:people page))]
-        (details/article
-         {}
-         [(intro state heading page (some? aside))
-          (episodes state (:episodes page))]
-         aside)))))
+      (let [aside  (details/aside (details-rows page (feed-url state)) (:people page))
+            source (episode/source state (guid state))]
+        (list
+         (details/article
+          {}
+          [(intro state heading page (some? aside))
+           (episodes state (:episodes page))]
+          aside)
+         (when source
+           (linked-shows state (:title page) source))
+         (picks-ui/section state picks-section (picks/like-show state (guid state))))))))

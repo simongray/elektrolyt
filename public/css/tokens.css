@@ -105,16 +105,15 @@
      most of its colour: the bars take it while no artwork colours them */
   --app: oklch(20% 0 0);
 
-  /* The colour of each page of the navigation, which its label takes: four
+  /* The colour of each page of the navigation, which its label takes:
      hues a quarter turn apart in LCH from the Library's green, and grey for
-     Settings, the one page that isn't about listening. Colour is the
-     quickest code to search a display by (Christ, 1975), and five colours
-     keep to the guideline of five to seven at a time that Healey (1996)
-     cites.
+     Settings, the one page that isn't about listening. Home has none, as
+     the app's name has none. Colour is the quickest code to search a
+     display by (Christ, 1975), and a few colours keep to the guideline of
+     five to seven at a time that Healey (1996) cites.
      https://doi.org/10.1177/001872087501700602
      https://healey.csc.ncsu.edu/publications/15843.pdf */
   --queue: lch(50 60 246);
-  --inbox: lch(50 60 66);
   --library: lch(50 60 156);
   --search: lch(50 60 336);
   --settings: lch(50 0 0);

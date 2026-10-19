@@ -28,10 +28,11 @@
 
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
-    (is (= ["Appearance" "Playback" "New episodes" "Search" "Subscriptions" "This browser"]
+    (is (= ["Appearance" "Playback" "Recommendations" "New episodes" "Search" "Subscriptions" "This browser"]
            (map text-of (elements :h2 (elements :legend x))))
         "each group a fieldset, its heading in its legend")
-    (is (= [["appearance" -1] ["playback" -1] ["new-episodes" -1] ["search" -1] ["subscriptions" -1] ["this-browser" -1]]
+    (is (= [["appearance" -1] ["playback" -1] ["recommendations" -1] ["new-episodes" -1] ["search" -1]
+            ["subscriptions" -1] ["this-browser" -1]]
            (map #((juxt :id :tabindex) (second %)) (elements :h2 x)))
         "which a link to the group names, and which takes the focus")
     (is (= "/settings#search" (settings-ui/group-href :search)))

@@ -13,9 +13,10 @@
   (routes/match->route (reitit/match-by-path routes/router path)))
 
 (deftest every-page-matches-its-own-href
-  (doseq [route-name [:route/queue :route/inbox :route/library :route/search :route/settings]]
+  (doseq [route-name [:route/home :route/queue :route/inbox :route/library :route/search :route/settings]]
     (is (= {:name route-name :path-params {} :query-params {}}
-           (route-of (routes/href route-name))))))
+           (route-of (routes/href route-name)))))
+  (is (= ["/" "/queue"] (map routes/href [:route/home :route/queue])) "Home first, at the root"))
 
 (deftest unknown-path-has-no-route
   (is (nil? (route-of "/nowhere"))))

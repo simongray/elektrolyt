@@ -150,6 +150,12 @@
     (swap! store show/newer-shown guid)
     (page/focus! "episodes")))
 
+;; dispatched as the shows that a show links to mount, so it changes the
+;; store once the render is done
+(nxr/register-effect! :show/fetch-linked
+  (fn [_ store guid feed url]
+    (js/queueMicrotask #(feeds/fetch-linked! store guid feed url))))
+
 ;; dispatched as the page of the episode mounts, so it changes the store
 ;; once the render is done
 (nxr/register-effect! :episode/read-files

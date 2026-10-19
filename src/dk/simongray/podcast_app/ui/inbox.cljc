@@ -7,12 +7,10 @@
   focus moves to the same button of the next row, or of the row before
   the last, so that a keyboard and a screen reader keep their place. What
   happened is announced in the page's status line."
-  (:require [dk.simongray.podcast-app.colors :as colors]
-            [dk.simongray.podcast-app.inbox :as inbox]
+  (:require [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.text :as text]
-            [dk.simongray.podcast-app.ui.artwork :as artwork]
-            [dk.simongray.podcast-app.ui.facts :as facts-ui]
+            [dk.simongray.podcast-app.ui.lists :as lists-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.settings :as settings-ui]
@@ -36,12 +34,9 @@
 
 (defn row
   "The `episode` of the inbox, its artwork, title and facts, in the
-  `state`."
-  [{:keys [library] :as state} {:keys [id title] :as episode}]
-  (list
-   (artwork/img episode 48 (colors/placeholder state episode))
-   [:h2 [:a {:href (queue-ui/episode-href library id title)} title]]
-   (facts-ui/line (facts episode))))
+  `state`, with its title in a heading of `tag`, e.g. :h2."
+  [state episode tag]
+  (lists-ui/row state episode tag (facts episode)))
 
 ;; Castro's actions on an episode of its inbox: play, queue at the top or
 ;; the bottom, and archive. Each is a button that names its episode,
@@ -121,6 +116,22 @@
     [:a {:href (routes/href :route/library)} "Library"] ", or for every "
     "new show in " [:a {:href (settings-ui/group-href :new-episodes)} "Settings"] "."]))
 
+(defn episode-list
+  "The list of the inbox's `episodes` in the `state`, or of the first `n`
+  of them when given, with their actions, and each title in a heading of
+  `tag`. After an action, the focus goes to the row that takes the place
+  of its row, which may be one that wasn't shown."
+  ([state episodes tag]
+   (episode-list state episodes tag nil))
+  ([state episodes tag n]
+   [:ul.inbox {:role "list"}
+    (for [[i {:keys [id] :as episode}] (map-indexed vector (cond->> episodes n (take n)))]
+      (let [neighbour (rows/neighbour episodes i)]
+        [:li {:replicant/key (pr-str id)}
+         [:article.inbox-episode
+          (row state episode tag)
+          (actions episode (focus-after neighbour))]]))]))
+
 (defn content
   "The content of the Inbox page of the `state`, below its heading."
   [{:keys [inbox-undo] :as state}]
@@ -132,10 +143,27 @@
        [:p (text/counted n "new episode")])
      (tools episodes inbox-undo)
      (when (seq episodes)
-       [:ul.inbox {:role "list"}
-        (for [[i {:keys [id] :as episode}] (map-indexed vector episodes)]
-          (let [neighbour (rows/neighbour episodes i)]
-            [:li {:replicant/key (pr-str id)}
-             [:article.inbox-episode
-              (row state episode)
-              (actions episode (focus-after neighbour))]]))]))))
+       (episode-list state episodes :h2)))))
+
+(def newest-count
+  "How many of the newest episodes of the inbox the Library page shows."
+  3)
+
+;; The start of the inbox, as Home has the start of the queue, with a link
+;; to the whole of it, whose page has the actions on all of them
+(defn section
+  "The section of the Library page of the `state` with the newest episodes
+  of the inbox and their actions, the undo of the last dismissal, and a
+  link to the Inbox page."
+  [{:keys [inbox-undo] :as state}]
+  (let [episodes (inbox/episodes state)
+        n        (count episodes)]
+    [:section {:aria-labelledby "inbox"}
+     [:h2#inbox {:tabindex -1} "Inbox"]
+     (tools nil inbox-undo)
+     (if (zero? n)
+       [:p "No new episodes."]
+       (list
+        (episode-list state episodes :h3 newest-count)
+        [:p.list-more [:a {:href (routes/href :route/inbox)} "The whole Inbox"] ": "
+         (text/counted n "new episode")]))]))

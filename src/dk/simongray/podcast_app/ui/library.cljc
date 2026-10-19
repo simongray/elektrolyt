@@ -1,12 +1,13 @@
 (ns dk.simongray.podcast-app.ui.library
-  "The views of the Library page: the shows that the listener subscribes
-  to, in the order and the layout of their choice, and the refresh of
-  their feeds."
+  "The views of the Library page: the newest episodes of the inbox, and the
+  shows that the listener subscribes to, in the order and the layout of
+  their choice, with the refresh of their feeds."
   (:require [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.shows :as shows]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.controls :as controls-ui]
+            [dk.simongray.podcast-app.ui.inbox :as inbox-ui]
             [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn choice
@@ -50,14 +51,15 @@
   [:li {:replicant/key feed-guid}
    [:article.library-show
     (artwork/img show 160 (colors/placeholder state show))
-    [:h2 [:a {:href (routes/show-href feed-guid title)} title]]
+    [:h3 [:a {:href (routes/show-href feed-guid title)} title]]
     (when-let [text (shows/counts-text counts)]
       [:p text])
     (when newest
       [:p "Newest episode " (time-ui/date newest)])]])
 
 (defn content
-  "The content of the Library page of the `state`, below its heading."
+  "The content of the Library page of the `state`, below its heading: the
+  start of the inbox, and the shows."
   [{:keys [library refresh] :as state}]
   (let [all (shows/all-shows library)]
     (if (empty? all)
@@ -66,11 +68,14 @@
        [:p "Find shows to subscribe to with "
         [:a {:href (routes/href :route/search)} "Search"] "."])
       (list
-       [:div.library-tools
-        (choice state :sort "Sort by" shows/sorts)
-        (choice state :layout "Show as" shows/layouts)]
-       (refresh-line state (shows/updated-at library))
-       [:ul {:role      "list"
-             :class     ["library-shows" (name (shows/choice state :layout))]
-             :aria-busy (str (boolean (:running? refresh)))}
-        (map #(show-item state %) (shows/sorted all (shows/choice state :sort)))]))))
+       (inbox-ui/section state)
+       [:section {:aria-labelledby "shows"}
+        [:h2#shows "Shows"]
+        [:div.library-tools
+         (choice state :sort "Sort by" shows/sorts)
+         (choice state :layout "Show as" shows/layouts)]
+        (refresh-line state (shows/updated-at library))
+        [:ul {:role      "list"
+              :class     ["library-shows" (name (shows/choice state :layout))]
+              :aria-busy (str (boolean (:running? refresh)))}
+         (map #(show-item state %) (shows/sorted all (shows/choice state :sort)))]]))))

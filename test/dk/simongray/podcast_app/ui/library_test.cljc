@@ -11,7 +11,10 @@
 
 (deftest the-library-page
   (let [x (library-ui/content {:library queue-test/lib})]
-    (is (= ["A Show"] (map text-of (elements :h2 x))) "a heading that links to each show")
+    (is (= ["Inbox" "Shows"] (map text-of (mapcat #(elements % x) [:h2#inbox :h2#shows])))
+        "the start of the inbox, and the shows")
+    (is (= ["A Show"] (map text-of (elements :h3 (elements :ul x))))
+        "a heading that links to each show")
     (is (re-find #"4 unplayed" (text-of x)))
     (is (= ["library-shows" "auto"] (:class (attributes :ul x))) "the layout that suits the screen")
     (is (= "false" (:aria-busy (attributes :ul x))))

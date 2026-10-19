@@ -1,12 +1,14 @@
 (ns dk.simongray.podcast-app.feeds
   "The feeds of the shows of the Show and Episode pages, and the files of
   their episodes: opened from the cache, fetched in the worker, checked
-  again once a visit, or found by guid in the Podcast Index, and the
-  subscriptions to them.
+  again once a visit, or found by guid in the Podcast Index, the
+  subscriptions to them, and the shows that they link to.
 
   The namespace dk.simongray.podcast-app.show describes what the state
-  keeps of each show."
+  keeps of each show, and dk.simongray.podcast-app.linked what it keeps of
+  the shows that a show links to."
   (:require [dk.simongray.podcast.app.episode :as episode]
+            [dk.simongray.podcast.app.show :as app.show]
             [dk.simongray.podcast.app.worker :as worker]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
@@ -14,6 +16,7 @@
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.cache :as app-cache]
             [dk.simongray.podcast-app.library :as app-library]
+            [dk.simongray.podcast-app.linked :as linked]
             [dk.simongray.podcast-app.page :as page]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
@@ -224,6 +227,35 @@
     (swap! store subscription/unsubscribed url title)
     (app-library/save!)
     (apply rfe/replace-state (routes/show-route guid title url))))
+
+(def linked-except
+  "The parts of the view of a show that the fetch of the shows it links to
+  leaves out."
+  #{:notes :text :episodes :seasons :links})
+
+(defn fetch-linked!
+  "Fetch the shows that the show `guid`, whose parsed `feed` is at `url`,
+  links to into the :linked of the `store`, once: from the cache, or else
+  through the app's server, and from the Podcast Index where the server
+  signs the requests to it, and keep them in the cache."
+  [store guid feed url]
+  (when-not (get-in @store [:linked guid])
+    (swap! store assoc-in [:linked guid] {:status :fetching})
+    (-> (app-cache/fetch! app-cache/linked guid)
+        (.then (fn [kept]
+                 (or (:value kept)
+                     (.then (app.show/fetch-linked-shows!
+                             (app.show/view feed {:url url :except linked-except})
+                             {:send  app-library/send
+                              :index (search/index-credentials @store)})
+                            (fn [fetched]
+                              (let [shows (linked/kept guid fetched)]
+                                (app-cache/put! app-cache/linked guid shows)
+                                shows))))))
+        (.then #(swap! store assoc-in [:linked guid] (assoc % :status :done)))
+        (.catch (fn [e]
+                  (js/console.warn "The shows that a show links to weren't fetched" e)
+                  (swap! store assoc-in [:linked guid :status] :failed))))))
 
 (defn read-files!
   "Read the files of the episode `id`, as its `view` names them, into the

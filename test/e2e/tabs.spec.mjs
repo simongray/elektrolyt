@@ -51,7 +51,8 @@ test('two tabs keep what each other queued', async ({ page, context }) => {
   await expect(upNext(page)).toHaveText([first.title, second.title]);
   // after a reload, the first in the queue is the one playing
   await page.reload();
-  await expect(page.getByRole('main').getByRole('heading', { level: 3 }))
+  await expect(page.getByRole('main').getByRole('region', { name: /^(Now playing|Up next)$/ })
+    .getByRole('heading', { level: 3 }))
     .toHaveText([first.title, second.title]);
   expect(errors, 'the errors that the other tab threw').toEqual([]);
 });
@@ -60,7 +61,7 @@ test('a tab shows what another queues, without a reload', async ({ page, context
   const errors = [];
   await subscribe(page);
   const other = await otherTab(context, errors);
-  await other.goto('/');
+  await other.goto('/queue');
   await expect(other.getByRole('heading', { level: 1, name: 'Queue' })).toBeVisible();
 
   await queue(page, first);

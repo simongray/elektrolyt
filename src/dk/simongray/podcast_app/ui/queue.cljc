@@ -5,14 +5,13 @@
   A move or a removal is announced in the page's status line, and the
   focus stays on the button that did it, or moves to the next row's after
   a removal, so that a keyboard and a screen reader keep their place."
-  (:require [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.podcast-app.colors :as colors]
-            [dk.simongray.podcast-app.inbox :as inbox]
+  (:require [dk.simongray.podcast-app.inbox :as inbox]
+            [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.text :as text]
-            [dk.simongray.podcast-app.ui.artwork :as artwork]
-            [dk.simongray.podcast-app.ui.facts :as facts-ui]
+            [dk.simongray.podcast-app.ui.lists :as lists-ui]
+            [dk.simongray.podcast-app.ui.picks :as picks-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.time :as time-ui]))
 
@@ -21,14 +20,6 @@
   `id`, by which the focus finds it again after a change."
   [id kind]
   (rows/control-id "queue" id kind))
-
-(defn episode-href
-  "The path of the page of the queued episode `id` titled `title`, with the
-  URL of its feed when the library keeps it for the queue alone."
-  [lib [feed-guid item-guid :as id] title]
-  (routes/episode-href feed-guid item-guid title
-                       (when-not (profile/subscribed? (:profile lib) feed-guid)
-                         (get-in lib [:feeds feed-guid :url]))))
 
 (defn time-left
   "How long the `episode` of the queue has left, e.g. \"45 min left\", or
@@ -56,12 +47,11 @@
 
 (defn row
   "The `episode` of the queue, its artwork, title, show and time left, in
-  the `state`."
-  [{:keys [library] :as state} {:keys [id title show] :as episode}]
-  (list
-   (artwork/img episode 48 (colors/placeholder state episode))
-   [:h3 [:a {:href (episode-href library id title)} title]]
-   (facts-ui/line [show (time-left episode)])))
+  the `state`, with the `marks` before its show, e.g. \"Now playing\"."
+  ([state episode]
+   (row state episode nil))
+  ([state {:keys [show] :as episode} marks]
+   (lists-ui/row state episode :h3 (concat marks [show (time-left episode)]))))
 
 (defn now-playing
   "The section of the episode that the player has, of the `state`."
@@ -106,6 +96,22 @@
     [:button {:value "cancel" :autofocus true} "Cancel"]
     [:button {:value "clear"} "Clear the queue"]]])
 
+;; AntennaPod's empty queue tells of the new episodes in the inbox, with a
+;; way there
+;; https://github.com/AntennaPod/AntennaPod/blob/develop/ui/i18n/src/main/res/values/strings.xml
+(defn empty-queue
+  "What an empty queue says in the `state`: where to find episodes for
+  it."
+  [state]
+  (let [new-ones (count (inbox/episodes state))]
+    (list
+     [:p "Nothing in the queue."]
+     (when (pos? new-ones)
+       [:p "Your " [:a {:href (routes/href :route/inbox)} "Inbox"]
+        " has " (text/counted new-ones "episode") " to choose from."])
+     [:p "Add episodes from their pages with Play next or Add to queue, "
+      "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."])))
+
 (defn up-next
   "The section of the episodes up next of the `state`, with the undo of
   the last change."
@@ -115,17 +121,7 @@
     [:section {:aria-labelledby "up-next"}
      [:h2#up-next {:tabindex -1} "Up next"]
      (if (empty? episodes)
-       ;; AntennaPod's empty queue tells of the new episodes in the inbox,
-       ;; with a way there
-       ;; https://github.com/AntennaPod/AntennaPod/blob/develop/ui/i18n/src/main/res/values/strings.xml
-       (let [new-ones (count (inbox/episodes state))]
-         (list
-          [:p "Nothing in the queue."]
-          (when (pos? new-ones)
-            [:p "Your " [:a {:href (routes/href :route/inbox)} "Inbox"]
-             " has " (text/counted new-ones "episode") " to choose from."])
-          [:p "Add episodes from their pages with Play next or Add to queue, "
-           "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."]))
+       (empty-queue state)
        [:p.queue-summary (summary episodes)])
      ;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until
      ;; the next change, rather than in a toast that times out. The focus
@@ -152,10 +148,22 @@
      ;; it stays in the page, so that it closes where it opened
      (clear-dialog n)]))
 
+(def picks-section
+  "The section of the picks at the end of the queue: its heading's id and
+  text, and the lead of its line of why."
+  {:id "after-queue" :heading "More like your queue" :lead "About"})
+
+;; Apple Music's AutoPlay adds similar songs after the queue, and Apple
+;; Podcasts' Continue Playing has more of a show below it, both apart from
+;; the queue itself
+;; https://support.apple.com/guide/iphone/queue-up-your-music-ipha4521ef7d/ios
+;; https://support.apple.com/guide/iphone/watch-and-listen-to-podcasts-iph3a22707a5/ios
 (defn content
-  "The content of the Queue page of the `state`, below its heading."
+  "The content of the Queue page of the `state`, below its heading: what
+  plays, what's up next, and the picks like them."
   [state]
   (list
    (when-let [episode (queue/current state)]
      (now-playing state episode))
-   (up-next state)))
+   (up-next state)
+   (picks-ui/section state picks-section (picks/after-queue state))))

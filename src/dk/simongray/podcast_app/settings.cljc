@@ -112,6 +112,22 @@
   [state]
   (:player-size (preferences state) :medium))
 
+(defn explicit-picks?
+  "Whether the picks of the `state` may be explicit episodes anywhere, as
+  they may not until the listener chooses so, as an :explicit-picks? that
+  the app keeps."
+  [state]
+  (:explicit-picks? (preferences state) false))
+
+;; Pocket Casts' Autoplay is off until the listener turns it on
+;; https://blog.pocketcasts.com/2023/07/25/introducing-autoplay/
+(defn autoplay?
+  "Whether a pick plays when nothing else would after an episode ends, in
+  the `state`, which it doesn't until the listener chooses so, as an
+  :autoplay? that the app keeps."
+  [state]
+  (:autoplay? (preferences state) false))
+
 (defn new-episodes
   "Where the new episodes of a new show go by the preferences of the
   `state`, as profile/new-episodes names it."

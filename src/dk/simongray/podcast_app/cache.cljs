@@ -1,8 +1,8 @@
 (ns dk.simongray.podcast-app.cache
   "What this browser keeps between visits besides the library: the lists
   of the directories, the URLs of the feeds that the Podcast Index found by
-  guid, the feeds of shows outside the library, and the colours of
-  artwork.
+  guid, the feeds of shows outside the library, the shows that a show
+  links to, and the colours of artwork.
 
   They're caches of like-minded in an IndexedDB database of their own, so
   that the button in Settings empties them without touching the library.
@@ -45,6 +45,13 @@
   and for 7 days."
   (config "show." 20 7))
 
+;; A podroll changes about as seldom as a show's artwork, but a week keeps
+;; it with the shows that the listener opened
+(def linked
+  "The shows that a show links to, as linked/kept gives them, by the guid
+  of the show, at most 100 and for 7 days."
+  (config "linked." 100 7))
+
 ;; An artwork whose image changes usually changes its URL too, so its
 ;; colours keep for long
 (def colors
@@ -85,4 +92,4 @@
 (defn clear!
   "A promise that every cache is empty."
   []
-  (js/Promise.all (into-array (map cache/clear! [searches feed-urls shows colors]))))
+  (js/Promise.all (into-array (map cache/clear! [searches feed-urls shows linked colors]))))

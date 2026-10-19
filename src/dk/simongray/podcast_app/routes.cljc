@@ -18,7 +18,8 @@
 (def router
   "The router of the app's paths, whose routes are named :route/…"
   (reitit/router
-   [["/"                                 :route/queue]
+   [["/"                                 :route/home]
+    ["/queue"                            :route/queue]
     ["/inbox"                            :route/inbox]
     ["/library"                          :route/library]
     ["/search"                           :route/search]

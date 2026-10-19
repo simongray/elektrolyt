@@ -42,7 +42,7 @@ h4 {
 
 /* The headings of the sections as a book's running heads, in the face's
    own small caps, but not the headings that title an item of a list */
-main h2:not(.inbox-episode h2, .library-show h2) {
+main h2:not(.inbox-episode h2) {
   font-size: var(--step-0);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.08em;
@@ -94,10 +94,6 @@ time,
    data-page on the page's item, for its link */
 [data-page="queue"] {
   --page: var(--queue);
-}
-
-[data-page="inbox"] {
-  --page: var(--inbox);
 }
 
 [data-page="library"] {
@@ -183,10 +179,6 @@ time,
   --label: #ffa0a5;
 }
 
-.shell[data-palette="color-blind"] > nav li[data-page="inbox"] {
-  --label: #f8c488;
-}
-
 .shell[data-palette="color-blind"] > nav li[data-page="library"] {
   --label: #9abdff;
 }
@@ -204,10 +196,6 @@ time,
     --label: light-dark(#87182f, #ef8f94);
   }
 
-  .shell[data-palette="color-blind"] > nav li[data-page="inbox"] {
-    --label: light-dark(#8f5c12, #e9b77b);
-  }
-
   .shell[data-palette="color-blind"] > nav li[data-page="library"] {
     --label: light-dark(#1c6bbc, #85adf4);
   }
@@ -221,10 +209,11 @@ time,
   }
 }
 
-/* The current page underlined, at the weight of the others, since a
-   bolder one is wider, and would widen the rail and move the page as the
+/* The current page underlined, or the page that it's a part of, e.g. the
+   Library on the Inbox page, at the weight of the others, since a bolder
+   one is wider, and would widen the rail and move the page as the
    listener goes from page to page */
-.shell > nav a[aria-current="page"] {
+.shell > nav a[aria-current] {
   color: var(--label, var(--ink));
   text-decoration: underline 2px;
   text-underline-offset: 0.45em;
@@ -392,43 +381,53 @@ input[role="switch"]:checked {
    and the facts below it smaller and lighter */
 .queue > li,
 .inbox > li,
+.picks > li,
 .episodes > li,
 .search-results > li {
   border-bottom: 1px solid var(--rule-soft);
 }
 
 .queue-episode h3,
-.inbox-episode h2,
+.inbox-episode :is(h2, h3),
+.pick h3,
 .episodes h3,
 .search-results h3,
-.library-show h2 {
+.library-show h3,
+.linked-show h3 {
   font-size: var(--step-1);
   font-weight: 400;
 }
 
 .queue-episode h3 a,
-.inbox-episode h2 a,
+.inbox-episode :is(h2, h3) a,
+.pick h3 a,
 .episodes h3 a,
 .search-results h3 a,
-.library-show h2 a {
+.library-show h3 a,
+.linked-show h3 a {
   color: var(--ink);
   text-decoration: none;
 }
 
 .queue-episode h3 a:hover,
-.inbox-episode h2 a:hover,
+.inbox-episode :is(h2, h3) a:hover,
+.pick h3 a:hover,
 .episodes h3 a:hover,
 .search-results h3 a:hover,
-.library-show h2 a:hover {
+.library-show h3 a:hover,
+.linked-show h3 a:hover {
   text-decoration: underline;
 }
 
 .queue-episode p,
 .inbox-episode p,
+.pick p,
 .episodes p,
 .search-results p,
 .library-show p,
 .queue-summary,
+.list-more,
+.picks-why,
 [role="status"] {
   color: var(--ink-2);
   font-size: var(--step--1);
@@ -437,6 +436,11 @@ input[role="switch"]:checked {
 img {
   outline: 1px solid var(--rule-soft);
   outline-offset: -1px;
+}
+
+/* the place of artwork that a show doesn't have */
+.no-artwork {
+  background: var(--rule-soft);
 }
 
 /* A break between the parts of a text, e.g. of a show's notes, as thick

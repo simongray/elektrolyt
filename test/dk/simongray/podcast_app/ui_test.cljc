@@ -32,18 +32,24 @@
          (apply str))))
 
 (defn current-links
-  "The labels of the links that the Hiccup `x` marks as the current page."
-  [x]
-  (->> (elements :a x)
-       (filter #(= "page" (:aria-current (second %))))
-       (map last)))
+  "The labels of the links that the Hiccup `x` marks as current, as the
+  page or else as `kind`, e.g. \"true\"."
+  ([x]
+   (current-links x "page"))
+  ([x kind]
+   (->> (elements :a x)
+        (filter #(= kind (:aria-current (second %))))
+        (map last))))
 
 (deftest the-current-page-is-marked-once
-  (is (= ["Inbox"]
-         (current-links (ui/page {:route {:name :route/inbox}}))))
+  (is (= ["Home"]
+         (current-links (ui/page {:route {:name :route/home}}))))
   (is (= ["Settings"]
          (current-links (ui/page {:route {:name :route/settings}}))))
-  (is (empty? (current-links (ui/page {:route nil})))))
+  (is (empty? (current-links (ui/page {:route nil}))))
+  (let [inbox (ui/page {:route {:name :route/inbox}})]
+    (is (empty? (current-links inbox)) "the Inbox page, which the navigation doesn't link to")
+    (is (= ["Library"] (current-links inbox "true")) "but whose Library is marked")))
 
 (deftest the-window-title-starts-with-the-page
   (is (= "Library – Podcasts"
@@ -75,8 +81,9 @@
         "or the app's own, for artwork without a hue")))
 
 (deftest each-link-of-the-navigation-names-its-page
-  (is (= ["queue" "inbox" "library" "search" "settings"]
-         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}})))))
+  (is (= [nil "queue" "library" "search" "settings"]
+         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}}))))
+      "but Home, whose label is in the ink")
   (let [preferring #(-> {:route {:name :route/queue} :library inbox-test/lib}
                         (settings/preferred {:navigation-palette %}))]
     (is (= "color-blind" (:data-palette (second (ui/page (preferring :color-blind)))))

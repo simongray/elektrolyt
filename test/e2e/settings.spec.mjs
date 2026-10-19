@@ -150,10 +150,10 @@ test('the colours from the artwork are a switch that the profile keeps', async (
   await expect(colours).not.toBeChecked();
 });
 
-/** Whether the links to the Queue and the Inbox in the navigation of `page` have the same colour. */
+/** Whether the links to the Queue and the Library in the navigation of `page` have the same colour. */
 async function labelsAlike(page) {
-  const [queue, inbox] = await Promise.all(['Queue', 'Inbox'].map(t => navLink(page, t).evaluate(a => getComputedStyle(a).color)));
-  return queue === inbox;
+  const [queue, library] = await Promise.all(['Queue', 'Library'].map(t => navLink(page, t).evaluate(a => getComputedStyle(a).color)));
+  return queue === library;
 }
 
 test("the navigation's colours can be none, which leaves its labels in the same ink", async ({ page }) => {

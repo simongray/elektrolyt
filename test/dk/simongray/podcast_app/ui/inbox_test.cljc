@@ -58,9 +58,10 @@
         "and links to where new episodes can go elsewhere, the group of the settings for it")))
 
 (deftest the-count-of-the-inbox
-  (is (= "Inbox 3 new episodes" (text-of (ui/nav-label (state 1 2 3) :route/inbox))))
-  (is (= "Inbox 1 new episode" (text-of (ui/nav-label (state 1) :route/inbox))))
-  (is (= "Inbox" (ui/nav-label (state) :route/inbox)) "none while it's empty")
+  (is (= "Library 3 new episodes" (text-of (ui/nav-label (state 1 2 3) :route/library)))
+      "on the link to the Library, whose page has the inbox")
+  (is (= "Library 1 new episode" (text-of (ui/nav-label (state 1) :route/library))))
+  (is (= "Library" (ui/nav-label (state) :route/library)) "none while it's empty")
   (is (re-find #"Your Inbox has 2 episodes to choose from"
                (text-of (queue-ui/content (state 1 2))))
       "and an empty queue tells of it"))

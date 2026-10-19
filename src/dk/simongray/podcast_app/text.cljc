@@ -43,6 +43,27 @@
      :cljs (.format (js/Intl.ListFormat. (language) #js {:type "conjunction"})
                     (into-array xs))))
 
+;; ECMA-402, Intl.ListFormat.prototype.formatToParts: the same list as
+;; listing, with the strings apart from the words between them
+;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/formatToParts
+(defn listing-parts
+  "The strings `xs` as a list in words, in parts, each a pair of :element
+  and one of `xs` or of :literal and the words between them, e.g.
+  [[:element \"a\"] [:literal \" and \"] [:element \"b\"]], so that each
+  string can be marked up."
+  [xs]
+  #?(:clj  (let [n (count xs)]
+             (->> (map-indexed (fn [i x]
+                                 (cond-> [[:element x]]
+                                   (< i (- n 2)) (conj [:literal ", "])
+                                   (= i (- n 2)) (conj [:literal " and "])))
+                               xs)
+                  (apply concat)
+                  vec))
+     :cljs (mapv (fn [^js part] [(keyword (.-type part)) (.-value part)])
+                 (.formatToParts (js/Intl.ListFormat. (language) #js {:type "conjunction"})
+                                 (into-array xs)))))
+
 ;; ECMA-402, Intl.DisplayNames: the name of a language in the language of
 ;; the page, which gives back the tag itself when it doesn't know it
 (defn language-name

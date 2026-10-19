@@ -1,0 +1,140 @@
+(ns dk.simongray.podcast-app.picks-test
+  (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast.profile.queue :as profile.queue]
+            [dk.simongray.podcast-app.picks :as picks]
+            [dk.simongray.podcast-app.settings :as settings]))
+
+(defn show
+  "A feed titled `title` in English of the `episodes`, pairs of a title and
+  notes, explicit when `explicit?`, in the RSS `categories`."
+  [title explicit? categories episodes]
+  (cond-> {:rss/title    title
+           :rss/language "en"
+           :rss/items    (vec (map-indexed (fn [i [t notes]]
+                                             {:rss/title       t
+                                              :rss/description notes
+                                              :rss/guid        {:content (str i)}
+                                              :rss/pub-date    (nth [#inst "2026-06-01" #inst "2026-06-02"] i)
+                                              :rss/enclosure   {:url  (str "https://example.org/" title i ".mp3")
+                                                                :type "audio/mpeg"}
+                                              :itunes/duration 1800})
+                                           episodes))}
+    explicit?        (assoc :itunes/explicit true)
+    (seq categories) (assoc :rss/categories (mapv #(hash-map :content %) categories))))
+
+(def shows
+  "Shows about coffee, two of them explicit, one about sex and one for
+  its swearing, and others, enough of them that the words about coffee
+  are of a few shows."
+  [(show "Coffee Talk" false [] [["Espresso grinders" "Burr grinders for espresso, and how fine to grind the beans."]
+                                 ["Roasting at home" "Roasting espresso beans at home in a popcorn machine."]])
+   (show "Brew Lab" false [] [["Grinders compared" "Conical and flat burr grinders for espresso beans."]])
+   (show "After Dark" true ["Sexuality"] [["Espresso in bed" "Burr grinders, espresso beans and more."]])
+   (show "Swear Jar" true ["Comedy"] [["Damn good espresso" "Espresso from burr grinders, and swearing."]])
+   (show "Bikes" false [] [["Gears" "The gears of a bicycle."]])
+   (show "Gardens" false [] [["Roses" "Pruning roses in the spring."]])
+   (show "History" false [] [["Rome" "The fall of the Roman republic."]])
+   (show "Music" false [] [["Chords" "Minor chords on a guitar."]])
+   (show "Stars" false [] [["Comets" "Comets and their tails."]])
+   (show "Weather" false [] [["Fog" "Fog over the harbour."]])])
+
+(def lib
+  (reduce #(library/subscribe %1 (str "https://example.org/" (:rss/title %2) ".xml") %2)
+          (library/make "test")
+          shows))
+
+(def keys-by-title
+  (into {} (map (fn [[k {:keys [feed]}]] [(:rss/title feed) k])) (:feeds lib)))
+
+(defn id [title i]
+  [(keys-by-title title) (str i)])
+
+(def grinders (id "Coffee Talk" 0))
+
+(defn titles [picked]
+  (mapv :title (:episodes picked)))
+
+(defn preferring [state prefs]
+  (settings/preferred state prefs))
+
+(deftest the-options-of-each-place
+  (let [state {:library lib}]
+    (is (= {:status :unplayed :queued? false :not picks/explicit}
+           (:where (picks/opts state :episode false)))
+        "unplayed, not queued, and not explicit")
+    (is (= {:not picks/explicit} (:from (picks/opts state :home false)))
+        "nor started from an explicit episode")
+    (is (= [{:status :unplayed :queued? false} nil]
+           ((juxt :where :from) (picks/opts state :episode true)))
+        "unless the episodes that they start from are explicit")
+    (is (true? (:same-show? (picks/opts state :queue false)))
+        "the end of the queue takes the shows of the queue too")
+    (is (= [{:status :unplayed :queued? false} nil]
+           ((juxt :where :from) (picks/opts (preferring state {:explicit-picks? true}) :home false)))
+        "or the listener chose explicit picks")))
+
+(deftest explicit-episodes
+  (is (picks/explicit-in? lib [grinders (id "Swear Jar" 0)]) "for swearing too")
+  (is (not (picks/explicit-in? lib [grinders])))
+  (let [outside (show "Outside" true [] [["Swearing" "Damn."]])]
+    (is (picks/explicit-in? lib [["outside" "0"]] outside) "and in the feed of a show outside the library")))
+
+(deftest picks-like-an-episode
+  (let [state {:library lib}
+        like  #(titles (picks/recommended lib [%] (picks/opts state :episode (picks/explicit-in? lib [%]))))]
+    (is (= ["Grinders compared"] (like grinders)) "of other shows, but not the explicit ones")
+    (is (= ["Grinders compared" "Espresso in bed" "Damn good espresso"]
+           (titles (picks/recommended lib [grinders]
+                                      (picks/opts (preferring state {:explicit-picks? true}) :episode false))))
+        "which the listener can choose")
+    (is (seq (:terms (picks/recommended lib [grinders] (picks/opts state :episode false))))
+        "with the words that found them")
+    (is (some #{"Damn good espresso"} (like (id "After Dark" 0)))
+        "and explicit ones too, like an explicit episode")))
+
+(deftest picks-leave-out-what-is-queued
+  (let [queued (library/update-profile lib profile.queue/enqueue (id "Brew Lab" 0))]
+    (is (= [] (titles (picks/recommended queued [grinders] (picks/opts {:library queued} :episode false)))))))
+
+(deftest the-picks-of-each-place
+  (testing "Home, like what the listener heard last"
+    (is (= [] (titles (picks/home {:library lib}))) "nothing before the listener has heard anything")
+    ;; as the player has it, which puts what plays at the front of the queue
+    (let [heard (-> lib
+                    (library/step [:play grinders])
+                    (library/update-profile profile/progress grinders 60))]
+      (is (= ["Grinders compared"] (titles (picks/home {:library heard}))))))
+  (testing "the end of the queue, like what's in it, of its shows too"
+    (is (nil? (picks/after-queue {:library lib})) "none for an empty queue")
+    (let [queued (library/update-profile lib profile.queue/enqueue grinders)]
+      (is (= ["Grinders compared" "Roasting at home"]
+             (titles (picks/after-queue {:library queued}))))
+      (is (some #{"Espresso in bed"}
+                (titles (picks/after-queue {:library (library/update-profile queued profile.queue/enqueue
+                                                                             (id "Swear Jar" 0))})))
+          "and explicit ones too, once the queue has one"))))
+
+(deftest autoplay
+  (let [state {:library lib}]
+    (is (nil? (picks/autoplayed state grinders)) "not until the listener chose it")
+    (is (= (id "Brew Lab" 0)
+           (picks/autoplayed (preferring state {:autoplay? true}) grinders))
+        "and then the first pick after the episode that ended")))
+
+(deftest the-episodes-that-the-picks-of-a-show-start-from
+  (let [k      (keys-by-title "Coffee Talk")
+        source {:key k :feed (get-in lib [:feeds k :feed]) :url (get-in lib [:feeds k :url])}]
+    (is (= [[(id "Coffee Talk" 1) (id "Coffee Talk" 0)] nil]
+           (picks/show-seeds lib source))
+        "its newest")
+    (let [heard (-> lib
+                    (library/update-profile profile/progress grinders 60))]
+      (is (= [[grinders] {grinders 1}] (picks/show-seeds heard source))
+          "or those that the listener heard"))
+    (let [outside (dissoc source :key)
+          [ids]   (picks/show-seeds lib outside)]
+      (is (= ["1" "0"] (map second ids)) "and of a show outside the library, its newest")
+      (is (= #{(first (first ids))} (set (keys (:feeds (picks/outside {} outside)))))
+          "whose feed recommend is given"))))

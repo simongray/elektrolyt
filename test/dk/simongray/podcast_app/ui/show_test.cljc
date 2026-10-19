@@ -100,7 +100,7 @@
                             :page   {:title "A Show" :link "https://example.org" :explicit? true
                                      :people [{:name "Adam" :role "host" :img "https://example.org/adam.jpg"}]
                                      :episodes [{:guid "1" :title "One"}]}}}}
-        x     (show/content state [:h1 "A Show"])
+        x     (first (show/content state [:h1 "A Show"]))
         [_ _ main aside] x
         header (first (elements :header.show-intro main))]
     (is (= :article.with-details (first x)) "the show as an article")
@@ -121,7 +121,7 @@
   (testing "no Details, and no link to them, before the feed has any"
     (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
                  :shows {"g" {:status :loading :page {:title "A Show" :episodes []}}}}
-          [_ _ main aside] (show/content state [:h1 "A Show"])]
+          [_ _ main aside] (first (show/content state [:h1 "A Show"]))]
       (is (nil? aside))
       (is (empty? (elements :p.details-link main))))))
 

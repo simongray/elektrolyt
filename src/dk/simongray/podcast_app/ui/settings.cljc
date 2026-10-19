@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.ui.settings
   "The views of the Settings page: the app's colours, how the listener
-  plays, where new episodes go, the directories that a search asks, the
+  plays, what the recommendations leave out, where new episodes go, the
+  directories that a search asks, the
   import and export of their subscriptions, and how this browser keeps the
   library.
 
@@ -118,9 +119,24 @@
                    (str "When an episode ends and the queue has no other, the next "
                         "episode of its show plays.")
                    continuous? :continuous?)
+           (switch "autoplay" "Autoplay"
+                   (str "When an episode ends and neither the queue nor Continuous "
+                        "play has another, the first of More like your queue plays.")
+                   (settings/autoplay? state) :autoplay?)
            (choice "track-buttons" "Next and previous on the lock screen go to"
                    settings/track-buttons
                    track-buttons [:settings/prefer :track-buttons [:event/target-keyword]]))))
+
+(defn recommendations
+  "The settings of the picks in the `state`: whether they may be explicit
+  episodes anywhere."
+  [state]
+  (group :recommendations "Recommendations"
+         (switch "explicit-picks" "Explicit episodes"
+                 (str "Unless this is on, recommendations are explicit only under "
+                      "an explicit episode or show, and at the end of a queue that "
+                      "has one.")
+                 (settings/explicit-picks? state) :explicit-picks?)))
 
 (defn new-episodes
   "The default of where the new episodes of a new show go, in the `state`,
@@ -218,8 +234,8 @@
                               "Ask the browser to keep it"]))
          (when usage
            [:p (str "The app uses " (text/megabytes usage) " here.")])
-         [:p "It also keeps your searches for a month and the shows you "
-          "opened for a week, so that they show at once."]
+         [:p "It also keeps your searches for a month, and the shows you "
+          "opened and those they recommend for a week, so that they show at once."]
          [:button {:type "button" :on {:click [[:cache/clear]]}}
           "Clear the searches and shows"]
          (status state :this-browser)))
@@ -230,6 +246,7 @@
   (list
    (appearance state)
    (playback state)
+   (recommendations state)
    (new-episodes state)
    (search-directories state)
    (subscriptions state)

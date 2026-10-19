@@ -16,6 +16,7 @@
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
+            [dk.simongray.podcast-app.ui.home :as home-ui]
             [dk.simongray.podcast-app.ui.inbox :as inbox-ui]
             [dk.simongray.podcast-app.ui.library :as library-ui]
             [dk.simongray.podcast-app.ui.player :as player-ui]
@@ -30,23 +31,33 @@
 
 (def titles
   "The title of each page by the name of its route."
-  {:route/queue    "Queue"
+  {:route/home     "Home"
+   :route/queue    "Queue"
    :route/inbox    "Inbox"
    :route/library  "Library"
    :route/search   "Search"
    :route/settings "Settings"})
 
+;; Material 3's navigation bar has three to five destinations, so the Inbox
+;; is a part of the Library, whose page has the start of it
+;; https://m3.material.io/components/navigation-bar/guidelines
 (def destinations
   "The names of the routes that the main navigation links to, in order,
-  Settings last."
-  [:route/queue :route/inbox :route/library :route/search :route/settings])
+  Home first and Settings last."
+  [:route/home :route/queue :route/library :route/search :route/settings])
+
+(def part-of
+  "The page of the navigation that each page outside it is a part of, by
+  the names of their routes."
+  {:route/inbox :route/library})
 
 (defn page-name
   "The name of the page of the navigation that the route named
   `route-name` is, e.g. \"queue\", whose colour look.css has, or nil for a
-  page that the navigation doesn't link to."
+  page that has no colour: Home, whose label is in the ink, as the app's
+  name is, and a page that the navigation doesn't link to."
   [route-name]
-  (when (some #{route-name} destinations)
+  (when (and (some #{route-name} destinations) (not= :route/home route-name))
     (name route-name)))
 
 (defn page-title
@@ -88,15 +99,19 @@
       nil)))
 
 ;; WAI-ARIA 1.2, aria-current: "page" marks the link to the current page
-;; within a set of links
+;; within a set of links, and "true" the current item of a set, here the
+;; page that the current page is a part of
 (defn page-link
   "A link to the route named `route-name` with the `label`, which is marked
-  as the current page when the `state` is on that route."
+  as the current page when the `state` is on that route, or as current
+  when it's on a page that is a part of the route's page."
   [state route-name label]
-  [:a {:href         (routes/href route-name)
-       :aria-current (when (= route-name (get-in state [:route :name]))
-                       "page")}
-   label])
+  (let [current (get-in state [:route :name])]
+    [:a {:href         (routes/href route-name)
+         :aria-current (cond
+                         (= route-name current)           "page"
+                         (= route-name (part-of current)) "true")}
+     label]))
 
 ;; WCAG 2.2, SC 2.4.1 Bypass Blocks, technique G1: a link at the top of the
 ;; page to the main content. It moves the focus itself rather than follow
@@ -109,15 +124,17 @@
                                 [:page/focus-heading]]}}
    "Skip to content"])
 
-;; AntennaPod counts the inbox in its navigation. The count is part of the
-;; link's name, e.g. "Inbox 3 new episodes", which begins with what the
-;; link shows (WCAG 2.2, SC 2.5.3 Label in Name).
+;; AntennaPod counts the inbox in its navigation, here on the Library's
+;; link, whose page has the inbox. The count is part of the link's name,
+;; e.g. "Library 3 new episodes", which begins with what the link shows
+;; (WCAG 2.2, SC 2.5.3 Label in Name).
 ;; https://github.com/AntennaPod/AntennaPod/pull/7398
 (defn nav-label
   "The label of the link of the main navigation to the route named
-  `route-name` for the `state`: its title, with the count of the inbox."
+  `route-name` for the `state`: its title, with the count of the inbox on
+  the Library's."
   [state route-name]
-  (let [n (when (= :route/inbox route-name)
+  (let [n (when (= :route/library route-name)
             (count (inbox/episodes state)))]
     (if (pos? (or n 0))
       (list (titles route-name) " " (str n)
@@ -127,9 +144,9 @@
 ;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
 ;; list's role is explicit, since the CSS removes its markers (see layout.css).
-;; The app's name comes first and links to the queue, as a site's name
-;; links to its home page; a phone, whose tab bar has no room for it,
-;; leaves it out. Each page's link names its page for its colour, from the
+;; The app's name comes first and links to Home, as a site's name links
+;; to its home page; a phone, whose tab bar has no room for it, leaves it
+;; out. Each page's link names its page for its colour, from the
 ;; palette that the listener chose, unless they chose none.
 (defn main-nav
   "The navigation between the pages for the `state`: the app's name, the
@@ -138,7 +155,7 @@
   [state]
   (let [palette (settings/navigation-palette state)]
     [:nav {:aria-label "Main"}
-     [:a.app-name {:href (routes/href :route/queue)} app-name]
+     [:a.app-name {:href (routes/href :route/home)} app-name]
      [:ul {:role "list"}
       (for [route-name destinations]
         [:li {:data-page (when-not (= :none palette) (page-name route-name))}
@@ -155,8 +172,8 @@
 
 (def not-found
   "The content of the page of a path that no page has."
-  [:p "There's no page here. Go to the "
-   [:a {:href (routes/href :route/queue)} "queue"]
+  [:p "There's no page here. Go to "
+   [:a {:href (routes/href :route/home)} "Home"]
    " instead."])
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: what happened out of sight, e.g. a
@@ -189,6 +206,7 @@
        no-library
        (case route
          nil             not-found
+         :route/home     (home-ui/content state)
          :route/queue    (queue-ui/content state)
          :route/inbox    (inbox-ui/content state)
          :route/library  (library-ui/content state)

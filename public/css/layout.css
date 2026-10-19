@@ -121,7 +121,7 @@ hgroup > p {
 }
 
 /* On a phone, the navigation is a tab bar whose links share its width,
-   with no room for the app's name, for which the Queue tab and the page's
+   with no room for the app's name, for which the Home tab and the page's
    own heading stand in */
 .shell > nav ul {
   display: flex;
@@ -692,15 +692,17 @@ details summary {
 }
 
 
-/* The queue and the inbox: each episode's artwork beside its title, show
-   and times, with its buttons below, which wrap on a phone */
+/* The queue, the inbox and the picks: each episode's artwork beside its
+   title, show and times, with its buttons below, which wrap on a phone */
 .queue > li,
-.inbox > li {
+.inbox > li,
+.picks > li {
   padding-block: var(--space-3);
 }
 
 .queue-episode,
-.inbox-episode {
+.inbox-episode,
+.pick {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   column-gap: 1em;
@@ -708,22 +710,46 @@ details summary {
 }
 
 .queue-episode img,
-.inbox-episode img {
+.inbox-episode img,
+.pick img {
   grid-row: span 3;
   width: 48px;
 }
 
 .queue-episode > :not(img),
-.inbox-episode > :not(img) {
+.inbox-episode > :not(img),
+.pick > :not(img) {
   grid-column: 2;
   overflow-wrap: anywhere;
 }
 
-.queue-episode h3,
-.queue-episode p,
-.inbox-episode h2,
-.inbox-episode p {
+.queue-episode :is(h3, p),
+.inbox-episode :is(h2, h3, p),
+.pick :is(h3, p) {
   margin: 0;
+}
+
+.pick > button {
+  justify-self: start;
+  margin-top: var(--space-2);
+}
+
+/* The line under a list that links to the whole of it, e.g. Home's to the
+   queue, and the line of why above the picks */
+.list-more,
+.picks-why {
+  margin-block: var(--space-2) 0;
+}
+
+/* Home's start of the queue and its picks, side by side where two columns
+   of rows fit beside the rail */
+@media (min-width: 64em) {
+  .home-lists {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-5);
+    align-items: start;
+  }
 }
 
 .queue-actions,
@@ -762,7 +788,7 @@ details summary {
 /* The shows: a list of rows, the artwork beside the title, or a grid of
    tiles, the title below the artwork. Automatic is the list on a phone
    and the grid wider than that. */
-.library-show h2 {
+.library-show h3 {
   margin: 0;
 }
 
@@ -770,14 +796,40 @@ details summary {
    follows it too, while a keyboard and a screen reader still find one
    link per show, named by its title (Inclusive Components, Cards:
    https://inclusive-components.design/cards/) */
-.library-show {
+.library-show,
+.linked-show {
   position: relative;
 }
 
-.library-show h2 a::after {
+.library-show h3 a::after,
+.linked-show h3 a::after {
   content: "";
   position: absolute;
   inset: 0;
+}
+
+/* The shows that a show links to, as a grid of small tiles */
+.linked-shows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(7em, 100%), 1fr));
+  gap: 1em;
+}
+
+.linked-show {
+  overflow-wrap: anywhere;
+}
+
+.linked-show img,
+.linked-show .no-artwork {
+  width: 100%;
+}
+
+.linked-show .no-artwork {
+  aspect-ratio: 1;
+}
+
+.linked-show h3 {
+  margin: var(--space-1) 0 0;
 }
 
 .library-show p {

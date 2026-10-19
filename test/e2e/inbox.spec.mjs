@@ -25,15 +25,21 @@ test('a new episode arrives in the inbox, and leaves it once dismissed or queued
   await expect(main.getByLabel('Destination of new episodes')).toHaveValue('inbox');
   await checkForNewEpisodes(page, show);
 
-  const inbox = navLink(page, 'Inbox');
-  await expect(inbox).toHaveAccessibleName('Inbox 1 new episode');
-  await inbox.click();
+  // the inbox is a part of the Library, whose link counts it
+  const library = navLink(page, 'Library');
+  await expect(library).toHaveAccessibleName('Library 1 new episode');
+  await library.click();
+  const section = main.getByRole('region', { name: 'Inbox' });
+  await expect(section.getByRole('heading', { name: fourth.title })).toBeVisible();
+  await section.getByRole('link', { name: 'The whole Inbox' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Inbox' })).toBeVisible();
+  await expect(library).toHaveAttribute('aria-current', 'true');
   await expect(main.getByRole('listitem').getByRole('heading', { name: fourth.title })).toBeVisible();
 
   await main.getByRole('button', { name: `Dismiss ${fourth.title}` }).click();
   await expect(announcement(page)).toHaveText(`Dismissed ${fourth.title}`);
   await expect(main).toContainText('No new episodes');
-  await expect(inbox).toHaveAccessibleName('Inbox');
+  await expect(library).toHaveAccessibleName('Library');
   const undo = main.getByRole('button', { name: `Undo dismissing ${fourth.title}` });
   await expect(undo).toBeFocused();
 
@@ -54,7 +60,7 @@ test("a show's new episodes can go to the queue instead", async ({ page, show })
   await main.getByLabel('Destination of new episodes').selectOption('End of queue');
   await checkForNewEpisodes(page, show);
 
-  await expect(navLink(page, 'Inbox')).toHaveAccessibleName('Inbox');
+  await expect(navLink(page, 'Library')).toHaveAccessibleName('Library');
   await navLink(page, 'Queue').click();
   await expect(main.getByRole('heading', { name: fourth.title })).toBeVisible();
 });

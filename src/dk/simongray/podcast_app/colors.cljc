@@ -11,6 +11,7 @@
   artwork without a hue, and the :dominant colour, which an artwork shows
   while it loads, or of the :status :loading while they're worked out."
   (:require [dk.simongray.podcast-app.inbox :as inbox]
+            [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.settings :as settings]
@@ -66,15 +67,19 @@
         page))))
 
 (defn listed
-  "The episodes or shows that the list of the page of the `state` shows
-  with their artwork: the Queue's, the Inbox's or the Library's, which are
-  the listener's own, so that their colours are worth working out ahead."
+  "The episodes or shows that the lists of the page of the `state` show
+  with their artwork: Home's, the Queue's, the Inbox's or the Library's,
+  which are the listener's own, so that their colours are worth working
+  out ahead."
   [{:keys [library] :as state}]
   (when library
     (case (get-in state [:route :name])
-      :route/queue   (cons (queue/current state) (queue/up-next state))
+      :route/home    (concat (:episodes (queue/view library))
+                             (:episodes (picks/home state)))
+      :route/queue   (concat (:episodes (queue/view library))
+                             (:episodes (picks/after-queue state)))
       :route/inbox   (inbox/episodes state)
-      :route/library (shows/all-shows library)
+      :route/library (concat (inbox/episodes state) (shows/all-shows library))
       nil)))
 
 (defn once-each

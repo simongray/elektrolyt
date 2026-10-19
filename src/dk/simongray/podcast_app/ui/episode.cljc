@@ -9,6 +9,7 @@
             [dk.simongray.podcast.format.transcript :as transcript]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.links :as links]
+            [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
@@ -16,6 +17,7 @@
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.details :as details]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
+            [dk.simongray.podcast-app.ui.picks :as picks-ui]
             [dk.simongray.podcast-app.ui.show :as show-ui]
             [dk.simongray.podcast-app.ui.time :as time-ui]
             [dk.simongray.wary-fetch.url :as url]))
@@ -239,30 +241,42 @@
                  "Go to the show"]
              " for its other episodes."]))))
 
+(def picks-section
+  "The section of the picks under an episode: its heading's id and text,
+  and the lead of its line of why."
+  {:id "episode-picks" :heading "More like this" :lead "About"})
+
+;; YouTube's Up next starts from the video that plays, and Nielsen Norman
+;; Group found people expect recommendations after they've watched
+;; something, as well as on a home page
+;; https://support.google.com/youtube/answer/16089387
+;; https://www.nngroup.com/articles/recommendation-expectations/
 (defn content
   "The content of the Episode page of the `state` under its `heading`: an
-  article, whose header has the heading, or else the heading and what
-  became of the episode."
+  article, whose header has the heading, and the picks like it, or else
+  the heading and what became of the episode."
   [state heading]
   (if-let [{:keys [id notes view] :as page} (route-page state)]
     (let [files (get-in state [:episodes id])
           shown (episode/shown-chapters page files)
           aside (details/aside (details-rows page) (:people page))]
-      ;; the files are read once the page of the episode is in the document,
-      ;; and again for the page of another one
-      (details/article
-       {:replicant/key      (pr-str id)
-        :replicant/on-mount [[:episode/read-files id view]]}
-       [(intro state heading page (some? aside))
-        ;; the heading only for a screen reader, since the notes show
-        ;; what they are
-        (when (seq notes)
-          [:section {:aria-labelledby "notes"}
-           [:h2#notes.visually-hidden "Show notes"]
-           [:div.show-notes notes]])
-        (when shown
-          (chapters page shown))
-        (when (:transcript view)
-          (transcript page files))]
-       aside))
+      (list
+       ;; the files are read once the page of the episode is in the
+       ;; document, and again for the page of another one
+       (details/article
+        {:replicant/key      (pr-str id)
+         :replicant/on-mount [[:episode/read-files id view]]}
+        [(intro state heading page (some? aside))
+         ;; the heading only for a screen reader, since the notes show
+         ;; what they are
+         (when (seq notes)
+           [:section {:aria-labelledby "notes"}
+            [:h2#notes.visually-hidden "Show notes"]
+            [:div.show-notes notes]])
+         (when shown
+           (chapters page shown))
+         (when (:transcript view)
+           (transcript page files))]
+        aside)
+       (picks-ui/section state picks-section (picks/like-episode state page))))
     (list heading (missing state))))

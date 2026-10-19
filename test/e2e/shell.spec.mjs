@@ -18,7 +18,7 @@ test('the rail keeps its width from page to page, so the content stays put', asy
   // before Firefox asks for it
   await page.evaluate(() => document.fonts.load('1rem Charis').then(() => document.fonts.ready));
   const first = await shell(page);
-  for (const title of ['Inbox', 'Library', 'Search', 'Queue']) {
+  for (const title of ['Queue', 'Library', 'Search', 'Home']) {
     await navLink(page, title).click();
     await expect(navLink(page, title)).toHaveAttribute('aria-current', 'page');
     expect(await shell(page), title).toEqual(first);
