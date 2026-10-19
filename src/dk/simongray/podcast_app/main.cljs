@@ -1011,7 +1011,7 @@
   (audio/volume-locked! store)
   (swap! store assoc :library-view (saved-library-view))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
-      (.finally #(swap! store audio/restored (audio/kept-position)))
+      (.finally #(swap! store audio/restored (audio/kept-position) (audio/kept-played)))
       (.then #(kept-colors! store) #(kept-colors! store))
       (.finally (fn []
                   (add-watch store ::render (fn [_ _ _ state] (render! state)))

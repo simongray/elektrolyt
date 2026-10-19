@@ -64,13 +64,49 @@
     (some-> (.getItem js/localStorage position-key) reader/read-string)
     (catch :default _ nil)))
 
+;; The same goes for the episode that the listener plays, which becomes the
+;; queue's current episode: a reload right after Play would otherwise bring
+;; the one before back. It's kept until a save has it, so that a later
+;; change of the queue, e.g. on another device, isn't undone.
+(def played-key
+  "The key of the episode that this browser played last, in localStorage,
+  until a save of the library has it."
+  "dk.simongray.podcast-app.played")
+
+(defn keep-played!
+  "Keep the episode `id` that the player starts in this browser at once,
+  with the time."
+  [id]
+  (try
+    (.setItem js/localStorage played-key (pr-str {:id id :at (js/Date.now)}))
+    (catch :default _ nil)))
+
+(defn kept-played
+  "The episode that this browser played last, as a map of its :id and the
+  :at in milliseconds, while no save of the library has it, or nil."
+  []
+  (try
+    (some-> (.getItem js/localStorage played-key) reader/read-string)
+    (catch :default _ nil)))
+
+(defn saved-played!
+  "Forget the episode that this browser played, once a save of the library
+  that began at `started`, in milliseconds, has it."
+  [started]
+  (when (some-> (kept-played) :at (<= started))
+    (try
+      (.removeItem js/localStorage played-key)
+      (catch :default _ nil))))
+
 (defn save!
   "Save the library of the `store`, and note when."
   [store]
-  (swap! store assoc-in [:player :saved] (js/Date.now))
-  (-> (app-library/save!)
-      (.then #(when (:error %)
-                (js/console.error "The library wasn't saved" (clj->js %))))))
+  (let [started (js/Date.now)]
+    (swap! store assoc-in [:player :saved] started)
+    (-> (app-library/save!)
+        (.then #(if (:error %)
+                  (js/console.error "The library wasn't saved" (clj->js %))
+                  (saved-played! started))))))
 
 (defn playback
   "What library/playback gives for the episode `id` of the `state`, with
@@ -225,6 +261,8 @@
   [store id t]
   (let [same? (= id (get-in @store [:player :id]))
         el    (if same? (element) (load! store id t))]
+    (when-not same?
+      (keep-played! id))
     (when (and same? el (number? t))
       (media/seek! el t))
     (when el
@@ -458,12 +496,25 @@
               :effects)
       library)))
 
+(defn with-kept-play
+  "The `library` with the episode that this browser `played` last, as
+  kept-played gives it, made current again at the time it was played,
+  since no save had it, unless the library hasn't that episode, e.g. of a
+  show that a save would have added, or has it current already."
+  [library {:keys [id at] :as played}]
+  (if (and library id (number? at)
+           (library/playback library id)
+           (not= id (some-> library :profile queue/current)))
+    (dissoc (library/step library [:play id] {:at (js/Date. at)}) :effects)
+    library))
+
 (defn restored
-  "The `state` as the page loads: its library told of the position that
-  this browser `kept`, and its player with the episode that the queue has
-  at its front, paused where the listener left it."
-  [state kept]
-  (let [state (update state :library with-kept-position kept)
+  "The `state` as the page loads: its library told of the episode that
+  this browser `played` last and of the position that it `kept`, and its
+  player with the episode that the queue has at its front, paused where
+  the listener left it."
+  [state kept played]
+  (let [state (update state :library #(-> % (with-kept-play played) (with-kept-position kept)))
         id    (some-> state :library :profile queue/current)
         pb    (when id (playback state id))]
     (cond-> (update state :player assoc
