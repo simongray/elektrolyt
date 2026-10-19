@@ -2,15 +2,10 @@
   "Scenes of the Search page, from before a search to its results, with each
   state of their subscriptions."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.scenes :refer [artwork]]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
-
-(def artwork
-  "A grey square in place of a show's artwork, which needs no network."
-  (str "data:image/svg+xml,"
-       (js/encodeURIComponent
-        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect width='1' height='1' fill='#888'/></svg>")))
 
 (def results
   "Shows as the directories give them: with artwork and without, and with a
@@ -109,8 +104,7 @@
   (ui/page (search-page "freakshow.fm"
                         {:status  :done
                          :results [{:url "https://freakshow.fm/feed/mp3" :title "Freak Show" :artwork artwork}
-                                   {:url "https://freakshow.fm/feed/opus" :title "Freak Show" :artwork artwork}]
-                         :failed  []})))
+                                   {:url "https://freakshow.fm/feed/opus" :title "Freak Show" :artwork artwork}]})))
 
 (defscene no-shows
   "Words that no directory has a show for."
@@ -118,7 +112,7 @@
 
 (defscene no-feeds-at-a-link
   "A link where no podcast feed was found."
-  (ui/page (search-page "example.org" {:status :done :results [] :failed []})))
+  (ui/page (search-page "example.org" {:status :done :results []})))
 
 (defscene library-not-yet-restored
   "Results before the library is restored, whose buttons wait for it."

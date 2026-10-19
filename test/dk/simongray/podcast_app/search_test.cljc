@@ -73,10 +73,11 @@
       "or a search of a link"))
 
 (deftest the-directories-of-a-search
-  (is (= [:podcastindex :apple :fyyd] (search/sources nil true)) "the defaults, before the library is restored")
-  (is (= [:apple :fyyd] (search/sources nil false)) "without the Podcast Index, where the server doesn't sign for it")
+  (is (= [:podcastindex :apple :fyyd] (search/sources {:server {:podcastindex? true}}))
+      "the defaults, before the library is restored")
+  (is (= [:apple :fyyd] (search/sources {})) "without the Podcast Index, where the server doesn't sign for it")
   (let [lib (library/update-profile (library/make "test") profile/prefer {:search-sources [:fyyd :gpodder]})]
-    (is (= [:fyyd :gpodder] (search/sources lib false)) "the listener's own, in their order")))
+    (is (= [:fyyd :gpodder] (search/sources {:library lib})) "the listener's own, in their order")))
 
 (deftest the-podcasts-at-a-link
   (is (= ["https://example.org/podcast.xml"]
@@ -90,3 +91,19 @@
     (is (nil? (search/subscribed-urls nil)) "before the library is restored")
     (is (search/subscribed? (search/subscribed-urls lib) "https://feeds.podcastindex.org/pc20.xml"))
     (is (not (search/subscribed? (search/subscribed-urls lib) "https://example.org/other.xml")))))
+
+(deftest a-submitted-search
+  (is (= [[:route/push :route/search {} {:q "pc20"}]]
+         (search/submitted {} "  pc20 "))
+      "the navigation searches, from the cache or the directories")
+  (is (= [[:route/push :route/search]]
+         (search/submitted {} " ")))
+  (let [listed (fn [status]
+                 {:searches {"pc20" {:sources [:apple]
+                                     :lists   {:apple {:status status :results []}}}}})]
+    (is (= [[:route/push :route/search {} {:q "pc20"}]]
+           (search/submitted (listed :done) "pc20"))
+        "a search that went well stays")
+    (is (= [[:search/run "pc20"] [:route/push :route/search {} {:q "pc20"}]]
+           (search/submitted (listed :failed) "pc20"))
+        "one that failed somewhere runs again, before the navigation")))

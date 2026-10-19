@@ -1,15 +1,14 @@
 (ns dk.simongray.podcast-app.ui.details
-  "The metadata of a show or an episode as its page shows it: a line of
-  facts under the title, and the Details beside the content, among them
-  the links that support the show, with the people who make it.
+  "The Details of a show or an episode, beside the content of its page: its
+  metadata, e.g. the links that support the show, and the people who make
+  it.
 
-  The Show page and the Episode page each choose their facts and rows, and
-  this namespace writes them. Facts and rows without a value are left out,
-  and so are the Details when none of their rows has one."
+  The Show page and the Episode page each choose their rows, and this
+  namespace writes them. Rows without a value are left out, and so are
+  the Details when none of their rows has one."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast-app.links :as links]
-            [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.wary-fetch.url :as url]))
 
 (def id
@@ -17,17 +16,10 @@
   focus to."
   "details")
 
-(defn facts-line
-  "The `facts` in a line, e.g. Technology · Explicit, or nil when none of
-  them has a value."
-  [facts]
-  (when-let [facts (seq (remove nil? facts))]
-    (into [:p] (interpose facts-ui/separator facts))))
-
 ;; As the jump row of the Search page: a link to a part of the same page,
 ;; which brings its heading into view and moves the focus to it. On a
 ;; phone, the Details come after the whole list of episodes. Where they're
-;; beside the content, the CSS hides the link (see app.css).
+;; beside the content, the CSS hides the link (see layout.css).
 (def link
   "The link to the Details, which only the arrow tells apart from the name
   of their heading."
@@ -87,10 +79,10 @@
 
 ;; W3C, Images tutorial, decorative images: the name beside a picture says
 ;; who it is, so its alt is empty
-(defn people
+(defn people-list
   "The `people` who make the show or the episode, as resolve/people gives
   them: a picture, the name, linked to their page where there's one, and
-  the role, or nil without them."
+  the role, under their heading, or nil without them."
   [people]
   (when-let [people (seq (filter :name people))]
     (list
@@ -116,12 +108,12 @@
   "The Details of the `rows`, pairs of a name and its values, and the
   `people`, or nil when none of the rows has a value and there are no
   people."
-  [rows people-list]
+  [rows people]
   (let [rows (keep (fn [[k vs]]
                      (when-let [vs (seq (remove nil? vs))]
                        [k vs]))
                    rows)
-        made (people people-list)]
+        made (people-list people)]
     (when (or (seq rows) made)
       [:aside.details {:aria-labelledby id}
        ;; only for a screen reader, since the page shows what the aside is

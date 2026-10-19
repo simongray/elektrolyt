@@ -1,11 +1,10 @@
 (ns dk.simongray.podcast-app.ui.library-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.queue-test :as queue-test]
             [dk.simongray.podcast-app.ui.library :as library-ui]
             [dk.simongray.podcast-app.ui.player-test :refer [buttons]]
-            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
-            [dk.simongray.podcast-app.ui-test :refer [elements]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements text-of]]))
 
 (defn attributes [tag x]
   (second (first (elements tag x))))

@@ -13,7 +13,8 @@
   like-minded's replica has it with the library's kind, so that none of
   them loses what another writes. The documents are in Transit, which
   reads about 30 times faster than EDN."
-  (:require [dk.simongray.like-minded.replica :as replica]
+  (:require [dk.simongray.like-minded.device :as device]
+            [dk.simongray.like-minded.replica :as replica]
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
@@ -38,14 +39,6 @@
   {:send  send
    :codec transit/codec})
 
-(defn device-id!
-  "The id of this browser, which its first visit makes and keeps."
-  []
-  (or (try (.getItem js/localStorage device-key) (catch :default _ nil))
-      (let [id (str (random-uuid))]
-        (try (.setItem js/localStorage device-key id) (catch :default _ nil))
-        id)))
-
 (defonce ^{:doc "The replica of the library in this tab, once open! has
   opened it."}
   the-replica
@@ -59,7 +52,7 @@
   (.then (replica/open! {:state  state
                          :path   [:library]
                          :store  store
-                         :device (device-id!)
+                         :device (device/id! device-key)
                          :kind   (library/replica-kind config)})
          #(reset! the-replica %)))
 
@@ -95,3 +88,9 @@
               :persisted? persisted
               :usage      (.-usage estimate)}))
     (js/Promise.resolve {:supported? false})))
+
+(defn check-storage!
+  "A promise that the :storage of the app `state`, an atom, says how the
+  browser keeps the site's storage now, from storage!."
+  [state]
+  (.then (storage!) #(swap! state assoc :storage %)))

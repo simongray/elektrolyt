@@ -1,10 +1,24 @@
 (ns dk.simongray.podcast-app.ui.rows
   "The buttons of the rows of a list that the listener acts on: a button
   named by its row, and the buttons that move a row up and down, e.g. in
-  the queue and in the directories of the settings.
+  the queue and in the directories of the settings, with their ids and
+  the row that takes the focus once one has gone.
 
   The views give the actions, so the rows can be anything that has an
-  order, e.g. the queue of the profile or a preference.")
+  order, e.g. the queue of the profile or a preference."
+  (:require [dk.simongray.podcast.feed.guid :as guid]))
+
+(defn control-id
+  "The id of the button `kind`, e.g. :remove, of the row `id` of the list
+  named `list-name`, by which the focus finds it again after a change."
+  [list-name id kind]
+  (str list-name "-" (guid/short-hash (pr-str id)) "-" (name kind)))
+
+(defn neighbour
+  "The row that takes the place of the row at index `i` of the `rows`, a
+  vector, once it has gone: the next one, or else the one before it."
+  [rows i]
+  (or (get rows (inc i)) (get rows (dec i))))
 
 ;; GOV.UK Design System, summary list: a visible label first, then the
 ;; name of what it acts on in visually hidden text, e.g. "Remove Episode

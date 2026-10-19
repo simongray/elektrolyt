@@ -44,9 +44,7 @@
       "which goes first")
   (is (nil? (:duration (player/with-duration {:duration nil} {})))))
 
-(deftest the-times-of-the-seek-bar
-  (is (= "10:30" (player/clock 630)))
-  (is (= "–:––" (player/clock nil)) "before the metadata")
+(deftest the-time-left
   (is (= 4755 (player/remaining {:current-time 630 :duration 5385})))
   (is (nil? (player/remaining {:current-time 630 :duration nil}))))
 

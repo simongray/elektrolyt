@@ -14,6 +14,7 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]
+            [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
             [dk.simongray.podcast-app.ui.inbox :as inbox-ui]
             [dk.simongray.podcast-app.ui.library :as library-ui]
@@ -65,6 +66,27 @@
   [state]
   (str (page-title state) " – " app-name))
 
+(defn canonical-path
+  "The path that the Show page or the Episode page of the `state` should
+  have, or nil before the title is known: with the slug of the title, and
+  for a show that the library keeps, its key there and no URL of its feed,
+  since the library knows the URL."
+  [{{:keys [name path-params query-params]} :route :as state}]
+  (let [guid (:guid path-params)
+        url  (:url query-params)]
+    (case name
+      :route/show
+      (when-let [title (:title (show/page state guid))]
+        (if-let [k (some-> (:library state) (show/library-key guid url))]
+          (routes/show-href k title)
+          (routes/show-href guid title url)))
+
+      :route/episode
+      (when-let [{:keys [guid item-guid title url]} (episode-ui/route-page state)]
+        (routes/episode-href guid item-guid title url (episode-ui/start-time state)))
+
+      nil)))
+
 ;; WAI-ARIA 1.2, aria-current: "page" marks the link to the current page
 ;; within a set of links
 (defn page-link
@@ -99,12 +121,12 @@
             (count (inbox/episodes state)))]
     (if (pos? (or n 0))
       (list (titles route-name) " " (str n)
-            [:span.visually-hidden (if (= 1 n) " new episode" " new episodes")])
+            [:span.visually-hidden " " (text/plural n "new episode")])
       (titles route-name))))
 
 ;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
-;; list's role is explicit, since the CSS removes its markers (see app.css).
+;; list's role is explicit, since the CSS removes its markers (see layout.css).
 ;; The app's name comes first and links to the queue, as a site's name
 ;; links to its home page; a phone, whose tab bar has no room for it,
 ;; leaves it out. Each page's link names its page for its colour, from the
@@ -114,7 +136,7 @@
   main pages and Settings, as a tab bar on a phone and a rail on a wider
   screen."
   [state]
-  (let [palette (settings/navigation-palette (settings/preferences state))]
+  (let [palette (settings/navigation-palette state)]
     [:nav {:aria-label "Main"}
      [:a.app-name {:href (routes/href :route/queue)} app-name]
      [:ul {:role "list"}
@@ -145,6 +167,15 @@
   [announcement]
   [:p.visually-hidden {:role "status"} announcement])
 
+(def library-pages
+  "The names of the routes of the pages that show nothing without the
+  listener's library."
+  #{:route/queue :route/inbox :route/library :route/settings})
+
+(def no-library
+  "What a page of library-pages says when the library couldn't be read."
+  [:p "The library couldn't be read."])
+
 (defn main-content
   "The main content of the page of the `state`, under its heading, which
   the page of a show or an episode puts in the header of its article."
@@ -154,16 +185,18 @@
     [:main#main
      (when-not (#{:route/show :route/episode} route)
        heading)
-     (case route
-       nil             not-found
-       :route/queue    (queue-ui/content state)
-       :route/inbox    (inbox-ui/content state)
-       :route/library  (library-ui/content state)
-       :route/search   (search/content state)
-       :route/settings (settings-ui/content state)
-       :route/show     (show-ui/content state heading)
-       :route/episode  (episode-ui/content state heading)
-       nil)
+     (if (and (library-pages route) (nil? (:library state)))
+       no-library
+       (case route
+         nil             not-found
+         :route/queue    (queue-ui/content state)
+         :route/inbox    (inbox-ui/content state)
+         :route/library  (library-ui/content state)
+         :route/search   (search/content state)
+         :route/settings (settings-ui/content state)
+         :route/show     (show-ui/content state heading)
+         :route/episode  (episode-ui/content state heading)
+         nil))
      (announcer (:announcement state))
      [:p.visually-hidden {:id links/note-id} "Opens in a new tab"]]))
 
@@ -172,7 +205,7 @@
   the navigation that the listener chose, and the seeds of artwork as
   colors/attrs has them."
   [state]
-  (merge {:data-palette (name (settings/navigation-palette (settings/preferences state)))}
+  (merge {:data-palette (name (settings/navigation-palette state))}
          (colors/attrs state)))
 
 (defn page

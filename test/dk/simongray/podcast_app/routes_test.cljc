@@ -66,3 +66,74 @@
     (is (routes/same-page? (route-of (str "/shows/" pc20 "/episodes/" h "/a"))
                            (route-of (str "/shows/" pc20 "/episodes/" h))))
     (is (= :route/show (:name (route-of (str "/shows/" pc20 "/episodes")))) "a show's slug can be anything")))
+
+(def inbox
+  {:name :route/inbox :path-params {} :query-params {}})
+
+(def library-page
+  {:name :route/library :path-params {} :query-params {}})
+
+(defn search-page
+  "The route of the Search page for the query `q`."
+  [q]
+  {:name :route/search :path-params {} :query-params (if q {:q q} {})})
+
+(deftest the-first-page-keeps-the-focus
+  (is (= [[:store/assoc :route inbox]]
+         (routes/navigated {} inbox))))
+
+(deftest another-page-takes-the-focus
+  (is (= [[:store/assoc :route library-page] [:page/focus-heading]]
+         (routes/navigated {:route inbox} library-page)))
+  (is (= [[:store/assoc :route inbox] [:page/focus-heading]]
+         (routes/navigated {:route nil} inbox))))
+
+(deftest the-same-page-keeps-the-focus
+  (is (= [[:store/assoc :route inbox]]
+         (routes/navigated {:route inbox} inbox)))
+  (is (= [[:store/assoc :route (search-page "b")] [:search/run "b"]]
+         (routes/navigated {:route (search-page "a")} (search-page "b")))
+      "another query of the Search page"))
+
+(deftest a-query-in-the-url-searches-once
+  (is (= [[:store/assoc :route (search-page "x")] [:search/run "x"]]
+         (routes/navigated {} (search-page "x")))
+      "a link to a search, or a reload")
+  (is (= [[:store/assoc :route (search-page "x")] [:page/focus-heading]]
+         (routes/navigated {:route inbox :searches {"x" {:status :done}}} (search-page "x")))
+      "Back to a search that's kept")
+  (is (= [[:store/assoc :route (search-page nil)]]
+         (routes/navigated {} (search-page nil)))))
+
+(deftest a-fragment-shows-a-part-of-the-page
+  (let [settings {:name :route/settings :path-params {} :query-params {} :fragment "search"}]
+    (is (= [[:store/assoc :route settings]
+            [:page/focus-heading]
+            [:storage/check]
+            [:page/scroll-to "search"]]
+           (routes/navigated {:route inbox} settings))
+        "from another page, once the page shows")
+    (is (= [[:store/assoc :route settings] [:storage/check] [:page/scroll-to "search"]]
+           (routes/navigated {} settings))
+        "a link from elsewhere, or a reload")
+    (is (= [[:store/assoc :route settings] [:storage/check] [:page/scroll-to "search"]]
+           (routes/navigated {:route (dissoc settings :fragment)} settings))
+        "on the same page")))
+
+(deftest the-page-of-a-show-loads-it
+  (let [route {:name         :route/show
+               :path-params  {:guid "g"}
+               :query-params {:url "https://example.org/feed.xml"}}]
+    (is (= [[:store/assoc :route route]
+            [:page/focus-heading]
+            [:show/load "g" "https://example.org/feed.xml" false]]
+           (routes/navigated {:route inbox} route)))))
+
+(deftest the-page-of-an-episode-loads-its-show
+  (let [route {:name         :route/episode
+               :path-params  {:guid "g" :hash "8a98e2c"}
+               :query-params {:url "https://example.org/feed.xml"}}]
+    (is (= [[:store/assoc :route route]
+            [:page/focus-heading]
+            [:show/load "g" "https://example.org/feed.xml" false]]
+           (routes/navigated {:route inbox} route)))))

@@ -2,21 +2,23 @@
   "Scenes of the Library page: the shows in each layout, a refresh under
   way, and a library with no shows yet."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.scenes :refer [artwork]]
             [dk.simongray.podcast-app.ui :as ui]
-            [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
             [portfolio.replicant :refer [defscene]]))
 
 (defn feed
   "A feed titled `title` with `n` episodes, the newest on `newest`."
   [title n newest]
   {:rss/title    title
-   :itunes/image {:href search-scenes/artwork}
+   :itunes/image {:href artwork}
    :rss/items    (vec (for [i (range n)]
                         {:rss/title    (str title ", episode " (- n i))
                          :rss/guid     {:content (str title "-" i)}
                          :rss/pub-date (js/Date. (- (inst-ms newest) (* i 7 24 3600 1000)))}))})
 
 (def lib
+  "A library subscribed to four shows, one with a title long enough to
+  wrap."
   (reduce (fn [lib [i title n newest]]
             (library/subscribe lib (str "https://example.org/" i ".xml") (feed title n newest)))
           (library/make "scenes")

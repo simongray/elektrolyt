@@ -7,22 +7,18 @@
   the start of the feed has the episode."
   (:require [dk.simongray.play-nice.media.fragment :as fragment]
             [dk.simongray.podcast.format.transcript :as transcript]
-            [dk.simongray.podcast.util.time :as time]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.details :as details]
+            [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.podcast-app.ui.show :as show-ui]
+            [dk.simongray.podcast-app.ui.time :as time-ui]
             [dk.simongray.wary-fetch.url :as url]))
-
-(defn clock
-  "The `seconds` into an episode as a time element, e.g. 12:34, whose
-  datetime is the duration since its start."
-  [seconds]
-  [:time {:datetime (str "PT" (long seconds) "S")} (time/format-clock seconds)])
 
 ;; MDN: a link is for a real URL. Each time links to the page at ?t=, which
 ;; can be copied or opened in a tab of its own, and a click on it plays the
@@ -63,11 +59,11 @@
   [{:keys [duration] :as page} {:keys [position played?] :as entry} t]
   (cond
     t
-    (str "Play from " (time/format-clock t))
+    (str "Play from " (time-ui/clock-text t))
 
     (and (number? position) (pos? position) (not played?))
     (if (number? duration)
-      (str "Resume, " (show-ui/duration-text (max 0 (- duration position))) " left")
+      (str "Resume, " (time-ui/duration-text (max 0 (- duration position))) " left")
       "Resume")
 
     :else
@@ -127,39 +123,30 @@
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
-  "The header of the article of the episode `page`: its `heading` with its
-  show, its artwork and facts, whether its `entry` in the profile is
-  played, the button that plays it as the `player` and the start time `t`
-  have it, the buttons that queue it, by where it's `queued`, and the link
-  to its Details when it has them, `aside?`."
-  [heading {:keys [show numbering published duration explicit? ai-content?]
-            :as   page}
-   player entry t queued aside?]
-  [:header.episode-intro
-   [:hgroup heading [:p [:a {:href (:href show)} (:title show)]]]
-   (artwork/img page 160 {:fetchpriority "high"})
-   (details/facts-line
-    (concat (numbering-facts numbering)
-            [(some-> published show-ui/date)
-             (when duration
-               [:time {:datetime (str "PT" (long duration) "S")}
-                (show-ui/duration-text duration)])
-             (when explicit? "Explicit")
-             (when ai-content? "Made with AI")
-             (when (:played? entry) "Played")]))
-   (when aside?
-     details/link)
-   [:div.episode-actions
-    (play-button page player entry t)
-    (queue-buttons page queued)]])
-
-(defn size-text
-  "The size of a file of `bytes`, e.g. \"86 MB\"."
-  [bytes]
-  (cond
-    (< bytes 1e6) (str (Math/round (/ bytes 1e3)) " kB")
-    (< bytes 1e9) (str (Math/round (/ bytes 1e6)) " MB")
-    :else         (str (/ (Math/round (/ bytes 1e8)) 10.0) " GB")))
+  "The header of the article of the episode `page` of the Episode page of
+  the `state`: its `heading` with its show, its artwork and facts, whether
+  its entry in the profile is played, the button that plays it, from the
+  start time of the link, the buttons that queue it, and the link to its
+  Details when it has them, `aside?`."
+  [state heading {:keys [id show numbering published duration explicit? ai-content?]
+                  :as   page}
+   aside?]
+  (let [entry (player/entry (:library state) id)]
+    [:header.episode-intro
+     [:hgroup heading [:p [:a {:href (:href show)} (:title show)]]]
+     (artwork/img page 160 {:fetchpriority "high"})
+     (facts-ui/line
+      (concat (numbering-facts numbering)
+              [(some-> published time-ui/date)
+               (some-> duration time-ui/duration)
+               (when explicit? "Explicit")
+               (when ai-content? "Made with AI")
+               (when (:played? entry) "Played")]))
+     (when aside?
+       details/link)
+     [:div.episode-actions
+      (play-button page (:player state) entry (start-time state))
+      (queue-buttons page (queue/place state id))]]))
 
 ;; The Details of an episode hold what's its own rather than its show's,
 ;; since the show's are on the show's page
@@ -178,7 +165,7 @@
       ;; the feed gives none or a wrong one, from what read-files! reads of
       ;; it. They matter once episodes can be downloaded.
       ["File" [(when (and (number? length) (pos? length))
-                 (size-text length))]]])))
+                 (text/size-text length))]]])))
 
 ;; A chapters file is the publisher's, so a chapter's link is only one when
 ;; it goes to the web, never e.g. a javascript: URL
@@ -191,7 +178,7 @@
    [:ol.chapters {:role "list"}
     (for [{:keys [start-time title url]} chapters]
       [:li {:replicant/key start-time}
-       (time-link page start-time (clock start-time))
+       (time-link page start-time (time-ui/clock start-time))
        " "
        (if (url/web-url? url)
          (links/new-tab [:a {:href url} (or title url)])
@@ -224,7 +211,7 @@
          (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
            [:p
             (when start-time
-              (list (time-link page start-time (clock start-time)) " "))
+              (list (time-link page start-time (time-ui/clock start-time)) " "))
             (when speaker
               (list [:strong speaker] ": "))
             body])])]]))
@@ -242,7 +229,7 @@
   [state]
   (let [{:keys [guid]} (get-in state [:route :path-params])]
     (case (episode/status state guid)
-      :looking-up [:p {:role "status"} "Looking for the show in the Podcast Index…"]
+      :looking-up show-ui/looking-up
       :loading    [:p {:role "status"} "Loading the episode…"]
       :no-show    show-ui/not-found
       :failed     [:p {:role "status"}
@@ -266,11 +253,7 @@
       (details/article
        {:replicant/key      (pr-str id)
         :replicant/on-mount [[:episode/read-files id view]]}
-       [(intro heading page (:player state) (player/entry (:library state) id) (start-time state)
-               (cond
-                 (= id (:id (first (:episodes (some-> (:library state) queue/view))))) :current
-                 (queue/queued? state id)                                              :queued)
-               (some? aside))
+       [(intro state heading page (some? aside))
         ;; the heading only for a screen reader, since the notes show
         ;; what they are
         (when (seq notes)

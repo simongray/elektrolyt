@@ -2,8 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.ui.player :as player-ui]
-            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
-            [dk.simongray.podcast-app.ui-test :refer [elements]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements nodes text-of]]))
 
 (def playback
   {:id       ["f" "e"]
@@ -24,8 +23,8 @@
 (defn buttons
   "The buttons of the Hiccup `x`, with or without a class."
   [x]
-  (->> (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x)
-       (filter #(and (vector? %) (keyword? (first %)) (re-find #"^button\b" (name (first %)))))))
+  (filter #(and (vector? %) (keyword? (first %)) (re-find #"^button\b" (name (first %))))
+          (nodes x)))
 
 (defn attributes-of
   "The attributes of the element with the `id` in the Hiccup `x`."
@@ -54,7 +53,7 @@
              (select-keys (attributes-of "player-position" x) [:min :max :step :value :aria-valuetext])))
       (is (= 600 (:value (attributes-of "player-position" (player-ui/region (state {:seeking 600})))))
           "where it's dragged to, while it is"))
-    (is (= 1.5 (some #(when (:selected (second %)) (:value (second %))) (elements :option x)))
+    (is (= "1.5" (some #(when (:selected (second %)) (:value (second %))) (elements :option x)))
         "the speed that it plays at")))
 
 (deftest the-status-line

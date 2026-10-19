@@ -51,11 +51,10 @@
   "The `state` once the refresh that gave the :refresh `result` is done,
   which the listener asked for when `asked?`."
   [state result asked?]
-  (-> state
-      (assoc :refresh {:running? false
-                       :result   (select-keys result [:at :counts :added])})
-      (cond-> (shows/summary result asked?)
-        (assoc :announcement (shows/summary result asked?)))))
+  (let [summary (shows/summary result asked?)]
+    (cond-> (assoc state :refresh {:running? false
+                                   :result   (select-keys result [:at :counts :added])})
+      summary (assoc :announcement summary))))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: one message as a refresh that the
 ;; listener asked for starts, and one with what it found, rather than one

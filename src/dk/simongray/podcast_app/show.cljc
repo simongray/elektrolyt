@@ -25,6 +25,7 @@
             [dk.simongray.podcast.feed.schedule :as schedule]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.links :as links]
+            [dk.simongray.podcast-app.memo :as memo]
             [dk.simongray.podcast-app.search :as search]))
 
 (def page-size
@@ -118,25 +119,12 @@
         (when (and k (feed? k))
           k)))))
 
-(defonce ^{:doc "The last page that library-page made, with what it made it
-  from, since the page renders again at every change of the state."}
-  last-library-page
-  (atom nil))
-
-(defn library-page
-  "The page of the show that the library `lib` keeps under the key `k`.
-
-  It's made again only when the feed or the profile has changed, since a
-  show of thousands of episodes sorts them all."
-  [lib k]
-  (let [entry   (get-in lib [:feeds k])
-        profile (:profile lib)
-        [e p kk made] @last-library-page]
-    (if (and (identical? e entry) (identical? p profile) (= kk k))
-      made
-      (let [made (view->page (library/show lib k view-opts))]
-        (reset! last-library-page [entry profile k made])
-        made))))
+(def library-page
+  "The page of the show that a library keeps under a key, made again only
+  when its feed or the profile changes, since a show of thousands of
+  episodes sorts them all."
+  (memo/remember-last (fn [lib k] (view->page (library/show lib k view-opts)))
+                      (fn [lib k] [(get-in lib [:feeds k]) (:profile lib) k])))
 
 (defn feed-url
   "The URL of the feed of the show `guid` in the `state`: the one that the
@@ -203,11 +191,16 @@
   [url]
   (guid/normal-url url))
 
+(def validator-keys
+  "The keys of the validators of a fetch, and of the time until which the
+  feed is fresh."
+  [:etag :last-modified :not-before])
+
 (defn kept
   "What the cache keeps of the whole feed that a fetch gave, `fetched`: the
   feed and the validators of the fetch."
   [fetched]
-  (select-keys fetched [:url :feed :etag :last-modified :not-before]))
+  (select-keys fetched (into [:url :feed] validator-keys)))
 
 (defn validators
   "The validators of the fetch `fetched`, which a subscription and the next
@@ -215,7 +208,7 @@
   [fetched]
   (into {}
         (remove (comp nil? val))
-        (select-keys fetched [:etag :last-modified :not-before])))
+        (select-keys fetched validator-keys)))
 
 ;; podcast/fetch! reads the max-age of the feed's server into :not-before,
 ;; an hour at most
@@ -265,6 +258,26 @@
       (assoc-in state [:shows guid :newer]
                 {:fetched fetched :fetched-at at :count n})
       (whole state guid url fetched at true))))
+
+(defn more-shown
+  "The actions of the listener's ask for more of the `total` episodes of the
+  show `guid` in the `state`: list another page of them, and say how many
+  are listed now."
+  [state guid total]
+  (let [shown (min total (+ (get-in state [:shows guid :shown] page-size)
+                            page-size))]
+    [[:store/assoc-in [:shows guid :shown] shown]
+     [:store/assoc :announcement (str "Showing " shown " of " total " episodes")]]))
+
+(defn whole-feed
+  "The whole feed at `url` that the Show page loaded into the `state`, as a
+  fetch gives it, with its validators, or nil. A newer feed that waits for
+  the listener comes first, since a subscription should have the newest."
+  [state url]
+  (some (fn [{:keys [feed validators newer] :as shown}]
+          (when (and feed (= url (:url shown)))
+            (or (:fetched newer) (assoc validators :feed feed))))
+        (vals (:shows state))))
 
 (defn newer-shown
   "The show `guid` in the `state` with the :newer feed that waited, in

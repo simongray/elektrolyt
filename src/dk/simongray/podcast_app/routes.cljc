@@ -71,16 +71,24 @@
         (str/replace #"^-+|-+$" "")
         (not-empty))))
 
+(defn show-route
+  "The name, path params and query params of the page of the show `guid`
+  titled `title`, with the `url` of its feed for a show that the library
+  doesn't keep, in the order that href and reitit's push-state take
+  them."
+  [guid title url]
+  (let [query (when url {:url url})]
+    (if-let [s (slug title)]
+      [:route/titled-show {:guid guid :slug s} query]
+      [:route/show {:guid guid} query])))
+
 (defn show-href
   "The path of the page of the show `guid` titled `title`, with the `url` of
   its feed for a show that the library doesn't keep."
   ([guid title]
    (show-href guid title nil))
   ([guid title url]
-   (let [query (when url {:url url})]
-     (if-let [s (slug title)]
-       (href :route/titled-show {:guid guid :slug s} query)
-       (href :route/show {:guid guid} query)))))
+   (apply href (show-route guid title url))))
 
 ;; Pocket Casts and Spotify share an episode at a time with ?t=, and a link
 ;; with a query is a page of its own, which a fragment isn't
@@ -120,6 +128,40 @@
   [a b]
   (= (dissoc a :query-params :slug :fragment)
      (dissoc b :query-params :slug :fragment)))
+
+(defn navigated
+  "The actions of the navigation to the `route` from the `state`: keep the
+  route, move the focus to the heading of a page that replaces another,
+  search for the query of a Search page that has no search for it yet,
+  load the show of a Show page or an Episode page, ask the browser how it
+  keeps the library for the Settings page, and show the part of the page
+  that the URL's fragment names.
+
+  The page that loads first keeps the focus at the start of the document,
+  and so does a page that only changes its query, unless the fragment
+  names a part of it."
+  [state route]
+  (let [{:keys [q url]} (:query-params route)]
+    (cond-> [[:store/assoc :route route]]
+      (and (contains? state :route)
+           (not (same-page? route (:route state))))
+      (conj [:page/focus-heading])
+
+      (and (= :route/search (:name route))
+           (not (str/blank? q))
+           (not (get-in state [:searches q])))
+      (conj [:search/run q])
+
+      (#{:route/show :route/episode} (:name route))
+      (conj [:show/load (get-in route [:path-params :guid]) url false])
+
+      (= :route/settings (:name route))
+      (conj [:storage/check])
+
+      ;; last, once the page shows, and so after the focus moves to its
+      ;; heading, which this moves on
+      (:fragment route)
+      (conj [:page/scroll-to (:fragment route)]))))
 
 (comment
   (href :route/library)

@@ -1,23 +1,22 @@
 (ns dk.simongray.podcast-app.ui.show-scenes
   "Scenes of the Show page as its feed arrives in stages, from what a search
   knew to the whole feed, with the Details of a show that says much of
-  itself, and of the ways it can fail."
+  itself, in the colours of its artwork, and of the ways it can fail."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.scenes :refer [artwork lib url]]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui :as ui]
-            [dk.simongray.podcast-app.ui.inbox-scenes :as inbox-scenes]
-            [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
             [portfolio.replicant :refer [defscene]]))
 
-(def guid "917393e3-1b1e-5cef-ace4-edaa54e1f810")
-
-(def url "https://feeds.podcastindex.org/pc20.xml")
+(def guid
+  "The guid that the feed of the scenes' show declares."
+  "917393e3-1b1e-5cef-ace4-edaa54e1f810")
 
 (def known
   "What the search knew of the show."
   {:title         "Podcasting 2.0"
    :author        "Podcast Index LLC"
-   :artwork       search-scenes/artwork
+   :artwork       artwork
    :artwork-sizes []})
 
 (defn rows
@@ -106,6 +105,16 @@
                        :page   (merge (show/feed->page url pc20)
                                       (select-keys known [:artwork :artwork-sizes]))})))
 
+(defscene in-the-colours-of-its-artwork
+  "A show whose page takes the colours of its artwork, once they're worked
+  out, here of a deep blue: its links and buttons, and a faint tint from
+  the right."
+  (ui/page (show-page {:url    url
+                       :status :done
+                       :page   (merge (show/feed->page url pc20)
+                                      (select-keys known [:artwork :artwork-sizes]))}
+                      {:colors {artwork {:seed "#1d4e89" :dominant "#888888"}}})))
+
 (defscene a-feed-that-failed
   "A fetch of the feed that failed, after what the search knew."
   (ui/page (show-page {:url    url
@@ -115,9 +124,9 @@
 (defscene a-show-in-the-library
   "A show that the listener subscribes to, with the choice of where its new
   episodes go."
-  (let [k (first (keys (:feeds inbox-scenes/lib)))]
+  (let [k (first (keys (:feeds lib)))]
     (ui/page {:route   {:name :route/show :path-params {:guid k} :query-params {}}
-              :library inbox-scenes/lib})))
+              :library lib})))
 
 (defscene a-show-nobody-knows
   "A link to a show that the library doesn't keep and that names no feed."

@@ -1,10 +1,11 @@
 (ns dk.simongray.podcast-app.ui.player-scenes
   "Scenes of the player: nothing playing, an episode that plays with its
   chapters, its controls on a phone, an episode that plays in another tab,
-  and the ways it can fail to play."
+  the ways it can fail to play, and its colours and sizes."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.scenes :refer [artwork]]
+            [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]
-            [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
             [portfolio.replicant :refer [defscene]]))
 
 (def playback
@@ -13,7 +14,7 @@
    :src      "https://example.org/273.mp3"
    :title    "Episode 273: \"Advertising is the Horse and Buggies of Podcasting\""
    :show     "Podcasting 2.0"
-   :artwork  search-scenes/artwork
+   :artwork  artwork
    :chapters {:source   :file
               :document {:chapters [{:start-time 0 :title "Show Open"}
                                     {:start-time 81 :title "A sales meeting with the Christian broadcasters"}
@@ -83,3 +84,18 @@
   "A play before the page may play, e.g. after a reload, which the
   listener's own press starts."
   (ui/page (playing {:media (assoc media :paused true) :answer {:refused :not-allowed}})))
+
+(defscene in-the-colours-of-its-artwork
+  "The player in the colours of the artwork of what plays, once they're
+  worked out, here of a deep red."
+  (ui/page (assoc (playing {}) :colors {artwork {:seed "#9e2a2b" :dominant "#888888"}})))
+
+(defscene a-small-player
+  "The player at the smallest of the sizes that the listener can choose in
+  Settings."
+  (ui/page (settings/preferred (playing {}) {:player-size :small})))
+
+(defscene a-large-player
+  "The player at the largest of the sizes that the listener can choose in
+  Settings."
+  (ui/page (settings/preferred (playing {}) {:player-size :large})))

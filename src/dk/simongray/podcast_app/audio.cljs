@@ -7,13 +7,13 @@
   The element is the same for every episode. A phone's browser lets a page
   play an element that the listener started, so the next episode of the
   queue plays in it too, and the lock screen keeps its session."
-  (:require [cljs.reader :as reader]
-            [dk.simongray.play-nice.controls :as controls]
+  (:require [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.media :as media]
             [dk.simongray.play-nice.page.tabs :as tabs]
             [dk.simongray.play-nice.session :as session]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.media-session :as media-session]
+            [dk.simongray.podcast.app.unsaved :as unsaved]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app.episode :as episode]
@@ -30,73 +30,15 @@
   volume belongs to this device rather than to the listener's profile."
   "dk.simongray.podcast-app.volume")
 
-(defn saved-volume
-  "The level of the volume slider that this browser keeps, or nil."
-  []
-  (try
-    (some-> (.getItem js/localStorage volume-key) js/parseFloat
-            (#(when (js/Number.isFinite %) %)))
-    (catch :default _ nil)))
-
 ;; A save of the library to IndexedDB takes a few steps, which a page that
-;; reloads or closes never finishes, so the position also goes to
-;; localStorage, which writes at once. The next start gives it to the
-;; library with the time it was kept at, so the profile still decides.
-(def position-key
-  "The key of the last position of the player in localStorage."
-  "dk.simongray.podcast-app.position")
-
-(defn keep-position!
-  "Keep the `position` and the `duration` of the episode `id` in this
-  browser at once, with the time."
-  [id position duration]
-  (try
-    (.setItem js/localStorage position-key
-              (pr-str {:id id :position position :duration duration :at (js/Date.now)}))
-    (catch :default _ nil)))
-
-(defn kept-position
-  "The last position of the player that this browser kept, as a map of the
-  episode's :id, the :position and :duration in seconds, and the :at in
-  milliseconds, or nil."
-  []
-  (try
-    (some-> (.getItem js/localStorage position-key) reader/read-string)
-    (catch :default _ nil)))
-
-;; The same goes for the episode that the listener plays, which becomes the
-;; queue's current episode: a reload right after Play would otherwise bring
-;; the one before back. It's kept until a save has it, so that a later
-;; change of the queue, e.g. on another device, isn't undone.
-(def played-key
-  "The key of the episode that this browser played last, in localStorage,
-  until a save of the library has it."
-  "dk.simongray.podcast-app.played")
-
-(defn keep-played!
-  "Keep the episode `id` that the player starts in this browser at once,
-  with the time."
-  [id]
-  (try
-    (.setItem js/localStorage played-key (pr-str {:id id :at (js/Date.now)}))
-    (catch :default _ nil)))
-
-(defn kept-played
-  "The episode that this browser played last, as a map of its :id and the
-  :at in milliseconds, while no save of the library has it, or nil."
-  []
-  (try
-    (some-> (.getItem js/localStorage played-key) reader/read-string)
-    (catch :default _ nil)))
-
-(defn saved-played!
-  "Forget the episode that this browser played, once a save of the library
-  that began at `started`, in milliseconds, has it."
-  [started]
-  (when (some-> (kept-played) :at (<= started))
-    (try
-      (.removeItem js/localStorage played-key)
-      (catch :default _ nil))))
+;; reloads or closes never finishes, so podcast-clj's app.unsaved keeps the
+;; position and the episode that the listener played in localStorage too,
+;; e.g. for a reload right after Play, which would otherwise bring the
+;; episode before back
+(def unsaved-prefix
+  "The prefix of the keys in localStorage under which app.unsaved keeps
+  the player's moves that the library's save may not have yet."
+  "dk.simongray.podcast-app")
 
 (defn save!
   "Save the library of the `store`, and note when."
@@ -106,7 +48,7 @@
     (-> (app-library/save!)
         (.then #(if (:error %)
                   (js/console.error "The library wasn't saved" (clj->js %))
-                  (saved-played! started))))))
+                  (unsaved/saved! unsaved-prefix started))))))
 
 (defn playback
   "What library/playback gives for the episode `id` of the `state`, with
@@ -170,6 +112,12 @@
       (swap! store assoc-in [:player :seeking] nil)
       (run! #(step! store %) (media-session/events library id (.-currentTime el) details)))))
 
+(defn media-of
+  "The position and the duration of the audio `element`, under the keys of
+  its media state."
+  [^js element]
+  {:current-time (.-currentTime element) :duration (.-duration element)})
+
 (defn report!
   "Tell the library of the `store` where the element is, by its `media`
   state."
@@ -177,7 +125,7 @@
   (when-let [id (and (number? current-time) (get-in @store [:player :id]))]
     (let [duration (when (and (number? duration) (js/Number.isFinite duration))
                      duration)]
-      (keep-position! id current-time duration)
+      (unsaved/keep-position! unsaved-prefix id current-time duration)
       (swap! store assoc-in [:player :reported] current-time)
       (step! store [:progress id current-time duration]))))
 
@@ -223,14 +171,21 @@
   [store answer]
   (swap! store assoc-in [:player :answer] (when (:refused answer) answer)))
 
+(defn play-element!
+  "Play the audio `element` of the player of the `store`, and keep the
+  browser's answer."
+  [store element]
+  (.then (media/play! element) #(answered! store %)))
+
 (defn read-files!
-  "Read the files of the episode `id` of the library of the `store`, unless
-  the Episode page has, for the chapters of a chapters file or the media
-  file, and show them in the player and on the lock screen."
-  [store id]
+  "Read the files of the episode `id` into the :episodes of the `store`
+  once, with `read`, a function that gives a promise of them, e.g. for the
+  chapters of a chapters file or the media file, and show them in the
+  player and on the lock screen while the player has the episode."
+  [store id read]
   (when-not (get-in @store [:episodes id :status])
     (swap! store assoc-in [:episodes id :status] :reading)
-    (-> (library/read-files! (:library @store) id {:except #{:transcript}})
+    (-> (read)
         (.then (fn [result]
                  (swap! store update-in [:episodes id] assoc :status :read :result result)
                  (when (= id (get-in @store [:player :id]))
@@ -238,6 +193,13 @@
                    (lock-screen! store))))
         (.catch #(swap! store update-in [:episodes id] assoc :status :read
                         :error {:message (ex-message %)})))))
+
+(defn read-library-files!
+  "Read the files of the episode `id` of the library of the `store`, as
+  read-files! does, unless the Episode page has read them. The transcript
+  waits for the listener."
+  [store id]
+  (read-files! store id #(library/read-files! (:library @store) id {:except #{:transcript}})))
 
 (defn load!
   "Load the episode `id` of the library into the player of the `store`, at
@@ -247,7 +209,7 @@
   (let [pb (playback @store id)]
     (swap! store update :player assoc
            :id id :playback pb :answer nil :reported nil :seeking nil)
-    (read-files! store id)
+    (read-library-files! store id)
     ;; the render of the swap is done, so the element is in the page
     (when-let [el (element)]
       (media/source! el (cond-> pb t (assoc :position t)))
@@ -262,11 +224,10 @@
   (let [same? (= id (get-in @store [:player :id]))
         el    (if same? (element) (load! store id t))]
     (when-not same?
-      (keep-played! id))
+      (unsaved/keep-played! unsaved-prefix id))
     (when (and same? el (number? t))
       (media/seek! el t))
-    (when el
-      (.then (media/play! el) #(answered! store %)))))
+    (some->> el (play-element! store))))
 
 (defn added
   "The library of the `state` with the episode of the `playable` of an
@@ -293,8 +254,7 @@
 (defn resume!
   "Play the episode in the player of the `store` from where it is."
   [store]
-  (when-let [el (element)]
-    (.then (media/play! el) #(answered! store %))))
+  (some->> (element) (play-element! store)))
 
 (defn ended!
   "Tell the library that the episode of the player of the `store` ended,
@@ -311,7 +271,7 @@
   (let [{:keys [id playback]} (:player @store)
         el                    (element)]
     (when-let [doc (and id el (player/chapter-doc playback))]
-      (report! store {:current-time (.-currentTime el) :duration (.-duration el)})
+      (report! store (media-of el))
       (step! store [:chapter id direction doc]))))
 
 (defn drag!
@@ -336,7 +296,7 @@
   (when-let [el (element)]
     (media/volume! el level {:curve :cubic})
     (swap! store assoc-in [:player :volume] level)
-    (try (.setItem js/localStorage volume-key (str level)) (catch :default _ nil))))
+    (media/keep-level! volume-key level)))
 
 (defn mute!
   "Mute the player, or unmute it where `muted?` is false."
@@ -466,7 +426,7 @@
   (let [{:keys [id playback volume]} (:player @store)]
     (when (and id (not (.getAttribute element "src")))
       (media/source! element playback)
-      (read-files! store id))
+      (read-library-files! store id))
     (media/volume! element (or volume 1) {:curve :cubic})
     (reset! detach!
             (juxt (media/watch! element #(changed! store %)
@@ -480,46 +440,27 @@
                                     (handlers store element))))
     (lock-screen! store)))
 
-(defn with-kept-position
-  "The `library` told of the position that this browser `kept`, as
-  kept-position gives it, at the time it was kept, unless it hasn't that
-  episode, or its profile has a later position, e.g. of another device.
-
-  The profile orders a write of this device after every write that it has
-  seen, whatever its time, so the times are compared here."
-  [library {:keys [id position duration at] :as kept}]
-  (let [updated (:updated-at (player/entry library id))]
-    (if (and library id (number? position) (number? at)
-             (library/playback library id)
-             (or (not (inst? updated)) (> at (inst-ms updated))))
-      (dissoc (library/step library [:progress id position duration] {:at (js/Date. at)})
-              :effects)
-      library)))
-
-(defn with-kept-play
-  "The `library` with the episode that this browser `played` last, as
-  kept-played gives it, made current again at the time it was played,
-  since no save had it, unless the library hasn't that episode, e.g. of a
-  show that a save would have added, or has it current already."
-  [library {:keys [id at] :as played}]
-  (if (and library id (number? at)
-           (library/playback library id)
-           (not= id (some-> library :profile queue/current)))
-    (dissoc (library/step library [:play id] {:at (js/Date. at)}) :effects)
-    library))
-
 (defn restored
-  "The `state` as the page loads: its library told of the episode that
-  this browser `played` last and of the position that it `kept`, and its
-  player with the episode that the queue has at its front, paused where
-  the listener left it."
-  [state kept played]
-  (let [state (update state :library #(-> % (with-kept-play played) (with-kept-position kept)))
+  "The `state` as the page loads: its library told by unsaved/restored of
+  the episode that this browser `played` last and of the position that it
+  `kept`, and its player with the episode that the queue has at its
+  front, paused where the listener left it, at the `volume` that this
+  browser keeps, or all of it."
+  [state played kept volume]
+  (let [state (update state :library unsaved/restored played kept)
         id    (some-> state :library :profile queue/current)
         pb    (when id (playback state id))]
-    (cond-> (update state :player assoc
-                    :volume (or (saved-volume) 1))
+    (cond-> (assoc-in state [:player :volume] (or volume 1))
       pb (update :player assoc :id id :playback pb))))
+
+(defn restored!
+  "Restore the player of the `store` with restored as the page loads,
+  from what this browser keeps."
+  [store]
+  (swap! store restored
+         (unsaved/kept-played unsaved-prefix)
+         (unsaved/kept-position unsaved-prefix)
+         (media/kept-level volume-key)))
 
 ;; Page Lifecycle API: hidden is the last state that a page can count on
 ;; seeing, e.g. before a phone discards it, so the player reports and saves
@@ -532,7 +473,7 @@
   (when-let [el (and (get-in @store [:player :id])
                      (player/writes? (:player @store))
                      (element))]
-    (report! store {:current-time (.-currentTime el) :duration (.-duration el)})
+    (report! store (media-of el))
     (save! store)))
 
 (defn volume-locked!

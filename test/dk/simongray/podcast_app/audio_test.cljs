@@ -30,23 +30,23 @@
         current #(some-> % :library :profile queue/current)
         now     (js/Date.now)]
     (is (= one (current {:library played})))
-    (is (= two (current (audio/restored {:library played} nil {:id two :at now})))
+    (is (= two (current (audio/restored {:library played} {:id two :at now} nil nil)))
         "the episode that this browser played last, which no save had")
-    (is (= one (current (audio/restored {:library played} nil nil))) "nothing kept")
-    (is (= one (current (audio/restored {:library played} nil {:id [feed-id "three"] :at now})))
-        "nor an episode that the library hasn't")
-    (is (= two (get-in (audio/restored {:library played} nil {:id two :at now}) [:player :id]))
+    (is (= one (current (audio/restored {:library played} nil nil nil))) "nothing kept")
+    (is (= two (get-in (audio/restored {:library played} {:id two :at now} nil nil) [:player :id]))
         "which the player has")))
 
-(deftest the-position-through-a-reload
+(deftest the-player-as-the-page-loads
   (let [lib (library/add-episode (library/make "test") url feed "one")
         id  [(first (keys (:feeds lib))) "one"]
-        now (js/Date.now)]
-    (is (= 636 (:position (player/entry (audio/with-kept-position lib {:id id :position 636 :duration 3600 :at now}) id)))
-        "the position that this browser kept as the page went")
-    (is (= lib (audio/with-kept-position lib nil)) "nothing kept")
-    (is (= lib (audio/with-kept-position lib {:id ["other" "x"] :position 5 :at now}))
-        "nor an episode that the library hasn't")
-    (let [later (audio/with-kept-position lib {:id id :position 900 :duration 3600 :at (+ now 1000)})]
-      (is (= 900 (:position (player/entry (audio/with-kept-position later {:id id :position 636 :at now}) id)))
-          "a later position stays"))))
+        now (js/Date.now)
+        lib (library/update-profile lib queue/enqueue id)]
+    (is (= 636 (:position (player/entry (:library (audio/restored {:library lib} nil
+                                                                  {:id id :position 636 :duration 3600 :at now}
+                                                                  nil))
+                                        id)))
+        "the library told of the position that this browser kept")
+    (is (= 0.4 (get-in (audio/restored {:library lib} nil nil 0.4) [:player :volume]))
+        "at the volume that this browser keeps")
+    (is (= 1 (get-in (audio/restored {:library lib} nil nil nil) [:player :volume]))
+        "or all of it")))

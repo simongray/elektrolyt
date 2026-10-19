@@ -37,6 +37,39 @@ hr {
   margin: var(--space-4) 0;
 }
 
+/* The controls: room around their labels, and at least --control-height,
+   past the 24 px of WCAG 2.2, SC 2.5.8 Target Size (Minimum) */
+button,
+::file-selector-button,
+summary {
+  padding: 0.3em 0.8em;
+}
+
+select {
+  padding: 0.3em 0.5em;
+}
+
+input[type="search"] {
+  padding: 0.3em 0.65em;
+}
+
+button,
+select,
+summary,
+input[type="search"],
+input[type="file"] {
+  min-height: var(--control-height);
+}
+
+/* A list whose role is explicit has no markers, and so no room for them.
+   It keeps role="list", since Safari drops the semantics of a list
+   without markers.
+   https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html */
+[role="list"] {
+  padding: 0;
+  list-style: none;
+}
+
 /* A heading with its subtitle, e.g. an episode's show, close below it */
 hgroup {
   margin-bottom: var(--space-3);
@@ -80,29 +113,19 @@ hgroup > p {
   grid-area: main;
   overflow-y: auto;
   position: relative;
+  padding: var(--space-4) var(--gutter) var(--space-5);
 }
 
 .shell > section {
   grid-area: player;
 }
 
-/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced): 44 by 44 CSS pixels */
-.shell > nav a {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-}
-
 /* On a phone, the navigation is a tab bar whose links share its width,
    with no room for the app's name, for which the Queue tab and the page's
-   own heading stand in. The list keeps role="list", since Safari drops the
-   semantics of a list without markers:
-   https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html */
+   own heading stand in */
 .shell > nav ul {
   display: flex;
   margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 /* each tab its label's width, and an even share of what's left, so that
@@ -111,8 +134,12 @@ hgroup > p {
   flex: 1 1 auto;
 }
 
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced): 44 by 44 CSS pixels */
 .shell > nav a {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  min-height: 44px;
 }
 
 .shell > nav .app-name {
@@ -136,12 +163,15 @@ hgroup > p {
   }
 
   .shell > nav {
+    position: relative;
     display: flex;
     flex-direction: column;
+    padding: var(--space-4) var(--space-3) var(--space-3);
   }
 
   .shell > nav .app-name {
     display: flex;
+    margin-bottom: var(--space-3);
   }
 
   .shell > nav ul {
@@ -157,8 +187,12 @@ hgroup > p {
     margin-top: auto;
   }
 
+  /* against the line beside the rail, which they face, as a book's
+     contents face their page numbers */
   .shell > nav a {
-    justify-content: flex-start;
+    justify-content: flex-end;
+    padding-inline: var(--space-4) var(--space-3);
+    text-align: end;
   }
 }
 
@@ -184,6 +218,11 @@ hgroup > p {
 
 
 /* The search field takes the room that the button leaves, at any width */
+search {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
 search form {
   display: flex;
   flex-wrap: wrap;
@@ -199,12 +238,18 @@ search input {
   min-width: 0;
 }
 
+search p {
+  margin-top: var(--space-2);
+}
+
 /* A result has its artwork beside its title, author and button, whether or
-   not it has artwork. The list keeps role="list", as the navigation's does. */
+   not it has artwork */
 .search-results {
   margin: 0;
-  padding: 0;
-  list-style: none;
+}
+
+.search-results > li {
+  padding-block: var(--space-3);
 }
 
 .search-results article {
@@ -235,20 +280,31 @@ search input {
   overflow-wrap: anywhere;
 }
 
-/* The notes apart from the episode's header, as their heading kept them
-   before only a screen reader read it */
+/* The notes apart from the header above them, and their own headings and
+   paragraphs */
 .show-notes {
   margin-top: var(--space-5);
 }
 
+.show-notes h3,
+.show-notes h4 {
+  margin: var(--space-4) 0 var(--space-1);
+}
+
+.show-notes p {
+  margin: 0 0 var(--space-3);
+}
+
 /* The links to the lists of the directories, in a row that wraps */
+.search-jump {
+  margin-block: var(--space-3);
+}
+
 .search-jump ul {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25em 1em;
   margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .search-jump a {
@@ -280,27 +336,23 @@ search input {
 }
 
 .search-list h2 {
-  margin-bottom: 0;
-}
-
-/* The browser's own ring on the heading that the jump row moved the focus
-   to, which it leaves out after a click, so that the list shows where the
-   jump went (WCAG 2.2, SC 2.4.7 Focus Visible)
-
-   TODO: with the look, maybe a ring around the whole list instead, with
-   .search-list:focus-within, while the focus stays on the heading for a
-   screen reader */
-.search-list h2:focus {
-  outline: auto;
+  margin: var(--space-3) 0 0;
+  padding-bottom: var(--space-2);
 }
 
 
-/* The episodes of a show, whose list keeps role="list", as the
-   navigation's does */
+/* The episodes of a show */
 .episodes {
   margin: 0;
-  padding: 0;
-  list-style: none;
+}
+
+.episodes > li {
+  padding-block: var(--space-3);
+}
+
+.episodes h3,
+.search-results h3 {
+  margin: 0;
 }
 
 
@@ -340,6 +392,14 @@ search input {
   grid-column: 2;
 }
 
+.episode-intro p {
+  margin: 0;
+}
+
+.episode-intro .episode-actions {
+  margin-top: var(--space-3);
+}
+
 /* A show's parts beside its artwork, as tall as it at least, with the
    subscription and its choice at the bottom, level with the artwork's */
 .show-intro-body {
@@ -359,11 +419,9 @@ search input {
   margin-top: auto;
 }
 
-/* WCAG 2.2, SC 2.5.8 Target Size (Minimum), at the height of a control */
 .episode-intro button,
 .show-intro button {
   justify-self: start;
-  min-height: var(--control-height);
 }
 
 @media (min-width: 37.5em) {
@@ -396,10 +454,21 @@ search input {
   }
 }
 
-/* The chapters keep role="list", as the navigation's do */
+/* The chapters, each its time in a column beside its title */
 .chapters {
-  padding: 0;
-  list-style: none;
+  margin: 0;
+}
+
+.chapters li {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+}
+
+/* the transcript's summary as wide as its text, like a button */
+details summary {
+  display: inline-block;
 }
 
 .chapters,
@@ -458,12 +527,7 @@ search input {
   margin-top: 0.5em;
 }
 
-/* The people keep role="list", as the navigation's do */
-.people {
-  padding: 0;
-  list-style: none;
-}
-
+/* The people, each their picture beside their name */
 .people li {
   display: flex;
   align-items: center;
@@ -580,12 +644,6 @@ search input {
   min-width: 0;
 }
 
-/* WCAG 2.2, SC 2.5.8 Target Size (Minimum), at the height of a control */
-#player button,
-#player select {
-  min-height: var(--control-height);
-}
-
 @media (min-width: 37.5em) {
   #player {
     --player-height: 8rem;
@@ -635,12 +693,10 @@ search input {
 
 
 /* The queue and the inbox: each episode's artwork beside its title, show
-   and times, with its buttons below, which wrap on a phone. The lists
-   keep role="list", as the navigation's does. */
-.queue,
-.inbox {
-  padding: 0;
-  list-style: none;
+   and times, with its buttons below, which wrap on a phone */
+.queue > li,
+.inbox > li {
+  padding-block: var(--space-3);
 }
 
 .queue-episode,
@@ -675,14 +731,7 @@ search input {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
-}
-
-/* WCAG 2.2, SC 2.5.8 Target Size (Minimum), at the height of a control */
-.queue-actions button,
-.inbox-actions button,
-.episode-actions button,
-main section > button {
-  min-height: var(--control-height);
+  margin-top: var(--space-2);
 }
 
 
@@ -710,25 +759,11 @@ main section > button {
   margin: 0;
 }
 
-.library-tools select,
-.library-refresh button,
-.inbox-tools button,
-.new-episodes select {
-  min-height: var(--control-height);
-}
-
 /* The shows: a list of rows, the artwork beside the title, or a grid of
    tiles, the title below the artwork. Automatic is the list on a phone
-   and the grid wider than that. The list keeps role="list", as the
-   navigation's does. */
-.library-shows {
-  padding: 0;
-  list-style: none;
-}
-
+   and the grid wider than that. */
 .library-show h2 {
   margin: 0;
-  font-size: inherit;
 }
 
 /* The title's link covers the whole tile, so that a click on the artwork
@@ -749,19 +784,19 @@ main section > button {
   margin: 0;
 }
 
-.library-shows.list .library-show {
+.library-shows:is(.list, .auto) .library-show {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
   column-gap: 1em;
   align-items: start;
 }
 
-.library-shows.list .library-show img {
+.library-shows:is(.list, .auto) .library-show img {
   grid-row: span 3;
   width: 64px;
 }
 
-.library-shows.list .library-show > :not(img) {
+.library-shows:is(.list, .auto) .library-show > :not(img) {
   grid-column: 2;
   overflow-wrap: anywhere;
 }
@@ -778,23 +813,6 @@ main section > button {
 
 .library-shows.grid .library-show img {
   width: 100%;
-}
-
-.library-shows.auto .library-show {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  column-gap: 1em;
-  align-items: start;
-}
-
-.library-shows.auto .library-show img {
-  grid-row: span 3;
-  width: 64px;
-}
-
-.library-shows.auto .library-show > :not(img) {
-  grid-column: 2;
-  overflow-wrap: anywhere;
 }
 
 @media (min-width: 37.5em) {
@@ -815,21 +833,27 @@ main section > button {
 
 
 /* The Settings page: a column of groups, each setting a row of its label
-   and its control, which wraps on a phone, with a hint below. The groups
-   keep the fieldset's own look until the app has one. */
+   and its control, which wraps on a phone, with a hint below */
 .settings-group {
   margin: 0 0 1.5em;
+  padding: var(--space-3) 0 0;
   min-inline-size: 0;
+}
+
+/* A floated legend leaves the border, which it would otherwise break, so
+   the rule runs whole above its heading */
+.settings-group legend {
+  float: inline-start;
+  inline-size: 100%;
+  padding: 0;
+}
+
+.settings-group legend + * {
+  clear: both;
 }
 
 .settings-group legend h2 {
   margin: 0;
-}
-
-/* The ring on the heading of the group that a link went to, as on the
-   lists of the Search page */
-.settings-group legend h2:focus {
-  outline: auto;
 }
 
 .setting {
@@ -849,14 +873,10 @@ main section > button {
 .setting input[type=file],
 .setting button,
 .settings-group > button {
-  min-height: var(--control-height);
   max-width: 100%;
 }
 
-/* The directories of a search, a row each, which keeps role="list", as the
-   navigation's does */
+/* The directories of a search, a row each */
 .settings-directories {
   margin: 0;
-  padding: 0;
-  list-style: none;
 }

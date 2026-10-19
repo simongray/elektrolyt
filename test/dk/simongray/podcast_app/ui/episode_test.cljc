@@ -4,8 +4,7 @@
             [dk.simongray.podcast-app.episode-test :as episode-test]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
-            [dk.simongray.podcast-app.ui.show-test :refer [spoken text-of]]
-            [dk.simongray.podcast-app.ui-test :refer [elements]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements nodes spoken text-of]]))
 
 (defn episode-page
   "The state of the Episode page of the second episode of the test's feed,
@@ -19,11 +18,6 @@
                       :path-params  {:guid episode-test/g :hash episode-test/hash-2}
                       :query-params (cond-> {:url episode-test/url} t (assoc :t t))})
        (merge more))))
-
-(deftest the-times-of-an-episode
-  (is (= [:time {:datetime "PT754S"} "12:34"] (episode-ui/clock 754)))
-  (is (= [:time {:datetime "PT3723S"} "1:02:03"] (episode-ui/clock 3723)))
-  (is (= [:time {:datetime "PT5S"} "0:05"] (episode-ui/clock 5.7)) "to the second below"))
 
 (deftest the-chapters-and-their-links
   (let [page  (episode-ui/route-page (episode-page nil))
@@ -61,10 +55,10 @@
     (is (= "Play from 1:13" (text-of (button nil nil 73))) "from the time of the link")
     (is (= [[:player/play (episode/playable page) 73]]
            (get-in (button nil nil 73) [1 :on :click])))
-    (is (= "Resume, 50 min left" (text-of (button nil {:position 600} nil)))
+    (is (= "Resume, 50m left" (text-of (button nil {:position 600} nil)))
         "where the listener left it")
     (is (= "Play" (text-of (button nil {:position 600 :played? true} nil))) "unless it's played")
-    (is (= "Resume, 50 min left" (text-of (button (playing (:id page) false) {:position 600} nil)))
+    (is (= "Resume, 50m left" (text-of (button (playing (:id page) false) {:position 600} nil)))
         "while it's paused")
     (is (= [[:player/pause]] (get-in (button (playing (:id page) true) nil nil) [1 :on :click]))
         "and Pause while it plays, with no aria-pressed")
@@ -84,7 +78,7 @@
     (is (= "Episode 2: The Present – Podcasts" (ui/document-title (episode-page nil))))
     (is (= ["h1" "h2" "h3" "h2"]
            (keep #(when (vector? %) (re-find #"^h[1-6]" (name (first %))))
-                 (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) (elements :main#main x))))
+                 (nodes (elements :main#main x))))
         "the title, Show notes, the notes' own heading below it, and the Details")
     (let [[article] (elements :article.with-details x)]
       (is (= (pr-str [episode-test/g "https://example.org/?p=2"]) (:replicant/key (second article)))
@@ -105,9 +99,10 @@
   (is (= "3" (episode-ui/number-text 3.0))))
 
 (deftest the-facts-of-an-episode
-  (let [page  (episode-ui/route-page (episode-page nil))
-        intro #(episode-ui/intro [:h1 "Episode 2"] (merge page %) nil nil nil nil true)]
-    (is (= "Episode 2, 1 h, Explicit"
+  (let [state (episode-page nil)
+        page  (episode-ui/route-page state)
+        intro #(episode-ui/intro state [:h1 "Episode 2"] (merge page %) true)]
+    (is (= "Episode 2, 1h, Explicit"
            (spoken (second (elements :p (intro {:numbering {:type "full" :episode 2} :published nil
                                                 :explicit? true})))))
         "after the show, which is the heading's subtitle")
@@ -115,7 +110,7 @@
                               "Details" [:span {:aria-hidden "true"} " ↓"]]]]
            (elements :p.details-link (intro {})))
         "and a link to its Details")
-    (is (empty? (elements :p.details-link (episode-ui/intro [:h1 "Episode 2"] page nil nil nil nil false)))
+    (is (empty? (elements :p.details-link (episode-ui/intro state [:h1 "Episode 2"] page false)))
         "but none when it has no Details")))
 
 (deftest the-links-that-support-the-show
@@ -136,8 +131,7 @@
     (is (= "Creative Commons Attribution 4.0" (text-of (first (get rows "License")))))
     (is (= ["86 MB"] (get rows "File")))
     (is (= [nil] (get (into {} (episode-ui/details-rows {:enclosure {:length 0}})) "File"))
-        "a length of 0 says that the feed doesn't know it"))
-  (is (= ["850 kB" "86 MB" "1.5 GB"] (map episode-ui/size-text [850000 86000000 1500000000]))))
+        "a length of 0 says that the feed doesn't know it")))
 
 (deftest the-transcript-on-request
   (let [page  (episode-ui/route-page (episode-page nil))

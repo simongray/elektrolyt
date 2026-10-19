@@ -2,14 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
             [dk.simongray.podcast-app.ui.show :as show]
-            [dk.simongray.podcast-app.ui-test :refer [elements]]))
-
-(deftest the-duration-of-an-episode
-  (is (= "1 h 23 min" (show/duration-text 4980)))
-  (is (= "2 h" (show/duration-text 7200)))
-  (is (= "45 min" (show/duration-text 2700)))
-  (is (= "1 min" (show/duration-text 40)) "rounded to the minute")
-  (is (= "20 s" (show/duration-text 20)) "but for less than half a minute"))
+            [dk.simongray.podcast-app.ui-test :refer [elements text-of]]))
 
 (deftest the-status-of-the-episodes
   (is (= "Loading episodes…" (show/status-text :loading 20 nil nil)) "while the whole feed is fetched")
@@ -20,22 +13,6 @@
          (show/status-text :failed 0 {:message "The server answered 404."} nil)))
   (is (= "207 episodes. 2 new episodes are in." (show/status-text :done 207 nil 2)))
   (is (= "207 episodes. 1 new episode is in." (show/status-text :done 207 nil 1))))
-
-(defn text-of
-  "The text of the Hiccup `x`, as one string."
-  [x]
-  (apply str (filter string? (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x))))
-
-(defn spoken
-  "The text of the Hiccup `x` that a screen reader reads, as one string:
-  all of it but what's aria-hidden."
-  [x]
-  (let [hidden? #(and (vector? %) (= "true" (:aria-hidden (second %))))]
-    (->> (tree-seq #(and ((some-fn vector? seq?) %) (not (hidden? %)))
-                   #(if (vector? %) (rest %) %)
-                   x)
-         (filter string?)
-         (apply str))))
 
 (deftest a-show-that-is-still-on-its-way
   (let [state #(hash-map :route {:name :route/show :path-params {:guid "g"} :query-params {}}
@@ -56,19 +33,26 @@
     (is (re-find #"^\d+ episodes?\.$" status)
         "lists its episodes from the library, whatever a load of the show before its subscription left")))
 
+(defn show-page
+  "The state of the Show page of the show g, whose load is `loaded`."
+  [loaded]
+  {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
+   :shows {"g" loaded}})
+
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
-        href     #(str "/episodes/" (:guid %))
-        section  (show/episodes "g" href rows :done 20 nil nil)
+        section  (show/episodes (show-page {:status :done :shown 20}) rows)
         [_ & xs] section
         items    (some #(when (and (vector? %) (= :ol.episodes (first %))) (last %)) xs)
-        button   (some #(when (and (vector? %) (= :button (first %))) %) xs)]
+        button   (some #(when (and (vector? %) (= :button (first %))) %) xs)
+        [_ {:keys [href]} title] (get-in (vec (first items)) [2 1 1])]
     (is (= 20 (count items)))
-    (is (= [:a {:href "/episodes/0"} "Episode 0"] (get-in (vec (first items)) [2 1 1]))
+    (is (= "Episode 0" title))
+    (is (re-find #"^/shows/g/episodes/\w+/episode-0$" href)
         "each title links to the page of its episode")
     (is (= [[:show/more "g" 45]] (get-in button [1 :on :click])))
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
-                    (show/episodes "g" href rows :done 45 nil nil)))
+                    (show/episodes (show-page {:status :done :shown 45}) rows)))
         "no button once they're all listed")))
 
 (deftest how-often-a-show-publishes
@@ -150,7 +134,7 @@
 
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]
-        [_ & xs]  (show/episodes "g" #(str "/episodes/" (:guid %)) rows :done 20 nil 2)
+        [_ & xs]  (show/episodes (show-page {:status :done :newer {:count 2}}) rows)
         buttons   (filter #(and (vector? %) (= :button (first %))) xs)]
     (is (= [[[:show/newer "g"]] "Show the new episodes"]
            ((juxt #(get-in % [1 :on :click]) last) (first buttons)))

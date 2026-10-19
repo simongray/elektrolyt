@@ -10,3 +10,10 @@
   comma that only a screen reader reads."
   (list [:span {:aria-hidden "true"} " · "]
         [:span.visually-hidden ", "]))
+
+(defn line
+  "The `facts` in a line, e.g. Technology · Explicit, or nil when none of
+  them has a value."
+  [facts]
+  (when-let [facts (seq (remove nil? facts))]
+    (into [:p] (interpose separator facts))))

@@ -4,8 +4,7 @@
             [dk.simongray.podcast-app.queue-test :as queue-test :refer [id state]]
             [dk.simongray.podcast-app.ui.player-test :refer [buttons]]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
-            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
-            [dk.simongray.podcast-app.ui-test :refer [elements]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements text-of]]))
 
 (defn button-of
   "The attributes of the button of the Hiccup `x` whose text is `text`."
@@ -15,7 +14,7 @@
 (deftest the-queue-page
   (let [x (queue-ui/content (state true 1 2 3))]
     (is (re-find #"Now playingEpisode 1" (text-of (elements :section x))))
-    (is (re-find #"2 episodes, 20 min" (text-of x)) "how many are up next, and for how long")
+    (is (re-find #"2 episodes, 20m"(text-of x)) "how many are up next, and for how long")
     (is (= ["Episode 2" "Episode 3"] (map text-of (elements :h3 (elements :ol.queue x)))))
     (testing "the buttons of a row, named by the episode"
       (is (some? (button-of x "Remove Episode 2")))

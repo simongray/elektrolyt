@@ -5,22 +5,22 @@
   A move or a removal is announced in the page's status line, and the
   focus stays on the button that did it, or moves to the next row's after
   a removal, so that a keyboard and a screen reader keep their place."
-  (:require [dk.simongray.podcast.feed.guid :as guid]
-            [dk.simongray.podcast.profile :as profile]
+  (:require [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
-            [dk.simongray.podcast-app.ui.show :as show-ui]))
+            [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn control-id
   "The id of the button `kind`, e.g. :remove, of the row of the episode
   `id`, by which the focus finds it again after a change."
   [id kind]
-  (str "queue-" (guid/short-hash (pr-str id)) "-" (name kind)))
+  (rows/control-id "queue" id kind))
 
 (defn episode-href
   "The path of the page of the queued episode `id` titled `title`, with the
@@ -33,11 +33,10 @@
 (defn time-left
   "How long the `episode` of the queue has left, e.g. \"45 min left\", or
   its duration while it hasn't started."
-  [{:keys [duration position remaining] :as episode}]
+  [{:keys [position remaining] :as episode}]
   (when (number? remaining)
-    [:time {:datetime (str "PT" (long remaining) "S")}
-     (show-ui/duration-text remaining)
-     (when (pos? position) " left")]))
+    (cond-> (time-ui/duration remaining)
+      (pos? position) (conj " left"))))
 
 (defn actions
   "The buttons of the `episode` at `position` of Up next, of `n` episodes,
@@ -62,9 +61,7 @@
   (list
    (artwork/img episode 48 (colors/placeholder state episode))
    [:h3 [:a {:href (episode-href library id title)} title]]
-   [:p show
-    (when-let [left (time-left episode)]
-      (list facts-ui/separator left))]))
+   (facts-ui/line [show (time-left episode)])))
 
 (defn now-playing
   "The section of the episode that the player has, of the `state`."
@@ -74,13 +71,12 @@
    [:article.queue-episode (row state episode)]])
 
 (defn summary
-  "The count and the time left of the `episodes`, e.g. \"4 episodes, 2 h 30
-  min\"."
+  "The count and the time left of the `episodes`, e.g. \"4 episodes, 2h
+  30m\"."
   [episodes]
-  (let [n    (count episodes)
-        left (reduce + 0 (keep :remaining episodes))]
-    (str n (if (= 1 n) " episode" " episodes")
-         (when (pos? left) (str ", " (show-ui/duration-text left))))))
+  (let [left (reduce + 0 (keep :remaining episodes))]
+    (str (text/counted (count episodes) "episode")
+         (when (pos? left) (str ", " (time-ui/duration-text left))))))
 
 (def clear-dialog-id
   "The id of the dialog that asks before the queue is cleared."
@@ -104,7 +100,7 @@
             :aria-labelledby "clear-queue-title"
             :on              {:close [[:queue/clear-closed undo-id]]}}
    [:h2#clear-queue-title "Clear the queue?"]
-   [:p (str "This takes " n (if (= 1 n) " episode" " episodes")
+   [:p (str "This takes " (text/counted n "episode")
             " out of the queue. The episode that plays stays.")]
    [:form {:method "dialog"}
     [:button {:value "cancel" :autofocus true} "Cancel"]
@@ -127,14 +123,13 @@
           [:p "Nothing in the queue."]
           (when (pos? new-ones)
             [:p "Your " [:a {:href (routes/href :route/inbox)} "Inbox"]
-             " has " (inbox/counted new-ones) " to choose from."])
+             " has " (text/counted new-ones "episode") " to choose from."])
           [:p "Add episodes from their pages with Play next or Add to queue, "
            "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."]))
        [:p.queue-summary (summary episodes)])
      ;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until
-     ;; the next change, rather than in a toast that times out
-     ;; the focus goes to the first episode that it puts back, since the
-     ;; button goes
+     ;; the next change, rather than in a toast that times out. The focus
+     ;; goes to the first episode that it puts back, since the button goes.
      (when queue-undo
        (let [[[first-id]] (:restore queue-undo)]
          [:button {:type "button"
@@ -146,7 +141,7 @@
        (list
         [:ol.queue {:role "list"}
          (for [[i {:keys [id] :as episode}] (map-indexed vector episodes)]
-           (let [next-one (or (get episodes (inc i)) (get episodes (dec i)))]
+           (let [next-one (rows/neighbour episodes i)]
              [:li {:replicant/key (pr-str id)}
               [:article.queue-episode
                (row state episode)
@@ -160,9 +155,7 @@
 (defn content
   "The content of the Queue page of the `state`, below its heading."
   [state]
-  (if-not (:library state)
-    [:p "The library couldn't be read."]
-    (list
-     (when-let [episode (queue/current state)]
-       (now-playing state episode))
-     (up-next state))))
+  (list
+   (when-let [episode (queue/current state)]
+     (now-playing state episode))
+   (up-next state)))

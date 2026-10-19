@@ -18,49 +18,43 @@
   "The IndexedDB database of the caches, apart from the library's."
   (indexeddb/store "dk.simongray.podcast-app.cache"))
 
+(defn config
+  "The config of a cache of like-minded in the store, whose keys begin
+  with `prefix`, which keeps `max-count` values at most, each for `days`."
+  [prefix max-count days]
+  {:store       store
+   :prefix      prefix
+   :max-count   max-count
+   :max-seconds (* days 24 60 60)
+   :codec       transit/codec})
+
 (def searches
   "The lists of the directories by directory and query, at most 100
   searches and for 30 days."
-  {:store       store
-   :prefix      "search."
-   :max-count   100
-   :max-seconds (* 30 24 60 60)
-   :codec       transit/codec})
+  (config "search." 100 30))
 
 (def feed-urls
-  "The URLs of the feeds that the Podcast Index found by guid, for 30
-  days."
-  {:store       store
-   :prefix      "feed-url."
-   :max-count   500
-   :max-seconds (* 30 24 60 60)
-   :codec       transit/codec})
+  "The URLs of the feeds that the Podcast Index found by guid, at most 500
+  and for 30 days."
+  (config "feed-url." 500 30))
 
 ;; Pocket Casts keeps a show that the listener only looked at for 7 days
 ;; https://github.com/Automattic/pocket-casts-android/blob/cb128be/modules/services/repositories/src/main/java/au/com/shiftyjelly/pocketcasts/repositories/podcast/PodcastManagerImpl.kt#L218-L235
 (def shows
   "The feeds of shows outside the library, by the URL of each, at most 20
   and for 7 days."
-  {:store       store
-   :prefix      "show."
-   :max-count   20
-   :max-seconds (* 7 24 60 60)
-   :codec       transit/codec})
+  (config "show." 20 7))
 
-;; Fetch, request cache mode: no-store neither reads nor writes the HTTP
-;; cache
-;; https://fetch.spec.whatwg.org/#concept-request-cache-mode
 ;; An artwork whose image changes usually changes its URL too, so its
 ;; colours keep for long
 (def colors
   "The colours of artwork by the URL of each, as colors/wanted names
   them, at most 500 and for 90 days."
-  {:store       store
-   :prefix      "colors."
-   :max-count   500
-   :max-seconds (* 90 24 60 60)
-   :codec       transit/codec})
+  (config "colors." 500 90))
 
+;; Fetch, request cache mode: no-store neither reads nor writes the HTTP
+;; cache
+;; https://fetch.spec.whatwg.org/#concept-request-cache-mode
 (defn send
   "Send the `request` through the proxy of the app's server, past the
   browser's HTTP cache, as the requests to the directories go."

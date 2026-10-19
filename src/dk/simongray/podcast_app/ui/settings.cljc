@@ -16,6 +16,8 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.settings :as settings]
+            [dk.simongray.podcast-app.text :as text]
+            [dk.simongray.podcast-app.ui.controls :as controls-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.subscription :as subscription]))
 
@@ -45,24 +47,14 @@
   [k]
   (routes/href :route/settings nil nil (name k)))
 
-(defn option-value
-  "The value of an option of a select for the value `v`, a number or a
-  keyword."
-  [v]
-  (if (keyword? v) (name v) (str v)))
-
 (defn choice
-  "A select with the `id`, labelled `label`, of the `options`, pairs of a
-  value and its text, with `chosen` selected, whose change dispatches the
-  `action`, which holds the placeholder of the new value."
+  "A select of controls-ui/select with the `id`, labelled `label`, of the
+  `options`, with `chosen` selected, whose change dispatches the
+  `action`, in a row of the settings."
   [id label options chosen action]
   [:div.setting
    [:label {:for id} label]
-   [:select {:id id :on {:change [action]}}
-    (for [[v text] options]
-      [:option {:value    (option-value v)
-                :selected (= (option-value v) (option-value chosen))}
-       text])]])
+   (controls-ui/select id options chosen action)])
 
 ;; WAI-ARIA APG, switch pattern: a checkbox with role="switch", which every
 ;; browser announces as a switch, and which look.css draws as one in every
@@ -85,47 +77,50 @@
    [:p {:id (str id "-hint")} hint]])
 
 (defn appearance
-  "The choice of the app's colours, by the listener's preferences `prefs`:
-  light or dark, the contrast, whether the artwork colours the app, and
-  whether each page's link in the navigation has a colour of its own,
+  "The choice of the app's colours in the `state`: light or dark, the
+  contrast, whether the artwork colours the app, whether each page's link
+  in the navigation has a colour of its own, and the size of the player,
   which sync with the profile as the other preferences do."
-  [{:keys [appearance contrast artwork-colors?] :as prefs}]
-  (group :appearance "Appearance"
-         (choice "light-or-dark" "Light or dark" settings/appearances
-                 appearance [:settings/prefer :appearance [:event/target-keyword]])
-         (choice "contrast" "Contrast" settings/contrasts
-                 contrast [:settings/prefer :contrast [:event/target-keyword]])
-         (switch "artwork-colours" "Colours from the artwork"
-                 (str "The player takes its colours from the artwork of what "
-                      "plays, and a show's page from the show's artwork. "
-                      "Otherwise the player keeps the app's own dark grey, and a "
-                      "show's page the app's own colours.")
-                 artwork-colors? :artwork-colors?)
-         (choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
-                 (settings/navigation-palette prefs) [:settings/prefer :navigation-palette [:event/target-keyword]])
-         (choice "player-size" "Player size" settings/player-sizes
-                 (settings/player-size prefs) [:settings/prefer :player-size [:event/target-keyword]])))
+  [state]
+  (let [{:keys [appearance contrast]} (settings/preferences state)]
+    (group :appearance "Appearance"
+           (choice "light-or-dark" "Light or dark" settings/appearances
+                   appearance [:settings/prefer :appearance [:event/target-keyword]])
+           (choice "contrast" "Contrast" settings/contrasts
+                   contrast [:settings/prefer :contrast [:event/target-keyword]])
+           (switch "artwork-colours" "Colours from the artwork"
+                   (str "The player takes its colours from the artwork of what "
+                        "plays, and a show's page from the show's artwork. "
+                        "Otherwise the player keeps the app's own dark grey, and a "
+                        "show's page the app's own colours.")
+                   (settings/artwork-colors? state) :artwork-colors?)
+           (choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
+                   (settings/navigation-palette state) [:settings/prefer :navigation-palette [:event/target-keyword]])
+           (choice "player-size" "Player size" settings/player-sizes
+                   (settings/player-size state) [:settings/prefer :player-size [:event/target-keyword]]))))
 
 (defn playback
-  "The settings of how the listener plays, by their preferences `prefs`."
-  [{:keys [skip-back skip-forward playback-rate continuous? track-buttons] :as prefs}]
-  (group :playback "Playback"
-         (choice "skip-back" "Skip back"
-                 (for [s (settings/skip-options skip-back)] [s (str s " seconds")])
-                 skip-back [:settings/prefer :skip-back [:event/target-number]])
-         (choice "skip-forward" "Skip forward"
-                 (for [s (settings/skip-options skip-forward)] [s (str s " seconds")])
-                 skip-forward [:settings/prefer :skip-forward [:event/target-number]])
-         (choice "speed" "Speed"
-                 (for [s player/speeds] [s (str s "×")])
-                 playback-rate [:settings/prefer :playback-rate [:event/target-number]])
-         (switch "continuous" "Continuous play"
-                 (str "When an episode ends and the queue has no other, the next "
-                      "episode of its show plays.")
-                 continuous? :continuous?)
-         (choice "track-buttons" "Next and previous on the lock screen go to"
-                 settings/track-buttons
-                 track-buttons [:settings/prefer :track-buttons [:event/target-keyword]])))
+  "The settings of how the listener plays, by their preferences in the
+  `state`."
+  [state]
+  (let [{:keys [skip-back skip-forward playback-rate continuous? track-buttons]}
+        (settings/preferences state)]
+    (group :playback "Playback"
+           (choice "skip-back" "Skip back"
+                   (for [s (settings/skip-options skip-back)] [s (str s " seconds")])
+                   skip-back [:settings/prefer :skip-back [:event/target-number]])
+           (choice "skip-forward" "Skip forward"
+                   (for [s (settings/skip-options skip-forward)] [s (str s " seconds")])
+                   skip-forward [:settings/prefer :skip-forward [:event/target-number]])
+           (choice "speed" "Speed" player/speed-options
+                   playback-rate [:settings/prefer :playback-rate [:event/target-number]])
+           (switch "continuous" "Continuous play"
+                   (str "When an episode ends and the queue has no other, the next "
+                        "episode of its show plays.")
+                   continuous? :continuous?)
+           (choice "track-buttons" "Next and previous on the lock screen go to"
+                   settings/track-buttons
+                   track-buttons [:settings/prefer :track-buttons [:event/target-keyword]]))))
 
 (defn new-episodes
   "The default of where the new episodes of a new show go, in the `state`,
@@ -222,7 +217,7 @@
                              [:button {:type "button" :on {:click [[:storage/persist]]}}
                               "Ask the browser to keep it"]))
          (when usage
-           [:p (str "The app uses " (settings/megabytes usage) " here.")])
+           [:p (str "The app uses " (text/megabytes usage) " here.")])
          [:p "It also keeps your searches for a month and the shows you "
           "opened for a week, so that they show at once."]
          [:button {:type "button" :on {:click [[:cache/clear]]}}
@@ -231,13 +226,11 @@
 
 (defn content
   "The content of the Settings page of the `state`, below its heading."
-  [{:keys [library] :as state}]
-  (if-not library
-    [:p "The library couldn't be read."]
-    (list
-     (appearance (settings/preferences state))
-     (playback (settings/preferences state))
-     (new-episodes state)
-     (search-directories state)
-     (subscriptions state)
-     (this-browser state))))
+  [state]
+  (list
+   (appearance state)
+   (playback state)
+   (new-episodes state)
+   (search-directories state)
+   (subscriptions state)
+   (this-browser state)))

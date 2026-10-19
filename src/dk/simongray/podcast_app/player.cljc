@@ -40,6 +40,10 @@
   "The speeds that the player offers, in quarters, as YouTube and Plyr do."
   [0.5 0.75 1 1.25 1.5 1.75 2 2.25 2.5 2.75 3])
 
+(def speed-options
+  "The speeds that the player offers, with the text of each, e.g. 1.5×."
+  (for [s speeds] [s (str s "×")]))
+
 (def report-seconds
   "How many seconds of playing pass between two reports of the position to
   the library, as in podcast-clj's inspector and AntennaPod."
@@ -154,12 +158,6 @@
   prefers in the `profile`, as a pair."
   [profile]
   ((juxt :skip-back :skip-forward) (profile/preferences profile)))
-
-(defn clock
-  "The `seconds` as a clock shows them, e.g. \"12:34\", or \"–:––\" while
-  they're unknown."
-  [seconds]
-  (or (time/format-clock seconds) "–:––"))
 
 (defn with-duration
   "The `media` state of the audio element with the duration of the

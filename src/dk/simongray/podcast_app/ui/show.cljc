@@ -11,64 +11,40 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
+            [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.details :as details]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
-            [dk.simongray.podcast-app.ui.subscription :as subscription]))
+            [dk.simongray.podcast-app.ui.subscription :as subscription]
+            [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn guid
   "The guid of the show of the Show page of the `state`."
   [state]
   (get-in state [:route :path-params :guid]))
 
-(defn duration-text
-  "The `seconds` of an episode as hours and minutes, e.g. \"1 h 23 min\",
-  or as seconds when it's shorter than half a minute."
-  [seconds]
-  (let [minutes (quot (+ (long seconds) 30) 60)
-        h       (quot minutes 60)
-        m       (rem minutes 60)]
-    (cond
-      (zero? minutes) (str (long seconds) " s")
-      (pos? h)        (str h " h" (when (pos? m) (str " " m " min")))
-      :else           (str m " min"))))
+(defn feed-url
+  "The URL of the feed of the show of the Show page of the `state`, from
+  show/feed-url, or nil."
+  [state]
+  (show/feed-url state (guid state)))
 
-(defn page-language
-  "The language of the page, which its dates are written in."
-  []
-  #?(:clj  "en"
-     :cljs (or (some-> js/globalThis .-document .-documentElement .-lang
-                       not-empty)
-               "en")))
+(defn library-key
+  "The key that the library of the `state` keeps the show of the Show page
+  under, or nil when it doesn't keep it."
+  [state]
+  (some-> (:library state) (show/library-key (guid state) (feed-url state))))
 
-(defn date-text
-  "The date of the instant `inst`, as the language of the page writes it,
-  e.g. \"Oct 16, 2026\"."
-  [inst]
-  #?(:clj  (str inst)
-     :cljs (.toLocaleDateString inst (page-language) #js {:dateStyle "medium"})))
-
-(defn date-attribute
-  "The instant `inst` as the datetime of a time element."
-  [inst]
-  #?(:clj  (str (.toInstant ^java.util.Date inst))
-     :cljs (.toISOString inst)))
-
-(defn date
-  "The date of the instant `inst` as a time element."
-  [inst]
-  [:time {:datetime (date-attribute inst)} (date-text inst)])
-
-;; ECMA-402, Intl.DisplayNames: the name of a language in the language of
-;; the page, which gives back the tag itself when it doesn't know it
-(defn language-name
-  "The name of the language `tag` in the language of the page, e.g.
-  \"English\" for en, or the tag when the browser can't name it."
-  [tag]
-  #?(:clj  tag
-     :cljs (try
-             (.of (js/Intl.DisplayNames. #js [(page-language)] #js {:type "language"}) tag)
-             (catch :default _ tag))))
+;; A show that the library keeps is in it whole, so a load of its feed from
+;; before the subscription, e.g. the preview of a link, says nothing of it,
+;; only how many episodes the page lists
+(defn loaded
+  "What the `state` keeps of the load of the show of the Show page, which
+  dk.simongray.podcast-app.show describes, or of a show that the library
+  keeps, only how many episodes are :shown."
+  [state]
+  (cond-> (get-in state [:shows (guid state)])
+    (library-key state) (select-keys [:shown])))
 
 (defn cadence-text
   "How often a show publishes by its cadence of `ms` between episodes, in
@@ -124,8 +100,8 @@
      [["Website" [(details/web-link link nil)]]
       ["Support" (details/support funding)]
       [(if (next names) "Categories" "Category") names]
-      ["Language" [(some-> language language-name)]]
-      ["Latest episode" [(some-> latest date)]]
+      ["Language" [(some-> language text/language-name)]]
+      ["Latest episode" [(some-> latest time-ui/date)]]
       ["Schedule" [(schedule-text page)]]
       ["Order" [(when serial? "Serial, from the first episode")]]]
      (details/location-rows locations)
@@ -133,9 +109,6 @@
       ["Copyright" [copyright]]
       ["Feed" [(details/web-link url url)]]])))
 
-;; HTML, section 4.5.14: the time element gives a machine-readable date, or
-;; a duration such as PT5025S, besides the text that a reader sees. The dot
-;; between them is decoration, which a screen reader skips.
 (defn episode
   "An episode in the list of episodes, the `row` of its :title, its date of
   :published and its :duration in seconds, whose title links to the
@@ -143,15 +116,8 @@
   [href {:keys [title published duration] :as row}]
   [:article
    [:h3 [:a {:href href} title]]
-   (when (or published duration)
-     [:p
-      (when published
-        [:time {:datetime (date-attribute published)} (date-text published)])
-      (when (and published duration)
-        facts-ui/separator)
-      (when duration
-        [:time {:datetime (str "PT" (long duration) "S")}
-         (duration-text duration)])])])
+   (facts-ui/line [(some-> published time-ui/date)
+                   (some-> duration time-ui/duration)])])
 
 (defn status-text
   "What the status line of the episodes says, at the `status` of the load of
@@ -161,9 +127,9 @@
   (case status
     (:opening :previewing :previewed :loading) "Loading episodes…"
     :failed (str "The feed couldn't be fetched. " (:message error))
-    (str n (if (= 1 n) " episode." " episodes.")
+    (str (text/counted n "episode") "."
          (when newer
-           (str " " newer (if (= 1 newer) " new episode is in." " new episodes are in."))))))
+           (str " " (text/counted newer "new episode") (if (= 1 newer) " is in." " are in."))))))
 
 ;; A button that lists more, rather than a list that grows as it scrolls,
 ;; which a keyboard or a voice can't reach the end of (GitLab's audit of
@@ -172,25 +138,37 @@
 ;; offline cookbook has it, so that the list doesn't move by itself.
 ;; https://web.dev/articles/offline-cookbook#cache-then-network
 (defn episodes
-  "The episodes of the show `guid`, the `rows`, at the `status` of its load
-  with the `error` of a fetch that failed, as many of them as `shown`, and
-  a button for the count of `newer` episodes that wait. The link to each
-  goes to what `href-fn` gives for its row."
-  [guid href-fn rows status shown error newer]
-  [:section {:aria-labelledby "episodes"}
-   [:h2#episodes {:tabindex -1} "Episodes"]
-   [:p {:role "status"} (status-text status (count rows) error newer)]
-   (when newer
-     [:button {:type "button" :on {:click [[:show/newer guid]]}}
-      (if (= 1 newer) "Show the new episode" "Show the new episodes")])
-   (when (seq rows)
-     [:ol.episodes {:role "list"}
-      (for [row (take shown rows)]
-        [:li {:replicant/key (:guid row)} (episode (href-fn row) row)])])
-   (when (< shown (count rows))
-     [:button {:type "button"
-               :on   {:click [[:show/more guid (count rows)]]}}
-      "Show more episodes"])])
+  "The episodes of the show of the Show page of the `state`, its `rows`,
+  as many of them as its load has :shown, with the status of the load and
+  a button for the newer episodes that wait. Each title links to the page
+  of its episode."
+  [state rows]
+  (let [g                                  (guid state)
+        k                                  (library-key state)
+        url                                (when-not k (feed-url state))
+        {:keys [status shown error newer]} (loaded state)
+        shown                              (or shown show/page-size)
+        newer                              (:count newer)]
+    [:section {:aria-labelledby "episodes"}
+     [:h2#episodes {:tabindex -1} "Episodes"]
+     [:p {:role "status"} (status-text status (count rows) error newer)]
+     (when newer
+       [:button {:type "button" :on {:click [[:show/newer g]]}}
+        (str "Show the " (text/plural newer "new episode"))])
+     (when (seq rows)
+       [:ol.episodes {:role "list"}
+        (for [row (take shown rows)]
+          [:li {:replicant/key (:guid row)}
+           (episode (routes/episode-href (or k g) (:guid row) (:title row) url) row)])])
+     (when (< shown (count rows))
+       [:button {:type "button"
+                 :on   {:click [[:show/more g (count rows)]]}}
+        "Show more episodes"])]))
+
+(def looking-up
+  "What the page of a show or an episode says while the Podcast Index is
+  asked where the show's feed is."
+  [:p {:role "status"} "Looking for the show in the Podcast Index…"])
 
 (def not-found
   "The content of the page of a show that neither the library, the link to
@@ -206,58 +184,49 @@
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
-  "The header of the article of the show `page` at `url` in the `state`: its
-  `heading` with its author and facts in a line below it, its artwork, and
-  beside it the link to its Details when it has them, `aside?`, and its
-  subscription as the library key `k` has it, beside where its new
-  episodes go, and its description below."
-  [state heading {:keys [title author notes] :as page} url k aside?]
-  [:header.show-intro
-   [:hgroup heading (details/facts-line (cons author (facts page)))]
-   (artwork/img page 160 (merge {:fetchpriority "high"} (colors/placeholder state page)))
-   [:div.show-intro-body
-    (when aside?
-      details/link)
-    (when url
-      (let [status (subscription/status state
-                                        (search/subscribed-urls (:library state))
-                                        url)]
-        (list [:div.show-subscription
-               (subscription/button status url title true)
-               (when (= :subscribed status)
-                 (list [:span {:aria-hidden "true"} "·"]
-                       (subscription/new-episodes (:library state) k)))]
-              (subscription/error state url))))]
-   (when notes
-     [:div.show-notes notes])])
+  "The header of the article of the show `page` of the Show page of the
+  `state`: its `heading` with its author and facts in a line below it, its
+  artwork, and beside it the link to its Details when it has them,
+  `aside?`, and its subscription, beside where its new episodes go, and
+  its description below."
+  [state heading {:keys [title author notes] :as page} aside?]
+  (let [url (feed-url state)]
+    [:header.show-intro
+     [:hgroup heading (facts-ui/line (cons author (facts page)))]
+     (artwork/img page 160 (merge {:fetchpriority "high"} (colors/placeholder state page)))
+     [:div.show-intro-body
+      (when aside?
+        details/link)
+      (when url
+        (let [status (subscription/status state
+                                          (search/subscribed-urls (:library state))
+                                          url)]
+          (list [:div.show-subscription
+                 (subscription/button status url title true)
+                 (when (= :subscribed status)
+                   (list [:span {:aria-hidden "true"} "·"]
+                         (subscription/new-episodes (:library state) (library-key state))))]
+                (subscription/error state url))))]
+     (when notes
+       [:div.show-notes notes])]))
 
 (defn content
   "The content of the Show page of the `state` under its `heading`: an
   article, whose header has the heading, or else the heading and what
   became of the show."
   [state heading]
-  (let [g                                  (guid state)
-        url                                (show/feed-url state g)
-        k                                  (some-> (:library state) (show/library-key g url))
-        page                               (show/page state g)
-        ;; a show that the library keeps is in it whole, so a load of its
-        ;; feed from before the subscription, e.g. the preview of a link,
-        ;; says nothing of it, only how many episodes the page lists
-        {:keys [status shown error newer]} (cond-> (get-in state [:shows g])
-                                             k (select-keys [:shown]))]
+  (let [page                  (show/page state (guid state))
+        {:keys [status error]} (loaded state)]
     (if-not page
       (list heading
             (case status
-              :looking-up                     [:p {:role "status"} "Looking for the show in the Podcast Index…"]
+              :looking-up                     looking-up
               (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
               :failed                         [:p {:role "status"} (status-text status 0 error nil)]
               not-found))
-      (let [aside (details/aside (details-rows page url) (:people page))]
+      (let [aside (details/aside (details-rows page (feed-url state)) (:people page))]
         (details/article
          {}
-         [(intro state heading page url k (some? aside))
-          (episodes g
-                    #(routes/episode-href (or k g) (:guid %) (:title %) (when-not k url))
-                    (:episodes page) status (or shown show/page-size) error
-                    (:count newer))]
+         [(intro state heading page (some? aside))
+          (episodes state (:episodes page))]
          aside)))))

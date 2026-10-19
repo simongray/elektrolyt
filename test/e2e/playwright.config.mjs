@@ -29,6 +29,10 @@ const port = process.env.E2E_PORT;
 const start = '((requiring-resolve \'dk.simongray.podcast-app.server/start!)'
   + ` {:port ${port} :secrets nil})`;
 
+// the libraries from the checkouts beside this one, like the watch's,
+// unless E2E_ALIASES names other aliases, e.g. ':server' on GitHub
+const aliases = process.env.E2E_ALIASES ?? ':server:local';
+
 export default defineConfig({
   testMatch: '*.spec.mjs',
   outputDir: '../../target/e2e',
@@ -43,7 +47,7 @@ export default defineConfig({
     { name: 'chrome', use: { browserName: 'chromium', channel: 'chrome' } },
   ],
   webServer: {
-    command: `clojure -M:server:local -e "${start}"`,
+    command: `clojure -M${aliases} -e "${start}"`,
     cwd: fileURLToPath(new URL('../..', import.meta.url)),
     url: `http://localhost:${port}/api/server`,
     timeout: 120_000,

@@ -12,7 +12,9 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
-            [dk.simongray.podcast-app.ui.facts :as facts-ui]))
+            [dk.simongray.podcast-app.ui.controls :as controls-ui]
+            [dk.simongray.podcast-app.ui.facts :as facts-ui]
+            [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn artwork
   "The artwork of the `playback`, or the image of its chapter at `seconds`,
@@ -27,13 +29,10 @@
 (defn now-playing
   "The title and the show of the `playback`, with its title of the chapter
   at `seconds`."
-  [{:keys [id title show] :as playback} seconds]
-  (let [chapter (player/chapter-at playback seconds)]
-    [:div.player-title
-     [:p [:a {:href (routes/episode-href (first id) (second id) title nil)} title]]
-     [:p show
-      (when-let [t (:title chapter)]
-        (list facts-ui/separator t))]]))
+  [{[feed-guid item-guid] :id :keys [title show] :as playback} seconds]
+  [:div.player-title
+   [:p [:a {:href (routes/episode-href feed-guid item-guid title nil)} title]]
+   (facts-ui/line [show (:title (player/chapter-at playback seconds))])])
 
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
 ;; Pause, has no aria-pressed
@@ -54,16 +53,13 @@
   (let [shown (cond-> media seeking (assoc :current-time seeking))]
     [:div#player-seek.player-seek
      [:label.visually-hidden {:for "player-position"} "Position"]
-     [:time {:datetime (str "PT" (long (or (:current-time shown) 0)) "S")}
-      (player/clock (:current-time shown))]
+     (time-ui/clock (:current-time shown))
      [:input (merge {:type "range"
                      :id   "player-position"
                      :on   {:input  [[:player/drag [:event/range-seek]]]
                             :change [[:player/press [:event/range-seek]]]}}
                     (controls/range-attributes shown))]
-     (let [left (player/remaining shown)]
-       [:time {:datetime (str "PT" (long (or left 0)) "S")}
-        "−" (player/clock left)])]))
+     (update (time-ui/clock (player/remaining shown)) 2 #(str "−" %))]))
 
 (defn skip-buttons
   "The buttons that skip back and forward by the seconds that the
@@ -84,20 +80,14 @@
      [:button {:type "button" :on {:click [[:player/chapter :previous]]}} "Previous chapter"]
      [:button {:type "button" :on {:click [[:player/chapter :next]]}} "Next chapter"])))
 
-;; Adrian Roselli, Be Careful Using 'menu': a select is the control for
-;; choosing a value, where a menu is for the commands of an application
-;; https://adrianroselli.com/2023/05/be-careful-using-menu.html
 (defn speed
   "The choice of the speed of the `media` state, which sets the listener's
   preference."
   [{:keys [playback-rate] :as media}]
-  (let [rate (or playback-rate 1)]
-    (list
-     [:label {:for "player-speed"} "Speed"]
-     [:select {:id "player-speed"
-               :on {:change [[:player/rate [:event/target-number]]]}}
-      (for [s player/speeds]
-        [:option {:value s :selected (== s rate)} (str s "×")])])))
+  (list
+   [:label {:for "player-speed"} "Speed"]
+   (controls-ui/select "player-speed" player/speed-options (or playback-rate 1)
+                       [:player/rate [:event/target-number]])))
 
 ;; An iPhone plays at the system's volume, which a page can neither set nor
 ;; read, so there the slider stays, disabled, for a layout that doesn't
@@ -193,5 +183,5 @@
   [{:keys [player] :as state}]
   (when (and (:id player) (player/shown-playback player))
     [:section#player {:aria-label "Player"
-                      :data-size  (name (settings/player-size (settings/preferences state)))}
+                      :data-size  (name (settings/player-size state))}
      (content state)]))

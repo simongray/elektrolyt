@@ -90,7 +90,7 @@ test('a search that the cache kept shows without asking again, and stands in for
   await page.clock.setFixedTime(new Date(noon.getTime() + 48 * hour));
   down = true;
   await page.reload();
-  await expect(appleList).toContainText("Didn't answer, so these are its shows of Oct 18, 2026.");
+  await expect(appleList).toContainText("Didn't answer, so these are its shows of 18 Oct 2026.");
   await expect(found).toBeVisible();
   expect(asked, 'a list two days old asks the directory again').toBe(2);
   await expect(appleList.getByRole('button', { name: /Try again/ })).toBeVisible();

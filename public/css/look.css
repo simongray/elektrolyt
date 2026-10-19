@@ -1,6 +1,6 @@
 /* The look: Charis on white paper, black ink, and bars in the colour of
-   the artwork of what plays, or of the page. Every value comes from
-   tokens.css, or from the --seed of an artwork, which the views set.
+   the artwork of what plays. Every value comes from tokens.css, or from
+   the seeds of artwork, which the views set.
 
    The design and its rounds, with the contrast of every pair at every hue
    of a seed: https://claude.ai/artifact/EJpYHsu9jDjgAG4ancc12m */
@@ -62,7 +62,11 @@ a:hover {
 /* One ring for the keyboard, an outline 2 px wide and 2 px off, which
    meets WCAG 2.2, SC 2.4.13, and which forced colours keep, as they don't
    a box shadow. The headings that a link moves the focus to show it after
-   a click too, so that the page shows where it went. */
+   a click too, so that the page shows where it went (SC 2.4.7).
+
+   TODO: maybe a ring around the whole list of a directory instead, with
+   .search-list:focus-within, while the focus stays on the heading for a
+   screen reader */
 :focus-visible,
 .search-list h2:focus,
 .settings-group legend h2:focus {
@@ -229,7 +233,6 @@ time,
 /* The paper, whose links, buttons and focus ring take the seed's own
    hue */
 .shell > main {
-  padding: var(--space-4) var(--gutter) var(--space-5);
   --accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
   --accent-ink: light-dark(oklch(100% 0 0), oklch(from var(--seed) 18% min(c, 0.03) h));
   --accent-soft: light-dark(oklch(from var(--seed) 95% min(c, 0.02) h), oklch(from var(--seed) 26% min(c, 0.03) h));
@@ -247,12 +250,10 @@ time,
 }
 
 /* Wider than a phone, the rail lies on the paper beside the text, as a
-   book's contents would, its tokens the content's again, with a thick,
-   light line between them that stops short of its top and of the player */
+   book's contents would, its tokens the content's again, with a thin grey
+   line between them that stops short of its top and of the player */
 @media (min-width: 37.5em) {
   .shell > nav {
-    position: relative;
-    padding: var(--space-4) var(--space-3) var(--space-3);
     background: transparent;
     color-scheme: inherit;
     --ink: inherit;
@@ -287,19 +288,13 @@ time,
     border-inline-end: 1px solid var(--divider);
   }
 
-  /* larger, and against the line, which they face, as a book's contents
-     face their page numbers */
   .shell > nav a {
-    justify-content: flex-end;
-    padding-inline: var(--space-4) var(--space-3);
     font-size: var(--step-1);
-    text-align: end;
   }
 
   /* the app's name at the head of the rail, as a book's title heads its
-     contents: in the face's own case and larger, above the links */
+     contents: in the face's own case and larger than the links */
   .shell > nav .app-name {
-    margin-bottom: var(--space-3);
     color: var(--ink);
     font-family: var(--font-display);
     font-size: var(--step-2);
@@ -327,7 +322,6 @@ summary {
 button,
 ::file-selector-button,
 summary {
-  padding: 0.3em 0.8em;
   font-weight: var(--weight-strong);
   cursor: pointer;
 }
@@ -354,13 +348,7 @@ button[aria-disabled="true"] {
   cursor: default;
 }
 
-select {
-  padding: 0.3em 0.5em;
-}
-
 input[type="search"] {
-  min-height: var(--control-height);
-  padding: 0.3em 0.65em;
   font-size: var(--step-0);
 }
 
@@ -406,7 +394,6 @@ input[role="switch"]:checked {
 .inbox > li,
 .episodes > li,
 .search-results > li {
-  padding-block: var(--space-3);
   border-bottom: 1px solid var(--rule-soft);
 }
 
@@ -415,7 +402,6 @@ input[role="switch"]:checked {
 .episodes h3,
 .search-results h3,
 .library-show h2 {
-  margin: 0;
   font-size: var(--step-1);
   font-weight: 400;
 }
@@ -448,11 +434,6 @@ input[role="switch"]:checked {
   font-size: var(--step--1);
 }
 
-.queue-actions,
-.inbox-actions {
-  margin-top: var(--space-2);
-}
-
 img {
   outline: 1px solid var(--rule-soft);
   outline-offset: -1px;
@@ -470,7 +451,6 @@ hr {
    small caps, as a book's chapter opens, and the chapters as a contents of
    times and titles */
 .episode-intro p {
-  margin: 0;
   color: var(--ink-2);
   font-size: var(--step--1);
 }
@@ -478,10 +458,6 @@ hr {
 /* the subtitle under a page's title, e.g. a show's author */
 hgroup > p {
   color: var(--ink-2);
-}
-
-.episode-intro .episode-actions {
-  margin-top: var(--space-3);
 }
 
 .show-notes {
@@ -497,34 +473,13 @@ hgroup > p {
   letter-spacing: 0.03em;
 }
 
-.show-notes h3,
-.show-notes h4 {
-  margin: var(--space-4) 0 var(--space-1);
-}
-
-.show-notes p {
-  margin: 0 0 var(--space-3);
-}
-
-.chapters {
-  margin: 0;
-}
-
 .chapters li {
-  display: grid;
-  grid-template-columns: 4.5em minmax(0, 1fr);
-  gap: var(--space-3);
-  padding-block: var(--space-2);
   border-bottom: 1px solid var(--rule-soft);
 }
 
 .chapters li > a:first-child {
   font-size: var(--step--1);
   padding-top: 0.15em;
-}
-
-details summary {
-  display: inline-block;
 }
 
 /* The Details of a show or an episode: each name in small caps above its
@@ -572,19 +527,12 @@ details summary {
 
 
 /* Search: the field and its button, then the lists */
-search {
-  display: block;
-  margin-bottom: var(--space-3);
-}
-
 search p {
-  margin-top: var(--space-2);
   color: var(--ink-2);
   font-size: var(--step--1);
 }
 
 .search-jump {
-  margin-block: var(--space-3);
   font-size: var(--step--1);
 }
 
@@ -596,29 +544,14 @@ search p {
 }
 
 .search-list h2 {
-  margin-top: var(--space-3);
-  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--rule);
 }
 
 
 /* Settings: each group under a rule, rather than in the fieldset's box */
 .settings-group {
-  padding: var(--space-3) 0 0;
   border: 0;
   border-top: 1px solid var(--rule-soft);
-}
-
-/* A floated legend leaves the border, which it would otherwise break, so
-   the rule runs whole above its heading */
-.settings-group legend {
-  float: inline-start;
-  inline-size: 100%;
-  padding: 0;
-}
-
-.settings-group legend + * {
-  clear: both;
 }
 
 .setting p,

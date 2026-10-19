@@ -4,21 +4,23 @@
   says much of itself, while it plays, and the ways it can be missing."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast-app.episode :as episode]
+            [dk.simongray.podcast-app.scenes :refer [artwork url]]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
-            [dk.simongray.podcast-app.ui.search-scenes :as search-scenes]
             [portfolio.replicant :refer [defscene]]))
 
-(def url "https://feeds.podcastindex.org/pc20.xml")
-
-(def show-guid (guid/from-url url))
+(def show-guid
+  "The guid of the scenes' show, which its URL gives."
+  (guid/from-url url))
 
 (def item
+  "The scenes' episode, with show notes whose times play it and a
+  transcript."
   {:rss/title       "Episode 275: \"Off The Rails\""
    :rss/guid        {:content "https://example.org/?p=275"}
    :rss/pub-date    (js/Date. 1792000000000)
    :itunes/duration 5994
-   :itunes/image    {:href search-scenes/artwork}
+   :itunes/image    {:href artwork}
    :rss/enclosure   {:url "https://example.org/275.mp3" :type "audio/mpeg"}
    :rss/description (str "<h1>Show notes</h1>"
                          "<p>What is the future of independent podcast apps? "
@@ -28,9 +30,12 @@
    :podcast/transcripts [{:url "https://example.org/275.vtt" :type "text/vtt"}]})
 
 (def feed
+  "The start of the feed of the scenes' show, with its episode."
   {:rss/title "Podcasting 2.0" :rss/items [item]})
 
-(def hash-275 (guid/short-hash "https://example.org/?p=275"))
+(def hash-275
+  "The short hash of the guid of the scenes' episode, which names its page."
+  (guid/short-hash "https://example.org/?p=275"))
 
 (defn episode-page
   "The state of the Episode page with the `shown` entry of its show in
@@ -45,6 +50,8 @@
           more)))
 
 (def from-the-start
+  "The entry of the scenes' show in :shows once the start of its feed is
+  in, while the rest is fetched."
   {:url url :status :loading :head feed})
 
 (defn id
@@ -53,6 +60,8 @@
   (:id (episode-ui/route-page (episode-page from-the-start))))
 
 (def read-chapters
+  "What the files of the scenes' episode say once they're read: a chapters
+  file, one of whose chapters links to a web page."
   {:status :read
    :result {:chapters {:source   :file
                        :document {:chapters [{:start-time 0 :title "Intro"}

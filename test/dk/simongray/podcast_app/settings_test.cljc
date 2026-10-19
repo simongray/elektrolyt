@@ -50,6 +50,12 @@
   (is (= [:podcastindex :fyyd :apple] (settings/searched (settings/moved-source state :apple 9)))
       "no further than the end"))
 
-(deftest sizes
-  (is (= "12.3 MB" (settings/megabytes 12345678)))
-  (is (= "0.0 MB" (settings/megabytes 0))))
+(deftest clearing-the-cache
+  (let [state {:searches {"pc20" {}} :shows {"g" {}} :route {:name :route/settings}}]
+    (is (= {:route           {:name :route/settings}
+            :settings-status {:group :this-browser
+                              :text  "Cleared the searches and shows."}}
+           (settings/cleared state nil))
+        "the tab forgets them too")
+    (is (= {"pc20" {}} (:searches (settings/cleared state (ex-info "no" {}))))
+        "and keeps them when the cache couldn't be cleared")))

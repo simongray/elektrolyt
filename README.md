@@ -80,7 +80,8 @@ handlers.
 The `:local` alias takes podcast-clj, play-nice and colour-coded from the
 checkouts beside this one, `../podcasting`, `../play-nice` and
 `../colour-coded`, and like-minded, mind-meld and wary-fetch below
-podcast-clj too, so that a fix in any of them shows in the app at once. Without it, they come from the versions in `deps.edn`.
+podcast-clj too, so that a fix in any of them shows in the app at once.
+Without it, they come from the versions in `deps.edn`.
 
 The watch starts an nREPL server, whose port is in `.shadow-cljs/nrepl.port`.
 Evaluate `(shadow.cljs.devtools.api/repl :app)` there to reach the app in an

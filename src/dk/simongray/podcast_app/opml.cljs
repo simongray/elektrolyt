@@ -13,7 +13,7 @@
             [dk.simongray.podcast.profile.opml :as profile.opml]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.refresh :as refresh]
-            [dk.simongray.podcast-app.settings :as settings]))
+            [dk.simongray.podcast-app.text :as text]))
 
 (defn subscribed-count
   "How many shows the library of the `state` subscribes to."
@@ -30,7 +30,7 @@
     (assoc after :settings-status
            {:group :subscriptions
             :text  (if (pos? added)
-                     (str "Subscribed to " (settings/shows-text added)
+                     (str "Subscribed to " (text/counted added "show")
                           " from the file. Their episodes are on the way.")
                      "You subscribe to every show of the file already.")})))
 

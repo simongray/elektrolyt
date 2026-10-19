@@ -2,8 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
             [dk.simongray.podcast-app.ui.settings :as settings-ui]
-            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
-            [dk.simongray.podcast-app.ui-test :refer [elements]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements nodes text-of]]))
 
 (defn by-id
   "The element of the Hiccup `x` with the `tag` and the `id`."
@@ -20,8 +19,7 @@
 (defn ids
   "The ids of the elements of the Hiccup `x`, in their order."
   [x]
-  (->> (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x)
-       (keep #(when (and (vector? %) (map? (second %))) (:id (second %))))))
+  (keep #(when (and (vector? %) (map? (second %))) (:id (second %))) (nodes x)))
 
 (deftest every-id-once
   (let [found (ids (settings-ui/content {:library inbox-test/lib}))]

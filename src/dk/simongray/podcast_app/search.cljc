@@ -25,7 +25,8 @@
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
-            [dk.simongray.podcast.profile :as profile]))
+            [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast-app.settings :as settings]))
 
 (defn link?
   "Whether the query `q` reads as a link, i.e. the URL of a feed, a domain,
@@ -33,37 +34,43 @@
   [q]
   (not (:error (discovery/read-input q))))
 
+(defn result
+  "The result of `x`, a show of a directory or a feed, whose feed is at
+  `url`."
+  [x url]
+  {:url           url
+   :guid          (guid/feed-guid x url)
+   :title         (resolve/title x)
+   :author        (resolve/author x)
+   :artwork       (resolve/artwork x)
+   :artwork-sizes (resolve/artwork-sizes x)})
+
 (defn show->result
   "The result of a `show` of a directory, or nil when it names no feed."
   [show]
-  (when-let [url (resolve/self-url show)]
-    {:url           url
-     :guid          (guid/feed-guid show url)
-     :title         (resolve/title show)
-     :author        (resolve/author show)
-     :artwork       (resolve/artwork show)
-     :artwork-sizes (resolve/artwork-sizes show)}))
+  (some->> (resolve/self-url show) (result show)))
 
 (defn feed->result
-  "The result of a `feed` that discovery found at a link."
+  "The result of a `feed` that discovery found at a link, with the title
+  of the link's page where the feed has none."
   [{:keys [url title feed] :as found}]
-  {:url           url
-   :guid          (guid/feed-guid feed url)
-   :title         (or (resolve/title feed) title)
-   :author        (resolve/author feed)
-   :artwork       (resolve/artwork feed)
-   :artwork-sizes (resolve/artwork-sizes feed)})
+  (update (result feed url) :title #(or % title)))
+
+(defn index-credentials
+  "The credentials of the Podcast Index that the page gives podcast-clj in
+  the `state`: none of its own, since the app's server signs the requests,
+  or nil when the server can't."
+  [state]
+  (when (get-in state [:server :podcastindex?])
+    {}))
 
 (defn sources
-  "The directories that a search asks for the listener of the library
-  `lib`, in their order: the :search-sources of their preferences, or of
-  the defaults before the library is restored, and the Podcast Index only
-  where the app's server signs the requests to it, `index?`."
-  [lib index?]
-  (let [prefs (if lib
-                (profile/preferences (:profile lib))
-                profile/default-preferences)]
-    (filterv #(or index? (not= :podcastindex %)) (:search-sources prefs))))
+  "The directories that a search asks in the `state`, in the listener's
+  order from settings/searched, with the Podcast Index only where the
+  app's server signs the requests to it."
+  [state]
+  (let [index? (get-in state [:server :podcastindex?])]
+    (filterv #(or index? (not= :podcastindex %)) (settings/searched state))))
 
 (defn searching
   "A search of the directories `sources`, none of which has answered."
@@ -71,19 +78,19 @@
   {:sources (vec sources)
    :lists   (zipmap sources (repeat {:status :searching}))})
 
+(defn failed
+  "The list of a directory whose search failed for `reason`, a message."
+  [reason]
+  {:status :failed :results [] :reason reason})
+
 (defn shows->list
   "The list of one directory, from its `answer`, the map of
   directory/search! for that source alone: :done with its :results, or
-  :failed with the :reason."
+  failed with the :reason."
   [{:keys [results report] :as answer}]
   (if-let [{:keys [reason]} (first report)]
-    {:status :failed :results [] :reason reason}
+    (failed reason)
     {:status :done :results (into [] (keep show->result) results)}))
-
-(defn failed
-  "The list of a directory whose search threw `reason`, a message."
-  [reason]
-  {:status :failed :results [] :reason reason})
 
 (defn cache-key
   "The key in the cache of the list of the directory `source` for the
@@ -127,13 +134,29 @@
   (boolean (or (= :searching status)
                (some #(= :searching (:status %)) (vals lists)))))
 
+(defn submitted
+  "The actions of the search for the words or the link `q` that the listener
+  submitted in the `state`: put the query in the URL, which searches when
+  the state has no search for it, and search again at once when the one in
+  the state failed somewhere.
+
+  A search that went well stays, since the cache would give the same
+  lists. One that's run again comes first, so that the navigation finds it
+  under way and doesn't start another."
+  [state q]
+  (let [q    (str/trim (str q))
+        push [:route/push :route/search {} {:q q}]]
+    (cond
+      (str/blank? q)                         [[:route/push :route/search]]
+      (failed? (get-in state [:searches q])) [[:search/run q] push]
+      :else                                  [push])))
+
 (defn feeds->search
   "The search of the feeds that discovery/find-feeds! found at a link, the
   map `found`. Only the podcasts count, not e.g. the feed of a blog."
   [{:keys [feeds] :as found}]
   {:status  :done
-   :results (into [] (comp (filter :podcast?) (map feed->result)) feeds)
-   :failed  []})
+   :results (into [] (comp (filter :podcast?) (map feed->result)) feeds)})
 
 (defn source-name
   "The name of the directory `source-id` for the listener."

@@ -1,14 +1,35 @@
 (ns dk.simongray.podcast-app.ui-test
   (:require [clojure.test :refer [deftest is]]
+            [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]))
 
+(defn nodes
+  "The nodes of the Hiccup `x`, itself first, at any depth."
+  [x]
+  (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x))
+
 (defn elements
   "The elements of the Hiccup `x` with the `tag`, at any depth."
   [tag x]
-  (->> (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x)
-       (filter #(and (vector? %) (= tag (first %))))))
+  (filter #(and (vector? %) (= tag (first %))) (nodes x)))
+
+(defn text-of
+  "The text of the Hiccup `x`, as one string."
+  [x]
+  (apply str (filter string? (nodes x))))
+
+(defn spoken
+  "The text of the Hiccup `x` that a screen reader reads, as one string:
+  all of it but what's aria-hidden."
+  [x]
+  (let [hidden? #(and (vector? %) (= "true" (:aria-hidden (second %))))]
+    (->> (tree-seq #(and ((some-fn vector? seq?) %) (not (hidden? %)))
+                   #(if (vector? %) (rest %) %)
+                   x)
+         (filter string?)
+         (apply str))))
 
 (defn current-links
   "The labels of the links that the Hiccup `x` marks as the current page."
@@ -62,3 +83,23 @@
         "from the colours for colour blindness, when the listener chose them")
     (is (every? nil? (map (comp :data-page second) (elements :li (ui/main-nav (preferring :none)))))
         "or none, when the listener chose none")))
+
+(deftest the-canonical-path-of-a-show
+  (let [url     "https://feeds.podcastindex.org/pc20.xml"
+        derived "d5a1ae35-5e8b-599a-943b-95609562016d"
+        route   {:name :route/show :path-params {:guid derived} :query-params {:url url}}
+        found   {:searches {"pc20" {:results [{:guid derived :url url :title "Podcasting 2.0"}]}}}]
+    (is (= (str "/shows/" derived "/podcasting-2-0?url=https%3A%2F%2Ffeeds.podcastindex.org%2Fpc20.xml")
+           (ui/canonical-path (assoc found :route route :library (library/make "test"))))
+        "a show that the library doesn't keep keeps the URL of its feed")
+    (let [lib (library/subscribe (library/make "test") url {:rss/title "Podcasting 2.0"})
+          k   (key (first (library/subscriptions lib)))]
+      (is (= (str "/shows/" k "/podcasting-2-0")
+             (ui/canonical-path (assoc found :route route :library lib)))
+          "and a show that it keeps has its key there and no URL"))
+    (is (nil? (ui/canonical-path {:route route})) "before the title is known")))
+
+(deftest the-library-pages-without-a-library
+  (is (every? #(some #{ui/no-library} (elements :p (ui/main-content {:route {:name %}})))
+              ui/library-pages)
+      "each page that needs it says that it couldn't be read"))

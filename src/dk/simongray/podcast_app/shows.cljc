@@ -8,7 +8,9 @@
   of whether it's :running?, how many feeds are :done of the :total, and
   its :result, the counts and the episodes :added."
   (:require [clojure.string :as str]
-            [dk.simongray.podcast.app.library :as library]))
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.memo :as memo]
+            [dk.simongray.podcast-app.text :as text]))
 
 (def sorts
   "The orders of the shows that the listener can choose, by key, the first
@@ -33,21 +35,11 @@
         chosen  (get-in state [:library-view k])]
     (if (contains? options chosen) chosen (key (first options)))))
 
-(defonce ^{:doc "The last shows that all-shows made, with the feeds and the
-  profile that it made them from, since counting the episodes of every
-  show takes a while."}
-  last-shows
-  (atom nil))
-
-(defn all-shows
-  "The shows of the library `lib`, as library/shows gives them."
-  [lib]
-  (let [[feeds profile made] @last-shows]
-    (if (and made (identical? feeds (:feeds lib)) (identical? profile (:profile lib)))
-      made
-      (let [made (library/shows lib)]
-        (reset! last-shows [(:feeds lib) (:profile lib) made])
-        made))))
+(def all-shows
+  "The shows of a library from library/shows, made again only when its
+  feeds or its profile change, since counting the episodes of every show
+  takes a while."
+  (memo/remember-last library/shows (juxt :feeds :profile)))
 
 (defn sorted
   "The `shows` in the order `sort`, one of sorts."
@@ -66,15 +58,14 @@
                 (pos? (or unplayed 0)) (conj (str unplayed " unplayed"))
                 (pos? (or inbox 0))    (conj (str inbox " new")))]
     (when (seq parts)
-      (apply str (interpose ", " parts)))))
+      (str/join ", " parts))))
 
 (defn updated-at
   "When the feeds of the library `lib` were last fetched, the latest of
   them, or nil."
   [lib]
-  (let [ats (keep :fetched-at (vals (:feeds lib)))]
-    (when (seq ats)
-      (reduce #(if (> (inst-ms %2) (inst-ms %1)) %2 %1) ats))))
+  (some->> (seq (keep :fetched-at (vals (:feeds lib))))
+           (apply max-key inst-ms)))
 
 (defn summary
   "What a screen reader hears once a refresh is done, by its `result`: the
@@ -83,11 +74,8 @@
   [{:keys [counts added] :as result} asked?]
   (let [n      (count added)
         failed (:failed counts 0)
-        found  (case n
-                 0 "No new episodes"
-                 1 "1 new episode"
-                 (str n " new episodes"))
+        found  (if (zero? n) "No new episodes" (text/counted n "new episode"))
         failed (when (pos? failed)
-                 (str ", but " failed (if (= 1 failed) " show" " shows") " couldn't be checked"))]
+                 (str ", but " (text/counted failed "show") " couldn't be checked"))]
     (when (or asked? (pos? n))
       (str found failed))))

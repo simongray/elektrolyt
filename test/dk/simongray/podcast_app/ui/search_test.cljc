@@ -2,8 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.search :as app-search]
             [dk.simongray.podcast-app.ui.search :as search]
-            [dk.simongray.podcast-app.ui.show-test :refer [text-of]]
-            [dk.simongray.podcast-app.ui-test :refer [elements]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements text-of]]))
 
 (defn listed
   "A search of the directories `sources` for which each of `lists` has
@@ -38,9 +37,7 @@
 (defn paragraphs
   "The texts of the paragraphs in the Hiccup `x`."
   [x]
-  (->> (tree-seq (some-fn vector? seq?) #(if (vector? %) (rest %) %) x)
-       (filter #(and (vector? %) (= :p (first %))))
-       (map #(apply str (filter string? (rest %))))))
+  (map #(apply str (filter string? (rest %))) (elements :p x)))
 
 (deftest feeds-that-share-a-title
   (let [found [{:url "https://freakshow.fm/feed/mp3" :guid "a" :title "Freak Show"}

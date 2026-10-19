@@ -11,7 +11,8 @@
   its :text, and what the browser said of its storage as :storage, a map
   of :supported?, :persisted? and the :usage in bytes."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.profile :as profile]))
+            [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast-app.text :as text]))
 
 ;; Apple Podcasts offers skips of 10 to 60 seconds, and AntennaPod a list
 ;; of them too, rather than a number to type, which can't be wrong
@@ -72,6 +73,12 @@
   [state]
   (some-> (#{:standard :more} (:contrast (preferences state))) name))
 
+(defn artwork-colors?
+  "Whether the pages take colours from artwork in the `state`, which they
+  do until the listener prefers the app's own."
+  [state]
+  (:artwork-colors? (preferences state) true))
+
 ;; The colours that colour-coded's vision namespace found for colour
 ;; blindness keep the pages apart for protans, deutans and tritans, but are
 ;; closer to each other than the pages' own colours, so they're a choice
@@ -86,10 +93,10 @@
 ;; profile/default-preferences doesn't name, since another app's navigation
 ;; needn't have colours
 (defn navigation-palette
-  "The colours of the links of the navigation by the listener's
-  preferences `prefs`, a colour for each page until they choose others."
-  [prefs]
-  (:navigation-palette prefs :pages))
+  "The colours of the links of the navigation that the listener chose in
+  the `state`, a colour for each page until they choose others."
+  [state]
+  (:navigation-palette (preferences state) :pages))
 
 (def player-sizes
   "The sizes of the player, and so of its artwork, with the text of each,
@@ -99,11 +106,11 @@
    [:large "Large"]])
 
 (defn player-size
-  "The size of the player by the listener's preferences `prefs`, medium
+  "The size of the player that the listener chose in the `state`, medium
   until they choose another, as a :player-size that the app keeps, as it
   does :navigation-palette."
-  [prefs]
-  (:player-size prefs :medium))
+  [state]
+  (:player-size (preferences state) :medium))
 
 (defn new-episodes
   "Where the new episodes of a new show go by the preferences of the
@@ -162,10 +169,18 @@
     (preferred state {:search-sources (into (conj (subvec others 0 i) source)
                                             (subvec others i))})))
 
-(defn shows-text
-  "The count `n` of shows in words, e.g. \"3 shows\"."
-  [n]
-  (str n (if (= 1 n) " show" " shows")))
+(defn cleared
+  "The `state` once the cache is empty, or not, by `error`: without the
+  searches and shows that the tab had too, so that Back doesn't bring them
+  back, and with a status that says how it went."
+  [state error]
+  (if error
+    (assoc state :settings-status
+           {:group :this-browser
+            :text  "The searches and shows couldn't be cleared."})
+    (-> (dissoc state :searches :shows)
+        (assoc :settings-status {:group :this-browser
+                                 :text  "Cleared the searches and shows."}))))
 
 ;; Pocket Casts asks whether a changed default should apply to the shows
 ;; that the listener has, as "Apply to existing podcasts?"
@@ -180,10 +195,4 @@
         (update :library library/update-profile
                 (fn [p at] (reduce #(profile/configure %1 %2 settings at) p ks)))
         (assoc :settings-status {:group :new-episodes
-                                 :text  (str "Applied to " (shows-text (count ks)))}))))
-
-(defn megabytes
-  "The `bytes` in megabytes to a tenth, e.g. \"12.3 MB\"."
-  [bytes]
-  (let [tenths (quot (+ (long bytes) 50000) 100000)]
-    (str (quot tenths 10) "." (rem tenths 10) " MB")))
+                                 :text  (str "Applied to " (text/counted (count ks) "show"))}))))

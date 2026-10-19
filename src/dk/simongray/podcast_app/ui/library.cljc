@@ -6,19 +6,18 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.shows :as shows]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
-            [dk.simongray.podcast-app.ui.show :as show-ui]))
+            [dk.simongray.podcast-app.ui.controls :as controls-ui]
+            [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn choice
   "A select of the listener's choice of `k`, :sort or :layout, labelled
   `label`, from the `options` of shows, in the `state`."
   [state k label options]
-  (let [id     (str "library-" (name k))
-        chosen (shows/choice state k)]
+  (let [id (str "library-" (name k))]
     (list
      [:label {:for id} label]
-     [:select {:id id :on {:change [[:library/view k [:event/target-keyword]]]}}
-      (for [[option text] options]
-        [:option {:value (name option) :selected (= option chosen)} text])])))
+     (controls-ui/select id options (shows/choice state k)
+                         [:library/view k [:event/target-keyword]]))))
 
 (defn refresh-line
   "When the feeds were last fetched, `updated`, and the button that checks
@@ -30,9 +29,7 @@
            running? (if total
                       (str "Checking " done " of " total " shows…")
                       "Checking for new episodes…")
-           updated  (list "Updated "
-                          [:time {:datetime (show-ui/date-attribute updated)}
-                           (show-ui/date-text updated)])
+           updated  (list "Updated " (time-ui/date updated))
            :else    "Not checked yet")]
      ;; aria-disabled rather than disabled, so that it keeps the focus
      [:button (cond-> {:type "button"}
@@ -57,26 +54,23 @@
     (when-let [text (shows/counts-text counts)]
       [:p text])
     (when newest
-      [:p "Newest episode "
-       [:time {:datetime (show-ui/date-attribute newest)} (show-ui/date-text newest)]])]])
+      [:p "Newest episode " (time-ui/date newest)])]])
 
 (defn content
   "The content of the Library page of the `state`, below its heading."
   [{:keys [library refresh] :as state}]
-  (if-not library
-    [:p "The library couldn't be read."]
-    (let [all (shows/all-shows library)]
-      (if (empty? all)
-        (list
-         [:p "No shows yet."]
-         [:p "Find shows to subscribe to with "
-          [:a {:href (routes/href :route/search)} "Search"] "."])
-        (list
-         [:div.library-tools
-          (choice state :sort "Sort by" shows/sorts)
-          (choice state :layout "Show as" shows/layouts)]
-         (refresh-line state (shows/updated-at library))
-         [:ul {:role      "list"
-               :class     ["library-shows" (name (shows/choice state :layout))]
-               :aria-busy (str (boolean (:running? refresh)))}
-          (map #(show-item state %) (shows/sorted all (shows/choice state :sort)))])))))
+  (let [all (shows/all-shows library)]
+    (if (empty? all)
+      (list
+       [:p "No shows yet."]
+       [:p "Find shows to subscribe to with "
+        [:a {:href (routes/href :route/search)} "Search"] "."])
+      (list
+       [:div.library-tools
+        (choice state :sort "Sort by" shows/sorts)
+        (choice state :layout "Show as" shows/layouts)]
+       (refresh-line state (shows/updated-at library))
+       [:ul {:role      "list"
+             :class     ["library-shows" (name (shows/choice state :layout))]
+             :aria-busy (str (boolean (:running? refresh)))}
+        (map #(show-item state %) (shows/sorted all (shows/choice state :sort)))]))))

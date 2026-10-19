@@ -8,10 +8,11 @@
             [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
+            [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.settings :as settings-ui]
-            [dk.simongray.podcast-app.ui.show :as show-ui]
-            [dk.simongray.podcast-app.ui.subscription :as subscription]))
+            [dk.simongray.podcast-app.ui.subscription :as subscription]
+            [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn query
   "The query of the Search page of the `state`, or nil."
@@ -23,19 +24,7 @@
 ;; MDN, <search>: the element is the search landmark, and the results go
 ;; outside it, in the main content. The query goes in the URL, so that Back,
 ;; a reload and a shared link show the same search.
-(defn sources
-  "The directories that a search asks in the `state`, in the listener's
-  order."
-  [state]
-  (search/sources (:library state) (boolean (get-in state [:server :podcastindex?]))))
-
-(defn listing
-  "The strings `xs` as an English list, e.g. \"a, b and c\"."
-  [xs]
-  (if (next xs)
-    (str (str/join ", " (butlast xs)) " and " (last xs))
-    (first xs)))
-
+;;
 ;; NN/g, scoped search: say where a search looks, near the box, with a way
 ;; to change it, which is the Search group of the Settings page
 ;; https://www.nngroup.com/articles/scoped-search/
@@ -50,20 +39,15 @@
     [:label {:for "search-query"} "Search for podcasts, or paste a link"]
     [:input#search-query {:type "search" :name "q" :value (or q "")}]
     [:button.primary {:type "submit"} "Search"]]
-   [:p "Searches " (listing (map search/source-name sources)) ". "
+   [:p "Searches " (text/listing (map search/source-name sources)) ". "
     [:a {:href (settings-ui/group-href :search)}
      "Change" [:span.visually-hidden " the directories"]]]])
-
-(defn shows-text
-  "The count `n` of shows in words, e.g. \"3 shows\"."
-  [n]
-  (str n (if (= 1 n) " show" " shows")))
 
 (defn link-text
   "What the search of the link `q` found: its `n` feeds."
   [n]
   (if (pos? n)
-    (str n (if (= 1 n) " podcast feed." " podcast feeds."))
+    (str (text/counted n "podcast feed") ".")
     "No podcast feeds at that link."))
 
 (defn directories-text
@@ -76,15 +60,15 @@
         failed (of :failed)
         n      #(count (get-in lists [% :results]))
         found  (map-indexed (fn [i s]
-                              (str (if (zero? i) (shows-text (n s)) (n s))
+                              (str (if (zero? i) (text/counted (n s) "show") (n s))
                                    " in " (search/source-name s)))
                             done)]
     (str/trim
      (str (cond
-            (pos? (reduce + (map n done))) (str "Found " (listing found) ".")
+            (pos? (reduce + (map n done))) (str "Found " (text/listing found) ".")
             (seq done)                     (str "No shows match “" q "”."))
           (when (seq failed)
-            (str " " (listing (map search/source-name failed)) " didn't answer."))))))
+            (str " " (text/listing (map search/source-name failed)) " didn't answer."))))))
 
 (defn status-text
   "What the status line says of the `search` for the query `q`, or nil
@@ -184,10 +168,10 @@
     :searching "Searching…"
     :failed    (if kept-at
                  (str "Didn't answer, so these are its shows of "
-                      (show-ui/date-text kept-at) ".")
+                      (time-ui/date-text kept-at) ".")
                  "Didn't answer.")
     (if (seq results)
-      (shows-text (count results))
+      (text/counted (count results) "show")
       (str "No shows match “" q "”."))))
 
 ;; Duke's bento search: one box of results for each source, since a
@@ -208,7 +192,7 @@
       "Try again" [:span.visually-hidden " " (search/source-name source)]])
    (results state :h3 (:results l))])
 
-(defn jump-text
+(defn jump-label
   "What a link of the jump row shows of the list `l` after the name of its
   directory: its count, or a mark while it searches or where it failed,
   each with words for a screen reader."
@@ -219,7 +203,7 @@
     :failed    (list [:span {:aria-hidden "true"} " –"]
                      [:span.visually-hidden ", didn't answer"])
     (list " " (str (count results))
-          [:span.visually-hidden (if (= 1 (count results)) " show" " shows")])))
+          [:span.visually-hidden " " (text/plural (count results) "show")])))
 
 ;; GOV.UK's tabs, and Inclusive Components': a contents of same-page links
 ;; above sections that all stay on the page, rather than a widget that
@@ -242,7 +226,7 @@
             :on           {:click [[:event/prevent-default]
                                    [:store/assoc-in [:searches q :shown] source]
                                    [:page/show (list-id source)]]}}
-        (search/source-name source) (jump-text (get lists source))]])]])
+        (search/source-name source) (jump-label (get lists source))]])]])
 
 (defn directory-lists
   "The lists of the directories of the `search` for the words `q` in the
@@ -261,7 +245,7 @@
   [state]
   (let [q      (query state)
         search (get-in state [:searches q])]
-    (list (search-form q (sources state))
+    (list (search-form q (search/sources state))
           (status-line q search)
           (if (:lists search)
             (directory-lists state q search)

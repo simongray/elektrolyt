@@ -1,15 +1,7 @@
 (ns dk.simongray.podcast-app.ui.details-test
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast-app.ui.details :as details]
-            [dk.simongray.podcast-app.ui.facts :as facts-ui]
-            [dk.simongray.podcast-app.ui.show-test :refer [spoken text-of]]))
-
-(deftest facts-in-a-line
-  (let [x (details/facts-line [nil "Explicit" nil "Complete"])]
-    (is (= [:p "Explicit" facts-ui/separator "Complete"] x) "the facts that have a value")
-    (is (= "Explicit, Complete" (spoken x))
-        "with a dot between them, which a screen reader reads as a comma"))
-  (is (nil? (details/facts-line [nil nil]))))
+            [dk.simongray.podcast-app.ui-test :refer [text-of]]))
 
 (deftest licenses-by-name
   (is (= "my-podcast-license-v1"

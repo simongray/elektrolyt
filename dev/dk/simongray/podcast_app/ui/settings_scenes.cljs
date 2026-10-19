@@ -1,16 +1,16 @@
 (ns dk.simongray.podcast-app.ui.settings-scenes
   "Scenes of the Settings page: the defaults, a browser that may clear the
   library, and the status line after an action."
-  (:require [dk.simongray.podcast-app.settings :as settings]
+  (:require [dk.simongray.podcast-app.scenes :refer [lib]]
+            [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]
-            [dk.simongray.podcast-app.ui.inbox-scenes :as inbox-scenes]
             [portfolio.replicant :refer [defscene]]))
 
 (defn settings-page
   "The state of the Settings page, with the `more` state merged in."
   [more]
   (merge {:route   {:name :route/settings}
-          :library inbox-scenes/lib}
+          :library lib}
          more))
 
 (defscene the-defaults

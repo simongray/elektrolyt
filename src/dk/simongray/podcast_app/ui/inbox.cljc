@@ -7,47 +7,41 @@
   focus moves to the same button of the next row, or of the row before
   the last, so that a keyboard and a screen reader keep their place. What
   happened is announced in the page's status line."
-  (:require [dk.simongray.podcast.feed.guid :as guid]
-            [dk.simongray.podcast-app.colors :as colors]
+  (:require [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
             [dk.simongray.podcast-app.ui.settings :as settings-ui]
-            [dk.simongray.podcast-app.ui.show :as show-ui]))
+            [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn control-id
   "The id of the button `kind`, e.g. :dismiss, of the row of the episode
   `id`, by which the focus finds it again after a change."
   [id kind]
-  (str "inbox-" (guid/short-hash (pr-str id)) "-" (name kind)))
+  (rows/control-id "inbox" id kind))
 
 (def undo-id
   "The id of the button that undoes the last dismissal."
   "inbox-undo")
 
-(defn details
-  "The show of the `episode` of the inbox, when it came out, and how long
-  it is, or has left once it has started."
+(defn facts
+  "The facts of the `episode` of the inbox: its show, when it came out, and
+  how long it is, or has left once it has started."
   [{:keys [show published] :as episode}]
-  [:p show
-   (when published
-     (list facts-ui/separator
-           [:time {:datetime (show-ui/date-attribute published)}
-            (show-ui/date-text published)]))
-   (when-let [left (queue-ui/time-left episode)]
-     (list facts-ui/separator left))])
+  [show (some-> published time-ui/date) (queue-ui/time-left episode)])
 
 (defn row
-  "The `episode` of the inbox, its artwork, title and details, in the
+  "The `episode` of the inbox, its artwork, title and facts, in the
   `state`."
   [{:keys [library] :as state} {:keys [id title] :as episode}]
   (list
    (artwork/img episode 48 (colors/placeholder state episode))
    [:h2 [:a {:href (queue-ui/episode-href library id title)} title]]
-   (details episode)))
+   (facts-ui/line (facts episode))))
 
 ;; Castro's actions on an episode of its inbox: play, queue at the top or
 ;; the bottom, and archive. Each is a button that names its episode,
@@ -129,21 +123,19 @@
 
 (defn content
   "The content of the Inbox page of the `state`, below its heading."
-  [{:keys [library inbox-undo] :as state}]
-  (if-not library
-    [:p "The library couldn't be read."]
-    (let [episodes (inbox/episodes state)
-          n        (count episodes)]
-      (list
-       (if (zero? n)
-         empty-inbox
-         [:p (str n (if (= 1 n) " new episode" " new episodes"))])
-       (tools episodes inbox-undo)
-       (when (seq episodes)
-         [:ul.inbox {:role "list"}
-          (for [[i {:keys [id] :as episode}] (map-indexed vector episodes)]
-            (let [neighbour (or (get episodes (inc i)) (get episodes (dec i)))]
-              [:li {:replicant/key (pr-str id)}
-               [:article.inbox-episode
-                (row state episode)
-                (actions episode (focus-after neighbour))]]))])))))
+  [{:keys [inbox-undo] :as state}]
+  (let [episodes (inbox/episodes state)
+        n        (count episodes)]
+    (list
+     (if (zero? n)
+       empty-inbox
+       [:p (text/counted n "new episode")])
+     (tools episodes inbox-undo)
+     (when (seq episodes)
+       [:ul.inbox {:role "list"}
+        (for [[i {:keys [id] :as episode}] (map-indexed vector episodes)]
+          (let [neighbour (rows/neighbour episodes i)]
+            [:li {:replicant/key (pr-str id)}
+             [:article.inbox-episode
+              (row state episode)
+              (actions episode (focus-after neighbour))]]))]))))

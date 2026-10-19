@@ -5,7 +5,8 @@
   :subscribing, and the errors of those that failed by URL in
   :subscribe-errors."
   (:require [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.podcast-app.search :as search]))
+            [dk.simongray.podcast-app.search :as search]
+            [dk.simongray.podcast-app.ui.controls :as controls-ui]))
 
 (defn status
   "Where the subscription to the feed at `url` stands in the `state`, with
@@ -66,10 +67,8 @@
     ;; a screen reader
     [:div.new-episodes
      [:label {:for "new-episodes"} "Destination" [:span.visually-hidden " of new episodes"]]
-     [:select {:id "new-episodes"
-               :on {:change [[:library/new-episodes k [:event/target-keyword]]]}}
-      (for [[option text] new-episodes-options]
-        [:option {:value (name option) :selected (= option chosen)} text])]]))
+     (controls-ui/select "new-episodes" new-episodes-options chosen
+                         [:library/new-episodes k [:event/target-keyword]])]))
 
 (defn error
   "The paragraph that tells why the subscription to the feed at `url`

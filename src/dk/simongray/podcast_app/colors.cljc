@@ -24,11 +24,17 @@
   [{:keys [artwork artwork-sizes] :as x}]
   (or (:href (first (sort-by :width artwork-sizes))) artwork))
 
+(defn entry
+  "The colours of the artwork of `x` in the :colors of the `state`, or nil
+  while they're unknown."
+  [state x]
+  (some->> (:artwork x) (get (:colors state))))
+
 (defn seed
   "The seed of the colours of the artwork of `x` in the `state`, or nil
   while they're unknown or where it has no hue."
   [state x]
-  (some->> (:artwork x) (get (:colors state)) :seed))
+  (:seed (entry state x)))
 
 (defn playing
   "What colours the bars while it plays in the player of the `state`: the
@@ -49,18 +55,12 @@
     (when (#{:route/show :route/episode} name)
       (show/page state (:guid path-params)))))
 
-(defn artwork-colors?
-  "Whether the page of the `state` takes colours from artwork, as it does
-  until the listener prefers the app's own."
-  [state]
-  (:artwork-colors? (settings/preferences state) true))
-
 (defn focus
   "What the paper of the page of the `state` takes its colours from: the
   show of a Show or an Episode page, once its colours are known, or else
   nil, for the app's own colours, as when the listener prefers them."
   [state]
-  (when (artwork-colors? state)
+  (when (settings/artwork-colors? state)
     (let [page (page-show state)]
       (when (seed state page)
         page))))
@@ -106,7 +106,7 @@
   known, so that the page keeps the app's own colours until then."
   [state]
   (let [paper (some->> (focus state) (seed state))
-        bars  (when (artwork-colors? state) (seed state (playing state)))
+        bars  (when (settings/artwork-colors? state) (seed state (playing state)))
         style (cond-> {}
                 paper (assoc :--seed paper)
                 bars  (assoc :--bar-seed bars))]
@@ -120,7 +120,7 @@
   "The attributes of the img of the artwork of `x` in the `state`: its
   dominant colour behind it, while it loads, once that's known."
   [state x]
-  (when-let [c (some->> (:artwork x) (get (:colors state)) :dominant)]
+  (when-let [c (:dominant (entry state x))]
     {:style {:background-color c}}))
 
 (comment

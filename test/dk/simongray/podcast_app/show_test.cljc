@@ -140,3 +140,11 @@
     (is (some? (get-in lib [:feeds k :feed])) "the library keeps its feed")
     (is (nil? (show/library-key lib k other))
         "but its page is that of a show outside it, since the feed has only that episode")))
+
+(deftest more-episodes
+  (is (= [[:store/assoc-in [:shows "g" :shown] 40]
+          [:store/assoc :announcement "Showing 40 of 45 episodes"]]
+         (show/more-shown {} "g" 45)))
+  (is (= [[:store/assoc-in [:shows "g" :shown] 45]
+          [:store/assoc :announcement "Showing 45 of 45 episodes"]]
+         (show/more-shown {:shows {"g" {:shown 40}}} "g" 45))))
