@@ -13,9 +13,10 @@
 //     head -c 3840000 /dev/zero | lame -r -s 16 --resample 16 \
 //       --bitwidth 16 --signed --little-endian -m m -b 8 --cbr - silence.mp3
 
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { test as base, expect } from '@playwright/test';
+import { test as base, errors, expect } from '@playwright/test';
 
 export { expect };
 
@@ -151,7 +152,49 @@ function answer(route, file) {
   });
 }
 
+/** Whether the `browser` makes a context within five seconds. One that works takes milliseconds. */
+async function responds(browser) {
+  let timer;
+  const timeout = new Promise(resolve => { timer = setTimeout(resolve, 5_000, false); });
+  const context = browser.newContext();
+  const responded = await Promise.race([context.then(() => true), timeout]);
+  clearTimeout(timer);
+  if (responded) await (await context).close();
+  return responded;
+}
+
+/** Kill the processes that this worker started, and theirs. */
+function killChildren() {
+  const pids = spawnSync('pgrep', ['-P', String(process.pid)]).stdout.toString().split('\n').filter(Boolean);
+  // Playwright starts each browser as the leader of a process group
+  for (const pid of pids) process.kill(-Number(pid), 'SIGKILL');
+}
+
 export const test = base.extend({
+  // Now and then Chrome on macOS hangs for good as it starts, more often
+  // when several start at once. Its main thread asks RunningBoard for an
+  // App Nap assertion and never wakes up (rbs_acquire_appnap_assertion in
+  // a sample of the process). The launch or the first newContext then
+  // times out the test, and Chrome won't even close. So each worker gives
+  // the browser it launches ten seconds to start and checks that it
+  // responds. When it doesn't, the worker kills it and launches another.
+  // (The stuck browser is the only process the worker started.)
+  browser: [async ({ playwright, browserName }, use) => {
+    for (let launch = 1; launch <= 3; launch++) {
+      const browser = await playwright[browserName].launch({ timeout: 10_000 }).catch(error => {
+        if (!(error instanceof errors.TimeoutError)) throw error;
+      });
+      if (browser && await responds(browser)) {
+        await use(browser);
+        await browser.close();
+        return;
+      }
+      console.warn(`${browserName} got stuck as it started, so the worker launches it again`);
+      killChildren();
+    }
+    throw new Error(`${browserName} got stuck in each of 3 launches`);
+  }, { scope: 'worker', timeout: 0 }],
+
   show: [async ({ context }, use) => {
     const show = new Show();
     await context.route(url => url.pathname === '/proxy', async route => {
