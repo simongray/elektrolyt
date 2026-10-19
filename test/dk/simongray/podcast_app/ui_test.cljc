@@ -60,7 +60,9 @@
   (is (= "Library – Elektrolyt"
          (ui/document-title {:route {:name :route/library}})))
   (is (= "Page not found – Elektrolyt"
-         (ui/document-title {:route nil}))))
+         (ui/document-title {:route nil})))
+  (is (= "Elektrolyt" (ui/document-title {:route {:name :route/home}}))
+      "and the app's name alone on Home, as its heading is"))
 
 (deftest the-landmarks-keep-their-order
   (let [state {:route  {:name :route/queue}

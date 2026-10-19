@@ -112,17 +112,11 @@
 (deftest the-facts-of-an-episode
   (let [state (episode-page nil)
         page  (episode-ui/route-page state)
-        intro #(episode-ui/intro state [:h1 "Episode 2"] (merge page %) true)]
+        intro #(episode-ui/intro state [:h1 "Episode 2"] (merge page %))]
     (is (= "Episode 2, 1h, Explicit"
            (spoken (second (elements :p (intro {:numbering {:type "full" :episode 2} :published nil
                                                 :explicit? true})))))
-        "after the show, which is the heading's subtitle")
-    (is (= [[:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
-                              "Details" [:span {:aria-hidden "true"} " ↓"]]]]
-           (elements :p.details-link (intro {})))
-        "and a link to its Details")
-    (is (empty? (elements :p.details-link (episode-ui/intro state [:h1 "Episode 2"] page false)))
-        "but none when it has no Details")))
+        "after the show, which is the heading's subtitle")))
 
 (deftest the-links-that-support-the-show
   (let [rows (into {} (episode-ui/details-rows {:funding [{:url "https://pay.example/1" :content "Give"}

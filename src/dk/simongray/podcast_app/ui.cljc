@@ -26,7 +26,7 @@
             [dk.simongray.podcast-app.ui.show :as show-ui]))
 
 (def app-name
-  "The name of the app, as the navigation and the window's title show it."
+  "The name of the app, as Home's heading and the window's title show it."
   "Elektrolyt")
 
 (def titles
@@ -54,17 +54,18 @@
 (defn page-name
   "The name of the page of the navigation that the route named
   `route-name` is, e.g. \"queue\", whose colour look.css has, or nil for a
-  page that has no colour: Home, whose label is in the ink, as the app's
-  name is, and a page that the navigation doesn't link to."
+  page that has no colour: Home, whose label is in the ink, and a page
+  that the navigation doesn't link to."
   [route-name]
   (when (and (some #{route-name} destinations) (not= :route/home route-name))
     (name route-name)))
 
 (defn page-title
-  "The title of the page of the `state`: a show's own on its page, and an
-  episode's on its."
+  "The title of the page of the `state`: the app's name on Home, a show's
+  own on its page, and an episode's on its."
   [state]
   (case (get-in state [:route :name])
+    :route/home    app-name
     :route/show    (or (:title (show/page state (show-ui/guid state))) "Show")
     :route/episode (or (:title (episode-ui/route-page state)) "Episode")
     (get titles (get-in state [:route :name]) "Page not found")))
@@ -85,9 +86,12 @@
 ;; of technique G88, which lists "the most important identifying information
 ;; first", since that's what tells the tabs of the same app apart
 (defn document-title
-  "The title of the window or tab for the page of the `state`."
+  "The title of the window or tab for the page of the `state`, the app's
+  name alone on Home."
   [state]
-  (str (page-title state) " – " app-name))
+  (if (= :route/home (get-in state [:route :name]))
+    app-name
+    (str (page-title state) " – " app-name)))
 
 (defn canonical-path
   "The path that the Show page or the Episode page of the `state` should
@@ -156,19 +160,14 @@
 ;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
 ;; list's role is explicit, since the CSS removes its markers (see layout.css).
-;; The app's name comes first, as text, since the Home link beside it
-;; goes where a link of the name would; a phone, whose tab bar has no
-;; room for it, leaves it out. Each page's link names its page for its
-;; colour, from the palette that the listener chose, unless they chose
-;; none.
+;; Each page's link names its page for its colour, from the palette that
+;; the listener chose, unless they chose none.
 (defn main-nav
-  "The navigation between the pages for the `state`: the app's name, the
-  main pages and Settings, as a tab bar on a phone and a rail on a wider
-  screen."
+  "The navigation between the pages for the `state`: the main pages and
+  Settings, as a tab bar on a phone and a rail on a wider screen."
   [state]
   (let [palette (settings/navigation-palette state)]
     [:nav {:aria-label "Main"}
-     [:p.app-name app-name]
      [:ul {:role "list"}
       (for [route-name destinations]
         [:li {:data-page (when-not (= :none palette) (page-name route-name))}

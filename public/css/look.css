@@ -286,7 +286,7 @@ time,
   .shell > nav::after {
     content: "";
     position: absolute;
-    inset-block: var(--space-4);
+    inset-block: var(--space-5);
     inset-inline-end: 0;
     border-inline-end: 1px solid var(--divider);
   }
@@ -294,16 +294,6 @@ time,
   .shell > nav a {
     font-size: var(--step-1);
     text-shadow: none;
-  }
-
-  /* the app's name at the head of the rail, as a book's title heads its
-     contents: in the face's own case and larger than the links */
-  .shell > nav .app-name {
-    color: var(--ink);
-    font-family: var(--font-display);
-    font-size: var(--step-2);
-    font-variant-caps: normal;
-    letter-spacing: 0;
   }
 }
 
@@ -501,14 +491,9 @@ hgroup > p {
   color: var(--ink-2);
 }
 
-/* A show's title and an episode's larger beside the column of the
-   artwork and the Details, which is as wide as it is there */
+/* A show's subtitle and an episode's larger beside the column of the
+   artwork and the Details */
 @container (min-width: 48rem) {
-  .episode-intro h1,
-  .show-intro h1 {
-    font-size: var(--step-4);
-  }
-
   .episode-intro hgroup > p,
   .show-intro hgroup > p {
     font-size: var(--step-1);

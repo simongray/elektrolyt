@@ -78,8 +78,7 @@
   --step-0: clamp(1.0625rem, 1rem + 0.2vw, 1.125rem);
   --step-1: 1.25rem;
   --step-2: 1.5rem;
-  --step-3: clamp(1.75rem, 1.45rem + 1.2vw, 2.25rem);
-  --step-4: 2.75rem;
+  --step-3: clamp(1.75rem, 1.3rem + 1.8vw, 2.75rem);
   --step-text: 1.125rem;
   --leading: 1.45;
   --leading-text: 1.6;
@@ -93,7 +92,10 @@
   --space-2: 0.5rem;
   --space-3: 1rem;
   --space-4: 1.5rem;
-  --space-5: 2.5rem;
+  /* the space between sections, and around the page's content, the same
+     everywhere, from the top of the page to the first section, from the
+     rail's line to the content, and from the artwork to the Details */
+  --space-5: clamp(2rem, 1.5rem + 2vw, 3rem);
   --measure: 36em;
   --radius: 2px;
   /* artwork's corners, barely rounded, as a printed square's are */
@@ -110,10 +112,10 @@
 
   /* The colour of each page of the navigation, which its label takes:
      hues a quarter turn apart in LCH from the Library's green, and grey for
-     Settings, the one page that isn't about listening. Home has none, as
-     the app's name has none. Colour is the quickest code to search a
-     display by (Christ, 1975), and a few colours keep to the guideline of
-     five to seven at a time that Healey (1996) cites.
+     Settings, the one page that isn't about listening. Home has none,
+     since its heading is the app's name. Colour is the quickest code to
+     search a display by (Christ, 1975), and a few colours keep to the
+     guideline of five to seven at a time that Healey (1996) cites.
      https://doi.org/10.1177/001872087501700602
      https://healey.csc.ncsu.edu/publications/15843.pdf */
   --queue: lch(50 60 246);

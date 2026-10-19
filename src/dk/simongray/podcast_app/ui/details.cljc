@@ -12,21 +12,8 @@
             [dk.simongray.wary-fetch.url :as url]))
 
 (def id
-  "The id of the heading of the Details, which the link to them moves the
-  focus to."
+  "The id of the heading of the Details, which labels them."
   "details")
-
-;; As the jump row of the Search page: a link to a part of the same page,
-;; which brings its heading into view and moves the focus to it. On a
-;; phone, the Details come after the whole list of episodes. Where they're
-;; beside the content, the CSS hides the link (see layout.css).
-(def link
-  "The link to the Details, which only the arrow tells apart from the name
-  of their heading."
-  [:p.details-link
-   [:a {:href (str "#" id)
-        :on   {:click [[:event/prevent-default] [:page/show id]]}}
-    "Details" [:span {:aria-hidden "true"} " ↓"]]])
 
 (defn host-text
   "The host of the web URL `s`, without its www., as a link shows it, or
@@ -131,7 +118,7 @@
                              (concat rows [(people-row people)])))]
     [:aside.details {:aria-labelledby id}
      ;; only for a screen reader, since the page shows what the aside is
-     [:h2.visually-hidden {:id id :tabindex -1} "Details"]
+     [:h2.visually-hidden {:id id} "Details"]
      [:dl
       (for [[k vs] rows]
         (into [:div {:replicant/key k} [:dt k]]

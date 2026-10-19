@@ -128,15 +128,13 @@
   "The header of the article of the episode `page` of the Episode page of
   the `state`: its `heading` with its show, its artwork and facts, whether
   its entry in the profile is played, the button that plays it, from the
-  start time of the link, the buttons that queue it, and the link to its
-  Details when it has them, `aside?`."
+  start time of the link, and the buttons that queue it."
   [state heading {:keys [id show language numbering published duration explicit? ai-content?]
-                  :as   page}
-   aside?]
+                  :as   page}]
   (let [entry (player/entry (:library state) id)]
     [:header.episode-intro
      [:hgroup heading [:p [:a {:href (:href show) :lang (text/lang language)} (:title show)]]]
-     (artwork/img page 256{:fetchpriority "high" :sizes artwork/intro-sizes})
+     (artwork/img page 256 {:fetchpriority "high" :sizes artwork/intro-sizes})
      [:div.episode-intro-body
       (facts-ui/line
        (concat (numbering-facts numbering)
@@ -145,8 +143,6 @@
                 (when explicit? "Explicit")
                 (when ai-content? "Made with AI")
                 (when (:played? entry) "Played")]))
-      (when aside?
-        details/link)
       [:div.episode-actions
        (play-button page (:player state) entry (start-time state))
        (queue-buttons page (queue/place state id))]]]))
@@ -282,7 +278,7 @@
        (details/article
         {:replicant/key      (pr-str id)
          :replicant/on-mount [[:episode/read-files id view]]}
-        [(intro state heading page (some? aside))
+        [(intro state heading page)
          ;; the heading only for a screen reader, since the notes show
          ;; what they are
          (when (seq notes)

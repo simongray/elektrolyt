@@ -107,11 +107,7 @@
     (is (= :article.with-details (first x)) "the show as an article")
     (is (= [:hgroup [:h1 "A Show"] [:p "Explicit"]] (second header))
         "its header beginning with its heading, and its author and facts below it")
-    (is (= [[:p.details-link [:a {:href "#details" :on {:click [[:event/prevent-default] [:page/show "details"]]}}
-                              "Details" [:span {:aria-hidden "true"} " ↓"]]]]
-           (elements :p.details-link header))
-        "a link to the Details, which a phone shows after the episodes")
-    (is (= [:aside.details {:aria-labelledby "details"} [:h2.visually-hidden {:id "details" :tabindex -1} "Details"]]
+    (is (= [:aside.details {:aria-labelledby "details"} [:h2.visually-hidden {:id "details"} "Details"]]
            (subvec aside 0 3))
         "the Details last, labelled by their heading")
     (is (= [[:dt "Website"] [:dd [:a {:href "https://example.org" :target "_blank" :aria-describedby "new-tab-note"}
@@ -120,12 +116,11 @@
         "a name and its value in a div of the dl")
     (is (= "PeopleAdam, Host" (text-of (last (elements :div aside))))
         "and the people last, a value for each"))
-  (testing "no Details, and no link to them, before the feed has any"
+  (testing "no Details before the feed has any"
     (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
                  :shows {"g" {:status :loading :page {:title "A Show" :episodes []}}}}
-          [_ _ main aside] (first (show/content state [:h1 "A Show"]))]
-      (is (nil? aside))
-      (is (empty? (elements :p.details-link main))))))
+          [_ _ _ aside] (first (show/content state [:h1 "A Show"]))]
+      (is (nil? aside)))))
 
 (defn show-in
   "The Show page of a show whose feed names the `language`, with its notes

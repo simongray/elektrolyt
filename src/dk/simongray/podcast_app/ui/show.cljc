@@ -192,18 +192,15 @@
 (defn intro
   "The header of the article of the show `page` of the Show page of the
   `state`: its `heading` with its author and facts in a line below it, its
-  artwork, and beside it the link to its Details when it has them,
-  `aside?`, and its subscription, beside where its new episodes go, and
-  its description below, in the show's language."
-  [state heading {:keys [title author notes language] :as page} aside?]
+  artwork, and beside it its subscription, beside where its new episodes
+  go, and its description below, in the show's language."
+  [state heading {:keys [title author notes language] :as page}]
   (let [url (feed-url state)]
     [:header.show-intro
      [:hgroup heading (facts-ui/line (cons author (facts page)))]
-     (artwork/img page 256(merge {:fetchpriority "high" :sizes artwork/intro-sizes}
+     (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
                                   (colors/placeholder state page)))
      [:div.show-intro-body
-      (when aside?
-        details/link)
       (when url
         (let [status (subscription/status state
                                           (search/subscribed-urls (:library state))
@@ -285,7 +282,7 @@
         (list
          (details/article
           {}
-          [(intro state heading page (some? aside))
+          [(intro state heading page)
            (episodes state page)]
           aside
           (picks-ui/section state picks-section (picks/like-show state (guid state))))

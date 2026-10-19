@@ -99,8 +99,8 @@
 
 (defscene a-show-with-its-details
   "A show that says much of itself: its Details beside the episodes where
-  there's room for both, and below them on a phone, with a link to them at
-  the top, and the people who make it."
+  there's room for both, and below them on a phone, and the people who
+  make it."
   (ui/page (show-page {:url    url
                        :status :done
                        :page   (merge (show/feed->page url pc20)
