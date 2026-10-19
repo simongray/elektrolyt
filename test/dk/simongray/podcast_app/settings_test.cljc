@@ -26,6 +26,8 @@
   (is (= "dark" (settings/theme (settings/preferred state {:appearance :dark}))))
   (is (= "light" (settings/theme (settings/preferred state {:appearance :light}))))
   (is (nil? (settings/theme (settings/preferred state {:appearance :auto}))))
+  (is (= "more" (settings/contrast (settings/preferred state {:contrast :more}))))
+  (is (nil? (settings/contrast (settings/preferred state {:contrast :auto}))) "or the device's contrast")
   (is (nil? (settings/theme {})) "and before the library is restored"))
 
 (deftest new-episodes-of-a-new-show

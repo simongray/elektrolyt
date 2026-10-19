@@ -1,6 +1,6 @@
 /* The look: Charis on white paper, black ink, and bars in the colour of
-   the artwork of what plays. Every value comes from tokens.css, or from
-   the --seed of an artwork, which the views set.
+   the artwork of what plays, or of the page. Every value comes from
+   tokens.css, or from the --seed of an artwork, which the views set.
 
    The design and its rounds, with the contrast of every pair at every hue
    of a seed: https://claude.ai/artifact/EJpYHsu9jDjgAG4ancc12m */
@@ -78,14 +78,41 @@ time,
 }
 
 
+/* The app's own near-black, until the view sets the --seed of an artwork
+   on the shell, of what the page is about, or else of what plays */
+.shell {
+  --seed: var(--app);
+}
+
+/* The colour of each page of the navigation, which the view names with
+   data-page on the page's item, for its link */
+[data-page="queue"] {
+  --page: var(--queue);
+}
+
+[data-page="inbox"] {
+  --page: var(--inbox);
+}
+
+[data-page="library"] {
+  --page: var(--library);
+}
+
+[data-page="search"] {
+  --page: var(--search);
+}
+
+[data-page="settings"] {
+  --page: var(--settings);
+}
+
 /* The bars: the player, and the tab bar under it on a phone, in a
-   strong colour from the --seed that the view sets on the shell, of the
-   artwork of what the page is about, or else of what plays. It's the
-   seed's complement, its hue turned halfway round, so that the artwork in
-   the player doesn't sit on a colour like its own, at a lightness of its
-   own for each token, so that the contrast holds at every hue. The bars
-   are the same in light and dark, and their controls are drawn for a dark
-   ground. */
+   strong colour from the seed. It's the seed's complement, its hue turned
+   halfway round, so that the artwork in the player doesn't sit on a
+   colour like its own, at a lightness of its own for each token, so that
+   the contrast holds at every hue. The app's own near-black has no hue,
+   so it stays a dark grey. The bars are the same in light and dark, and
+   their controls are drawn for a dark ground. */
 .shell {
   --bar: oklch(from var(--seed) 33% min(c, 0.1) calc(h + 180));
   --on-bar: oklch(from var(--seed) 97% min(c, 0.012) calc(h + 180));
@@ -117,19 +144,27 @@ time,
   --focus: var(--on-bar);
 }
 
+/* Each page's label in its page's colour, a light tone of it on a bar, in
+   LCH, so that its lightness, and so its contrast, is the same at every
+   hue. The labels say the pages, so the colour is never the only cue (WCAG
+   2.2, SC 1.4.1).
+   https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html */
+.shell > nav li {
+  --label: lch(from var(--page) 82 min(c, 40) h);
+}
+
 .shell > nav a {
-  color: var(--ink-2);
+  color: var(--label);
   font-size: var(--step--1);
   font-variant-caps: all-small-caps;
   letter-spacing: var(--caps-tracking);
   text-decoration: none;
 }
 
-/* The current page in the text's own ink and underlined, at the weight of
-   the others, since a bolder one is wider, and would widen the rail and
-   move the page as the listener goes from page to page */
+/* The current page underlined, at the weight of the others, since a
+   bolder one is wider, and would widen the rail and move the page as the
+   listener goes from page to page */
 .shell > nav a[aria-current="page"] {
-  color: var(--ink);
   text-decoration: underline 2px;
   text-underline-offset: 0.45em;
 }
@@ -179,6 +214,18 @@ time,
     color: var(--ink);
   }
 
+  /* no edge where no player follows, since then no bar meets the paper */
+  .shell:not(:has(> #player)) > main,
+  .shell:not(:has(> #player)) > nav {
+    border-bottom: 0;
+  }
+
+  /* on the paper, a tone of each page's colour that reads as text */
+  .shell > nav li {
+    --label: light-dark(lch(from var(--page) 42 min(c, 50) h), lch(from var(--page) 78 min(c, 40) h));
+  }
+
+  /* the line, as thick as an hr */
   .shell > nav::after {
     content: "";
     position: absolute;
@@ -358,6 +405,13 @@ img {
   outline-offset: -1px;
 }
 
+/* A break between the parts of a text, e.g. of a show's notes, as thick
+   as the line beside the rail */
+hr {
+  border: 0;
+  border-top: 3px solid var(--divider);
+}
+
 
 /* An episode's page: the notes as reading text, with the first line in
    small caps, as a book's chapter opens, and the chapters as a contents of
@@ -435,8 +489,13 @@ details summary {
 
 
 /* The player, on its bar: the title strong and the show lighter */
-#player {
+.player-body {
   padding: var(--space-2) var(--gutter);
+}
+
+/* the artwork meets the bar's edges, with no frame */
+.player-artwork {
+  outline: 0;
 }
 
 .player-title p:first-child a {
@@ -507,6 +566,42 @@ search p {
 .settings-group > p {
   color: var(--ink-2);
   font-size: var(--step--1);
+}
+
+
+/* More contrast, as tokens.css has it: the bars' secondary text and the
+   edges of their controls lighter, and the links and the labels on the
+   paper further from it */
+@media (prefers-contrast: more) {
+  :root:not([data-contrast="standard"]) .shell {
+    --on-bar-2: oklch(from var(--seed) 90% min(c, 0.03) calc(h + 180));
+    --bar-rule: oklch(from var(--seed) 76% min(c, 0.05) calc(h + 180));
+  }
+
+  :root:not([data-contrast="standard"]) .shell > main {
+    --accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+  }
+}
+
+@media (prefers-contrast: more) and (min-width: 37.5em) {
+  :root:not([data-contrast="standard"]) .shell > nav li {
+    --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
+  }
+}
+
+:root[data-contrast="more"] .shell {
+  --on-bar-2: oklch(from var(--seed) 90% min(c, 0.03) calc(h + 180));
+  --bar-rule: oklch(from var(--seed) 76% min(c, 0.05) calc(h + 180));
+}
+
+:root[data-contrast="more"] .shell > main {
+  --accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+}
+
+@media (min-width: 37.5em) {
+  :root[data-contrast="more"] .shell > nav li {
+    --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
+  }
 }
 
 

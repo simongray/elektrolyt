@@ -847,22 +847,49 @@
   rather than show the device's until the library is restored."
   "dk.simongray.podcast-app.theme")
 
-(defn themed!
-  "Give the document the colours that the listener chose in the `state`
-  as its data-theme, or else none, for the device's, and keep a copy of
-  them in this browser, as they change."
-  [state]
-  (let [theme (settings/theme state)
-        root  js/document.documentElement]
-    (when (not= theme (.getAttribute root "data-theme"))
-      (if theme
-        (.setAttribute root "data-theme" theme)
-        (.removeAttribute root "data-theme"))
+(def contrast-key
+  "The key in localStorage of a copy of the contrast that the listener
+  chose, which public/theme.js applies as it does the colours."
+  "dk.simongray.podcast-app.contrast")
+
+(defn attributed!
+  "Give the document's root the attribute `attr` with the value `v`, or
+  else none, and keep a copy of it in this browser under the `key`, as it
+  changes."
+  [attr key v]
+  (let [root js/document.documentElement]
+    (when (not= v (.getAttribute root attr))
+      (if v
+        (.setAttribute root attr v)
+        (.removeAttribute root attr))
       (try
-        (if theme
-          (.setItem js/localStorage theme-key theme)
-          (.removeItem js/localStorage theme-key))
+        (if v
+          (.setItem js/localStorage key v)
+          (.removeItem js/localStorage key))
         (catch :default _ nil)))))
+
+(defn themed!
+  "Give the document the colours and the contrast that the listener chose
+  in the `state`, as its data-theme and its data-contrast, or else none,
+  for the device's."
+  [state]
+  (attributed! "data-theme" theme-key (settings/theme state))
+  (attributed! "data-contrast" contrast-key (settings/contrast state)))
+
+;; HTML, the theme-color meta name: a colour for the browser's own bars,
+;; e.g. Chrome's on Android, and for the title bar of an installed app. It
+;; takes no var(), so it gets the shell's background, the bars' colour, as
+;; the browser computed it, in hex. Safari on iOS 26 reportedly ignores it.
+;; https://html.spec.whatwg.org/multipage/semantics.html#meta-theme-color
+;; https://benfrain.com/ios26-safari-theme-color-tab-tinting-with-fixed-position-elements/
+(defn theme-colored!
+  "Give the page's theme-color the colour of the bars of the `shell`, as
+  they are now."
+  [shell]
+  (when-let [meta (js/document.querySelector "meta[name=theme-color]")]
+    (when-let [c (some-> (.-backgroundColor (js/getComputedStyle shell)) cc/hex)]
+      (when (not= c (.-content meta))
+        (set! (.-content meta) c)))))
 
 (defn render!
   "Render the page for `state` into the element of the app, and give the
@@ -870,35 +897,61 @@
   [state]
   (r/render (js/document.getElementById "app") (ui/page state))
   (set! js/document.title (ui/document-title state))
-  (themed! state))
+  (themed! state)
+  (some-> (js/document.querySelector ".shell") theme-colored!))
+
+(defn kept-value
+  "The colours of an artwork in the entry `kept` of the cache, or nil for
+  none, or for colours kept before they had a :dominant colour."
+  [kept]
+  (when (contains? (:value kept) :dominant)
+    (:value kept)))
+
+(defn image-colors
+  "A promise of the colours of the image in the bytes `b` that colors.cljc
+  keeps: its :seed and its :dominant colour, as hex, or nil where it can't
+  be decoded."
+  [b]
+  (image/then (image/colours b)
+              (fn [{:keys [seed background]}]
+                {:seed     (some-> seed cc/hex)
+                 :dominant (some-> background cc/hex)})))
 
 (defn load-colors!
   "Work out the colours of the artwork `x`, as colors/wanted names it, into
   the :colors of the `store`: from the cache, or else from the image,
   whose colours the cache keeps then. An image that doesn't come leaves
-  the artwork without a seed until the page loads again."
+  the artwork without colours until the page loads again."
   [store {:keys [artwork] :as x}]
-  (swap! store assoc-in [:colors artwork] {:status :loading})
   (-> (app-cache/fetch! app-cache/colors artwork)
       (.then (fn [kept]
-               (or (:value kept)
+               (or (kept-value kept)
                    (-> (app-library/send {:url (colors/source x) :as :bytes})
-                       (.then #(image/seed (:body %)))
-                       (.then (fn [seed]
-                                (let [v {:seed (some-> seed cc/hex)}]
-                                  (app-cache/put! app-cache/colors artwork v)
-                                  v)))))))
+                       (.then #(image-colors (:body %)))
+                       (.then (fn [v]
+                                (when v
+                                  (app-cache/put! app-cache/colors artwork v))
+                                v))))))
       (.catch (fn [e]
                 (js/console.warn "The colours of the artwork weren't worked out" e)
                 nil))
       (.then #(swap! store assoc-in [:colors artwork] (or % {:seed nil})))))
 
+(def colors-at-once
+  "How many artworks' colours are worked out at once, so that a long list,
+  e.g. the Library, doesn't send all its images through the proxy at once."
+  4)
+
 (defn colored!
-  "Work out the colours of each artwork that the page of the `state` wants
-  and doesn't have yet, into the `store`."
+  "Work out the colours of the artworks that the page of the `state` wants
+  and doesn't have yet, into the `store`, a few at once, the first first."
   [store state]
-  (doseq [x (colors/wanted state)]
-    (load-colors! store x)))
+  (let [loading (count (filter #(= :loading (:status %)) (vals (:colors state))))
+        xs      (take (- colors-at-once loading) (colors/wanted state))]
+    (when (seq xs)
+      (swap! store update :colors merge (zipmap (map :artwork xs) (repeat {:status :loading})))
+      (doseq [x xs]
+        (load-colors! store x)))))
 
 (defn kept-colors!
   "A promise that the :colors of the `store` have what the cache keeps of
@@ -910,7 +963,7 @@
     (-> (js/Promise.all (into-array (map #(app-cache/fetch! app-cache/colors (:artwork %)) wanted)))
         (.then (fn [kept]
                  (swap! store update :colors merge
-                        (into {} (keep (fn [[x k]] (when k [(:artwork x) (:value k)])))
+                        (into {} (keep (fn [[x k]] (some->> (kept-value k) (vector (:artwork x)))))
                               (map vector wanted kept))))))))
 
 (defn ^:dev/after-load reload!
@@ -941,6 +994,10 @@
                         (audio/hidden! store)
                         (refresh/refresh-if-due! store)))
   (.addEventListener js/window "pagehide" #(audio/hidden! store))
+  ;; the bars' colour once it has moved to the next one
+  (.addEventListener js/document "transitionend"
+                     #(when (.. % -target -classList (contains "shell"))
+                        (theme-colored! (.-target %))))
   (audio/volume-locked! store)
   (swap! store assoc :library-view (saved-library-view))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])

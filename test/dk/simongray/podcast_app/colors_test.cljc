@@ -1,6 +1,8 @@
 (ns dk.simongray.podcast-app.colors-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.colors :as colors]
+            [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]))
 
 (def playing
@@ -26,7 +28,25 @@
   (testing "once only"
     (is (empty? (colors/wanted (assoc-in state [:colors (:artwork playing)] {:status :loading}))))
     (is (empty? (colors/wanted (assoc-in state [:colors (:artwork playing)] {:seed nil})))))
-  (is (empty? (colors/wanted {:route {:name :route/queue}})) "and none while nothing plays"))
+  (is (empty? (colors/wanted {:route {:name :route/queue}})) "and none while nothing plays")
+  (with-redefs [show/page (constantly (select-keys playing [:artwork]))]
+    (is (= [(:artwork playing)]
+           (map :artwork (colors/wanted (assoc state :route {:name :route/show :path-params {:guid "g"}}))))
+        "each artwork once, though what plays and the page's show share it")))
+
+(def chaptered
+  "The state of the Queue page while the episode plays at 75 seconds, in
+  a chapter with an image of its own."
+  (-> state
+      (assoc-in [:player :playback :chapters :document :chapters]
+                [{:start-time 0 :title "A"} {:start-time 60 :title "B" :img "https://example.org/b.png"}])
+      (assoc-in [:player :media :current-time] 75)))
+
+(deftest the-image-of-a-chapter-colours-the-bars
+  (is (= {:artwork "https://example.org/b.png"} (colors/playing chaptered)))
+  (is (= "https://example.org/a.jpg"
+         (:artwork (colors/playing (assoc-in chaptered [:player :media :current-time] 30))))
+      "and the artwork in a chapter without one"))
 
 (deftest the-seed-of-an-artwork
   (let [colored (assoc-in state [:colors (:artwork playing)] {:seed "#9e2a2b"})]
@@ -34,6 +54,12 @@
     (is (= {:style {:--seed "#9e2a2b"}} (colors/attrs colored playing)))
     (is (= {} (colors/attrs state playing)) "none while it's unknown")
     (is (= {} (colors/attrs colored nil)) "or for no artwork")))
+
+(deftest an-artwork-waits-in-its-dominant-colour
+  (is (= {:style {:background-color "#0a0a0a"}}
+         (colors/placeholder (assoc-in state [:colors (:artwork playing)] {:seed nil :dominant "#0a0a0a"})
+                             playing)))
+  (is (nil? (colors/placeholder state playing)) "once it's known"))
 
 (deftest the-show-of-a-page
   (is (nil? (colors/page-show state)) "none on the Queue page"))
@@ -45,4 +71,7 @@
       (is (= playing (colors/focus page)) "what plays, until the show's colours are known")
       (is (= show (colors/focus (assoc-in page [:colors (:artwork show)] {:seed "#24476b"})))
           "and then the show that the page is about"))
-    (is (= playing (colors/focus state)) "and what plays on a page about no show")))
+    (is (= playing (colors/focus state)) "and what plays on a page about no show"))
+  (is (nil? (colors/focus (-> (assoc state :library inbox-test/lib)
+                              (settings/preferred {:artwork-colors? false}))))
+      "or nothing, when the listener prefers the app's own colours"))

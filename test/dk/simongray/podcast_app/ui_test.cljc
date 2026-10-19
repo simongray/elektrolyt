@@ -29,9 +29,14 @@
          (ui/document-title {:route nil}))))
 
 (deftest the-landmarks-keep-their-order
-  (is (= [:a.skip-link :nav :main#main :section#player]
-         (map first (drop 2 (ui/page {:route {:name :route/queue}}))))
-      "after the shell's attributes"))
+  (let [state {:route  {:name :route/queue}
+               :player {:id ["f" "e"] :playback {:id ["f" "e"]}}}]
+    (is (= [:a.skip-link :nav :main#main :section#player]
+           (map first (drop 2 (ui/page state))))
+        "after the shell's attributes")
+    (is (= [:a.skip-link :nav :main#main]
+           (map first (remove nil? (drop 2 (ui/page (dissoc state :player))))))
+        "and the player only while it has an episode")))
 
 (deftest the-colours-of-the-artwork
   (let [playing "https://example.org/playing.jpg"
@@ -43,3 +48,7 @@
         "and the bars in the seed of the artwork of what plays, once it's known")
     (is (= {} (second (ui/page (assoc state :colors {playing {:seed nil}}))))
         "or the app's own, for artwork without a hue")))
+
+(deftest each-link-of-the-navigation-names-its-page
+  (is (= ["queue" "inbox" "library" "search" "settings"]
+         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}}))))))

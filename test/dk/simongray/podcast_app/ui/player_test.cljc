@@ -39,7 +39,8 @@
       "Play and Pause, which the look fills"))
 
 (deftest nothing-playing
-  (is (= "Nothing is playing." (text-of (player-ui/region {:library (library/make "test")})))))
+  (is (nil? (player-ui/region {:library (library/make "test")}))
+      "no player, so that the main content has the room"))
 
 (deftest an-episode-that-plays
   (let [x (player-ui/region (state {}))]

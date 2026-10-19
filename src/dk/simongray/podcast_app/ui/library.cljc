@@ -2,7 +2,8 @@
   "The views of the Library page: the shows that the listener subscribes
   to, in the order and the layout of their choice, and the refresh of
   their feeds."
-  (:require [dk.simongray.podcast-app.routes :as routes]
+  (:require [dk.simongray.podcast-app.colors :as colors]
+            [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.shows :as shows]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.show :as show-ui]))
@@ -46,12 +47,12 @@
 ;; role="list", since Safari drops the semantics of a list without markers.
 ;; https://inclusive-components.design/cards/
 (defn show-item
-  "The `show` of the library: its artwork, its title, which links to its
-  page, its counts, and when its newest episode came out."
-  [{:keys [feed-guid title newest counts] :as show}]
+  "The `show` of the library in the `state`: its artwork, its title, which
+  links to its page, its counts, and when its newest episode came out."
+  [state {:keys [feed-guid title newest counts] :as show}]
   [:li {:replicant/key feed-guid}
    [:article.library-show
-    (artwork/img show 160 {})
+    (artwork/img show 160 (colors/placeholder state show))
     [:h2 [:a {:href (routes/show-href feed-guid title)} title]]
     (when-let [text (shows/counts-text counts)]
       [:p text])
@@ -78,4 +79,4 @@
          [:ul {:role      "list"
                :class     ["library-shows" (name (shows/choice state :layout))]
                :aria-busy (str (boolean (:running? refresh)))}
-          (map show-item (shows/sorted all (shows/choice state :sort)))])))))
+          (map #(show-item state %) (shows/sorted all (shows/choice state :sort)))])))))

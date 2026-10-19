@@ -39,6 +39,14 @@
   Settings last."
   [:route/queue :route/inbox :route/library :route/search :route/settings])
 
+(defn page-name
+  "The name of the page of the navigation that the route named
+  `route-name` is, e.g. \"queue\", whose colour look.css has, or nil for a
+  page that the navigation doesn't link to."
+  [route-name]
+  (when (some #{route-name} destinations)
+    (name route-name)))
+
 (defn page-title
   "The title of the page of the `state`: a show's own on its page, and an
   episode's on its."
@@ -98,7 +106,7 @@
 ;; list's role is explicit, since the CSS removes its markers (see app.css).
 ;; The app's name comes first and links to the queue, as a site's name
 ;; links to its home page; a phone, whose tab bar has no room for it,
-;; leaves it out.
+;; leaves it out. Each page's link names its page for its colour.
 (defn main-nav
   "The navigation between the pages for the `state`: the app's name, the
   main pages and Settings, as a tab bar on a phone and a rail on a wider
@@ -108,7 +116,8 @@
    [:a.app-name {:href (routes/href :route/queue)} app-name]
    [:ul {:role "list"}
     (for [route-name destinations]
-      [:li (page-link state route-name (nav-label state route-name))])]])
+      [:li {:data-page (page-name route-name)}
+       (page-link state route-name (nav-label state route-name))])]])
 
 ;; The heading takes the focus after each navigation, which the users who
 ;; tested the techniques of client-side routing found the best experience

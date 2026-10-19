@@ -7,6 +7,7 @@
   knew of the show at once, and its episodes as its feed arrives."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.spec :as spec]
+            [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
@@ -211,7 +212,7 @@
   [state heading {:keys [title author notes funding] :as page} url k aside?]
   [:header
    [:hgroup heading (when author [:p author])]
-   (artwork/img page 160 {:fetchpriority "high"})
+   (artwork/img page 160 (merge {:fetchpriority "high"} (colors/placeholder state page)))
    (details/facts-line (facts page))
    (when aside?
      details/link)

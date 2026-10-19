@@ -26,7 +26,7 @@
 (deftest every-id-once
   (let [found (ids (settings-ui/content {:library inbox-test/lib}))]
     (is (= (count found) (count (distinct found)))
-        "so that each label names its own control, e.g. Colours, apart from the heading of its group")))
+        "so that each label names its own control, e.g. Contrast, apart from the heading of its group")))
 
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
@@ -43,10 +43,16 @@
       (is (= "1" (chosen x "speed")))
       (is (= "chapters" (chosen x "track-buttons")))
       (is (= "inbox" (chosen x "default-new-episodes")))
-      (is (= "auto" (chosen x "colours")) "the device's colours"))
+      (is (= "auto" (chosen x "light-or-dark")) "the device's colours")
+      (is (= "auto" (chosen x "contrast")) "and its contrast")
+      (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours"))
     (testing "each change applied at once"
       (is (= [[:settings/prefer :appearance [:event/target-keyword]]]
-             (get-in (by-id x :select "colours") [1 :on :change])))
+             (get-in (by-id x :select "light-or-dark") [1 :on :change])))
+      (is (= [[:settings/prefer :contrast [:event/target-keyword]]]
+             (get-in (by-id x :select "contrast") [1 :on :change])))
+      (is (= [[:settings/prefer :artwork-colors? [:event/target-checked]]]
+             (get-in (by-id x :input "artwork-colours") [1 :on :change])))
       (is (= [[:settings/prefer :skip-back [:event/target-number]]]
              (get-in (by-id x :select "skip-back") [1 :on :change])))
       (is (= [[:settings/new-episodes [:event/target-keyword]]]

@@ -43,6 +43,17 @@
    [:light "Light"]
    [:dark "Dark"]])
 
+;; Media Queries 5, prefers-contrast: follow the device by default, as with
+;; light and dark, and let the listener ask for more, or for the standard
+;; on a device that asks for more
+;; https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
+(def contrasts
+  "The contrasts that the app can have, as profile/default-preferences
+  names them for :contrast, with the text of each."
+  [[:auto "Automatic, as the device"]
+   [:standard "Standard"]
+   [:more "More"]])
+
 (defn preferences
   "The listener's preferences in the library of the `state`, or nil before
   it's restored."
@@ -54,6 +65,12 @@
   \"dark\", or nil for the device's."
   [state]
   (some-> (#{:light :dark} (:appearance (preferences state))) name))
+
+(defn contrast
+  "The contrast that the listener chose in the `state`, \"standard\" or
+  \"more\", or nil for the device's."
+  [state]
+  (some-> (#{:standard :more} (:contrast (preferences state))) name))
 
 (defn new-episodes
   "Where the new episodes of a new show go by the preferences of the

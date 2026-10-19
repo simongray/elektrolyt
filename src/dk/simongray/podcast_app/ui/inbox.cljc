@@ -8,6 +8,7 @@
   the last, so that a keyboard and a screen reader keep their place. What
   happened is announced in the page's status line."
   (:require [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
@@ -41,11 +42,11 @@
 
 (defn row
   "The `episode` of the inbox, its artwork, title and details, in the
-  library `lib`."
-  [lib {:keys [id title] :as episode}]
+  `state`."
+  [{:keys [library] :as state} {:keys [id title] :as episode}]
   (list
-   (artwork/img episode 48 {})
-   [:h2 [:a {:href (queue-ui/episode-href lib id title)} title]]
+   (artwork/img episode 48 (colors/placeholder state episode))
+   [:h2 [:a {:href (queue-ui/episode-href library id title)} title]]
    (details episode)))
 
 ;; Castro's actions on an episode of its inbox: play, queue at the top or
@@ -144,5 +145,5 @@
             (let [neighbour (or (get episodes (inc i)) (get episodes (dec i)))]
               [:li {:replicant/key (pr-str id)}
                [:article.inbox-episode
-                (row library episode)
+                (row state episode)
                 (actions episode (focus-after neighbour))]]))])))))

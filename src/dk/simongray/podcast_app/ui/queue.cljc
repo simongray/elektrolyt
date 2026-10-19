@@ -7,6 +7,7 @@
   a removal, so that a keyboard and a screen reader keep their place."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
@@ -56,21 +57,21 @@
 
 (defn row
   "The `episode` of the queue, its artwork, title, show and time left, in
-  the library `lib`."
-  [lib {:keys [id title show] :as episode}]
+  the `state`."
+  [{:keys [library] :as state} {:keys [id title show] :as episode}]
   (list
-   (artwork/img episode 48 {})
-   [:h3 [:a {:href (episode-href lib id title)} title]]
+   (artwork/img episode 48 (colors/placeholder state episode))
+   [:h3 [:a {:href (episode-href library id title)} title]]
    [:p show
     (when-let [left (time-left episode)]
       (list facts-ui/separator left))]))
 
 (defn now-playing
   "The section of the episode that the player has, of the `state`."
-  [{:keys [library] :as state} episode]
+  [state episode]
   [:section {:aria-labelledby "now-playing"}
    [:h2#now-playing "Now playing"]
-   [:article.queue-episode (row library episode)]])
+   [:article.queue-episode (row state episode)]])
 
 (defn summary
   "The count and the time left of the `episodes`, e.g. \"4 episodes, 2 h 30
@@ -112,7 +113,7 @@
 (defn up-next
   "The section of the episodes up next of the `state`, with the undo of
   the last change."
-  [{:keys [library queue-undo] :as state}]
+  [{:keys [queue-undo] :as state}]
   (let [episodes (queue/up-next state)
         n        (count episodes)]
     [:section {:aria-labelledby "up-next"}
@@ -148,7 +149,7 @@
            (let [next-one (or (get episodes (inc i)) (get episodes (dec i)))]
              [:li {:replicant/key (pr-str id)}
               [:article.queue-episode
-               (row library episode)
+               (row state episode)
                (actions episode (inc i) n
                         (if next-one (control-id (:id next-one) :remove) "up-next"))]]))]
         [:button {:type "button" :on {:click [[:dialog/open clear-dialog-id]]}}

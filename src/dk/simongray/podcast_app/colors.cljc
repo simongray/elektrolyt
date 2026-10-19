@@ -1,15 +1,20 @@
 (ns dk.simongray.podcast-app.colors
   "The colours of artwork that the look takes, for its bars, links and
   buttons: the seed of the artwork of what the page is about, i.e. the
-  show of a Show or an Episode page, or else of the episode that plays.
+  show of a Show or an Episode page, or else of what plays, or of the image
+  of its chapter. Without one, or when the listener prefers the app's own
+  colours, the page keeps the app's own near-black, which look.css has.
 
   The :colors of the state keep each artwork's colours by its URL, as a
-  map of the :seed, a hex colour from colour-coded's image/seed, nil for
-  artwork without a hue, or of the :status :loading while they're worked
-  out. A page shows the app's own colours
-  until they're known."
-  (:require [dk.simongray.podcast-app.player :as player]
-            [dk.simongray.podcast-app.show :as show]))
+  map of the :seed, a hex colour from colour-coded's choose/seed, nil for
+  artwork without a hue, and the :dominant colour, which an artwork shows
+  while it loads, or of the :status :loading while they're worked out."
+  (:require [dk.simongray.podcast-app.inbox :as inbox]
+            [dk.simongray.podcast-app.player :as player]
+            [dk.simongray.podcast-app.queue :as queue]
+            [dk.simongray.podcast-app.settings :as settings]
+            [dk.simongray.podcast-app.show :as show]
+            [dk.simongray.podcast-app.shows :as shows]))
 
 (defn source
   "The URL to work out the colours of the artwork of `x` from: the smallest
@@ -25,10 +30,15 @@
   (some->> (:artwork x) (get (:colors state)) :seed))
 
 (defn playing
-  "The playback that the player of the `state` shows, whose artwork
-  colours the bars, or nil."
-  [state]
-  (player/shown-playback (:player state)))
+  "What colours the bars while it plays in the player of the `state`: the
+  image of the chapter at the current time, or else the playback, whose
+  artwork the player shows, or nil."
+  [{:keys [player] :as state}]
+  (let [playback (player/shown-playback player)
+        chapter  (player/chapter-at playback (:current-time (player/shown-media player)))]
+    (if-let [image (:img chapter)]
+      {:artwork image}
+      playback)))
 
 (defn page-show
   "The show of the Show or Episode page of the `state`, whose artwork
@@ -40,34 +50,71 @@
 
 (defn focus
   "What the page of the `state` takes its colours from: the show of a Show
-  or an Episode page, once its colours are known, or else what plays."
+  or an Episode page, once its colours are known, or else what plays, or
+  nil when the listener prefers the app's own colours."
   [state]
-  (let [page (page-show state)]
-    (if (seed state page)
-      page
-      (playing state))))
+  (when (:artwork-colors? (settings/preferences state) true)
+    (let [page (page-show state)]
+      (if (seed state page)
+        page
+        (playing state)))))
+
+(defn listed
+  "The episodes or shows that the list of the page of the `state` shows
+  with their artwork: the Queue's, the Inbox's or the Library's, which are
+  the listener's own, so that their colours are worth working out ahead."
+  [{:keys [library] :as state}]
+  (when library
+    (case (get-in state [:route :name])
+      :route/queue   (cons (queue/current state) (queue/up-next state))
+      :route/inbox   (inbox/episodes state)
+      :route/library (shows/all-shows library)
+      nil)))
+
+(defn once-each
+  "The maps `xs` with each :artwork once, the first of each, in order."
+  [xs]
+  (first (reduce (fn [[kept seen] x]
+                   (if (seen (:artwork x))
+                     [kept seen]
+                     [(conj kept x) (conj seen (:artwork x))]))
+                 [[] #{}]
+                 xs)))
 
 (defn wanted
   "The artworks whose colours the page of the `state` shows and that the
-  :colors don't have yet, as maps of the :artwork and the :artwork-sizes."
+  :colors don't have yet, as maps of the :artwork and the :artwork-sizes,
+  those that colour the page first, and each once, though e.g. what plays
+  and the page's show share theirs."
   [state]
-  (->> [(playing state) (page-show state)]
+  (->> (concat [(playing state) (page-show state)] (listed state))
        (filter :artwork)
        (remove #(contains? (:colors state) (:artwork %)))
        (map #(select-keys % [:artwork :artwork-sizes]))
-       (distinct)))
+       (once-each)))
 
 (defn attrs
-  "The attributes of the part of the page that the artwork of `x` colours
-  in the `state`: its seed as the --seed of its style, or none while it's
-  unknown."
+  "The attributes of the shell of the page of the `state`, whose colours
+  come from the artwork of `x`: its seed as the --seed of its style, or
+  none while it's unknown, so that the page keeps the app's own colours."
   [state x]
   (if-let [s (seed state x)]
     {:style {:--seed s}}
     {}))
 
+;; Timelthaler, Dominant colors for lazy-loading images: Pinterest and
+;; Google Images show an image's dominant colour in its place while it
+;; loads, so that the page has its colours at once
+;; https://manu.ninja/dominant-colors-for-lazy-loading-images/
+(defn placeholder
+  "The attributes of the img of the artwork of `x` in the `state`: its
+  dominant colour behind it, while it loads, once that's known."
+  [state x]
+  (when-let [c (some->> (:artwork x) (get (:colors state)) :dominant)]
+    {:style {:background-color c}}))
+
 (comment
   (wanted {:route  {:name :route/queue}
            :player {:playback {:artwork "https://example.org/a.jpg"}}})
-  ;; => ({:artwork "https://example.org/a.jpg"})
+  ;; => [{:artwork "https://example.org/a.jpg"}]
   #_.)

@@ -49,7 +49,7 @@
 @property --seed {
   syntax: "<color>";
   inherits: true;
-  initial-value: oklch(44% 0.085 158);
+  initial-value: oklch(20% 0 0);
 }
 
 :root {
@@ -88,12 +88,23 @@
   --measure: 36em;
   --radius: 2px;
 
-  /* the app's own colour, whose complement, a plum, colours the bars
-     while no artwork does.
-     TODO: maybe reconsider giving the bars this green itself, since the
-     complement is there to set the bars off from an artwork, and here
-     there's none */
-  --seed: oklch(44% 0.085 158);
+  /* The app's own colour, a neutral near-black, since the artwork gives it
+     most of its colour: the bars take it while no artwork colours them */
+  --app: oklch(20% 0 0);
+
+  /* The colour of each page of the navigation, which its label takes: four
+     hues a quarter turn apart in LCH from the Library's green, and grey for
+     Settings, the one page that isn't about listening. Colour is the
+     quickest code to search a display by (Christ, 1975), and five colours
+     keep to the guideline of five to seven at a time that Healey (1996)
+     cites.
+     https://doi.org/10.1177/001872087501700602
+     https://healey.csc.ncsu.edu/publications/15843.pdf */
+  --queue: lch(50 60 246);
+  --inbox: lch(50 60 66);
+  --library: lch(50 60 156);
+  --search: lch(50 60 336);
+  --settings: lch(50 0 0);
 
   /* black ink on white paper */
   --paper: light-dark(oklch(100% 0 0), oklch(17.5% 0.003 80));
@@ -103,7 +114,7 @@
   --rule: light-dark(oklch(56% 0.005 80), oklch(60% 0.005 80));
   --rule-soft: light-dark(oklch(90% 0.003 80), oklch(30% 0.004 80));
   --field: var(--paper);
-  /* the line between the rail and the text */
+  /* the thick line beside the rail and of an hr */
   --divider: light-dark(oklch(88% 0.004 80), oklch(33% 0.004 80));
 
   /* links, buttons and the focus ring, in the text's own ink until a part
@@ -122,4 +133,31 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+}
+
+/* More contrast where the device asks for it, unless the listener chose
+   the standard in Settings, or where the listener chose it: the secondary
+   text and the edges further from the paper, beyond WCAG 2.2's 7:1 for
+   text and 4.5:1 for the edges of controls (SC 1.4.6). Each rule is
+   written twice, as the media query can't join the attribute.
+   https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
+   https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html */
+@media (prefers-contrast: more) {
+  :root:not([data-contrast="standard"]) {
+    --ink: light-dark(oklch(14% 0.004 80), oklch(97% 0.004 80));
+    --ink-2: light-dark(oklch(36% 0.005 80), oklch(84% 0.005 80));
+    --ink-3: light-dark(oklch(50% 0.004 80), oklch(68% 0.004 80));
+    --rule: light-dark(oklch(45% 0.005 80), oklch(70% 0.005 80));
+    --rule-soft: light-dark(oklch(75% 0.003 80), oklch(45% 0.004 80));
+    --divider: light-dark(oklch(65% 0.004 80), oklch(55% 0.004 80));
+  }
+}
+
+:root[data-contrast="more"] {
+  --ink: light-dark(oklch(14% 0.004 80), oklch(97% 0.004 80));
+  --ink-2: light-dark(oklch(36% 0.005 80), oklch(84% 0.005 80));
+  --ink-3: light-dark(oklch(50% 0.004 80), oklch(68% 0.004 80));
+  --rule: light-dark(oklch(45% 0.005 80), oklch(70% 0.005 80));
+  --rule-soft: light-dark(oklch(75% 0.003 80), oklch(45% 0.004 80));
+  --divider: light-dark(oklch(65% 0.004 80), oklch(55% 0.004 80));
 }

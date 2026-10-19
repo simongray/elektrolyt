@@ -6,26 +6,33 @@
   view. The Episode page is the player's full view, with the notes, the
   chapters and the transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
+            [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]))
 
+(defn artwork
+  "The artwork of the `playback`, or the image of its chapter at `seconds`,
+  which takes its place, at an edge of the player, with the `attrs` merged
+  in, e.g. its colour while it loads."
+  [{:keys [artwork] :as playback} seconds attrs]
+  (let [image (or (some-> (:img (player/chapter-at playback seconds)) player/proxied)
+                  artwork)]
+    (when image
+      (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs)))))
+
 (defn now-playing
-  "The artwork, the title and the show of the `playback`, with its title of
-  the chapter at `seconds`, whose image takes the place of the artwork."
-  [{:keys [id title show artwork] :as playback} seconds]
-  (let [chapter (player/chapter-at playback seconds)
-        image   (or (some-> (:img chapter) player/proxied) artwork)]
-    (list
-     (when image
-       (artwork/img {:artwork image} 48 {}))
-     [:div.player-title
-      [:p [:a {:href (routes/episode-href (first id) (second id) title nil)} title]]
-      [:p show
-       (when-let [t (:title chapter)]
-         (list facts-ui/separator t))]])))
+  "The title and the show of the `playback`, with its title of the chapter
+  at `seconds`."
+  [{:keys [id title show] :as playback} seconds]
+  (let [chapter (player/chapter-at playback seconds)]
+    [:div.player-title
+     [:p [:a {:href (routes/episode-href (first id) (second id) title nil)} title]]
+     [:p show
+      (when-let [t (:title chapter)]
+        (list facts-ui/separator t))]]))
 
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
 ;; Pause, has no aria-pressed
@@ -139,45 +146,50 @@
   "The content of the player of the `state`: the episode that plays, in
   this tab or another, and its controls."
   [{:keys [player library] :as state}]
-  (let [{:keys [id seeking expanded? volume volume-locked?]} player
+  (let [{:keys [seeking expanded? volume volume-locked?]} player
         playback       (player/shown-playback player)
         media          (player/shown-media player)
         [back forward] (player/skips (:profile library))]
-    (if-not (and id playback)
-      [:p "Nothing is playing."]
-      (list
-       [:audio {:replicant/key        "player"
-                :preload              "metadata"
-                :replicant/on-mount   [[:player/mounted]]
-                :replicant/on-unmount [[:player/unmounted]]
-                :on                   {:ended [[:player/ended]]}}]
-       [:div.player-now
-        (now-playing playback (:current-time media))
-        (play-button media)
-        ;; as a string, since Replicant leaves out an attribute of false
-        [:button.player-more {:type          "button"
-                              :aria-expanded (str (boolean expanded?))
-                              :aria-controls "player-controls"
-                              :on            {:click [[:player/expand (not expanded?)]]}}
-         "Controls"]]
-       ;; a group named as the button that shows it on a phone, which a
-       ;; screen reader names as it enters the controls
-       [:div {:id         "player-controls"
-              :role       "group"
-              :aria-label "Controls"
-              :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
-        (seek-bar (player/with-duration media playback) seeking)
-        (skip-buttons back forward)
-        (chapter-buttons playback)
-        (speed media)
-        (volume-controls media (or volume 1) volume-locked?)
-        (next-up state)]
-       (status-line player)))))
+    (list
+     [:audio {:replicant/key        "player"
+              :preload              "metadata"
+              :replicant/on-mount   [[:player/mounted]]
+              :replicant/on-unmount [[:player/unmounted]]
+              :on                   {:ended [[:player/ended]]}}]
+     (artwork playback (:current-time media)
+              (colors/placeholder state (colors/playing state)))
+     [:div.player-body
+      [:div.player-now
+       (now-playing playback (:current-time media))
+       (play-button media)
+       ;; as a string, since Replicant leaves out an attribute of false
+       [:button.player-more {:type          "button"
+                             :aria-expanded (str (boolean expanded?))
+                             :aria-controls "player-controls"
+                             :on            {:click [[:player/expand (not expanded?)]]}}
+        "Controls"]]
+      ;; a group named as the button that shows it on a phone, which a
+      ;; screen reader names as it enters the controls
+      [:div {:id         "player-controls"
+             :role       "group"
+             :aria-label "Controls"
+             :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
+       (seek-bar (player/with-duration media playback) seeking)
+       (skip-buttons back forward)
+       (chapter-buttons playback)
+       (speed media)
+       (volume-controls media (or volume 1) volume-locked?)
+       (next-up state)]]
+     (status-line player))))
 
 ;; WAI-ARIA APG, landmark regions: a section with a label is a region, the
-;; landmark for content that none of the others describes
+;; landmark for content that none of the others describes. It comes with an
+;; episode, rather than stand empty, so that the main content has the room
+;; while nothing plays.
 (defn region
-  "The player of the `state`, which stays as the pages change."
-  [state]
-  [:section#player {:aria-label "Player"}
-   (content state)])
+  "The player of the `state`, which stays as the pages change, while it
+  has an episode, in this tab or another, or else nil."
+  [{:keys [player] :as state}]
+  (when (and (:id player) (player/shown-playback player))
+    [:section#player {:aria-label "Player"}
+     (content state)]))

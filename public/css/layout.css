@@ -33,6 +33,10 @@ p {
   margin: 0 0 var(--space-2);
 }
 
+hr {
+  margin: var(--space-4) 0;
+}
+
 /* A heading with its subtitle, e.g. an episode's show, close below it */
 hgroup {
   margin-bottom: var(--space-3);
@@ -420,10 +424,30 @@ search input {
    of the shell's grid, outside the main content that scrolls, so it never
    covers what has the focus (WCAG 2.2, SC 2.4.11). */
 #player {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+/* The artwork at the player's edge, square, as tall as the episode's row
+   on a phone, whose controls open below it, and as the whole player
+   wider than that, whose controls wrap beside it, where it fills the
+   height of more rows by cutting its edges */
+.player-artwork {
+  display: block;
+  width: 4rem;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.player-body {
   display: flex;
   flex-wrap: wrap;
+  grid-column: 2;
   align-items: center;
   gap: 0.5em;
+  min-width: 0;
 }
 
 .player-now {
@@ -432,11 +456,6 @@ search input {
   align-items: center;
   gap: 0.5em;
   min-width: 0;
-}
-
-.player-now img {
-  flex: none;
-  width: 48px;
 }
 
 .player-title {
@@ -485,6 +504,11 @@ search input {
 }
 
 @media (min-width: 37.5em) {
+  .player-artwork {
+    align-self: stretch;
+    width: 7rem;
+  }
+
   .player-now {
     flex: 0 1 22em;
   }

@@ -42,7 +42,7 @@
                    player)})
 
 (defscene nothing-playing
-  "Before the listener plays anything."
+  "Before the listener plays anything, when the page has no player."
   (ui/page {:route {:name :route/queue} :library (library/make "scenes")}))
 
 (defscene an-episode-that-plays

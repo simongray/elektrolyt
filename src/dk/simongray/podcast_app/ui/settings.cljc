@@ -65,12 +65,28 @@
        text])]])
 
 (defn appearance
-  "The choice of the app's colours, by the listener's preferences `prefs`,
-  which syncs with the profile as the other preferences do."
-  [{:keys [appearance] :as prefs}]
+  "The choice of the app's colours, by the listener's preferences `prefs`:
+  light or dark, the contrast, and whether the artwork colours the app,
+  which sync with the profile as the other preferences do."
+  [{:keys [appearance contrast artwork-colors?] :as prefs}]
   (group :appearance "Appearance"
-         (choice "colours" "Colours" settings/appearances
-                 appearance [:settings/prefer :appearance [:event/target-keyword]])))
+         (choice "light-or-dark" "Light or dark" settings/appearances
+                 appearance [:settings/prefer :appearance [:event/target-keyword]])
+         (choice "contrast" "Contrast" settings/contrasts
+                 contrast [:settings/prefer :contrast [:event/target-keyword]])
+         [:div.setting
+          [:input {:type             "checkbox"
+                   :switch           true
+                   :role             "switch"
+                   :id               "artwork-colours"
+                   :checked          (boolean artwork-colors?)
+                   :aria-describedby "artwork-colours-hint"
+                   :on               {:change [[:settings/prefer :artwork-colors? [:event/target-checked]]]}}]
+          [:label {:for "artwork-colours"} "Colours from the artwork"]
+          [:p#artwork-colours-hint
+           "The player, links and buttons take their colours from the artwork "
+           "of what plays, or of the show on screen. Otherwise they keep the "
+           "app's own dark grey."]]))
 
 (defn playback
   "The settings of how the listener plays, by their preferences `prefs`."

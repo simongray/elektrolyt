@@ -5,6 +5,7 @@
   The state holds each search under its query in :searches, as
   dk.simongray.podcast-app.search describes it."
   (:require [clojure.string :as str]
+            [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
@@ -137,7 +138,7 @@
   [state subscribed level {:keys [url title author] :as result} shared-title?]
   (let [title (or title url)]
     [:article
-     (artwork/img result 64 {:loading "lazy"})
+     (artwork/img result 64 (merge {:loading "lazy"} (colors/placeholder state result)))
      [level (show-link (assoc result :title title))]
      (when author
        [:p author])

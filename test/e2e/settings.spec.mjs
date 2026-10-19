@@ -97,7 +97,7 @@ function scheme(page) {
 test("the colours are the device's, or light or dark as the listener chooses, in the profile", async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/settings');
-  const colours = page.getByRole('main').getByLabel('Colours');
+  const colours = page.getByRole('main').getByLabel('Light or dark');
   await expect(colours).toHaveValue('auto');
   expect(await scheme(page)).toBe('light dark');
 
@@ -109,7 +109,43 @@ test("the colours are the device's, or light or dark as the listener chooses, in
   await page.reload({ waitUntil: 'domcontentloaded' });
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByRole('main').getByLabel('Colours').selectOption('Automatic, as the device');
+  await page.getByRole('main').getByLabel('Light or dark').selectOption('Automatic, as the device');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme');
   expect(await page.evaluate(() => localStorage.getItem('dk.simongray.podcast-app.theme'))).toBeNull();
+});
+
+/** The colour of the link to the Queue in the navigation of `page`. */
+function linkColour(page) {
+  return navLink(page, 'Queue').evaluate(a => getComputedStyle(a).color);
+}
+
+test('more contrast follows the device, or the listener, and darkens the labels', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light', contrast: 'no-preference' });
+  await page.goto('/settings');
+  const standard = await linkColour(page);
+
+  // before a reload, since Firefox's emulation doesn't restyle a page that
+  // has loaded
+  await page.emulateMedia({ colorScheme: 'light', contrast: 'more' });
+  await page.reload();
+  await expect.poll(() => linkColour(page), 'as the device asks').not.toBe(standard);
+
+  await page.getByRole('main').getByLabel('Contrast').selectOption('Standard');
+  await expect(page.locator('html')).toHaveAttribute('data-contrast', 'standard');
+  await expect.poll(() => linkColour(page), 'unless the listener chose the standard').toBe(standard);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => document.documentElement.dataset.contrast), 'from the first paint').toBe('standard');
+});
+
+// colors_test has what the switch does to the colours, since the show of
+// these tests has no artwork
+test('the colours from the artwork are a switch that the profile keeps', async ({ page }) => {
+  await page.goto('/settings');
+  const colours = page.getByRole('main').getByRole('switch', { name: 'Colours from the artwork' });
+  await expect(colours).toBeChecked();
+  await colours.uncheck();
+  await expect(colours).not.toBeChecked();
+  await page.reload();
+  await expect(colours).not.toBeChecked();
 });
