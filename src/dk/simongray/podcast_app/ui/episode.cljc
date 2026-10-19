@@ -271,9 +271,11 @@
                  (= id (:id (first (:episodes (some-> (:library state) queue/view))))) :current
                  (queue/queued? state id)                                              :queued)
                (some? aside))
+        ;; the heading only for a screen reader, since the notes show
+        ;; what they are
         (when (seq notes)
           [:section {:aria-labelledby "notes"}
-           [:h2#notes "Show notes"]
+           [:h2#notes.visually-hidden "Show notes"]
            [:div.show-notes notes]])
         (when shown
           (chapters page shown))

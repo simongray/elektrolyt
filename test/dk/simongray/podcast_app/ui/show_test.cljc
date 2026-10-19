@@ -113,7 +113,7 @@
                               "Details" [:span {:aria-hidden "true"} " ↓"]]]]
            (elements :p.details-link header))
         "a link to the Details, which a phone shows after the episodes")
-    (is (= [:aside.details {:aria-labelledby "details"} [:h2 {:id "details" :tabindex -1} "Details"]]
+    (is (= [:aside.details {:aria-labelledby "details"} [:h2.visually-hidden {:id "details" :tabindex -1} "Details"]]
            (subvec aside 0 3))
         "the Details last, labelled by their heading")
     (is (= [[:dt "Website"] [:dd [:a {:href "https://example.org" :target "_blank" :aria-describedby "new-tab-note"}

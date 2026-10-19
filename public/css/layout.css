@@ -235,6 +235,12 @@ search input {
   overflow-wrap: anywhere;
 }
 
+/* The notes apart from the episode's header, as their heading kept them
+   before only a screen reader read it */
+.show-notes {
+  margin-top: var(--space-5);
+}
+
 /* The links to the lists of the directories, in a row that wraps */
 .search-jump ul {
   display: flex;
@@ -360,7 +366,7 @@ search input {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 0 2em;
+  gap: var(--space-5) 2em;
   container-type: inline-size;
 }
 
@@ -410,12 +416,6 @@ search input {
   align-items: center;
   gap: 0.5em;
   min-height: 48px;
-}
-
-/* The ring on the heading that the link to the Details moved the focus
-   to, as on the lists of the Search page */
-.details h2:focus {
-  outline: auto;
 }
 
 

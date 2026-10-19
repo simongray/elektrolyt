@@ -65,8 +65,7 @@ a:hover {
    a click too, so that the page shows where it went. */
 :focus-visible,
 .search-list h2:focus,
-.settings-group legend h2:focus,
-.details h2:focus {
+.settings-group legend h2:focus {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }

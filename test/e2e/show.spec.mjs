@@ -38,7 +38,7 @@ test('a link leads past the episodes to the Details on a phone, and not where th
   const link = page.getByRole('main').getByRole('link', { name: 'Details' });
   await link.click();
   await expect(heading).toBeFocused();
-  await expect(heading).toBeInViewport();
+  await expect(details.locator('dt').first()).toBeInViewport();
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(details).toBeInViewport();

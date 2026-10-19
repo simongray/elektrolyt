@@ -124,7 +124,8 @@
         made (people people-list)]
     (when (or (seq rows) made)
       [:aside.details {:aria-labelledby id}
-       [:h2 {:id id :tabindex -1} "Details"]
+       ;; only for a screen reader, since the page shows what the aside is
+       [:h2.visually-hidden {:id id :tabindex -1} "Details"]
        (when (seq rows)
          [:dl
           (for [[k vs] rows]
