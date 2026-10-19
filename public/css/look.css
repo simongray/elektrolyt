@@ -49,13 +49,20 @@ main h2:not(.inbox-episode h2) {
   color: var(--ink-2);
 }
 
+/* A link's underline is in a lighter ink, 40% of the link's colour, which
+   fills in on hover, as on simon.grays.blog, so that the words stay the
+   strongest mark. The underline itself stays, so colour isn't the only
+   thing that marks a link (WCAG 2.2, SC 1.4.1).
+   https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html */
 a {
   color: var(--accent);
+  text-decoration-color: color-mix(in oklch, currentColor 40%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.18em;
 }
 
 a:hover {
+  text-decoration-color: currentColor;
   text-decoration-thickness: 2px;
 }
 
@@ -122,6 +129,8 @@ time,
   --bar-rule: oklch(from var(--bar-seed) 68% min(c, 0.05) calc(h + 180));
   --bar-fill: oklch(from var(--bar-seed) 94% min(c, 0.025) calc(h + 180));
   --on-bar-fill: oklch(from var(--bar-seed) 30% min(c, 0.1) calc(h + 180));
+  /* the glow of type reversed out of a bar (see the player) */
+  --bloom: 0 0 6px oklch(from var(--on-bar) l c h / 0.3);
   /* A faint tint of the seed's own hue from the right, behind the rail
      and the main content alike, so that the line between them doesn't
      cut it. Its alpha is the seed's chroma, so that a grey seed, e.g.
@@ -131,10 +140,11 @@ time,
 }
 
 /* Inside a bar, the content's tokens take the bar's values, so that every
-   rule below applies there unchanged */
+   rule below applies there unchanged. The bar is a colour printed on the
+   paper, so the paper's grain lies over it. */
 .shell > nav,
 #player {
-  background: var(--bar);
+  background: var(--grain) 0 0 / var(--grain-size), var(--bar);
   color-scheme: dark;
   color: var(--on-bar);
   --ink: var(--on-bar);
@@ -160,12 +170,14 @@ time,
   --label: lch(from var(--page) 82 min(c, 40) h);
 }
 
+/* on a bar, with the glow of type reversed out of it (see the player) */
 .shell > nav a {
   color: var(--label, var(--ink-2));
   font-size: var(--step--1);
   font-variant-caps: all-small-caps;
   letter-spacing: var(--caps-tracking);
   text-decoration: none;
+  text-shadow: var(--bloom);
 }
 
 /* Colours for colour blindness, which the listener can choose in
@@ -220,8 +232,10 @@ time,
 }
 
 /* The paper, whose links, buttons and focus ring take the seed's own
-   hue */
+   hue. Its grain scrolls with the text, since the text is printed on it.
+   https://developer.mozilla.org/en-US/docs/Web/CSS/background-attachment */
 .shell > main {
+  background: var(--grain) 0 0 / var(--grain-size) local;
   --accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
   --accent-ink: light-dark(oklch(100% 0 0), oklch(from var(--seed) 18% min(c, 0.03) h));
   --accent-soft: light-dark(oklch(from var(--seed) 95% min(c, 0.02) h), oklch(from var(--seed) 26% min(c, 0.03) h));
@@ -239,11 +253,12 @@ time,
 }
 
 /* Wider than a phone, the rail lies on the paper beside the text, as a
-   book's contents would, its tokens the content's again, with a thin grey
-   line between them that stops short of its top and of the player */
+   book's contents would. It has the paper's grain and the content's
+   tokens again, and a thin grey line between them stops short of its top
+   and of the player. */
 @media (min-width: 37.5em) {
   .shell > nav {
-    background: transparent;
+    background: var(--grain) 0 0 / var(--grain-size);
     color-scheme: inherit;
     --ink: inherit;
     --ink-2: inherit;
@@ -279,6 +294,7 @@ time,
 
   .shell > nav a {
     font-size: var(--step-1);
+    text-shadow: none;
   }
 
   /* the app's name at the head of the rail, as a book's title heads its
@@ -294,7 +310,8 @@ time,
 
 
 /* Controls: one button, one field, and a filled button for the main
-   action of a place, e.g. Play */
+   action of a place, e.g. Play. A plain one is an outline on the paper,
+   and the paper's grain lies over every fill. */
 button,
 select,
 input[type="search"],
@@ -317,17 +334,17 @@ summary {
 
 button:hover,
 summary:hover {
-  background: var(--accent-soft);
+  background: var(--grain) 0 0 / var(--grain-size), var(--accent-soft);
 }
 
 button.primary {
   color: var(--accent-ink);
-  background: var(--accent);
+  background: var(--grain) 0 0 / var(--grain-size), var(--accent);
   border-color: var(--accent);
 }
 
 button.primary:hover {
-  background: color-mix(in oklch, var(--accent), var(--ink) 18%);
+  background: var(--grain) 0 0 / var(--grain-size), color-mix(in oklch, var(--accent), var(--ink) 18%);
 }
 
 button[aria-disabled="true"] {
@@ -373,7 +390,7 @@ input[role="switch"] {
 
 input[role="switch"]:checked {
   border-color: var(--accent);
-  background: radial-gradient(circle at calc(100% - 0.62rem) 50%, var(--accent-ink) 0.42rem, transparent 0.47rem) var(--accent);
+  background: radial-gradient(circle at calc(100% - 0.62rem) 50%, var(--accent-ink) 0.42rem, transparent 0.47rem), var(--grain) 0 0 / var(--grain-size), var(--accent);
 }
 
 
@@ -433,14 +450,29 @@ input[role="switch"]:checked {
   font-size: var(--step--1);
 }
 
+/* artwork waits for its file in its dominant colour, printed on the paper
+   like any other */
 img {
   outline: 1px solid var(--rule-soft);
   outline-offset: -1px;
+  background-image: var(--grain);
+  background-size: var(--grain-size);
+}
+
+/* Artwork on the paper is printed into it, as simon.grays.blog prints its
+   images: multiplied on white paper, so that its whites take the paper's
+   grain and tint, and at 90%, so that a little of the paper shows through
+   its colours. Dark paper only dims it, which dark themes often do to
+   soften bright images. The player's artwork lies on the bar instead.
+   https://markdotto.com/2018/11/05/css-dark-mode/ */
+.shell > main img {
+  mix-blend-mode: var(--print-blend);
+  opacity: 0.9;
 }
 
 /* the place of artwork that a show doesn't have */
 .no-artwork {
-  background: var(--rule-soft);
+  background: var(--grain) 0 0 / var(--grain-size), var(--rule-soft);
 }
 
 /* A break between the parts of a text, e.g. of a show's notes, as thick
@@ -464,11 +496,19 @@ hgroup > p {
   color: var(--ink-2);
 }
 
+/* Set the way simon.grays.blog sets its posts: no hyphen leaves fewer
+   than three letters on a line, and punctuation hangs in the margin where
+   the browser can, so far only Safari. Ragged right, since browsers
+   justify coarsely, and a feed's notes have long URLs and short lines.
+   https://practicaltypography.com/justified-text.html
+   https://developer.mozilla.org/en-US/docs/Web/CSS/hanging-punctuation */
 .show-notes {
   font-family: var(--font-text);
   font-size: var(--step-text);
   line-height: var(--leading-text);
   hyphens: auto;
+  hyphenate-limit-chars: 6 3 3;
+  hanging-punctuation: first last;
   text-wrap: pretty;
 }
 
@@ -529,6 +569,19 @@ hgroup > p {
   font-size: var(--step--1);
 }
 
+/* Type reversed out of the bar, like the text in the coloured panels of
+   simon.grays.blog. Light type on a dark ground looks tighter, so it's
+   tracked a little looser, and its glow looks like ink that has spread
+   into the paper around it.
+   https://layersmagazine.com/?p=6296
+   https://cms.myfonts.com/sites/default/files/2025-11/Reversing-Display-Type-Manual.pdf */
+.player-title,
+.player-seek time,
+.player-next {
+  letter-spacing: 0.03em;
+  text-shadow: var(--bloom);
+}
+
 
 /* Search: the field and its button, then the lists */
 search p {
@@ -544,6 +597,7 @@ search p {
    the links after it */
 .search-jump a[aria-current="true"] {
   color: var(--ink);
+  text-decoration-color: currentColor;
   text-decoration-thickness: 2px;
 }
 
@@ -566,8 +620,8 @@ search p {
 
 
 /* More contrast, as tokens.css has it: the bars' secondary text and the
-   edges of their controls lighter, and the links and the labels on the
-   paper further from it */
+   edges of their controls lighter, the links and the labels on the paper
+   further from it, and the links' underlines in their full colour */
 @media (prefers-contrast: more) {
   :root:not([data-contrast="standard"]) .shell {
     --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
@@ -576,6 +630,10 @@ search p {
 
   :root:not([data-contrast="standard"]) .shell > main {
     --accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+  }
+
+  :root:not([data-contrast="standard"]) a {
+    text-decoration-color: currentColor;
   }
 }
 
@@ -592,6 +650,10 @@ search p {
 
 :root[data-contrast="more"] .shell > main {
   --accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+}
+
+:root[data-contrast="more"] a {
+  text-decoration-color: currentColor;
 }
 
 @media (min-width: 37.5em) {
@@ -629,6 +691,6 @@ search p {
 
   button,
   a {
-    transition: background-color 0.15s, text-decoration-thickness 0.15s;
+    transition: background-color 0.15s, text-decoration-color 0.33s, text-decoration-thickness 0.15s;
   }
 }

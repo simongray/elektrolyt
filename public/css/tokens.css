@@ -125,7 +125,9 @@
   --ink-3: light-dark(oklch(62% 0.004 80), oklch(56% 0.004 80));
   --rule: light-dark(oklch(56% 0.005 80), oklch(60% 0.005 80));
   --rule-soft: light-dark(oklch(90% 0.003 80), oklch(30% 0.004 80));
-  --field: var(--paper);
+  /* a field or a button is an outline on the paper, through which the
+     paper's grain and tint show */
+  --field: transparent;
   /* the line beside the rail and of an hr */
   --divider: light-dark(oklch(80% 0.004 80), oklch(40% 0.004 80));
 
@@ -135,23 +137,66 @@
   --accent-ink: var(--paper);
   --accent-soft: light-dark(oklch(95% 0.003 80), oklch(25% 0.004 80));
   --focus: var(--ink);
+
+  /* The paper's grain, which lies over the paper and over every colour
+     printed on it (look.css), so that the colours look printed rather
+     than laid on top. It comes from the paper of simon.grays.blog (CC0),
+     as black specks where that paper is darker than its median and white
+     ones where it's lighter, so that white paper stays white and dark
+     paper dark. dev/dk/simongray/podcast_app/grain.clj makes it, and the
+     look test checks the text's contrast on its strongest specks.
+     https://claude.ai/artifact/MrZ7s4UY9fihNoS8hSpMfq */
+  --grain: url("/images/grain.png");
+  --grain-size: 400px;
+
+  /* How artwork on the paper meets it: multiplied, the way ink is, so
+     that its whites take the paper's grain and tint. Dark paper only dims
+     it, since multiplying would turn it almost black.
+     https://www.w3.org/TR/compositing-1/#blendingmultiply */
+  --print-blend: multiply;
+}
+
+/* The grain at the texture's own pixels on a screen of twice the
+   density, where a 400 px tile would be scaled up and blurred */
+@media (min-resolution: 2dppx) {
+  :root {
+    --grain-size: 200px;
+  }
 }
 
 /* The listener's choice in Settings, over the device's: light-dark()
-   follows color-scheme, so one attribute switches every colour */
+   follows color-scheme, so one attribute switches every colour. A blend
+   mode takes no light-dark(), so the dark paper's is written for the
+   device's choice too. */
 :root[data-theme="light"] {
   color-scheme: light;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --print-blend: normal;
+  }
+}
+
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --print-blend: normal;
+}
+
+/* Forced colours replace the colours of the paper, and the grain would
+   only dirty them */
+@media (forced-colors: active) {
+  :root {
+    --grain: none;
+  }
 }
 
 /* More contrast where the device asks for it, unless the listener chose
    the standard in Settings, or where the listener chose it: the secondary
    text and the edges further from the paper, beyond WCAG 2.2's 7:1 for
-   text and 4.5:1 for the edges of controls (SC 1.4.6). Each rule is
-   written twice, as the media query can't join the attribute.
+   text and 4.5:1 for the edges of controls (SC 1.4.6), and the paper
+   plain, without its grain. Each rule is written twice, as the media
+   query can't join the attribute.
    https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
    https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html */
 @media (prefers-contrast: more) {
@@ -162,6 +207,7 @@
     --rule: light-dark(oklch(45% 0.005 80), oklch(70% 0.005 80));
     --rule-soft: light-dark(oklch(75% 0.003 80), oklch(45% 0.004 80));
     --divider: light-dark(oklch(65% 0.004 80), oklch(55% 0.004 80));
+    --grain: none;
   }
 }
 
@@ -172,4 +218,5 @@
   --rule: light-dark(oklch(45% 0.005 80), oklch(70% 0.005 80));
   --rule-soft: light-dark(oklch(75% 0.003 80), oklch(45% 0.004 80));
   --divider: light-dark(oklch(65% 0.004 80), oklch(55% 0.004 80));
+  --grain: none;
 }

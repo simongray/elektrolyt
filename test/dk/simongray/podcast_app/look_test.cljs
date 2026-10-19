@@ -9,6 +9,7 @@
             [clojure.test :refer [deftest is testing]]
             [dk.simongray.colour-coded.contrast :as contrast]
             [dk.simongray.colour-coded.gamut :as gamut]
+            [dk.simongray.colour-coded.mix :as mix]
             [dk.simongray.colour-coded.tone :as tone]
             [dk.simongray.colour-coded.vision :as vision]))
 
@@ -131,6 +132,48 @@
       (is (<= 4.5 (least-ratio accent (nth paper i) seeds)) "links")
       (is (<= 4.5 (least-ratio (nth (tokens main "--accent-ink") i) accent seeds)) "a filled button's label")
       (is (<= 4.5 (least-ratio accent (nth (tokens main "--accent-soft") i) seeds)) "links on a soft fill"))))
+
+;; The strongest 1% of the black and the white specks of
+;; public/images/grain.png, which strongest in
+;; dev/dk/simongray/podcast_app/grain.clj reports. Remake them with the
+;; grain.
+(def specks
+  {:black 0.0549 :white 0.0235})
+
+(defn specked
+  "The `ground` under the strongest speck of the grain that brings it
+  closer to the `text`, white under lighter text and black under darker,
+  laid over it in sRGB, which is where a browser lays it."
+  [ground text]
+  (let [k (if (> (contrast/luminance text) (contrast/luminance ground)) :white :black)]
+    (mix/mix ground (name k) (specks k) :srgb)))
+
+(defn least-specked-ratio
+  "The least contrast ratio of the `text` on the `ground`, tokens or
+  colours, under the grain's strongest specks, over every seed of `xs`,
+  mapped and clipped."
+  [text ground xs]
+  (apply min (for [s xs clip? [false true]
+                   :let [t (colour text s clip?)]]
+               (contrast/ratio t (specked (colour ground s clip?) t)))))
+
+(deftest the-text-contrasts-on-the-grain
+  (testing "on the bars"
+    (doseq [[k on wants] [["--on-bar" "--bar" 4.5]
+                          ["--on-bar-2" "--bar" 4.5]
+                          ["--bar-rule" "--bar" 3]
+                          ["--on-bar-fill" "--bar-fill" 4.5]]]
+      (let [[a] (tokens shell k)
+            [b] (tokens shell on)]
+        (is (<= wants (least-specked-ratio a b seeds)) (str k " on " on)))))
+  (doseq [[i mode] [[0 "light"] [1 "dark"]]
+          :let [accent (nth (tokens main "--accent") i)
+                ground (nth paper i)]]
+    (testing (str "on the " mode " paper")
+      (is (<= 4.5 (least-specked-ratio (nth (light-dark (get root "--ink-2")) i) ground [nil])) "secondary text")
+      (is (<= 4.5 (least-specked-ratio accent ground seeds)) "links")
+      (is (<= 4.5 (least-specked-ratio (nth (tokens main "--accent-ink") i) accent seeds)) "a filled button's label")
+      (is (<= 4.5 (least-specked-ratio accent (nth (tokens main "--accent-soft") i) seeds)) "links on a soft fill"))))
 
 (defn label-ratios
   "The least contrast ratio of the label `label` of each page with the

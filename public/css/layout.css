@@ -291,8 +291,16 @@ search p {
   margin: var(--space-4) 0 var(--space-1);
 }
 
+/* a paragraph after another starts with an indent rather than after a
+   space, the way a book's do, and one after a heading or a list starts
+   flush, since there's no doubt where it begins
+   https://practicaltypography.com/first-line-indents.html */
 .show-notes p {
-  margin: 0 0 var(--space-3);
+  margin: 0;
+}
+
+.show-notes p + p {
+  text-indent: 1.5em;
 }
 
 /* The links to the lists of the directories, in a row that wraps */
