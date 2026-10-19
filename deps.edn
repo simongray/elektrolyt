@@ -1,9 +1,10 @@
 {:paths ["src"]
 
  ;; podcast-clj for the feeds and the listener's library, play-nice for the
- ;; playing, Replicant for the rendering, Nexus for the actions that the
- ;; views dispatch, and reitit for the routes. podcast-clj is ahead of its
- ;; release, so it comes from Git.
+ ;; playing, colour-coded for the colours of the artwork, Replicant for the
+ ;; rendering, Nexus for the actions that the views dispatch, and reitit for
+ ;; the routes. podcast-clj is ahead of its release, and colour-coded has
+ ;; none yet, so both come from Git.
  ;;
  ;; Replicant comes from the commit of its PR #83 too, which fixes issue #81:
  ;; a keyed child that moves to the front and changes keeps its old vdom, so
@@ -14,6 +15,8 @@
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
                                    :git/sha "ed20b62495e1b4f0ca9bbfe598d8103e68816bc5"}
          dk.simongray/play-nice   {:mvn/version "0.4.0"}
+         dk.simongray/colour-coded {:git/url "https://github.com/simongray/colour-coded.git"
+                                    :git/sha "0b9be2d2c57a2728a8d620c7d0f08424222c206c"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
@@ -55,12 +58,13 @@
          :exec-fn     cognitect.test-runner.api/test
          :exec-args   {:patterns ["dk\\.simongray\\.podcast-app\\.server.*"]}}
 
-  ;; podcast-clj and play-nice from the checkouts beside this one, and
-  ;; like-minded, mind-meld and wary-fetch below podcast-clj, so that a fix
-  ;; in any of them shows in the app at once
+  ;; podcast-clj, play-nice and colour-coded from the checkouts beside this
+  ;; one, and like-minded, mind-meld and wary-fetch below podcast-clj, so
+  ;; that a fix in any of them shows in the app at once
   :local {:override-deps
-          {dk.simongray/podcast-clj {:local/root "../podcasting"}
-           dk.simongray/play-nice   {:local/root "../play-nice"}
-           dk.simongray/like-minded {:local/root "../like-minded"}
-           dk.simongray/mind-meld   {:local/root "../mind-meld"}
-           dk.simongray/wary-fetch  {:local/root "../wary-fetch"}}}}}
+          {dk.simongray/podcast-clj  {:local/root "../podcasting"}
+           dk.simongray/play-nice    {:local/root "../play-nice"}
+           dk.simongray/colour-coded {:local/root "../colour-coded"}
+           dk.simongray/like-minded  {:local/root "../like-minded"}
+           dk.simongray/mind-meld    {:local/root "../mind-meld"}
+           dk.simongray/wary-fetch   {:local/root "../wary-fetch"}}}}}

@@ -8,6 +8,8 @@
   (:require [cljs.reader :as reader]
             [clojure.string :as str]
             [cognitect.transit :as transit]
+            [dk.simongray.colour-coded :as cc]
+            [dk.simongray.colour-coded.image :as image]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.page.tabs :as tabs]
             [dk.simongray.podcast.app.episode :as episode]
@@ -16,7 +18,6 @@
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
-            [dk.simongray.podcast.format.image :as image]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.cache :as app-cache]
@@ -882,9 +883,9 @@
       (.then (fn [kept]
                (or (:value kept)
                    (-> (app-library/send {:url (colors/source x) :as :bytes})
-                       (.then #(image/colors (:body %)))
-                       (.then (fn [found]
-                                (let [v {:seed (:seed found)}]
+                       (.then #(image/seed (:body %)))
+                       (.then (fn [seed]
+                                (let [v {:seed (some-> seed cc/hex)}]
                                   (app-cache/put! app-cache/colors artwork v)
                                   v)))))))
       (.catch (fn [e]

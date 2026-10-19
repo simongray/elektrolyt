@@ -4,8 +4,9 @@
   show of a Show or an Episode page, or else of the episode that plays.
 
   The :colors of the state keep each artwork's colours by its URL, as a
-  map of the :seed, nil for artwork without a hue, or of the :status
-  :loading while they're worked out. A page shows the app's own colours
+  map of the :seed, a hex colour from colour-coded's image/seed, nil for
+  artwork without a hue, or of the :status :loading while they're worked
+  out. A page shows the app's own colours
   until they're known."
   (:require [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.show :as show]))
