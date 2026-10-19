@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.server
-  "The app's own server, which serves the app's files and the proxy through
-  which the app fetches feeds, on one origin.
+  "The app's own server, which serves the app's files, the proxy through
+  which the app fetches feeds, and small thumbnails of artwork, on one
+  origin.
 
   It listens on localhost alone, since it checks no credentials and the
   proxy fetches any public URL for whoever reaches it. With the credentials
@@ -11,6 +12,7 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [cognitect.transit :as transit]
+            [dk.simongray.podcast.artwork :as artwork]
             [dk.simongray.podcast.directory.podcastindex :as podcastindex]
             [dk.simongray.podcast.util.client :as client]
             [dk.simongray.podcast.util.ring :as ring]
@@ -188,17 +190,21 @@
        :body    body})))
 
 (defn routes
-  "The routes of the proxy and of /api/server in Pedestal's set syntax,
-  with the Podcast Index credentials `podcastindex`, or nil. The proxy
-  fetches four files at once, of 32 MB at most, as podcast-clj's server
-  does, and signs the requests to the Podcast Index."
-  [podcastindex]
-  (let [send  (if podcastindex
-                (podcastindex/sender podcastindex {:send client/send!})
-                client/send!)
-        proxy (at-most 4 30 (proxy/handler {:user-agent client/user-agent
-                                            :send       send}))]
+  "The routes of the proxy, the thumbnails of artwork and /api/server in
+  Pedestal's set syntax, with the Podcast Index credentials `podcastindex`,
+  or nil, and the thumbnails kept in `artwork-dir`. The proxy fetches four
+  files at once, of 32 MB at most, as podcast-clj's server does, and signs
+  the requests to the Podcast Index. The thumbnails are made four at a
+  time too."
+  [podcastindex artwork-dir]
+  (let [send       (if podcastindex
+                     (podcastindex/sender podcastindex {:send client/send!})
+                     client/send!)
+        proxy      (at-most 4 30 (proxy/handler {:user-agent client/user-agent
+                                                 :send       send}))
+        thumbnails (at-most 4 30 (artwork/handler {:cache-dir artwork-dir}))]
     #{["/proxy" :any proxy :route-name ::proxy]
+      ["/artwork" :any thumbnails :route-name ::artwork]
       ["/api/server" :get (server-info podcastindex) :route-name ::server-info]}))
 
 (defn connector
@@ -207,8 +213,10 @@
 
   - :port, on localhost
   - :client-dir, the folder of the app's files
-  - :podcastindex, the credentials of the Podcast Index, or nil"
-  [{:keys [port client-dir podcastindex] :as settings}]
+  - :podcastindex, the credentials of the Podcast Index, or nil
+  - :artwork-dir, the folder of the thumbnails of artwork, or nil to keep
+    none"
+  [{:keys [port client-dir podcastindex artwork-dir] :as settings}]
   (let [policy {:object-src "'none'" :script-src "'self' 'unsafe-eval'"}]
     (-> (conn/default-connector-map "localhost" port)
         (conn/with-interceptors
@@ -223,7 +231,8 @@
            same-origin-writes
            (index-fallback client-dir)
            folders])
-        (conn/with-routes (routes podcastindex) (client-routes client-dir))
+        (conn/with-routes (routes podcastindex artwork-dir)
+                          (client-routes client-dir))
         (jetty/create-connector nil))))
 
 (defonce ^{:doc "The running server's connector, or nil when stopped."}
@@ -237,18 +246,22 @@
   - :client-dir, the folder of the app's files, public/ by default
   - :secrets, an EDN file with the credentials of the Podcast Index under
     :podcastindex, by default the file that the environment variable
-    PODCAST_APP_SECRETS names, if any"
+    PODCAST_APP_SECRETS names, if any
+  - :artwork-dir, the folder of the thumbnails of artwork, .cache/artwork
+    by default"
   ([]
    (start! {}))
-  ([{:keys [port client-dir secrets]
-     :or   {port       8400
-            client-dir "public"
-            secrets    (System/getenv "PODCAST_APP_SECRETS")}}]
+  ([{:keys [port client-dir secrets artwork-dir]
+     :or   {port        8400
+            client-dir  "public"
+            secrets     (System/getenv "PODCAST_APP_SECRETS")
+            artwork-dir ".cache/artwork"}}]
    (when-not @server
      (let [podcastindex (podcastindex-credentials secrets)]
        (reset! server (conn/start! (connector {:port         port
                                                :client-dir   client-dir
-                                               :podcastindex podcastindex})))
+                                               :podcastindex podcastindex
+                                               :artwork-dir  artwork-dir})))
        (println (str "The app is on http://localhost:" port "/"
                      (when podcastindex ", with the Podcast Index")))))
    @server))

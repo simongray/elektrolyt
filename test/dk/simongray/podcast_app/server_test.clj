@@ -46,6 +46,14 @@
   (testing "the proxy answers GET and HEAD alone"
     (is (= 405 (:status (response-for connector :post "/proxy"))))))
 
+(deftest artwork-test
+  (testing "the thumbnails need a URL and a width from the list"
+    (is (= 400 (:status (response-for connector :get "/artwork"))))
+    (is (= 400 (:status (response-for connector :get "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=65")))))
+  (testing "and they're for the app's own pages"
+    (is (= 403 (:status (response-for connector :get "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=64"
+                                      :headers {"sec-fetch-site" "cross-site"}))))))
+
 (defn read-transit
   "The value of the transit JSON `s`."
   [s]

@@ -1,6 +1,22 @@
 (ns dk.simongray.podcast-app.ui.artwork
   "The artwork of a show as an img, in the size that fits."
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [dk.simongray.podcast.artwork :as thumbnails]))
+
+(def thumbnails-path
+  "The path of the server's thumbnails of artwork."
+  "/artwork")
+
+;; Most feeds name one artwork of 3000 pixels and no sizes, e.g. 1.4 MB
+;; for each episode of a feed of Anchor's, so a row of 48 pixels takes the
+;; server's thumbnails, as Pocket Casts' lists take its own of 200 pixels
+(defn sizes
+  "The sizes of the artwork of `x`: the :artwork-sizes that its feed names,
+  or else the server's thumbnails of its :artwork, or nil for artwork that
+  the server can't fetch, e.g. a data URL."
+  [{:keys [artwork artwork-sizes]}]
+  (or (not-empty artwork-sizes)
+      (thumbnails/sizes thumbnails-path artwork)))
 
 (defn srcset
   "The srcset of the artwork `sizes`, maps of an :href and a :width."
@@ -20,22 +36,24 @@
 ;; size of the img in its sizes, a browser loads the smallest artwork that
 ;; fills it at the screen's density. W3C, Images tutorial, decorative
 ;; images: the title next to the artwork names the show, so its alt is
-;; empty.
+;; empty. The artwork itself stays the src, which a browser without srcset
+;; loads.
 (defn img
   "The img of the :artwork of a show `x`, at `size` CSS pixels square, with
-  the :artwork-sizes of `x` as its srcset and the `attrs` merged in, e.g.
-  :loading, or nil without artwork."
-  [{:keys [artwork artwork-sizes] :as x} size attrs]
+  its sizes as its srcset and the `attrs` merged in, e.g. :loading, or nil
+  without artwork."
+  [{:keys [artwork] :as x} size attrs]
   (when artwork
-    [:img (merge {:src      artwork
-                  :alt      ""
-                  :width    size
-                  :height   size
-                  :decoding "async"}
-                 (when (seq artwork-sizes)
-                   {:srcset (srcset artwork-sizes)
-                    :sizes  (str size "px")})
-                 attrs)]))
+    (let [candidates (sizes x)]
+      [:img (merge {:src      artwork
+                    :alt      ""
+                    :width    size
+                    :height   size
+                    :decoding "async"}
+                   (when (seq candidates)
+                     {:srcset (srcset candidates)
+                      :sizes  (str size "px")})
+                   attrs)])))
 
 ;; WCAG 2.2, technique H2: an image and a text beside it that link to the
 ;; same page are one link, rather than two that a keyboard and a screen

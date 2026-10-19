@@ -46,8 +46,8 @@ function item({ guid, title, published }) {
     </item>`;
 }
 
-/** The feed of the show with the `episodes`, newest first. */
-function rss(episodes) {
+/** The feed of the show with the `episodes`, newest first, and its `artwork`, if any. */
+function rss(episodes, artwork) {
   const newest = episodes.toSorted((a, b) => b.published.localeCompare(a.published));
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
@@ -59,7 +59,8 @@ function rss(episodes) {
     <description>A show for the end-to-end tests.</description>
     <language>en</language>
     <podcast:guid>${showGuid}</podcast:guid>
-    <itunes:author>The Testers</itunes:author>${newest.map(item).join('')}
+    <itunes:author>The Testers</itunes:author>${artwork ? `
+    <itunes:image href="${artwork.url}"/>` : ''}${newest.map(item).join('')}
   </channel>
 </rss>
 `;
@@ -89,13 +90,15 @@ export function navLink(page, title) {
 
 /**
  * The show that the routes serve. A test can publish an episode, hold the
- * fetches of the feed until it releases them, or give the feed headers,
- * e.g. a Cache-Control.
+ * fetches of the feed until it releases them, give the feed headers, e.g.
+ * a Cache-Control, or give the show artwork, as a map of its url, its type
+ * and its body.
  */
 class Show {
   episodes = [...episodes];
   held = null;
   headers = {};
+  artwork = null;
 
   publish(episode) {
     this.episodes.push(episode);
@@ -114,7 +117,10 @@ class Show {
   /** The type, the body and the headers of the file at `url`, or undefined when there's none. */
   file(url) {
     if (url === feedUrl) {
-      return { type: 'application/rss+xml', body: Buffer.from(rss(this.episodes)), headers: this.headers };
+      return { type: 'application/rss+xml', body: Buffer.from(rss(this.episodes, this.artwork)), headers: this.headers };
+    }
+    if (url && url === this.artwork?.url) {
+      return { type: this.artwork.type, body: this.artwork.body };
     }
     if (url?.startsWith('https://media.example/')) {
       return { type: 'audio/mpeg', body: audio };
@@ -203,6 +209,8 @@ export const test = base.extend({
       await answer(route, show.file(url));
     });
     await context.route('https://media.example/**', route =>
+      answer(route, show.file(route.request().url())));
+    await context.route('https://art.example/**', route =>
       answer(route, show.file(route.request().url())));
     await use(show);
   }, { auto: true }],

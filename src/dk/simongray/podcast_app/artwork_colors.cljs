@@ -5,7 +5,8 @@
 
   The namespace dk.simongray.podcast-app.colors describes what the colours
   are for and how the state keeps them."
-  (:require [dk.simongray.colour-coded :as cc]
+  (:require [clojure.string :as str]
+            [dk.simongray.colour-coded :as cc]
             [dk.simongray.colour-coded.image :as image]
             [dk.simongray.podcast-app.cache :as app-cache]
             [dk.simongray.podcast-app.colors :as colors]
@@ -30,6 +31,32 @@
                 {:seed     (some-> seed cc/hex)
                  :dominant (some-> background cc/hex)})))
 
+(defn- proxied-bytes
+  "A promise of the bytes of the image at `url`, through the proxy, since
+  most hosts of artwork don't let a page of another site read it."
+  [url]
+  (.then (app-library/send {:url url :as :bytes}) :body))
+
+;; Fetch, section 4.3: with the redirect mode manual, fetch doesn't follow
+;; the server's redirect to the artwork's own host, whose answer a page
+;; can't read without CORS
+;; https://fetch.spec.whatwg.org/#concept-request-redirect-mode
+(defn image-bytes
+  "A promise of the bytes of the image to work out the colours of the
+  artwork of `x` from: its source, which the server's thumbnails serve
+  from the app's own origin, or else through the proxy. A thumbnail that
+  the server redirects to the artwork itself, e.g. of WebP, comes through
+  the proxy from the artwork."
+  [{:keys [artwork] :as x}]
+  (let [url (colors/source x)]
+    (if (str/starts-with? url "/")
+      (-> (js/fetch url #js {:redirect "manual"})
+          (.then (fn [response]
+                   (if (.-ok response)
+                     (.then (.arrayBuffer response) #(js/Uint8Array. %))
+                     (proxied-bytes artwork)))))
+      (proxied-bytes url))))
+
 (defn load-colors!
   "Work out the colours of the artwork `x`, as colors/wanted names it, into
   the :colors of the `store`: from the cache, or else from the image,
@@ -39,8 +66,8 @@
   (-> (app-cache/fetch! app-cache/colors artwork)
       (.then (fn [kept]
                (or (cached-colors kept)
-                   (-> (app-library/send {:url (colors/source x) :as :bytes})
-                       (.then #(image-colors (:body %)))
+                   (-> (image-bytes x)
+                       (.then image-colors)
                        (.then (fn [v]
                                 (when v
                                   (app-cache/put! app-cache/colors artwork v))

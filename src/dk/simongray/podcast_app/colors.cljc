@@ -16,14 +16,15 @@
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]
-            [dk.simongray.podcast-app.shows :as shows]))
+            [dk.simongray.podcast-app.shows :as shows]
+            [dk.simongray.podcast-app.ui.artwork :as artwork]))
 
 (defn source
   "The URL to work out the colours of the artwork of `x` from: the smallest
-  of its :artwork-sizes, since the colours need few pixels, or else its
-  :artwork."
-  [{:keys [artwork artwork-sizes] :as x}]
-  (or (:href (first (sort-by :width artwork-sizes))) artwork))
+  of its sizes, as artwork/sizes gives them, since the colours need few
+  pixels, or else its :artwork."
+  [{:keys [artwork] :as x}]
+  (or (:href (first (sort-by :width (artwork/sizes x)))) artwork))
 
 (defn entry
   "The colours of the artwork of `x` in the :colors of the `state`, or nil

@@ -61,6 +61,9 @@ clojure -M:cljs:server:local:serve
   which it fetches feeds. The server listens on localhost alone, since it
   has no login yet and the proxy fetches any public URL for whoever
   reaches it.
+- The server also makes small thumbnails of artwork at `/artwork`, since
+  most feeds name a single artwork of 3000 pixels. It keeps them in
+  `.cache/artwork`, at most 200 MB.
 - The views are at http://localhost:8402, in
   [Portfolio](https://github.com/cjohansen/portfolio), with a scene for each
   state of each view. The scenes live in the `-scenes` namespaces of `dev/`.

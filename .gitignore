@@ -13,3 +13,6 @@ target/
 public/js/
 dev-resources/public/js/
 dev-resources/public/index.html
+
+# the server's thumbnails of artwork
+.cache/

@@ -19,7 +19,10 @@
 
 (deftest the-image-to-work-the-colours-out-from
   (is (= "https://example.org/a-100.jpg" (colors/source playing)) "the smallest")
-  (is (= "https://example.org/b.jpg" (colors/source {:artwork "https://example.org/b.jpg"}))))
+  (is (= "/artwork?url=https%3A%2F%2Fexample.org%2Fb.jpg&w=64" (colors/source {:artwork "https://example.org/b.jpg"}))
+      "the server's smallest thumbnail of artwork without sizes")
+  (is (= "data:image/png;base64,AA==" (colors/source {:artwork "data:image/png;base64,AA=="}))
+      "or the artwork itself, which the server can't fetch"))
 
 (deftest the-artworks-that-a-page-wants
   (is (= [{:artwork (:artwork playing) :artwork-sizes (:artwork-sizes playing)}]
