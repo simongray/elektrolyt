@@ -118,10 +118,10 @@
   "An episode in the list of episodes, the `row` of its :title, its date of
   :published and its :duration in seconds, whose title in the language
   `lang` links to the `href` of its page, beside its artwork, or else the
-  `show`'s."
+  `show`'s, which links there too."
   [href {:keys [title published duration] :as row} lang show]
   [:article
-   (artwork/img (if (:artwork row) row show) 48 {:loading "lazy"})
+   (artwork/linked href (artwork/img (if (:artwork row) row show) 48 {:loading "lazy"}))
    [:h3 [:a {:href href :lang lang} title]]
    (facts-ui/line [(some-> published time-ui/date)
                    (some-> duration time-ui/duration)])])

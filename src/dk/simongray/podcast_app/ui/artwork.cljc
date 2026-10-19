@@ -36,3 +36,16 @@
                    {:srcset (srcset artwork-sizes)
                     :sizes  (str size "px")})
                  attrs)]))
+
+;; WCAG 2.2, technique H2: an image and a text beside it that link to the
+;; same page are one link, rather than two that a keyboard and a screen
+;; reader meet in turn. The title is that link, so the artwork's link is
+;; for a pointer alone, out of the order of the keyboard and hidden from
+;; a screen reader.
+;; https://www.w3.org/WAI/WCAG22/Techniques/html/H2
+(defn linked
+  "The artwork `img` as a link to `href`, where the title beside it links
+  too, or nil without the img."
+  [href img]
+  (when img
+    [:a.artwork-link {:href href :tabindex -1 :aria-hidden "true"} img]))

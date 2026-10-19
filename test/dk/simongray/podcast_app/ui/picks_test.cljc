@@ -1,5 +1,5 @@
 (ns dk.simongray.podcast-app.ui.picks-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast-app.picks-test :refer [id lib]]
             [dk.simongray.podcast-app.ui.picks :as picks-ui]
             [dk.simongray.podcast-app.ui.player-test :refer [buttons]]
@@ -17,22 +17,25 @@
 
 (deftest a-section-of-picks
   (let [x (picks-ui/section {:library lib} section picked)]
-    (is (= [:h2 {:id "episode-picks" :tabindex -1} "More like this"] (first (elements :h2 x))))
+    (is (= [:h2 {:id "episode-picks"} "More like this"] (first (elements :h2 x))))
     (is (= "About burr, espresso, beans and grind" (text-of (elements :p.picks-why x)))
         "the first five of the words that they share, as a list")
     (is (= ["/search?q=burr" "/search?q=espresso" "/search?q=beans" "/search?q=grind"]
            (map #(:href (second %)) (elements :a (elements :p.picks-why x))))
         "each a link to a search for it")
     (is (= ["Grinders compared" "Gears"] (map text-of (elements :h3 x))))
-    (is (re-find #"Brew Lab.*30m" (text-of (elements :article.pick x))) "the show and the length")
-    (testing "Add to queue, after which the focus goes to the row that takes its place"
-      (let [[first-add last-add] (buttons x)]
-        (is (= [[:queue/add {:id (id "Brew Lab" 0)} "Grinders compared" false]
-                [:page/focus (picks-ui/control-id (id "Bikes" 0))]]
-               (get-in first-add [1 :on :click])))
-        (is (= [:page/focus (picks-ui/control-id (id "Brew Lab" 0))]
-               (second (get-in last-add [1 :on :click])))
-            "the row before the last")))))
+    (is (= "Grinders comparedGears" (text-of (elements :article.pick x)))
+        "each its title alone, which its page has the rest of")
+    (is (empty? (buttons x)) "and no buttons")))
+
+(deftest the-artwork-of-a-pick
+  (let [x               (picks-ui/row {:library lib} (assoc (first (:episodes picked))
+                                                            :artwork "https://example.org/art.jpg"))
+        [[_ art-attrs]] (elements :a.artwork-link x)
+        [[_ title-attrs]] (elements :a (elements :h3 x))]
+    (is (= (:href title-attrs) (:href art-attrs)) "a link to the page that the title links to")
+    (is (= [-1 "true"] ((juxt :tabindex :aria-hidden) art-attrs))
+        "for a pointer alone, since the title is the link of a keyboard and a screen reader")))
 
 (deftest a-section-without-picks
   (is (= "More like thisNothing yet."

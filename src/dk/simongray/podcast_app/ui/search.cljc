@@ -117,12 +117,14 @@
 ;; https://github.com/searxng/searxng/blob/master/searx/templates/simple/macros.html
 (defn result
   "A show that a search found, the `result`, in the `state` with the
-  `subscribed` URLs, under a heading of the `level`, e.g. :h3. When
-  `shared-title?`, it shows the URL of its feed."
-  [state subscribed level {:keys [url title author] :as result} shared-title?]
+  `subscribed` URLs, under a heading of the `level`, e.g. :h3, its artwork
+  and title a link to its page. When `shared-title?`, it shows the URL of
+  its feed."
+  [state subscribed level {:keys [url guid title author] :as result} shared-title?]
   (let [title (or title url)]
     [:article
-     (artwork/img result 64 (merge {:loading "lazy"} (colors/placeholder state result)))
+     (artwork/linked (routes/show-href guid title url)
+                     (artwork/img result 64 (merge {:loading "lazy"} (colors/placeholder state result))))
      [level (show-link (assoc result :title title))]
      (when author
        [:p author])

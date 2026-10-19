@@ -18,11 +18,12 @@
                          (get-in lib [:feeds feed-guid :url]))))
 
 (defn row
-  "The `episode` of the library of the `state` as a row: its artwork, its
-  title in a heading of `tag`, e.g. :h3, as a link to its page, and the
-  `facts` in a line."
+  "The `episode` of the library of the `state` as a row: its artwork and
+  its title in a heading of `tag`, e.g. :h3, both a link to its page, and
+  the `facts` in a line."
   [{:keys [library] :as state} {:keys [id title] :as episode} tag facts]
-  (list
-   (artwork/img episode 48 (colors/placeholder state episode))
-   [tag [:a {:href (episode-href library id title)} title]]
-   (facts-ui/line facts)))
+  (let [href (episode-href library id title)]
+    (list
+     (artwork/linked href (artwork/img episode 48 (colors/placeholder state episode)))
+     [tag [:a {:href href} title]]
+     (facts-ui/line facts))))

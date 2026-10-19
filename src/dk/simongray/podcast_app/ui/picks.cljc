@@ -1,23 +1,13 @@
 (ns dk.simongray.podcast-app.ui.picks
   "The views of the picks, as dk.simongray.podcast-app.picks finds them: a
-  section of a few episodes, a line of the words that found them, and Add
-  to queue on each.
+  section of a few episodes, each its artwork and its title, which link to
+  its page, and a line of the words that found them.
 
-  An episode that the listener adds leaves the list, since the picks are
-  never queued, so the focus moves to the same button of the next row, or
-  of the row before the last, or else to the section's heading. The status
-  line says what was added."
+  A pick is as short as a link, since its page has the rest, e.g. its show
+  and the buttons that queue it."
   (:require [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.text :as text]
-            [dk.simongray.podcast-app.ui.lists :as lists-ui]
-            [dk.simongray.podcast-app.ui.rows :as rows]
-            [dk.simongray.podcast-app.ui.time :as time-ui]))
-
-(defn control-id
-  "The id of the Add to queue button of the pick `id`, by which the focus
-  finds it again after a change."
-  [id]
-  (rows/control-id "pick" id :queue))
+            [dk.simongray.podcast-app.ui.lists :as lists-ui]))
 
 (defn search-link
   "A link to a search for the word `term`."
@@ -38,16 +28,10 @@
           (text/listing-parts terms))))
 
 (defn row
-  "The pick `episode` in the `state`, its artwork, title, show and length,
-  and Add to queue, after which the focus goes to the element `next-focus`
-  names."
-  [state {:keys [id title show duration] :as episode} next-focus]
-  (list
-   (lists-ui/row state episode :h3 [show (some-> duration time-ui/duration)])
-   (rows/button "Add to queue" title
-                {:id (control-id id)
-                 :on {:click [[:queue/add {:id id} title false]
-                              [:page/focus next-focus]]}})))
+  "The pick `episode` in the `state`: its artwork and its title, which link
+  to its page."
+  [state episode]
+  (lists-ui/row state episode :h3 nil))
 
 ;; A list rather than a carousel, which hides most of what it holds, and
 ;; needs keys, focus and announcements of its own (W3C WAI, Carousels)
@@ -60,14 +44,12 @@
   [state {:keys [id heading lead none]} {:keys [episodes terms]}]
   (when (or (seq episodes) none)
     [:section.picks {:aria-labelledby id}
-     [:h2 {:id id :tabindex -1} heading]
+     [:h2 {:id id} heading]
      (if (empty? episodes)
        [:p none]
        (list
         (why lead terms)
         [:ul.picks {:role "list"}
-         (for [[i {pick-id :id :as episode}] (map-indexed vector episodes)]
-           (let [neighbour (rows/neighbour episodes i)]
-             [:li {:replicant/key (pr-str pick-id)}
-              [:article.pick
-               (row state episode (if neighbour (control-id (:id neighbour)) id))]]))]))]))
+         (for [{pick-id :id :as episode} episodes]
+           [:li {:replicant/key (pr-str pick-id)}
+            [:article.pick (row state episode)]])]))]))

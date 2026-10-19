@@ -565,17 +565,7 @@ details summary {
   }
 
   .with-details > .picks .pick {
-    grid-template-columns: minmax(0, 1fr) 48px;
-  }
-
-  .with-details > .picks .pick img {
-    grid-column: 2;
-    grid-row: 1 / span 3;
-  }
-
-  .with-details > .picks .pick > :not(img) {
-    grid-column: 1;
-    justify-self: end;
+    flex-direction: row-reverse;
   }
 }
 
@@ -759,17 +749,21 @@ details summary {
 }
 
 
-/* The queue, the inbox and the picks: each episode's artwork beside its
-   title, show and times, with its buttons below, which wrap on a phone */
+/* The link of an artwork beside its title, which leaves the artwork in
+   the layout of the row as if it weren't there */
+.artwork-link {
+  display: contents;
+}
+
+/* The queue and the inbox: each episode's artwork beside its title, show
+   and times, with its buttons below, which wrap on a phone */
 .queue > li,
-.inbox > li,
-.picks > li {
+.inbox > li {
   padding-block: var(--space-3);
 }
 
 .queue-episode,
-.inbox-episode,
-.pick {
+.inbox-episode {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   column-gap: 1em;
@@ -777,28 +771,41 @@ details summary {
 }
 
 .queue-episode img,
-.inbox-episode img,
-.pick img {
+.inbox-episode img {
   grid-row: span 3;
   width: 48px;
 }
 
 .queue-episode > :not(img),
-.inbox-episode > :not(img),
-.pick > :not(img) {
+.inbox-episode > :not(img) {
   grid-column: 2;
   overflow-wrap: anywhere;
 }
 
 .queue-episode :is(h3, p),
-.inbox-episode :is(h2, h3, p),
-.pick :is(h3, p) {
+.inbox-episode :is(h2, h3, p) {
   margin: 0;
 }
 
-.pick > button {
-  justify-self: start;
-  margin-top: var(--space-2);
+/* The picks: each episode's artwork and its title, in a short row */
+.picks > li {
+  padding-block: var(--space-2);
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.pick img {
+  flex: none;
+  width: 48px;
+}
+
+.pick h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 /* The line under a list that links to the whole of it, e.g. Home's to the

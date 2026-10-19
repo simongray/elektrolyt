@@ -19,12 +19,14 @@
 (defn artwork
   "The artwork of the `playback`, or the image of its chapter at `seconds`,
   which takes its place, at an edge of the player, with the `attrs` merged
-  in, e.g. its colour while it loads."
-  [{:keys [artwork] :as playback} seconds attrs]
+  in, e.g. its colour while it loads, as a link to the page of its
+  episode, as its title is."
+  [{[feed-guid item-guid] :id :keys [artwork title] :as playback} seconds attrs]
   (let [image (or (some-> (:img (player/chapter-at playback seconds)) player/proxied)
                   artwork)]
     (when image
-      (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs)))))
+      (artwork/linked (routes/episode-href feed-guid item-guid title nil)
+                      (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs))))))
 
 (defn now-playing
   "The title and the show of the `playback`, with its title of the chapter
