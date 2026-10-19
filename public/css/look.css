@@ -451,12 +451,16 @@ input[role="switch"]:checked {
 }
 
 /* artwork waits for its file in its dominant colour, printed on the paper
-   like any other */
+   like any other, with its corners barely rounded, but in the player,
+   whose artwork is flush with the bar's edges */
 img {
-  outline: 1px solid var(--rule-soft);
-  outline-offset: -1px;
+  border-radius: var(--artwork-radius);
   background-image: var(--grain);
   background-size: var(--grain-size);
+}
+
+.player-artwork {
+  border-radius: 0;
 }
 
 /* Artwork on the paper is printed into it, as simon.grays.blog prints its
@@ -472,6 +476,7 @@ img {
 
 /* the place of artwork that a show doesn't have */
 .no-artwork {
+  border-radius: var(--artwork-radius);
   background: var(--grain) 0 0 / var(--grain-size), var(--rule-soft);
 }
 

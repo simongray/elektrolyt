@@ -95,6 +95,8 @@
   --space-5: 2.5rem;
   --measure: 36em;
   --radius: 2px;
+  /* artwork's corners, barely rounded, as a printed square's are */
+  --artwork-radius: 3px;
   /* the least height of a control, past the 24 px of WCAG 2.2, SC 2.5.8
      Target Size (Minimum), and low enough to keep a row of them compact;
      the links of the navigation keep 44 px (layout.css)
