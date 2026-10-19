@@ -13,7 +13,6 @@
             [dk.simongray.podcast-app.ui.lists :as lists-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
             [dk.simongray.podcast-app.ui.rows :as rows]
-            [dk.simongray.podcast-app.ui.settings :as settings-ui]
             [dk.simongray.podcast-app.ui.time :as time-ui]))
 
 (defn control-id
@@ -111,10 +110,8 @@
   "What the Inbox page says when it has no episodes."
   (list
    [:p "No new episodes."]
-   [:p "The new episodes of your shows arrive here, unless you choose the "
-    "queue for them, or nowhere, on the page of a show in your "
-    [:a {:href (routes/href :route/library)} "Library"] ", or for every "
-    "new show in " [:a {:href (settings-ui/group-href :new-episodes)} "Settings"] "."]))
+   [:p "The new episodes of the shows in your "
+    [:a {:href (routes/href :route/library)} "Library"] " arrive here."]))
 
 (defn episode-list
   "The list of the inbox's `episodes` in the `state`, or of the first `n`

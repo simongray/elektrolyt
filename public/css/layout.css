@@ -810,24 +810,15 @@ details summary {
 }
 
 
-/* The Library page's choices and its refresh, the Inbox page's buttons,
-   and a show page's subscription and its choice beside it, in rows that
-   wrap */
+/* The Library page's choices and its refresh, and the Inbox page's
+   buttons, in rows that wrap */
 .library-tools,
 .library-refresh,
-.inbox-tools,
-.new-episodes,
-.show-subscription {
+.inbox-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5em;
-}
-
-/* the dot between the subscription and its choice as far from each as a
-   space, as the dots of a line of text are */
-.show-subscription {
-  column-gap: 0.3em;
 }
 
 .library-refresh p {

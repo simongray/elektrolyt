@@ -1,8 +1,7 @@
 (ns dk.simongray.podcast-app.settings
   "The listener's settings, as the Settings page shows and changes them:
-  the preferences of the profile, among them where the new episodes of a
-  new show go, and what the page says of how this browser keeps the
-  library.
+  the preferences of the profile, and what the page says of how this
+  browser keeps the library.
 
   The preferences live in the profile, so that they sync with it, among
   them the directories that a search asks, in the order of their lists.
@@ -11,8 +10,7 @@
   its :text, and what the browser said of its storage as :storage, a map
   of :supported?, :persisted? and the :usage in bytes."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.podcast-app.text :as text]))
+            [dk.simongray.podcast.profile :as profile]))
 
 ;; Apple Podcasts offers skips of 10 to 60 seconds, and AntennaPod a list
 ;; of them too, rather than a number to type, which can't be wrong
@@ -128,25 +126,10 @@
   [state]
   (:autoplay? (preferences state) false))
 
-(defn new-episodes
-  "Where the new episodes of a new show go by the preferences of the
-  `state`, as profile/new-episodes names it."
-  [state]
-  (profile/new-episodes (merge profile/default-settings
-                               (:subscription-defaults (preferences state)))))
-
 (defn preferred
   "The `state` with the listener's preferences `prefs` changed."
   [state prefs]
   (update state :library library/update-profile profile/prefer prefs))
-
-(defn defaulted
-  "The `state` with the new episodes of a new show going to `choice`, as
-  profile/new-episodes names it."
-  [state choice]
-  (preferred state {:subscription-defaults
-                    (merge (:subscription-defaults (preferences state))
-                           (profile/new-episodes-settings choice))}))
 
 (def directories
   "The directories that the Settings page offers, in the order in which it
@@ -197,18 +180,3 @@
     (-> (dissoc state :searches :shows)
         (assoc :settings-status {:group :this-browser
                                  :text  "Cleared the searches and shows."}))))
-
-;; Pocket Casts asks whether a changed default should apply to the shows
-;; that the listener has, as "Apply to existing podcasts?"
-;; https://github.com/Automattic/pocket-casts-android/blob/main/modules/services/localization/src/main/res/values/strings.xml
-(defn applied-to-all
-  "The `state` with every show's new episodes going where those of a new
-  show go, and the page's status line saying so."
-  [state]
-  (let [ks       (keys (profile/subscriptions (:profile (:library state))))
-        settings (profile/new-episodes-settings (new-episodes state))]
-    (-> state
-        (update :library library/update-profile
-                (fn [p at] (reduce #(profile/configure %1 %2 settings at) p ks)))
-        (assoc :settings-status {:group :new-episodes
-                                 :text  (str "Applied to " (text/counted (count ks) "show"))}))))

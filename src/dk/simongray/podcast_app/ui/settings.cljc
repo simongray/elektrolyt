@@ -1,9 +1,8 @@
 (ns dk.simongray.podcast-app.ui.settings
   "The views of the Settings page: the app's colours, how the listener
-  plays, what the recommendations leave out, where new episodes go, the
-  directories that a search asks, the
-  import and export of their subscriptions, and how this browser keeps the
-  library.
+  plays, what the recommendations leave out, the directories that a
+  search asks, the import and export of their subscriptions, and how this
+  browser keeps the library.
 
   Each change applies at once, with no Save button, which NN/g, Microsoft
   and GNOME advise for settings, and which a field-by-field profile makes
@@ -19,8 +18,7 @@
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.controls :as controls-ui]
-            [dk.simongray.podcast-app.ui.rows :as rows]
-            [dk.simongray.podcast-app.ui.subscription :as subscription]))
+            [dk.simongray.podcast-app.ui.rows :as rows]))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: the outcome of an action whose
 ;; effect the page doesn't show, e.g. how many shows an import added, in a
@@ -138,21 +136,6 @@
                       "has one.")
                  (settings/explicit-picks? state) :explicit-picks?)))
 
-(defn new-episodes
-  "The default of where the new episodes of a new show go, in the `state`,
-  and the button that applies it to every show."
-  [state]
-  (group :new-episodes "New episodes"
-         (choice "default-new-episodes" "New episodes of a new show go to"
-                 subscription/new-episodes-options
-                 (settings/new-episodes state)
-                 [:settings/new-episodes [:event/target-keyword]])
-         [:p "A show has its own choice on its page, which this sets only for "
-          "the shows that you subscribe to from now on."]
-         [:button {:type "button" :on {:click [[:settings/apply-to-all]]}}
-          "Apply to all shows"]
-         (status state :new-episodes)))
-
 ;; Kagi's lenses: only those turned on in the settings appear while
 ;; searching. The order of the rows is the order of the lists of the
 ;; Search page, which the buttons of the queue rearrange.
@@ -247,7 +230,6 @@
    (appearance state)
    (playback state)
    (recommendations state)
-   (new-episodes state)
    (search-directories state)
    (subscriptions state)
    (this-browser state)))

@@ -1,16 +1,10 @@
 (ns dk.simongray.podcast-app.settings-test
   (:require [clojure.test :refer [deftest is]]
-            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
             [dk.simongray.podcast-app.settings :as settings]))
 
 (def state
   {:library inbox-test/lib})
-
-(defn new-episodes-of-the-show
-  "Where the new episodes of the show of the `state` go."
-  [state]
-  (profile/new-episodes (profile/settings (:profile (:library state)) inbox-test/k)))
 
 (deftest skips
   (is (= [5 10 15 30 45 60] (settings/skip-options 15)))
@@ -29,15 +23,6 @@
   (is (= "more" (settings/contrast (settings/preferred state {:contrast :more}))))
   (is (nil? (settings/contrast (settings/preferred state {:contrast :auto}))) "or the device's contrast")
   (is (nil? (settings/theme {})) "and before the library is restored"))
-
-(deftest new-episodes-of-a-new-show
-  (is (= :inbox (settings/new-episodes state)))
-  (let [s (settings/defaulted state :next)]
-    (is (= :next (settings/new-episodes s)))
-    (is (= :inbox (new-episodes-of-the-show s)) "the shows that the listener has keep theirs")
-    (let [applied (settings/applied-to-all s)]
-      (is (= :next (new-episodes-of-the-show applied)) "until it's applied to all of them")
-      (is (= {:group :new-episodes :text "Applied to 1 show"} (:settings-status applied))))))
 
 (deftest the-directories-of-a-search
   (is (= [[:podcastindex true] [:apple true] [:fyyd true] [:gpodder false]]

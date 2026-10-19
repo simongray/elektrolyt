@@ -28,10 +28,10 @@
 
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
-    (is (= ["Appearance" "Playback" "Recommendations" "New episodes" "Search" "Subscriptions" "This browser"]
+    (is (= ["Appearance" "Playback" "Recommendations" "Search" "Subscriptions" "This browser"]
            (map text-of (elements :h2 (elements :legend x))))
         "each group a fieldset, its heading in its legend")
-    (is (= [["appearance" -1] ["playback" -1] ["recommendations" -1] ["new-episodes" -1] ["search" -1]
+    (is (= [["appearance" -1] ["playback" -1] ["recommendations" -1] ["search" -1]
             ["subscriptions" -1] ["this-browser" -1]]
            (map #((juxt :id :tabindex) (second %)) (elements :h2 x)))
         "which a link to the group names, and which takes the focus")
@@ -41,7 +41,6 @@
       (is (= "30" (chosen x "skip-forward")))
       (is (= "1" (chosen x "speed")))
       (is (= "chapters" (chosen x "track-buttons")))
-      (is (= "inbox" (chosen x "default-new-episodes")))
       (is (= "auto" (chosen x "light-or-dark")) "the device's colours")
       (is (= "auto" (chosen x "contrast")) "and its contrast")
       (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours")
@@ -57,14 +56,12 @@
       (is (= [[:settings/prefer :navigation-palette [:event/target-keyword]]]
              (get-in (by-id x :select "navigation-colours") [1 :on :change])))
       (is (= [[:settings/prefer :skip-back [:event/target-number]]]
-             (get-in (by-id x :select "skip-back") [1 :on :change])))
-      (is (= [[:settings/new-episodes [:event/target-keyword]]]
-             (get-in (by-id x :select "default-new-episodes") [1 :on :change]))))
+             (get-in (by-id x :select "skip-back") [1 :on :change]))))
     (let [[_ attrs] (by-id x :input "continuous")]
       (is (= ["checkbox" "switch" false] ((juxt :type :role :checked) attrs))
           "continuous play, a switch")
       (is (= [[:settings/prefer :continuous? [:event/target-checked]]] (get-in attrs [:on :change]))))
-    (is (= 3 (count (filter #(= "status" (:role (second %))) (elements :p.settings-status x))))
+    (is (= 2 (count (filter #(= "status" (:role (second %))) (elements :p.settings-status x))))
         "a status line beside the buttons of each group that has them")))
 
 (deftest the-directories-of-a-search

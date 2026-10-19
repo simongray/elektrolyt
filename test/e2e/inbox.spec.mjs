@@ -22,7 +22,6 @@ async function checkForNewEpisodes(page, show) {
 test('a new episode arrives in the inbox, and leaves it once dismissed or queued', async ({ page, show }) => {
   const main = page.getByRole('main');
   await subscribe(page);
-  await expect(main.getByLabel('Destination of new episodes')).toHaveValue('inbox');
   await checkForNewEpisodes(page, show);
 
   // the inbox is a part of the Library, whose link counts it
@@ -50,17 +49,6 @@ test('a new episode arrives in the inbox, and leaves it once dismissed or queued
   await main.getByRole('button', { name: `Add to queue ${fourth.title}` }).click();
   await expect(announcement(page)).toHaveText(`Added ${fourth.title} to the queue`);
   await expect(main).toContainText('No new episodes');
-  await navLink(page, 'Queue').click();
-  await expect(main.getByRole('heading', { name: fourth.title })).toBeVisible();
-});
-
-test("a show's new episodes can go to the queue instead", async ({ page, show }) => {
-  const main = page.getByRole('main');
-  await subscribe(page);
-  await main.getByLabel('Destination of new episodes').selectOption('End of queue');
-  await checkForNewEpisodes(page, show);
-
-  await expect(navLink(page, 'Library')).toHaveAccessibleName('Library');
   await navLink(page, 'Queue').click();
   await expect(main.getByRole('heading', { name: fourth.title })).toBeVisible();
 });

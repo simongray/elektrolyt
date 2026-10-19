@@ -192,8 +192,8 @@
 (defn intro
   "The header of the article of the show `page` of the Show page of the
   `state`: its `heading` with its author and facts in a line below it, its
-  artwork, and beside it its subscription, beside where its new episodes
-  go, and its description below, in the show's language."
+  artwork, and beside it its subscription, and its description below, in
+  the show's language."
   [state heading {:keys [title author notes language] :as page}]
   (let [url (feed-url state)]
     [:header.show-intro
@@ -206,10 +206,7 @@
                                           (search/subscribed-urls (:library state))
                                           url)]
           (list [:div.show-subscription
-                 (subscription/button status url title true)
-                 (when (= :subscribed status)
-                   (list [:span {:aria-hidden "true"} "·"]
-                         (subscription/new-episodes (:library state) (library-key state))))]
+                 (subscription/button status url title true)]
                 (subscription/error state url))))]
      (when notes
        [:div.show-notes {:lang (text/lang language)} notes])]))

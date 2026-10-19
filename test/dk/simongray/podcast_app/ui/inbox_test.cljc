@@ -54,8 +54,8 @@
     (is (re-find #"No new episodes" (text-of x)))
     (is (empty? (elements :ul.inbox x)))
     (is (nil? (button-of x "Dismiss all")) "nothing to dismiss")
-    (is (= ["/library" "/settings#new-episodes"] (map #(:href (second %)) (elements :a x)))
-        "and links to where new episodes can go elsewhere, the group of the settings for it")))
+    (is (= ["/library"] (map #(:href (second %)) (elements :a x)))
+        "and links to the Library, whose shows' new episodes arrive here")))
 
 (deftest the-count-of-the-inbox
   (is (= "Library 3 new episodes" (text-of (ui/nav-label (state 1 2 3) :route/library)))

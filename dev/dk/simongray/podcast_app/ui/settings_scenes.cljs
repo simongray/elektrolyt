@@ -23,8 +23,9 @@
   asks it to."
   (ui/page (settings-page {:storage {:supported? true :persisted? false :usage 2345678}})))
 
-(defscene after-applying-to-all-shows
-  "The status line of the new episodes, once their default applies to
-  every show."
-  (ui/page (settings/applied-to-all
-            (settings-page {:storage {:supported? true :persisted? true :usage 12345678}}))))
+(defscene after-clearing-the-searches
+  "The status line of this browser, once the searches and shows that it
+  kept are cleared."
+  (ui/page (settings/cleared
+            (settings-page {:storage {:supported? true :persisted? true :usage 12345678}})
+            nil)))

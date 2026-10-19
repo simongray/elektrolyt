@@ -10,8 +10,6 @@
   (:require [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.page.tabs :as tabs]
-            [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast-app.artwork-colors :as artwork-colors]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.cache :as app-cache]
@@ -237,13 +235,6 @@
   (fn [_ store url title]
     (feeds/unsubscribe! store url title)))
 
-(nxr/register-effect! :library/new-episodes
-  (fn [_ store k choice]
-    (when choice
-      (swap! store update :library library/update-profile
-             profile/configure k (profile/new-episodes-settings choice))
-      (audio/save! store))))
-
 (nxr/register-effect! :library/view
   (fn [_ store k v]
     (local/store-edn! library-view-key (:library-view (swap! store assoc-in [:library-view k] v)))))
@@ -304,15 +295,6 @@
   (fn [_ store k v]
     (when (or (boolean? v) (keyword? v) (js/Number.isFinite v))
       (profile-changed! store settings/preferred {k v}))))
-
-(nxr/register-effect! :settings/new-episodes
-  (fn [_ store choice]
-    (when choice
-      (profile-changed! store settings/defaulted choice))))
-
-(nxr/register-effect! :settings/apply-to-all
-  (fn [_ store]
-    (profile-changed! store settings/applied-to-all)))
 
 (nxr/register-effect! :settings/search-source
   (fn [_ store source on?]
