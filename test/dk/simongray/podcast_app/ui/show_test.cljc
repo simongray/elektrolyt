@@ -3,7 +3,7 @@
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.show :as show]
-            [dk.simongray.podcast-app.ui-test :refer [elements lang-of text-of]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements lang-of spoken text-of]]))
 
 (deftest the-status-of-the-episodes
   (is (= "Loading episodes…" (show/status-text :loading 20 nil nil)) "while the whole feed is fetched")
@@ -72,10 +72,10 @@
     (is (nil? (show/schedule-text {:cadence (* 7 day) :complete? true})) "none once it's complete")))
 
 (deftest the-facts-of-a-show
-  (is (= ["Tech News" "Audiobook" "Complete" "Explicit" "Made with AI"]
+  (is (= ["Audiobook" "Complete" "Explicit" "Made with AI"]
          (show/facts {:categories [["News" "Tech News"] ["Technology"]] :medium "audiobook"
                       :complete? true :explicit? true :ai-content? true}))
-      "the first category, or its subcategory, as Apple shows it")
+      "but not its categories, which are in the Details")
   (is (every? nil? (show/facts {:medium "podcast" :explicit? false})) "no medium for a podcast")
   (let [rows (show/details-rows {:link       "https://www.podcastindex.org/"
                                  :categories [["News" "Tech News"] ["Technology"]]
@@ -84,39 +84,49 @@
                                               {:content "Birmingham" :rel "subject"}
                                               {:content "Marlow" :rel "Creator"}]
                                  :copyright  "Podcast Index LLC 2026"
-                                 :funding    [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]}
-                                "https://feeds.podcastindex.org/pc20.xml")]
-    (is (= ["Website" "Support" "Categories" "Language" "Latest episode" "Schedule" "Order"
-            "Made in" "Location" "License" "Copyright" "Feed"]
+                                 :funding    [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]})]
+    (is (= ["Support" "Categories" "Language" "Latest episode" "Schedule" "Order"
+            "Made in" "Location" "License" "Copyright"]
            (map first rows))
         "in the order of Apple's Information, with the places by what they are")
-    (is (= "podcastindex.org" (text-of (first (second (first rows))))) "the website by its host")
-    (is (= ["Value 4 Value"] (map text-of (second (second rows))))
-        "the links that support the show, by their text, beside its website")
-    (is (= ["Tech News" "Technology"] (second (nth rows 2))))
-    (is (= "Austin, TXMarlow" (text-of (second (nth rows 7)))) "two places made in, under one name")
+    (is (= ["Value 4 Value"] (map text-of (second (first rows))))
+        "the links that support the show, by their text")
+    (is (= ["Tech News" "Technology"] (second (nth rows 1))))
+    (is (= "Austin, TXMarlow" (text-of (second (nth rows 6)))) "two places made in, under one name")
     (is (= "https://www.openstreetmap.org/relation/113314"
-           (get-in (vec (first (second (nth rows 7)))) [1 :href]))
+           (get-in (vec (first (second (nth rows 6)))) [1 :href]))
         "a place linked to its map")))
+
+(deftest the-line-under-the-title
+  (let [page {:author "Podcast Index LLC" :link "https://podcastindex.org/" :explicit? true}
+        line (show/byline page "https://feeds.podcastindex.org/pc20.xml")]
+    (is (= "Podcast Index LLC, Explicit, Website, Feed" (spoken line)))
+    (is (= ["https://podcastindex.org/" "https://feeds.podcastindex.org/pc20.xml"]
+           (map #(:href (second %)) (elements :a line)))
+        "its author as text, and links to its website and its feed")
+    (is (= "Explicit" (spoken (show/byline (dissoc page :author :link) nil)))
+        "each where the show has it")))
 
 (deftest the-details-beside-the-episodes
   (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {:url "https://example.org/feed.xml"}}
                :shows {"g" {:url    "https://example.org/feed.xml"
                             :status :done
                             :page   {:title "A Show" :link "https://example.org" :explicit? true
+                                     :language "en"
                                      :people [{:name "Adam" :role "host" :img "https://example.org/adam.jpg"}]
                                      :episodes [{:guid "1" :title "One"}]}}}}
         x     (first (show/content state [:h1 "A Show"]))
         [_ _ main aside] x
-        header (first (elements :header.show-intro main))]
+        header (first (elements :header.show-intro main))
+        [_ heading line] (second header)]
     (is (= :article.with-details (first x)) "the show as an article")
-    (is (= [:hgroup [:h1 "A Show"] [:p "Explicit"]] (second header))
-        "its header beginning with its heading, and its author and facts below it")
+    (is (= [:h1 "A Show"] heading) "its header beginning with its heading")
+    (is (= ["https://example.org" "https://example.org/feed.xml"] (map #(:href (second %)) (elements :a line)))
+        "and its byline below it, which links to its website and its feed")
     (is (= [:aside.details {:aria-labelledby "details"} [:h2.visually-hidden {:id "details"} "Details"]]
            (subvec aside 0 3))
         "the Details last, labelled by their heading")
-    (is (= [[:dt "Website"] [:dd [:a {:href "https://example.org" :target "_blank" :aria-describedby "new-tab-note"}
-                                 "example.org"]]]
+    (is (= [[:dt "Language"] [:dd "English"]]
            (subvec (first (elements :div aside)) 2))
         "a name and its value in a div of the dl")
     (is (= "PeopleAdam, Host" (text-of (last (elements :div aside))))

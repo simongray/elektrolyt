@@ -28,22 +28,6 @@
   [s text]
   (when-let [host (host-text s)]
     (links/new-tab [:a {:href s} (or (some-> text str/trim not-empty) host)])))
-
-;; The Chicago Manual of Style breaks a URL across lines after a double
-;; slash, and before a single slash or a period, so that the break shows
-;; where the URL goes on, rather than in the middle of a word
-(defn url-text
-  "The text of the URL `s`, with a wbr where it may break across lines."
-  [s]
-  (interpose [:wbr] (re-seq #"[a-z][a-z0-9+.-]*://|[/.]?[^/.]+|[/.]" s)))
-
-(defn url-link
-  "A link to the web URL `s` that shows the whole of it, which opens in a
-  new tab, or nil for a URL that isn't one of the web."
-  [s]
-  (when (host-text s)
-    (links/new-tab (into [:a {:href s}] (url-text s)))))
-
 ;; podcast namespace, funding: the creator expects its text "to be
 ;; displayed in the app next to the link", which here is the link itself,
 ;; in the Details, among the show's other links

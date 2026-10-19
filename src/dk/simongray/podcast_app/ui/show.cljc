@@ -75,16 +75,14 @@
       (when (and cadence (not complete?))
         (cadence-text cadence))))
 
-;; Apple shows the primary category of a show, or its subcategory when it
-;; has one, and Pocket Casts shows it under the title too
-;; https://podcasters.apple.com/support/1691-apple-podcasts-categories
+;; The categories are in the Details alone, so that the line under the
+;; title doesn't repeat them
 (defn facts
-  "The facts of the show `page` for the line under its title: its first
-  category, its medium when it isn't a podcast, and whether it's complete,
-  explicit or made with AI."
-  [{:keys [categories medium complete? explicit? ai-content?]}]
-  [(last (first categories))
-   (when (and (spec/mediums medium) (not= "podcast" medium))
+  "The facts of the show `page` for the line under its title: its medium
+  when it isn't a podcast, and whether it's complete, explicit or made
+  with AI."
+  [{:keys [medium complete? explicit? ai-content?]}]
+  [(when (and (spec/mediums medium) (not= "podcast" medium))
      (str/capitalize medium))
    (when complete? "Complete")
    (when explicit? "Explicit")
@@ -96,14 +94,13 @@
 ;; this, with the count of episodes left to the list of them.
 ;; https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Infoboxes
 (defn details-rows
-  "The rows of the Details of the show `page`, whose feed is at `url`."
-  [{:keys [link funding categories language latest serial? locations license copyright]
-    :as   page}
-   url]
+  "The rows of the Details of the show `page`, whose website and feed the
+  line under its title links to instead."
+  [{:keys [funding categories language latest serial? locations license copyright]
+    :as   page}]
   (let [names (distinct (map last categories))]
     (concat
-     [["Website" [(details/web-link link nil)]]
-      ["Support" (details/support funding)]
+     [["Support" (details/support funding)]
       [(if (next names) "Categories" "Category") names]
       ["Language" [(some-> language text/language-name)]]
       ["Latest episode" [(some-> latest time-ui/date)]]
@@ -111,8 +108,21 @@
       ["Order" [(when serial? "Serial, from the first episode")]]]
      (details/location-rows locations)
      [["License" [(details/license license)]]
-      ["Copyright" [copyright]]
-      ["Feed" [(details/url-link url)]]])))
+      ["Copyright" [copyright]]])))
+
+;; Fewer rows in the Details: a word links to the show's website, and one
+;; to its feed, for another app to subscribe to. The author stays text,
+;; since it's often the show's own name, which links to the show from its
+;; episodes.
+(defn byline
+  "The line under the title of the show `page`, whose feed is at `url`: its
+  author, its facts, and links to its website and its feed."
+  [{:keys [author link] :as page} url]
+  (facts-ui/line
+   (concat [author]
+           (facts page)
+           [(details/web-link link "Website")
+            (some-> url (details/web-link "Feed"))])))
 
 (defn episode
   "An episode in the list of episodes, the `row` of its :title, its date of
@@ -193,13 +203,13 @@
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
   "The header of the article of the show `page` of the Show page of the
-  `state`: its `heading` with its author and facts in a line below it, its
-  artwork, and beside it its subscription, and its description below, in
-  the show's language."
-  [state heading {:keys [title author notes language] :as page}]
+  `state`: its `heading` with its byline below it, its artwork, and beside
+  it its subscription, and its description below, in the show's
+  language."
+  [state heading {:keys [title notes language] :as page}]
   (let [url (feed-url state)]
     [:header.show-intro
-     [:hgroup heading (facts-ui/line (cons author (facts page)))]
+     [:hgroup heading (byline page url)]
      (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
                                   (colors/placeholder state page)))
      [:div.show-intro-body
@@ -277,7 +287,7 @@
               (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
               :failed                         [:p {:role "status"} (status-text status 0 error nil)]
               not-found))
-      (let [aside  (details/aside (details-rows page (feed-url state)) (:people page))
+      (let [aside  (details/aside (details-rows page) (:people page))
             source (episode/source state (guid state))]
         (list
          (details/article
