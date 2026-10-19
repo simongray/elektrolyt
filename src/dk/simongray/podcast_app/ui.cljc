@@ -69,6 +69,18 @@
     :route/episode (or (:title (episode-ui/route-page state)) "Episode")
     (get titles (get-in state [:route :name]) "Page not found")))
 
+(defn title-lang
+  "The lang attribute of the title of the page of the `state`: the language
+  of the feed of a show or an episode that has a title, as text/lang has
+  it, or nil."
+  [state]
+  (let [{:keys [title language]} (case (get-in state [:route :name])
+                                   :route/show    (show/page state (show-ui/guid state))
+                                   :route/episode (episode-ui/route-page state)
+                                   nil)]
+    (when title
+      (text/lang language))))
+
 ;; WCAG 2.2, SC 2.4.2 Page Titled: the page before the app, as in example 1
 ;; of technique G88, which lists "the most important identifying information
 ;; first", since that's what tells the tabs of the same app apart
@@ -167,9 +179,10 @@
 ;; (Marcy Sutton with Fable Tech Labs, 2019):
 ;; https://v2.gatsbyjs.com/blog/2019-07-11-user-testing-accessible-client-routing
 (defn page-heading
-  "The heading of the page of the `state`, which can take the focus."
+  "The heading of the page of the `state`, in the language of its title,
+  which can take the focus."
   [state]
-  [:h1 {:tabindex -1} (page-title state)])
+  [:h1 {:tabindex -1 :lang (title-lang state)} (page-title state)])
 
 (def not-found
   "The content of the page of a path that no page has."

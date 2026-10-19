@@ -15,6 +15,11 @@
   [tag x]
   (filter #(and (vector? %) (= tag (first %))) (nodes x)))
 
+(defn lang-of
+  "The lang of the first element of the Hiccup `x` with the `tag`."
+  [tag x]
+  (:lang (second (first (elements tag x)))))
+
 (defn text-of
   "The text of the Hiccup `x`, as one string."
   [x]

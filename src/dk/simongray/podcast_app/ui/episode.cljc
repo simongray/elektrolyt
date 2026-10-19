@@ -130,12 +130,12 @@
   its entry in the profile is played, the button that plays it, from the
   start time of the link, the buttons that queue it, and the link to its
   Details when it has them, `aside?`."
-  [state heading {:keys [id show numbering published duration explicit? ai-content?]
+  [state heading {:keys [id show language numbering published duration explicit? ai-content?]
                   :as   page}
    aside?]
   (let [entry (player/entry (:library state) id)]
     [:header.episode-intro
-     [:hgroup heading [:p [:a {:href (:href show)} (:title show)]]]
+     [:hgroup heading [:p [:a {:href (:href show) :lang (text/lang language)} (:title show)]]]
      (artwork/img page 160 {:fetchpriority "high"})
      (facts-ui/line
       (concat (numbering-facts numbering)
@@ -256,7 +256,7 @@
   article, whose header has the heading, and the picks like it, or else
   the heading and what became of the episode."
   [state heading]
-  (if-let [{:keys [id notes view] :as page} (route-page state)]
+  (if-let [{:keys [id notes view language] :as page} (route-page state)]
     (let [files (get-in state [:episodes id])
           shown (episode/shown-chapters page files)
           aside (details/aside (details-rows page) (:people page))]
@@ -272,7 +272,7 @@
          (when (seq notes)
            [:section {:aria-labelledby "notes"}
             [:h2#notes.visually-hidden "Show notes"]
-            [:div.show-notes notes]])
+            [:div.show-notes {:lang (text/lang language)} notes]])
          (when shown
            (chapters page shown))
          (when (:transcript view)

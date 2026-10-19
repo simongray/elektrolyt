@@ -4,7 +4,7 @@
             [dk.simongray.podcast-app.episode-test :as episode-test]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
-            [dk.simongray.podcast-app.ui-test :refer [elements nodes spoken text-of]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements lang-of nodes spoken text-of]]))
 
 (defn episode-page
   "The state of the Episode page of the second episode of the test's feed,
@@ -88,6 +88,15 @@
       (let [[header] (elements :header.episode-intro article)]
         (is (= ["Episode 2: The Present" "A Show"] (map text-of (rest (second header))))
             "its header beginning with its heading, and its show as the subtitle")))))
+
+(deftest an-episode-in-its-shows-language
+  (let [x (ui/page (assoc-in (episode-page nil) [:shows episode-test/g :head :rss/language] "de"))]
+    (is (= "de" (lang-of :h1 x)) "its title")
+    (is (= "de" (lang-of :a (elements :hgroup x))) "its show's title")
+    (is (= "de" (lang-of :div.show-notes x)) "its notes, which the browser hyphenates by it"))
+  (let [x (ui/page (episode-page nil))]
+    (is (every? nil? (map #(lang-of % x) [:h1 :div.show-notes]))
+        "none where the feed names no language, so the page's own applies")))
 
 (deftest the-numbers-of-an-episode
   (is (= ["Season 2" "Episode 3" nil] (episode-ui/numbering-facts {:type "full" :season 2 :episode 3})))

@@ -65,7 +65,8 @@
 
   The page's link, locations and license are the item's own, since its
   Details show what's particular to it, and its people and funding are
-  its show's when it has none of its own."
+  its show's when it has none of its own. Its language is its show's,
+  since an item of RSS names none."
   [guid {:keys [feed url key]} item time-fn]
   (let [item-guid (guid/item-guid item)
         title     (resolve/title item)
@@ -75,6 +76,7 @@
                    :item-guid item-guid
                    :title     title
                    :published (resolve/published item)
+                   :language  (resolve/language feed)
                    :show      {:title (resolve/title feed)
                                :href  (routes/show-href guid (resolve/title feed)
                                                         (when-not key url))}

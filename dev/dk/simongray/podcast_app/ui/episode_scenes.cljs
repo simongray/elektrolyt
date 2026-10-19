@@ -1,7 +1,8 @@
 (ns dk.simongray.podcast-app.ui.episode-scenes
   "Scenes of the Episode page: an episode from the start of its show's
   feed, with its chapters once they're read, with the Details of one that
-  says much of itself, while it plays, and the ways it can be missing."
+  says much of itself, in another language, while it plays, and the ways
+  it can be missing."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.scenes :refer [artwork url]]
@@ -113,6 +114,25 @@
   date, and its Details beside the show notes, or below them on a phone,
   with the links that support the show."
   (ui/page (episode-page {:url url :status :loading :head (assoc feed :rss/items [with-details])})))
+
+(def german
+  "The start of a feed in German, with the scenes' episode in German."
+  {:rss/title    "Wortschatz"
+   :rss/language "de"
+   :rss/items    [(assoc item
+                         :rss/title       "Folge 275: Die Rechtschreibreform"
+                         :rss/description (str "<p>In dieser Folge geht es um die Rechtschreibreform, "
+                                               "um die Silbentrennung und darum, warum zusammengesetzte "
+                                               "Wörter wie Donaudampfschifffahrtsgesellschaftskapitän im "
+                                               "Deutschen so lang werden können. Ab 12:34 streiten wir "
+                                               "über das Eszett.</p>"))]})
+
+(defscene in-another-language
+  "An episode whose show's feed is in German: its title, its show's title
+  and its notes have the feed's language, so that the browser hyphenates
+  them by German rules and a screen reader reads them in German, while
+  the app's own words stay English."
+  (ui/page (episode-page {:url url :status :loading :head german})))
 
 (defscene while-its-feed-loads
   "A link to an episode beyond the start of the feed, while the whole feed

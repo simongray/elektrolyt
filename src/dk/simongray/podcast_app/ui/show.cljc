@@ -116,11 +116,11 @@
 
 (defn episode
   "An episode in the list of episodes, the `row` of its :title, its date of
-  :published and its :duration in seconds, whose title links to the
-  `href` of its page."
-  [href {:keys [title published duration] :as row}]
+  :published and its :duration in seconds, whose title in the language
+  `lang` links to the `href` of its page."
+  [href {:keys [title published duration] :as row} lang]
   [:article
-   [:h3 [:a {:href href} title]]
+   [:h3 [:a {:href href :lang lang} title]]
    (facts-ui/line [(some-> published time-ui/date)
                    (some-> duration time-ui/duration)])])
 
@@ -143,17 +143,18 @@
 ;; offline cookbook has it, so that the list doesn't move by itself.
 ;; https://web.dev/articles/offline-cookbook#cache-then-network
 (defn episodes
-  "The episodes of the show of the Show page of the `state`, its `rows`,
-  as many of them as its load has :shown, with the status of the load and
-  a button for the newer episodes that wait. Each title links to the page
-  of its episode."
-  [state rows]
+  "The episodes of the show `page` of the Show page of the `state`, as many
+  of them as its load has :shown, with the status of the load and a button
+  for the newer episodes that wait. Each title links to the page of its
+  episode."
+  [state {rows :episodes :keys [language] :as page}]
   (let [g                                  (guid state)
         k                                  (library-key state)
         url                                (when-not k (feed-url state))
         {:keys [status shown error newer]} (loaded state)
         shown                              (or shown show/page-size)
-        newer                              (:count newer)]
+        newer                              (:count newer)
+        lang                               (text/lang language)]
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
      [:p {:role "status"} (status-text status (count rows) error newer)]
@@ -164,7 +165,7 @@
        [:ol.episodes {:role "list"}
         (for [row (take shown rows)]
           [:li {:replicant/key (:guid row)}
-           (episode (routes/episode-href (or k g) (:guid row) (:title row) url) row)])])
+           (episode (routes/episode-href (or k g) (:guid row) (:title row) url) row lang)])])
      (when (< shown (count rows))
        [:button {:type "button"
                  :on   {:click [[:show/more g (count rows)]]}}
@@ -193,8 +194,8 @@
   `state`: its `heading` with its author and facts in a line below it, its
   artwork, and beside it the link to its Details when it has them,
   `aside?`, and its subscription, beside where its new episodes go, and
-  its description below."
-  [state heading {:keys [title author notes] :as page} aside?]
+  its description below, in the show's language."
+  [state heading {:keys [title author notes language] :as page} aside?]
   (let [url (feed-url state)]
     [:header.show-intro
      [:hgroup heading (facts-ui/line (cons author (facts page)))]
@@ -213,7 +214,7 @@
                          (subscription/new-episodes (:library state) (library-key state))))]
                 (subscription/error state url))))]
      (when notes
-       [:div.show-notes notes])]))
+       [:div.show-notes {:lang (text/lang language)} notes])]))
 
 ;; Inclusive Components, Cards: the title is the link, and the artwork
 ;; beside it decoration, as in the Library's shows
@@ -283,7 +284,7 @@
          (details/article
           {}
           [(intro state heading page (some? aside))
-           (episodes state (:episodes page))]
+           (episodes state page)]
           aside)
          (when source
            (linked-shows state (:title page) source))

@@ -1,8 +1,9 @@
 (ns dk.simongray.podcast-app.ui.show-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.show :as show]
-            [dk.simongray.podcast-app.ui-test :refer [elements text-of]]))
+            [dk.simongray.podcast-app.ui-test :refer [elements lang-of text-of]]))
 
 (deftest the-status-of-the-episodes
   (is (= "Loading episodes…" (show/status-text :loading 20 nil nil)) "while the whole feed is fetched")
@@ -41,7 +42,7 @@
 
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
-        section  (show/episodes (show-page {:status :done :shown 20}) rows)
+        section  (show/episodes (show-page {:status :done :shown 20}) {:episodes rows})
         [_ & xs] section
         items    (some #(when (and (vector? %) (= :ol.episodes (first %))) (last %)) xs)
         button   (some #(when (and (vector? %) (= :button (first %))) %) xs)
@@ -52,7 +53,7 @@
         "each title links to the page of its episode")
     (is (= [[:show/more "g" 45]] (get-in button [1 :on :click])))
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
-                    (show/episodes (show-page {:status :done :shown 45}) rows)))
+                    (show/episodes (show-page {:status :done :shown 45}) {:episodes rows})))
         "no button once they're all listed")))
 
 (deftest how-often-a-show-publishes
@@ -125,6 +126,28 @@
       (is (nil? aside))
       (is (empty? (elements :p.details-link main))))))
 
+(defn show-in
+  "The Show page of a show whose feed names the `language`, with its notes
+  and an episode, under its heading."
+  [language]
+  (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
+               :shows {"g" {:status :done
+                            :page   {:title    "Sprogets verden"
+                                     :language language
+                                     :notes    [:p "Et ugentligt program om det danske sprog."]
+                                     :episodes [{:guid "1" :title "Hvorfor siger vi hyggeligt?"}]}}}}]
+    (show/content state (ui/page-heading state))))
+
+(deftest a-show-in-its-own-language
+  (let [x (show-in "da")]
+    (is (= "da" (lang-of :h1 x)) "its title")
+    (is (= "da" (lang-of :div.show-notes x)) "its notes, which the browser hyphenates by it")
+    (is (= "da" (lang-of :a (elements :h3 x))) "the titles of its episodes"))
+  (let [x (show-in nil)]
+    (is (every? nil? (map #(lang-of % x) [:h1 :div.show-notes]))
+        "none where the feed names no language, so the page's own applies")
+    (is (nil? (lang-of :a (elements :h3 x))))))
+
 (deftest a-show-that-has-no-page-yet
   (is (= [[:h1 "Show"] [:p {:role "status"} "Loading the show…"]]
          (show/content {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
@@ -134,7 +157,7 @@
 
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]
-        [_ & xs]  (show/episodes (show-page {:status :done :newer {:count 2}}) rows)
+        [_ & xs]  (show/episodes (show-page {:status :done :newer {:count 2}}) {:episodes rows})
         buttons   (filter #(and (vector? %) (= :button (first %))) xs)]
     (is (= [[[:show/newer "g"]] "Show the new episodes"]
            ((juxt #(get-in % [1 :on :click]) last) (first buttons)))

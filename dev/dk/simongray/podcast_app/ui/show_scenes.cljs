@@ -1,7 +1,8 @@
 (ns dk.simongray.podcast-app.ui.show-scenes
   "Scenes of the Show page as its feed arrives in stages, from what a search
   knew to the whole feed, with the Details of a show that says much of
-  itself, in the colours of its artwork, and of the ways it can fail."
+  itself, in the colours of its artwork, of a show in another language,
+  and of the ways it can fail."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.scenes :refer [artwork lib url]]
             [dk.simongray.podcast-app.show :as show]
@@ -114,6 +115,40 @@
                        :page   (merge (show/feed->page url pc20)
                                       (select-keys known [:artwork :artwork-sizes]))}
                       {:colors {artwork {:seed "#1d4e89" :dominant "#888888"}}})))
+
+(def danish
+  "A feed in Danish, with long compound words in its notes and five
+  episodes a week apart."
+  {:rss/title       "Sprogets verden"
+   :rss/language    "da"
+   :rss/description (str "<p>Et ugentligt program om det danske sprog: hvor ordene kommer fra, "
+                         "hvordan de skifter betydning, og hvorfor sammensatte ord som "
+                         "folketingsvalgkampagnerne og rigsfællesskabsforhandlingerne kan "
+                         "blive så lange.</p>"
+                         "<p>Hver uge tager værterne et ord under behandling, fra dets første "
+                         "optræden i ordbøgerne til den måde, det bruges på i dag.</p>")
+   :itunes/author   "Ord og mennesker"
+   :rss/items       (vec (map (fn [{:keys [guid published duration]} title]
+                                {:rss/guid        {:content guid}
+                                 :rss/title       title
+                                 :rss/pub-date    published
+                                 :itunes/duration duration})
+                              (rows 5)
+                              ["Hvorfor siger vi hyggeligt?"
+                               "Sammensatte ord og særskrivning"
+                               "Dialekterne, der forsvinder"
+                               "Låneord fra engelsk"
+                               "Retskrivningsreformen, der aldrig kom"]))})
+
+(defscene a-show-in-another-language
+  "A show whose feed is in Danish: its title, its notes and the titles of
+  its episodes have the feed's language, so that the browser hyphenates
+  them by Danish rules and a screen reader reads them in Danish, while the
+  app's own words stay English."
+  (ui/page (show-page {:url    url
+                       :status :done
+                       :page   (merge (show/feed->page url danish)
+                                      (select-keys known [:artwork :artwork-sizes]))})))
 
 (defscene a-feed-that-failed
   "A fetch of the feed that failed, after what the search knew."
