@@ -156,9 +156,13 @@ async function labelsAlike(page) {
   return queue === inbox;
 }
 
-test("the navigation's colours turn off, which leaves its labels in the same ink", async ({ page }) => {
+test("the navigation's colours can be none, which leaves its labels in the same ink", async ({ page }) => {
   await page.goto('/settings');
   expect(await labelsAlike(page), 'a colour for each page').toBe(false);
-  await page.getByRole('main').getByRole('switch', { name: 'Colours in the navigation' }).uncheck();
+  const colours = page.getByRole('main').getByLabel('Colours in the navigation');
+  await colours.selectOption('Colours for colour blindness');
+  await expect(page.locator('.shell')).toHaveAttribute('data-palette', 'color-blind');
+  expect(await labelsAlike(page), 'or one for colour blindness').toBe(false);
+  await colours.selectOption('None');
   await expect.poll(() => labelsAlike(page)).toBe(true);
 });

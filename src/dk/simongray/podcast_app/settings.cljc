@@ -72,14 +72,24 @@
   [state]
   (some-> (#{:standard :more} (:contrast (preferences state))) name))
 
+;; The colours that colour-coded's vision namespace found for colour
+;; blindness keep the pages apart for protans, deutans and tritans, but are
+;; closer to each other than the pages' own colours, so they're a choice
+(def navigation-palettes
+  "The colours that the links of the navigation can have, as the app keeps
+  them for :navigation-palette, with the text of each."
+  [[:pages "A colour for each page"]
+   [:color-blind "Colours for colour blindness"]
+   [:none "None"]])
+
 ;; The app's own preference, which syncs with the others, but which
 ;; profile/default-preferences doesn't name, since another app's navigation
 ;; needn't have colours
-(defn navigation-colors?
-  "Whether each page's link in the navigation has a colour of its own, by
-  the listener's preferences `prefs`, as it does until they turn it off."
+(defn navigation-palette
+  "The colours of the links of the navigation by the listener's
+  preferences `prefs`, a colour for each page until they choose others."
   [prefs]
-  (:navigation-colors? prefs true))
+  (:navigation-palette prefs :pages))
 
 (def player-sizes
   "The sizes of the player, and so of its artwork, with the text of each,
@@ -91,7 +101,7 @@
 (defn player-size
   "The size of the player by the listener's preferences `prefs`, medium
   until they choose another, as a :player-size that the app keeps, as it
-  does :navigation-colors?."
+  does :navigation-palette."
   [prefs]
   (:player-size prefs :medium))
 

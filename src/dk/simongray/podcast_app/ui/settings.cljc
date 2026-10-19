@@ -96,13 +96,13 @@
          (choice "contrast" "Contrast" settings/contrasts
                  contrast [:settings/prefer :contrast [:event/target-keyword]])
          (switch "artwork-colours" "Colours from the artwork"
-                 (str "The player, links and buttons take their colours from the "
-                      "artwork of what plays, or of the show on screen. Otherwise "
-                      "they keep the app's own dark grey.")
+                 (str "The player takes its colours from the artwork of what "
+                      "plays, and a show's page from the show's artwork. "
+                      "Otherwise the player keeps the app's own dark grey, and a "
+                      "show's page the app's own colours.")
                  artwork-colors? :artwork-colors?)
-         (switch "navigation-colours" "Colours in the navigation"
-                 "Each page's link has a colour of its own."
-                 (settings/navigation-colors? prefs) :navigation-colors?)
+         (choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
+                 (settings/navigation-palette prefs) [:settings/prefer :navigation-palette [:event/target-keyword]])
          (choice "player-size" "Player size" settings/player-sizes
                  (settings/player-size prefs) [:settings/prefer :player-size [:event/target-keyword]])))
 

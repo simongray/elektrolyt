@@ -107,19 +107,19 @@
 ;; list's role is explicit, since the CSS removes its markers (see app.css).
 ;; The app's name comes first and links to the queue, as a site's name
 ;; links to its home page; a phone, whose tab bar has no room for it,
-;; leaves it out. Each page's link names its page for its colour, unless
-;; the listener turned the colours off.
+;; leaves it out. Each page's link names its page for its colour, from the
+;; palette that the listener chose, unless they chose none.
 (defn main-nav
   "The navigation between the pages for the `state`: the app's name, the
   main pages and Settings, as a tab bar on a phone and a rail on a wider
   screen."
   [state]
-  (let [colours? (settings/navigation-colors? (settings/preferences state))]
+  (let [palette (settings/navigation-palette (settings/preferences state))]
     [:nav {:aria-label "Main"}
      [:a.app-name {:href (routes/href :route/queue)} app-name]
      [:ul {:role "list"}
       (for [route-name destinations]
-        [:li {:data-page (when colours? (page-name route-name))}
+        [:li {:data-page (when-not (= :none palette) (page-name route-name))}
          (page-link state route-name (nav-label state route-name))])]]))
 
 ;; The heading takes the focus after each navigation, which the users who
@@ -167,15 +167,23 @@
      (announcer (:announcement state))
      [:p.visually-hidden {:id links/note-id} "Opens in a new tab"]]))
 
+(defn shell-attrs
+  "The attributes of the shell of the page of the `state`: the palette of
+  the navigation that the listener chose, and the seeds of artwork as
+  colors/attrs has them."
+  [state]
+  (merge {:data-palette (name (settings/navigation-palette (settings/preferences state)))}
+         (colors/attrs state)))
+
 (defn page
   "The whole page for the `state` of the app.
 
   The landmarks come in the same order at every width, so that the order of
   the focus doesn't change with the layout: the navigation, the main
-  content and the player. The page takes the colours of the artwork of
-  what it's about, or else of what plays, as colors/focus has it."
+  content and the player. The paper of a page about a show takes the
+  colours of the show's artwork, and the player those of what plays."
   [state]
-  [:div.shell (colors/attrs state (colors/focus state))
+  [:div.shell (shell-attrs state)
    skip-link
    (main-nav state)
    (main-content state)

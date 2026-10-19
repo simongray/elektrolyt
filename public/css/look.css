@@ -78,10 +78,13 @@ time,
 }
 
 
-/* The app's own near-black, until the view sets the --seed of an artwork
-   on the shell, of what the page is about, or else of what plays */
+/* The app's own near-black, until the view sets the seeds of artwork on
+   the shell: the --seed of the show that the page is about, for the
+   paper's links, buttons and tint, and the --bar-seed of what plays, for
+   the bars */
 .shell {
   --seed: var(--app);
+  --bar-seed: var(--app);
 }
 
 /* The colour of each page of the navigation, which the view names with
@@ -107,29 +110,32 @@ time,
 }
 
 /* The bars: the player, and the tab bar under it on a phone, in a
-   strong colour from the seed. It's the seed's complement, its hue turned
-   halfway round, so that the artwork in the player doesn't sit on a
-   colour like its own, at a lightness of its own for each token, so that
-   the contrast holds at every hue. The app's own near-black has no hue,
-   so it stays a dark grey. The bars are the same in light and dark, and
-   their controls are drawn for a dark ground. */
+   strong colour from the bar's seed. It's the seed's complement, its hue
+   turned halfway round, so that the artwork in the player doesn't sit on
+   a colour like its own, at a lightness of its own for each token, so
+   that the contrast holds at every hue. The app's own near-black has no
+   hue, so it stays a dark grey. The bars are the same in light and dark,
+   and their controls are drawn for a dark ground. */
 .shell {
-  --bar: oklch(from var(--seed) 33% min(c, 0.1) calc(h + 180));
-  --on-bar: oklch(from var(--seed) 97% min(c, 0.012) calc(h + 180));
-  --on-bar-2: oklch(from var(--seed) 84% min(c, 0.035) calc(h + 180));
-  --bar-rule: oklch(from var(--seed) 68% min(c, 0.05) calc(h + 180));
-  --bar-fill: oklch(from var(--seed) 94% min(c, 0.025) calc(h + 180));
-  --on-bar-fill: oklch(from var(--seed) 30% min(c, 0.1) calc(h + 180));
-  /* the paper's edge where it meets a bar, a deeper shade of it */
-  --edge: light-dark(oklch(from var(--seed) 24% min(c, 0.08) calc(h + 180)), oklch(from var(--seed) 11% min(c, 0.03) calc(h + 180)));
-  /* behind the bars, so that no seam shows between them */
-  background: var(--bar);
+  --bar: oklch(from var(--bar-seed) 33% min(c, 0.1) calc(h + 180));
+  --on-bar: oklch(from var(--bar-seed) 97% min(c, 0.012) calc(h + 180));
+  --on-bar-2: oklch(from var(--bar-seed) 84% min(c, 0.035) calc(h + 180));
+  --bar-rule: oklch(from var(--bar-seed) 68% min(c, 0.05) calc(h + 180));
+  --bar-fill: oklch(from var(--bar-seed) 94% min(c, 0.025) calc(h + 180));
+  --on-bar-fill: oklch(from var(--bar-seed) 30% min(c, 0.1) calc(h + 180));
+  /* A faint tint of the seed's own hue from the right, behind the rail
+     and the main content alike, so that the line between them doesn't
+     cut it. Its alpha is the seed's chroma, so that a grey seed, e.g.
+     the app's own, tints nothing. */
+  --tint: light-dark(oklch(from var(--seed) 96.5% min(c, 0.022) h / calc(c * 12)), oklch(from var(--seed) 22.5% min(c, 0.022) h / calc(c * 12)));
+  background: linear-gradient(to left, var(--tint), transparent 70%) var(--paper);
 }
 
 /* Inside a bar, the content's tokens take the bar's values, so that every
    rule below applies there unchanged */
 .shell > nav,
 #player {
+  background: var(--bar);
   color-scheme: dark;
   color: var(--on-bar);
   --ink: var(--on-bar);
@@ -147,9 +153,9 @@ time,
 /* Each page's label in its page's colour, a light tone of it on a bar, in
    LCH, so that its lightness, and so its contrast, is the same at every
    hue. The labels say the pages, so the colour is never the only cue (WCAG
-   2.2, SC 1.4.1). Where the listener turned the colours off, no page
-   colours its link, so the labels are in the ink, and the current page's
-   in the darker ink.
+   2.2, SC 1.4.1). Where the listener chose no colours, no page colours
+   its link, so the labels are in the ink, and the current page's in the
+   darker ink.
    https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html */
 .shell > nav li {
   --label: lch(from var(--page) 82 min(c, 40) h);
@@ -163,6 +169,55 @@ time,
   text-decoration: none;
 }
 
+/* Colours for colour blindness, which the listener can choose in
+   Settings: hues that colour-coded's vision namespace keeps apart for
+   protans, deutans and tritans, after Machado et al. (2009), at
+   lightnesses that vary within what each label's contrast allows, so in
+   hex rather than from one tone. These are on a bar, and the paper's
+   are below.
+   https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html */
+.shell[data-palette="color-blind"] > nav li[data-page="queue"] {
+  --label: #ffa0a5;
+}
+
+.shell[data-palette="color-blind"] > nav li[data-page="inbox"] {
+  --label: #f8c488;
+}
+
+.shell[data-palette="color-blind"] > nav li[data-page="library"] {
+  --label: #9abdff;
+}
+
+.shell[data-palette="color-blind"] > nav li[data-page="search"] {
+  --label: #fad7ff;
+}
+
+.shell[data-palette="color-blind"] > nav li[data-page="settings"] {
+  --label: #cfcfcf;
+}
+
+@media (min-width: 37.5em) {
+  .shell[data-palette="color-blind"] > nav li[data-page="queue"] {
+    --label: light-dark(#87182f, #ef8f94);
+  }
+
+  .shell[data-palette="color-blind"] > nav li[data-page="inbox"] {
+    --label: light-dark(#8f5c12, #e9b77b);
+  }
+
+  .shell[data-palette="color-blind"] > nav li[data-page="library"] {
+    --label: light-dark(#1c6bbc, #85adf4);
+  }
+
+  .shell[data-palette="color-blind"] > nav li[data-page="search"] {
+    --label: light-dark(#6c2b7a, #f8c7ff);
+  }
+
+  .shell[data-palette="color-blind"] > nav li[data-page="settings"] {
+    --label: light-dark(#686868, #c1c1c1);
+  }
+}
+
 /* The current page underlined, at the weight of the others, since a
    bolder one is wider, and would widen the rail and move the page as the
    listener goes from page to page */
@@ -172,12 +227,10 @@ time,
   text-underline-offset: 0.45em;
 }
 
-/* The paper, with an edge where it meets the player. Its links, buttons
-   and focus ring take the seed's own hue. */
+/* The paper, whose links, buttons and focus ring take the seed's own
+   hue */
 .shell > main {
   padding: var(--space-4) var(--gutter) var(--space-5);
-  border-bottom: 1px solid var(--edge);
-  background: var(--paper);
   --accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
   --accent-ink: light-dark(oklch(100% 0 0), oklch(from var(--seed) 18% min(c, 0.03) h));
   --accent-soft: light-dark(oklch(from var(--seed) 95% min(c, 0.02) h), oklch(from var(--seed) 26% min(c, 0.03) h));
@@ -201,8 +254,7 @@ time,
   .shell > nav {
     position: relative;
     padding: var(--space-4) var(--space-3) var(--space-3);
-    border-bottom: 1px solid var(--edge);
-    background: var(--paper);
+    background: transparent;
     color-scheme: inherit;
     --ink: inherit;
     --ink-2: inherit;
@@ -217,10 +269,9 @@ time,
     color: var(--ink);
   }
 
-  /* no edge where no player follows, since then no bar meets the paper */
-  .shell:not(:has(> #player)) > main,
+  /* the rail is no bar, so it has no shadow when no player is below it */
   .shell:not(:has(> #player)) > nav {
-    border-bottom: 0;
+    box-shadow: none;
   }
 
   /* on the paper, a tone of each page's colour that reads as text */
@@ -491,7 +542,17 @@ details summary {
 }
 
 
-/* The player, on its bar: the title strong and the show lighter */
+/* The player, on its bar: the title strong and the show lighter. The
+   top bar, the player or else a phone's tab bar, has a faint shadow above
+   it, which sets it apart from the paper, only upward, so that none falls
+   on the tab bar below the player. */
+#player,
+.shell:not(:has(> #player)) > nav {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 -3px 5px -2px oklch(0% 0 0 / 0.3);
+}
+
 /* the artwork meets the bar's edges, with no frame */
 .player-artwork {
   outline: 0;
@@ -573,8 +634,8 @@ search p {
    paper further from it */
 @media (prefers-contrast: more) {
   :root:not([data-contrast="standard"]) .shell {
-    --on-bar-2: oklch(from var(--seed) 90% min(c, 0.03) calc(h + 180));
-    --bar-rule: oklch(from var(--seed) 76% min(c, 0.05) calc(h + 180));
+    --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
+    --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
   }
 
   :root:not([data-contrast="standard"]) .shell > main {
@@ -589,8 +650,8 @@ search p {
 }
 
 :root[data-contrast="more"] .shell {
-  --on-bar-2: oklch(from var(--seed) 90% min(c, 0.03) calc(h + 180));
-  --bar-rule: oklch(from var(--seed) 76% min(c, 0.05) calc(h + 180));
+  --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
+  --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
 }
 
 :root[data-contrast="more"] .shell > main {
@@ -623,11 +684,11 @@ search p {
 
 /* Motion only where the listener allows it: the colours turn from one
    artwork's to the next as the page's focus moves, in all its parts at
-   once, since they all derive from the seed
+   once, since they all derive from the seeds
    https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion */
 @media (prefers-reduced-motion: no-preference) {
   .shell {
-    transition: --seed 0.6s ease-in-out;
+    transition: --seed 0.6s ease-in-out, --bar-seed 0.6s ease-in-out;
   }
 
   button,

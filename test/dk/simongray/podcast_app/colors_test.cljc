@@ -51,9 +51,20 @@
 (deftest the-seed-of-an-artwork
   (let [colored (assoc-in state [:colors (:artwork playing)] {:seed "#9e2a2b"})]
     (is (= "#9e2a2b" (colors/seed colored playing)))
-    (is (= {:style {:--seed "#9e2a2b"}} (colors/attrs colored playing)))
-    (is (= {} (colors/attrs state playing)) "none while it's unknown")
-    (is (= {} (colors/attrs colored nil)) "or for no artwork")))
+    (is (= {:style {:--bar-seed "#9e2a2b"}} (colors/attrs colored))
+        "for the bars alone, on a page about no show, whose paper is the app's")
+    (is (= {} (colors/attrs state)) "none while it's unknown")
+    (is (= {} (colors/attrs {:route {:name :route/queue}})) "or while nothing plays")))
+
+(deftest the-player-takes-the-colours-of-what-plays-alone
+  (let [show  {:artwork "https://example.org/show.jpg"}
+        page  (-> state
+                  (assoc :route {:name :route/show :path-params {:guid "g"}})
+                  (assoc :colors {(:artwork show)    {:seed "#24476b"}
+                                  (:artwork playing) {:seed "#9e2a2b"}}))]
+    (with-redefs [show/page (constantly show)]
+      (is (= {:style {:--seed "#24476b" :--bar-seed "#9e2a2b"}} (colors/attrs page))
+          "while the paper takes those of the show that the page is about"))))
 
 (deftest an-artwork-waits-in-its-dominant-colour
   (is (= {:style {:background-color "#0a0a0a"}}
@@ -68,10 +79,12 @@
   (let [show {:artwork "https://example.org/show.jpg"}
         page (assoc state :route {:name :route/show :path-params {:guid "g"}})]
     (with-redefs [show/page (constantly show)]
-      (is (= playing (colors/focus page)) "what plays, until the show's colours are known")
+      (is (nil? (colors/focus page)) "the app's own, until the show's colours are known")
       (is (= show (colors/focus (assoc-in page [:colors (:artwork show)] {:seed "#24476b"})))
-          "and then the show that the page is about"))
-    (is (= playing (colors/focus state)) "and what plays on a page about no show"))
-  (is (nil? (colors/focus (-> (assoc state :library inbox-test/lib)
-                              (settings/preferred {:artwork-colors? false}))))
-      "or nothing, when the listener prefers the app's own colours"))
+          "and then the show that the page is about")
+      (is (nil? (colors/focus (-> page
+                                  (assoc-in [:colors (:artwork show)] {:seed "#24476b"})
+                                  (assoc :library inbox-test/lib)
+                                  (settings/preferred {:artwork-colors? false}))))
+          "or the app's own, when the listener prefers them"))
+    (is (nil? (colors/focus state)) "and never what plays, which colours the player alone")))

@@ -52,6 +52,14 @@
   initial-value: oklch(20% 0 0);
 }
 
+/* The seed of the bars, from the artwork of what plays alone, which moves
+   as the seed does */
+@property --bar-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(20% 0 0);
+}
+
 :root {
   color-scheme: light dark;
 

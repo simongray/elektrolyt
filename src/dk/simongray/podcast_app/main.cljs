@@ -876,18 +876,28 @@
   (attributed! "data-theme" theme-key (settings/theme state))
   (attributed! "data-contrast" contrast-key (settings/contrast state)))
 
+(defn bar-colour
+  "The colour of the page's bars as the browser computed them: the
+  player's, or else the tab bar's on a phone, or else the paper's, where
+  no bar has a colour."
+  []
+  (->> ["#player" ".shell > nav" "body"]
+       (keep #(js/document.querySelector %))
+       (map #(.-backgroundColor (js/getComputedStyle %)))
+       (remove #{"rgba(0, 0, 0, 0)" "transparent"})
+       (first)))
+
 ;; HTML, the theme-color meta name: a colour for the browser's own bars,
 ;; e.g. Chrome's on Android, and for the title bar of an installed app. It
-;; takes no var(), so it gets the shell's background, the bars' colour, as
-;; the browser computed it, in hex. Safari on iOS 26 reportedly ignores it.
+;; takes no var(), so it gets the bars' colour as the browser computed it,
+;; in hex. Safari on iOS 26 reportedly ignores it.
 ;; https://html.spec.whatwg.org/multipage/semantics.html#meta-theme-color
 ;; https://benfrain.com/ios26-safari-theme-color-tab-tinting-with-fixed-position-elements/
 (defn theme-colored!
-  "Give the page's theme-color the colour of the bars of the `shell`, as
-  they are now."
-  [shell]
+  "Give the page's theme-color the colour of its bars, as they are now."
+  []
   (when-let [meta (js/document.querySelector "meta[name=theme-color]")]
-    (when-let [c (some-> (.-backgroundColor (js/getComputedStyle shell)) cc/hex)]
+    (when-let [c (some-> (bar-colour) cc/hex)]
       (when (not= c (.-content meta))
         (set! (.-content meta) c)))))
 
@@ -898,7 +908,7 @@
   (r/render (js/document.getElementById "app") (ui/page state))
   (set! js/document.title (ui/document-title state))
   (themed! state)
-  (some-> (js/document.querySelector ".shell") theme-colored!))
+  (theme-colored!))
 
 (defn kept-value
   "The colours of an artwork in the entry `kept` of the cache, or nil for
@@ -997,7 +1007,7 @@
   ;; the bars' colour once it has moved to the next one
   (.addEventListener js/document "transitionend"
                      #(when (.. % -target -classList (contains "shell"))
-                        (theme-colored! (.-target %))))
+                        (theme-colored!)))
   (audio/volume-locked! store)
   (swap! store assoc :library-view (saved-library-view))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])

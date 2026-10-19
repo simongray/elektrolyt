@@ -9,7 +9,8 @@
             [clojure.test :refer [deftest is testing]]
             [dk.simongray.colour-coded.contrast :as contrast]
             [dk.simongray.colour-coded.gamut :as gamut]
-            [dk.simongray.colour-coded.tone :as tone]))
+            [dk.simongray.colour-coded.tone :as tone]
+            [dk.simongray.colour-coded.vision :as vision]))
 
 (defn stylesheet
   "The text of the stylesheet `file` of public/css."
@@ -150,6 +151,29 @@
     (doseq [i [0 1]]
       (is (every? #(<= 4.5 %) (vals (label-ratios (nth rail i) (nth paper i) [nil])))
           (str "on the paper, " (["light" "dark"] i))))))
+
+(def color-blind
+  "The labels for colour blindness of each page, on a bar and on the
+  paper in light and dark."
+  (let [rule #(str ".shell[data-palette=\"color-blind\"] > nav li[data-page=\"" % "\"]")]
+    (into {} (for [p (keys pages)]
+               [p {:bar   (get (declarations look (rule p) 0) "--label")
+                   :paper (light-dark (get (declarations look (rule p) 2) "--label"))}]))))
+
+;; a ΔEOK of 0.02 is about the least that shows, as vision/least-difference
+;; has it, and these are meant to look different, not just to differ
+(deftest the-labels-for-colour-blindness-stay-apart
+  (let [bars   (map :bar (vals color-blind))
+        lights (map (comp first :paper) (vals color-blind))
+        darks  (map (comp second :paper) (vals color-blind))
+        [bar]  (tokens shell "--bar")]
+    (is (every? some? (concat bars lights darks)) "as look.css has them")
+    (doseq [[ground cs] [["on the bar" bars] ["on the light paper" lights] ["on the dark paper" darks]]]
+      (is (every? #(<= 0.05 %) (vals (vision/least-difference cs)))
+          (str ground ", for every colour vision")))
+    (is (every? #(<= 4.5 (least-ratio % bar seeds)) bars) "with contrast on the bar of every artwork")
+    (is (every? #(<= 4.5 (contrast/ratio % (first paper))) lights) "and on the light paper")
+    (is (every? #(<= 4.5 (contrast/ratio % (second paper))) darks) "and on the dark paper")))
 
 (deftest more-contrast-meets-the-enhanced-level
   (let [more  (declarations look ":root[data-contrast=\"more\"] .shell" 0)
