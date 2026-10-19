@@ -118,7 +118,8 @@
                                  "example.org"]]]
            (subvec (first (elements :div aside)) 2))
         "a name and its value in a div of the dl")
-    (is (= "PeopleAdam, Host" (text-of (drop 4 aside)))))
+    (is (= "PeopleAdam, Host" (text-of (last (elements :div aside))))
+        "and the people last, a value for each"))
   (testing "no Details, and no link to them, before the feed has any"
     (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
                  :shows {"g" {:status :loading :page {:title "A Show" :episodes []}}}}

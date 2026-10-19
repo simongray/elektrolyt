@@ -112,7 +112,7 @@
      (details/location-rows locations)
      [["License" [(details/license license)]]
       ["Copyright" [copyright]]
-      ["Feed" [(details/web-link url url)]]])))
+      ["Feed" [(details/url-link url)]]])))
 
 (defn episode
   "An episode in the list of episodes, the `row` of its :title, its date of
@@ -199,7 +199,8 @@
   (let [url (feed-url state)]
     [:header.show-intro
      [:hgroup heading (facts-ui/line (cons author (facts page)))]
-     (artwork/img page 160 (merge {:fetchpriority "high"} (colors/placeholder state page)))
+     (artwork/img page 256(merge {:fetchpriority "high" :sizes artwork/intro-sizes}
+                                  (colors/placeholder state page)))
      [:div.show-intro-body
       (when aside?
         details/link)

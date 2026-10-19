@@ -502,6 +502,25 @@ hgroup > p {
   color: var(--ink-2);
 }
 
+/* A show's title and an episode's larger beside the column of the
+   artwork and the Details, which is as wide as it is there */
+@container (min-width: 48rem) {
+  .episode-intro h1,
+  .show-intro h1 {
+    font-size: var(--step-4);
+  }
+
+  .episode-intro hgroup > p,
+  .show-intro hgroup > p {
+    font-size: var(--step-1);
+  }
+
+  /* the Details a little smaller than the content beside them */
+  .with-details > aside dd {
+    font-size: 1rem;
+  }
+}
+
 /* Set the way simon.grays.blog sets its posts: no hyphen leaves fewer
    than three letters on a line, and punctuation hangs in the margin where
    the browser can, so far only Safari. Ragged right, since browsers
@@ -545,7 +564,9 @@ hgroup > p {
   letter-spacing: var(--caps-tracking);
 }
 
-.people img {
+.person img {
+  aspect-ratio: 1;
+  object-fit: cover;
   border-radius: 50%;
 }
 

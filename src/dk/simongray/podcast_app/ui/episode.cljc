@@ -136,19 +136,20 @@
   (let [entry (player/entry (:library state) id)]
     [:header.episode-intro
      [:hgroup heading [:p [:a {:href (:href show) :lang (text/lang language)} (:title show)]]]
-     (artwork/img page 160 {:fetchpriority "high"})
-     (facts-ui/line
-      (concat (numbering-facts numbering)
-              [(some-> published time-ui/date)
-               (some-> duration time-ui/duration)
-               (when explicit? "Explicit")
-               (when ai-content? "Made with AI")
-               (when (:played? entry) "Played")]))
-     (when aside?
-       details/link)
-     [:div.episode-actions
-      (play-button page (:player state) entry (start-time state))
-      (queue-buttons page (queue/place state id))]]))
+     (artwork/img page 256{:fetchpriority "high" :sizes artwork/intro-sizes})
+     [:div.episode-intro-body
+      (facts-ui/line
+       (concat (numbering-facts numbering)
+               [(some-> published time-ui/date)
+                (some-> duration time-ui/duration)
+                (when explicit? "Explicit")
+                (when ai-content? "Made with AI")
+                (when (:played? entry) "Played")]))
+      (when aside?
+        details/link)
+      [:div.episode-actions
+       (play-button page (:player state) entry (start-time state))
+       (queue-buttons page (queue/place state id))]]]))
 
 ;; The Details of an episode hold what's its own rather than its show's,
 ;; since the show's are on the show's page

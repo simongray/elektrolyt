@@ -42,6 +42,21 @@
   (when-let [host (host-text s)]
     (links/new-tab [:a {:href s} (or (some-> text str/trim not-empty) host)])))
 
+;; The Chicago Manual of Style breaks a URL across lines after a double
+;; slash, and before a single slash or a period, so that the break shows
+;; where the URL goes on, rather than in the middle of a word
+(defn url-text
+  "The text of the URL `s`, with a wbr where it may break across lines."
+  [s]
+  (interpose [:wbr] (re-seq #"[a-z][a-z0-9+.-]*://|[/.]?[^/.]+|[/.]" s)))
+
+(defn url-link
+  "A link to the web URL `s` that shows the whole of it, which opens in a
+  new tab, or nil for a URL that isn't one of the web."
+  [s]
+  (when (host-text s)
+    (links/new-tab (into [:a {:href s}] (url-text s)))))
+
 ;; podcast namespace, funding: the creator expects its text "to be
 ;; displayed in the app next to the link", which here is the link itself,
 ;; in the Details, among the show's other links
@@ -79,21 +94,22 @@
 
 ;; W3C, Images tutorial, decorative images: the name beside a picture says
 ;; who it is, so its alt is empty
-(defn people-list
-  "The `people` who make the show or the episode, as resolve/people gives
+(defn person
+  "A `person` who makes the show or the episode, as resolve/people gives
   them: a picture, the name, linked to their page where there's one, and
-  the role, under their heading, or nil without them."
+  the role."
+  [{:keys [name role img href] :as person}]
+  [:span.person
+   (when (url/web-url? img)
+     [:img {:src img :alt "" :width 48 :height 48 :loading "lazy" :decoding "async"}])
+   [:span (or (web-link href name) name)
+    (when role (str ", " (str/capitalize role)))]])
+
+(defn people-row
+  "The row of the `people` who make the show or the episode, People and a
+  value for each of them with a name."
   [people]
-  (when-let [people (seq (filter :name people))]
-    (list
-     [:h3 "People"]
-     [:ul.people {:role "list"}
-      (for [{:keys [name role img href]} people]
-        [:li {:replicant/key (str name "/" role)}
-         (when (url/web-url? img)
-           [:img {:src img :alt "" :width 48 :height 48 :loading "lazy" :decoding "async"}])
-         [:span (or (web-link href name) name)
-          (when role (str ", " (str/capitalize role)))]])])))
+  ["People" (map person (filter :name people))])
 
 ;; HTML, the aside element, and HTML-AAM: an aside in main is a
 ;; complementary landmark, whose visible heading labels it, without the
@@ -109,21 +125,17 @@
   `people`, or nil when none of the rows has a value and there are no
   people."
   [rows people]
-  (let [rows (keep (fn [[k vs]]
-                     (when-let [vs (seq (remove nil? vs))]
-                       [k vs]))
-                   rows)
-        made (people-list people)]
-    (when (or (seq rows) made)
-      [:aside.details {:aria-labelledby id}
-       ;; only for a screen reader, since the page shows what the aside is
-       [:h2.visually-hidden {:id id :tabindex -1} "Details"]
-       (when (seq rows)
-         [:dl
-          (for [[k vs] rows]
-            (into [:div {:replicant/key k} [:dt k]]
-                  (map #(vector :dd %) vs)))])
-       made])))
+  (when-let [rows (seq (keep (fn [[k vs]]
+                               (when-let [vs (seq (remove nil? vs))]
+                                 [k vs]))
+                             (concat rows [(people-row people)])))]
+    [:aside.details {:aria-labelledby id}
+     ;; only for a screen reader, since the page shows what the aside is
+     [:h2.visually-hidden {:id id :tabindex -1} "Details"]
+     [:dl
+      (for [[k vs] rows]
+        (into [:div {:replicant/key k} [:dt k]]
+              (map #(vector :dd %) vs)))]]))
 
 ;; HTML, the article element: "a complete, or self-contained, composition
 ;; in a document, page, application, or site and that is, in principle,
