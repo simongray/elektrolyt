@@ -95,6 +95,11 @@
   --space-5: 2.5rem;
   --measure: 36em;
   --radius: 2px;
+  /* the least height of a control, past the 24 px of WCAG 2.2, SC 2.5.8
+     Target Size (Minimum), and low enough to keep a row of them compact;
+     the links of the navigation keep 44 px (layout.css)
+     https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
+  --control-height: 36px;
 
   /* The app's own colour, a neutral near-black, since the artwork gives it
      most of its colour: the bars take it while no artwork colours them */

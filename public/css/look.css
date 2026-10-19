@@ -327,7 +327,7 @@ summary {
 button,
 ::file-selector-button,
 summary {
-  padding: 0.55em 1em;
+  padding: 0.3em 0.8em;
   font-weight: var(--weight-strong);
   cursor: pointer;
 }
@@ -355,12 +355,12 @@ button[aria-disabled="true"] {
 }
 
 select {
-  padding: 0.5em 0.6em;
+  padding: 0.3em 0.5em;
 }
 
 input[type="search"] {
-  min-height: 44px;
-  padding: 0.5em 0.8em;
+  min-height: var(--control-height);
+  padding: 0.3em 0.65em;
   font-size: var(--step-0);
 }
 

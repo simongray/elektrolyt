@@ -330,7 +330,7 @@ search input {
 /* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
 .episode-intro button {
   justify-self: start;
-  min-height: 44px;
+  min-height: var(--control-height);
 }
 
 @media (min-width: 37.5em) {
@@ -527,10 +527,10 @@ search input {
   min-width: 0;
 }
 
-/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+/* WCAG 2.2, SC 2.5.8 Target Size (Minimum), at the height of a control */
 #player button,
 #player select {
-  min-height: 44px;
+  min-height: var(--control-height);
 }
 
 @media (min-width: 37.5em) {
@@ -624,12 +624,12 @@ search input {
   gap: 0.5em;
 }
 
-/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced), as for the navigation */
+/* WCAG 2.2, SC 2.5.8 Target Size (Minimum), at the height of a control */
 .queue-actions button,
 .inbox-actions button,
 .episode-actions button,
 main section > button {
-  min-height: 44px;
+  min-height: var(--control-height);
 }
 
 
@@ -653,7 +653,7 @@ main section > button {
 .library-refresh button,
 .inbox-tools button,
 .new-episodes select {
-  min-height: 44px;
+  min-height: var(--control-height);
 }
 
 /* The shows: a list of rows, the artwork beside the title, or a grid of
@@ -788,7 +788,7 @@ main section > button {
 .setting input[type=file],
 .setting button,
 .settings-group > button {
-  min-height: 44px;
+  min-height: var(--control-height);
   max-width: 100%;
 }
 
