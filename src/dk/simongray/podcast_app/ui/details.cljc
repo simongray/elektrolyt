@@ -1,7 +1,7 @@
 (ns dk.simongray.podcast-app.ui.details
   "The metadata of a show or an episode as its page shows it: a line of
-  facts under the title, the links that support the show, and the Details
-  beside the content, with the people who make it.
+  facts under the title, and the Details beside the content, among them
+  the links that support the show, with the people who make it.
 
   The Show page and the Episode page each choose their facts and rows, and
   this namespace writes them. Facts and rows without a value are left out,
@@ -51,16 +51,16 @@
     (links/new-tab [:a {:href s} (or (some-> text str/trim not-empty) host)])))
 
 ;; podcast namespace, funding: the creator expects its text "to be
-;; displayed in the app next to the link"
+;; displayed in the app next to the link", which here is the link itself,
+;; in the Details, among the show's other links
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/funding.md
 (defn support
-  "The links of the `funding`, with the text that the feed gives each, or
-  nil without one."
+  "The links of the `funding`, with the text that the feed gives each, for
+  a row of the Details."
   [funding]
-  (when-let [links (seq (keep #(some-> (web-link (:url %) (:content %))
-                                       (assoc-in [1 :replicant/key] (:url %)))
-                              funding))]
-    (into [:p "Support the show: "] (interpose ", " links))))
+  (keep #(some-> (web-link (:url %) (:content %))
+                 (assoc-in [1 :replicant/key] (:url %)))
+        funding))
 
 (defn license
   "The `license`, as resolve/license gives it: the name and version of one

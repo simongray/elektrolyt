@@ -130,10 +130,9 @@
   "The header of the article of the episode `page`: its `heading` with its
   show, its artwork and facts, whether its `entry` in the profile is
   played, the button that plays it as the `player` and the start time `t`
-  have it, the buttons that queue it, by where it's `queued`, the link to
-  its Details when it has them, `aside?`, and the links that support its
-  show."
-  [heading {:keys [show numbering published duration explicit? ai-content? funding]
+  have it, the buttons that queue it, by where it's `queued`, and the link
+  to its Details when it has them, `aside?`."
+  [heading {:keys [show numbering published duration explicit? ai-content?]
             :as   page}
    player entry t queued aside?]
   [:header.episode-intro
@@ -152,8 +151,7 @@
      details/link)
    [:div.episode-actions
     (play-button page player entry t)
-    (queue-buttons page queued)]
-   (details/support funding)])
+    (queue-buttons page queued)]])
 
 (defn size-text
   "The size of a file of `bytes`, e.g. \"86 MB\"."
@@ -166,12 +164,14 @@
 ;; The Details of an episode hold what's its own rather than its show's,
 ;; since the show's are on the show's page
 (defn details-rows
-  "The rows of the Details of the episode `page`."
-  [{:keys [link content-links locations license enclosure]}]
+  "The rows of the Details of the episode `page`, with the links that
+  support its show."
+  [{:keys [link content-links funding locations license enclosure]}]
   (let [length (:length enclosure)]
     (concat
      [["Web page" [(details/web-link link nil)]]
-      ["Also on" (map #(details/web-link (:href %) (:text %)) content-links)]]
+      ["Also on" (map #(details/web-link (:href %) (:text %)) content-links)]
+      ["Support" (details/support funding)]]
      (details/location-rows locations)
      [["License" [(details/license license)]]
       ;; TODO: the format and bitrate of the media file, and its size where

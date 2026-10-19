@@ -116,12 +116,14 @@
            (elements :p.details-link (intro {})))
         "and a link to its Details")
     (is (empty? (elements :p.details-link (episode-ui/intro [:h1 "Episode 2"] page nil nil nil nil false)))
-        "but none when it has no Details")
-    (is (= "Support the show: Give, example.org"
-           (text-of (last (elements :p (intro {:funding [{:url "https://pay.example/1" :content "Give"}
-                                                         {:url "https://www.example.org/donate"}
-                                                         {:url "javascript:alert(1)" :content "No"}]})))))
-        "the links of the web alone, by their text or their host")))
+        "but none when it has no Details")))
+
+(deftest the-links-that-support-the-show
+  (let [rows (into {} (episode-ui/details-rows {:funding [{:url "https://pay.example/1" :content "Give"}
+                                                          {:url "https://www.example.org/donate"}
+                                                          {:url "javascript:alert(1)" :content "No"}]}))]
+    (is (= ["Give" "example.org"] (map text-of (get rows "Support")))
+        "in the Details, the links of the web alone, by their text or their host")))
 
 (deftest the-details-of-an-episode
   (let [rows (into {} (episode-ui/details-rows {:link          "https://example.org/?p=2"

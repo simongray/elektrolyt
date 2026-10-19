@@ -93,17 +93,20 @@
                                  :locations  [{:content "Austin, TX" :rel "creator" :osm {:type "R" :id 113314}}
                                               {:content "Birmingham" :rel "subject"}
                                               {:content "Marlow" :rel "Creator"}]
-                                 :copyright  "Podcast Index LLC 2026"}
+                                 :copyright  "Podcast Index LLC 2026"
+                                 :funding    [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]}
                                 "https://feeds.podcastindex.org/pc20.xml")]
-    (is (= ["Website" "Categories" "Language" "Latest episode" "Schedule" "Order"
+    (is (= ["Website" "Support" "Categories" "Language" "Latest episode" "Schedule" "Order"
             "Made in" "Location" "License" "Copyright" "Feed"]
            (map first rows))
         "in the order of Apple's Information, with the places by what they are")
     (is (= "podcastindex.org" (text-of (first (second (first rows))))) "the website by its host")
-    (is (= ["Tech News" "Technology"] (second (second rows))))
-    (is (= "Austin, TXMarlow" (text-of (second (nth rows 6)))) "two places made in, under one name")
+    (is (= ["Value 4 Value"] (map text-of (second (second rows))))
+        "the links that support the show, by their text, beside its website")
+    (is (= ["Tech News" "Technology"] (second (nth rows 2))))
+    (is (= "Austin, TXMarlow" (text-of (second (nth rows 7)))) "two places made in, under one name")
     (is (= "https://www.openstreetmap.org/relation/113314"
-           (get-in (vec (first (second (nth rows 6)))) [1 :href]))
+           (get-in (vec (first (second (nth rows 7)))) [1 :href]))
         "a place linked to its map")))
 
 (deftest the-details-beside-the-episodes

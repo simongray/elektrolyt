@@ -101,8 +101,8 @@
 
 (defscene with-its-details
   "An episode that says much of itself: its number and Explicit with its
-  date, the links that support the show, and its Details beside the show
-  notes, or below them on a phone."
+  date, and its Details beside the show notes, or below them on a phone,
+  with the links that support the show."
   (ui/page (episode-page {:url url :status :loading :head (assoc feed :rss/items [with-details])})))
 
 (defscene while-its-feed-loads

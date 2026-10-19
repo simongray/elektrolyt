@@ -116,12 +116,13 @@
 ;; https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Infoboxes
 (defn details-rows
   "The rows of the Details of the show `page`, whose feed is at `url`."
-  [{:keys [link categories language latest serial? locations license copyright]
+  [{:keys [link funding categories language latest serial? locations license copyright]
     :as   page}
    url]
   (let [names (distinct (map last categories))]
     (concat
      [["Website" [(details/web-link link nil)]]
+      ["Support" (details/support funding)]
       [(if (next names) "Categories" "Category") names]
       ["Language" [(some-> language language-name)]]
       ["Latest episode" [(some-> latest date)]]
