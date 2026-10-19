@@ -169,9 +169,12 @@ hgroup > p {
     padding: var(--space-4) var(--space-3) var(--space-3);
   }
 
+  /* the name in line with the links below it */
   .shell > nav .app-name {
     display: flex;
+    justify-content: flex-end;
     margin: 0 0 var(--space-3);
+    padding-inline-end: var(--space-3);
   }
 
   .shell > nav ul {
