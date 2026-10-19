@@ -7,6 +7,7 @@
   and the buttons that queue it."
   (:require [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.text :as text]
+            [dk.simongray.podcast-app.ui.controls :as controls-ui]
             [dk.simongray.podcast-app.ui.lists :as lists-ui]))
 
 (defn search-link
@@ -67,10 +68,7 @@
   (boolean (get-in state [:picks-open place])))
 
 ;; Closed until the listener opens it, so that the page leads with its own
-;; content, and the picks are only worked out then. WAI-ARIA APG,
-;; disclosure: a button in the heading, which says whether it's expanded,
-;; so that the caret beside the heading's words opens it.
-;; https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/
+;; content, and the picks are only worked out then
 (defn folded
   "The section of the picks of `place` in the `state`, as section has them,
   closed until the listener opens it with the button of its heading, and
@@ -79,12 +77,8 @@
   (let [open   (open? state place)
         region (str id "-list")]
     [:section.picks {:aria-labelledby id}
-     [:h2 {:id id}
-      [:button.disclosure {:type          "button"
-                           :aria-expanded (str open)
-                           :aria-controls region
-                           :on            {:click [[:store/assoc-in [:picks-open place] (not open)]]}}
-       heading]]
+     (controls-ui/disclosure :h2 id heading region open
+                             [[:store/assoc-in [:picks-open place] (not open)]])
      [:div {:id region}
       (when open
         (if-let [picks (picks-fn)]

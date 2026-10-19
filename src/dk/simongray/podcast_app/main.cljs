@@ -161,9 +161,8 @@
     (js/queueMicrotask #(feeds/read-files! store id view))))
 
 (nxr/register-effect! :episode/read-transcript
-  (fn [{:keys [dispatch-data]} store id view]
-    (when (some-> (:replicant/dom-event dispatch-data) .-target .-open)
-      (feeds/read-transcript! store id view))))
+  (fn [_ store id view]
+    (feeds/read-transcript! store id view)))
 
 ;; The player
 

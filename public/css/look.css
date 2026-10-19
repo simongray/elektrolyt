@@ -328,8 +328,7 @@ time,
 button,
 select,
 input[type="search"],
-::file-selector-button,
-summary {
+::file-selector-button {
   font-family: var(--font-ui);
   font-size: var(--step--1);
   color: var(--ink);
@@ -339,14 +338,12 @@ summary {
 }
 
 button,
-::file-selector-button,
-summary {
+::file-selector-button {
   font-weight: var(--weight-strong);
   cursor: pointer;
 }
 
-button:hover,
-summary:hover {
+button:hover {
   background: var(--grain) 0 0 / var(--grain-size), var(--accent-soft);
 }
 

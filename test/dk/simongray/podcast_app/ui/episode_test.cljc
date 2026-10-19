@@ -19,12 +19,22 @@
                       :query-params (cond-> {:url episode-test/url} t (assoc :t t))})
        (merge more))))
 
+(deftest the-chapters-on-request
+  (let [page   (episode-ui/route-page (episode-page nil))
+        closed (episode-ui/chapters page [{:start-time 0 :title "Intro"}] false)
+        [_ attrs] (first (elements :button.disclosure closed))]
+    (is (empty? (elements :li closed)) "closed at first")
+    (is (= ["false" "chapter-list"] ((juxt :aria-expanded :aria-controls) attrs)))
+    (is (= [[:store/assoc-in [:chapters-open (:id page)] true]] (get-in attrs [:on :click]))
+        "until the button of its heading opens them")))
+
 (deftest the-chapters-and-their-links
   (let [page  (assoc (episode-ui/route-page (episode-page nil)) :language "de")
         items (->> (episode-ui/chapters page [{:start-time 0 :title "Intro" :url "https://example.org/intro"}
                                               {:start-time 60 :title "Sneaky" :url "javascript:alert(1)"}
                                               {:start-time 90 :url "https://example.org/untitled"}
-                                              {:start-time 120 :title "Plain"}])
+                                              {:start-time 120 :title "Plain"}]
+                                        true)
                    (elements :li))]
     (is (= [[:a {:href "https://example.org/intro" :lang "de" :target "_blank" :aria-describedby "new-tab-note"}
              "Intro"]
@@ -142,12 +152,23 @@
 (deftest the-transcript-on-request
   (let [page  (episode-ui/route-page (episode-page nil))
         doc   {:segments [{:start-time 0.0 :speaker "Adam" :body "Hello."}]}
-        shown #(text-of (episode-ui/transcript page %))]
-    (is (= "TranscriptShow the transcript" (shown nil)) "closed, and not read yet")
-    (is (= "TranscriptShow the transcriptLoading the transcript…" (shown {:transcript-status :reading})))
-    (is (= "TranscriptShow the transcript0:00 Adam: Hello."
+        shown #(text-of (episode-ui/transcript page % true))
+        closed (episode-ui/transcript page nil false)
+        button #(second (first (elements :button.disclosure %)))]
+    (is (= "Transcript" (text-of closed)) "closed, and not read yet")
+    (is (= ["false" "transcript-text"] ((juxt :aria-expanded :aria-controls) (button closed)))
+        "the button of its heading")
+    (is (= [[:store/assoc-in [:transcript-open (:id page)] true]
+            [:episode/read-transcript (:id page) (:view page)]]
+           (get-in (button closed) [:on :click]))
+        "which opens it, and reads it")
+    (is (= [[:store/assoc-in [:transcript-open (:id page)] false]]
+           (get-in (button (episode-ui/transcript page nil true)) [:on :click]))
+        "or closes it")
+    (is (= "TranscriptLoading the transcript…" (shown {:transcript-status :reading})))
+    (is (= "Transcript0:00 Adam: Hello."
            (shown {:transcript-status :read :transcript {:document doc}})))
-    (is (= "TranscriptShow the transcriptThe transcript couldn't be read."
+    (is (= "TranscriptThe transcript couldn't be read."
            (shown {:transcript-status :read :transcript {:error {:message "404"}}})))))
 
 (deftest a-transcript-in-its-own-language
@@ -155,7 +176,8 @@
         doc  {:segments [{:start-time 0.0 :speaker "Ana" :body "Hola."}]}
         lang #(lang-of :div.transcript
                        (episode-ui/transcript %1 {:transcript-status :read
-                                                  :transcript        {:document doc :language %2}}))]
+                                                  :transcript        {:document doc :language %2}}
+                                              true))]
     (is (= "es" (lang page "es")) "the language that its tag names, rather than the feed's")
     (is (= "de" (lang page nil)) "or else the feed's")
     (is (nil? (lang (dissoc page :language) nil)) "and none where neither names one")))

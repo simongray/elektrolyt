@@ -15,6 +15,7 @@
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.text :as text]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
+            [dk.simongray.podcast-app.ui.controls :as controls-ui]
             [dk.simongray.podcast-app.ui.details :as details]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
             [dk.simongray.podcast-app.ui.picks :as picks-ui]
@@ -173,22 +174,28 @@
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/chapters/jsonChapters.md
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
+;; Closed until the listener opens it, as the transcript is, so that the
+;; notes come before a long list
 (defn chapters
   "The `chapters` of the episode `page` as a list of their times and titles,
-  which link to the web page of a chapter that has one."
-  [{:keys [language] :as page} chapters]
+  which link to the web page of a chapter that has one, once the listener
+  opened them, `open`."
+  [{:keys [id language] :as page} chapters open]
   (let [lang (text/lang language)]
     [:section {:aria-labelledby "chapters"}
-     [:h2#chapters "Chapters"]
-     [:ol.chapters {:role "list"}
-      (for [{:keys [start-time title url]} chapters]
-        [:li {:replicant/key start-time}
-         (time-link page start-time (time-ui/clock start-time))
-         " "
-         (if (url/web-url? url)
-           (links/new-tab [:a {:href url :lang lang} (or title url)])
-           (when title
-             [:span {:lang lang} title]))])]]))
+     (controls-ui/disclosure :h2 "chapters" "Chapters" "chapter-list" open
+                             [[:store/assoc-in [:chapters-open id] (not open)]])
+     [:div#chapter-list
+      (when open
+        [:ol.chapters {:role "list"}
+         (for [{:keys [start-time title url]} chapters]
+           [:li {:replicant/key start-time}
+            (time-link page start-time (time-ui/clock start-time))
+            " "
+            (if (url/web-url? url)
+              (links/new-tab [:a {:href url :lang lang} (or title url)])
+              (when title
+                [:span {:lang lang} title]))])])]]))
 
 ;; WAI, Transcribing Audio to Text: the transcript is on the page of the
 ;; media itself, in paragraphs that name who speaks. It's behind a
@@ -205,30 +212,33 @@
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
 (defn transcript
   "The transcript of the episode `page`, with the `files` read so far, in
-  paragraphs of a speaker's turn or about a minute."
-  [{:keys [id view] :as page} files]
+  paragraphs of a speaker's turn or about a minute, once the listener
+  opened it, `open`, which reads it."
+  [{:keys [id view] :as page} files open]
   (let [{:keys [transcript-status]}       files
         {:keys [document error language]} (:transcript files)]
     [:section {:aria-labelledby "transcript"}
-     [:h2#transcript "Transcript"]
-     [:details {:on {:toggle [[:episode/read-transcript id view]]}}
-      [:summary "Show the transcript"]
-      (cond
-        (= :reading transcript-status)
-        [:p {:role "status"} "Loading the transcript…"]
+     (controls-ui/disclosure :h2 "transcript" "Transcript" "transcript-text" open
+                             (cond-> [[:store/assoc-in [:transcript-open id] (not open)]]
+                               (not open) (conj [:episode/read-transcript id view])))
+     [:div#transcript-text
+      (when open
+        (cond
+          (= :reading transcript-status)
+          [:p {:role "status"} "Loading the transcript…"]
 
-        (or error (and (= :read transcript-status) (empty? (:segments document))))
-        [:p {:role "status"} "The transcript couldn't be read."]
+          (or error (and (= :read transcript-status) (empty? (:segments document))))
+          [:p {:role "status"} "The transcript couldn't be read."]
 
-        document
-        [:div.transcript {:lang (text/lang (or language (:language page)))}
-         (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
-           [:p
-            (when start-time
-              (list (time-link page start-time (time-ui/clock start-time)) " "))
-            (when speaker
-              (list [:strong speaker] ": "))
-            body])])]]))
+          document
+          [:div.transcript {:lang (text/lang (or language (:language page)))}
+           (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
+             [:p
+              (when start-time
+                (list (time-link page start-time (time-ui/clock start-time)) " "))
+              (when speaker
+                (list [:strong speaker] ": "))
+              body])]))]]))
 
 (def not-found
   "The content of the page of an episode that its show's feed doesn't
@@ -287,9 +297,9 @@
             [:h2#notes.visually-hidden "Show notes"]
             [:div.show-notes {:lang (text/lang language)} notes]])
          (when shown
-           (chapters page shown))
+           (chapters page shown (get-in state [:chapters-open id])))
          (when (:transcript view)
-           (transcript page files))]
+           (transcript page files (get-in state [:transcript-open id])))]
         aside
         (picks-ui/folded state picks-section [:episode id] #(picks/like-episode state page)))))
     (list heading (missing state))))

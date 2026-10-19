@@ -40,8 +40,7 @@ hr {
 /* The controls: room around their labels, and at least --control-height,
    past the 24 px of WCAG 2.2, SC 2.5.8 Target Size (Minimum) */
 button,
-::file-selector-button,
-summary {
+::file-selector-button {
   padding: 0.3em 0.8em;
 }
 
@@ -55,7 +54,6 @@ input[type="search"] {
 
 button,
 select,
-summary,
 input[type="search"],
 input[type="file"] {
   min-height: var(--control-height);
@@ -471,11 +469,6 @@ search p {
   grid-template-columns: 4.5em minmax(0, 1fr);
   gap: var(--space-3);
   padding-block: var(--space-2);
-}
-
-/* the transcript's summary as wide as its text, like a button */
-details summary {
-  display: inline-block;
 }
 
 .chapters,

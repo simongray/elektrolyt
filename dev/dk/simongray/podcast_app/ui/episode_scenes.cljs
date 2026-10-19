@@ -77,9 +77,10 @@
   (ui/page (episode-page from-the-start)))
 
 (defscene with-its-chapters
-  "The chapters once the chapters file is read, whose titles link to the web
-  page of a chapter that names one."
-  (ui/page (episode-page from-the-start {:episodes {(id) read-chapters}})))
+  "The chapters once the chapters file is read and the listener opened
+  them, whose titles link to the web page of a chapter that names one."
+  (ui/page (episode-page from-the-start {:episodes      {(id) read-chapters}
+                                         :chapters-open {(id) true}})))
 
 (defscene from-a-time
   "A link to the episode at a time, e.g. ?t=1m13s."
@@ -161,7 +162,8 @@
                           :head   (assoc feed
                                          :rss/language "en"
                                          :rss/items [(assoc item :podcast/transcripts [spanish-transcript])])}
-                         {:episodes {(id) read-spanish-transcript}})))
+                         {:episodes        {(id) read-spanish-transcript}
+                          :transcript-open {(id) true}})))
 
 (defscene while-its-feed-loads
   "A link to an episode beyond the start of the feed, while the whole feed

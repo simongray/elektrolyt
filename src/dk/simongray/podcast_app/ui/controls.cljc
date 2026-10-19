@@ -2,6 +2,22 @@
   "The form controls that several views share, e.g. the select of a
   choice, whose views give the actions, labels and layout.")
 
+;; WAI-ARIA APG, disclosure: a button in the heading that says whether
+;; what it shows is expanded, its words the heading's, with a caret after
+;; them (see look.css)
+;; https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/
+(defn disclosure
+  "The heading of the `tag`, e.g. :h2, with the `id`, whose words `text`
+  are a button that shows the element `region` names, or hides it when
+  it's `open`, and dispatches the `actions`."
+  [tag id text region open actions]
+  [tag {:id id}
+   [:button.disclosure {:type          "button"
+                        :aria-expanded (str (boolean open))
+                        :aria-controls region
+                        :on            {:click actions}}
+    text]])
+
 (defn option-value
   "The value of an option of a select for the value `v`, a number or a
   keyword."
