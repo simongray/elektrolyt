@@ -1,6 +1,6 @@
 (ns dk.simongray.podcast-app.ui.library-scenes
-  "Scenes of the Library page: the shows in each layout, a refresh under
-  way, and a library with no shows yet."
+  "Scenes of the Library page: the start of the Inbox, the shows in each
+  layout, a refresh under way, and a library with no shows yet."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.scenes :refer [artwork]]
             [dk.simongray.podcast-app.ui :as ui]

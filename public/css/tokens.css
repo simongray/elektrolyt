@@ -94,7 +94,7 @@
   --space-4: 1.5rem;
   /* the space between sections, and around the page's content, the same
      everywhere, from the top of the page to the first section, from the
-     rail's line to the content, and from the artwork to the Details */
+     rail's edge to the content, and from the artwork to the Details */
   --space-5: clamp(2rem, 1.5rem + 2vw, 3rem);
   --measure: 36em;
   --radius: 2px;
@@ -134,7 +134,7 @@
   /* a field or a button is an outline on the paper, through which the
      paper's grain and tint show */
   --field: transparent;
-  /* the line beside the rail and of an hr */
+  /* the line of an hr */
   --divider: light-dark(oklch(80% 0.004 80), oklch(40% 0.004 80));
 
   /* links, buttons and the focus ring, in the text's own ink until a part

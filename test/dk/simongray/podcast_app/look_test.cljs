@@ -221,7 +221,7 @@
 (deftest more-contrast-meets-the-enhanced-level
   (let [more  (declarations look ":root[data-contrast=\"more\"] .shell" 0)
         links (declarations look ":root[data-contrast=\"more\"] .shell > main" 0)
-        rail  (tokens (declarations look ":root[data-contrast=\"more\"] .shell > nav li" 2) "--label")
+        rail  (tokens (declarations look ":root[data-contrast=\"more\"] .shell[data-palette=\"pages\"] > nav li" 2) "--label")
         [bar] (tokens shell "--bar")]
     (is (<= 7 (least-ratio (first (tokens more "--on-bar-2")) bar seeds)) "secondary text on the bars")
     (is (<= 4.5 (least-ratio (first (tokens more "--bar-rule")) bar seeds)) "the edges of controls on the bars")

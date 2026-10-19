@@ -91,4 +91,8 @@
                                                          (profile/new-episodes-settings :none)}))}]
     (is (= [:queue :none] (new-episodes elsewhere)))
     (is (= [:inbox :inbox] (new-episodes (inbox/inbox-only elsewhere)))
-        "though an earlier version of the app sent them elsewhere")))
+        "though an earlier version of the app sent them elsewhere")
+    (is (= :inbox (first (new-episodes (inbox/inbox-only
+                                        (update elsewhere :library library/update-profile
+                                                profile/unsubscribe k)))))
+        "even for a show that the listener unsubscribed from, whose settings hold again")))

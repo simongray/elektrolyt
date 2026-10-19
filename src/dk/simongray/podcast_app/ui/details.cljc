@@ -1,7 +1,7 @@
 (ns dk.simongray.podcast-app.ui.details
-  "The Details of a show or an episode, beside the content of its page: its
-  metadata, e.g. the links that support the show, and the people who make
-  it.
+  "The Details of a show or an episode, in the column of its page's
+  artwork, or below its content on a phone: its metadata, e.g. the links
+  that support the show, and the people who make it.
 
   The Show page and the Episode page each choose their rows, and this
   namespace writes them. Rows without a value are left out, and so are
@@ -114,19 +114,16 @@
 ;; and an episode of a feed are. Its Details are an aside within it.
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-article-element
 ;;
-;; Every Layout, Sidebar: the Details beside the content where there's
-;; room for both, and below it where there isn't. They come last, so that
-;; the order is the same at every width (WCAG 2.2, SC 1.3.2 and 2.4.3).
-;; The content keeps its place without them, e.g. while the feed of a show
-;; is on its way, so that its elements stay as they are when they arrive.
-;; https://every-layout.dev/layouts/sidebar/
+;; The Details and what follows them come after the content, in the column
+;; of the artwork where there's room for it, and below the content where
+;; there isn't, so that the order is the same at every width (WCAG 2.2, SC
+;; 1.3.2 and 2.4.3). The content keeps its place without them, e.g. while
+;; the feed of a show is on its way, so that its elements stay as they are
+;; when they arrive.
 (defn article
   "The article of a show or an episode with the `attrs`: its `content`, a
-  sequence of Hiccup that begins with its header, with its `aside` beside
-  it, when there's one, and `more` below the aside, e.g. the picks like
-  the show."
-  ([attrs content aside]
-   (article attrs content aside nil))
-  ([attrs content aside more]
-   (cond-> [:article.with-details attrs (into [:div] content) aside]
-     more (conj more))))
+  sequence of Hiccup that begins with its header, with its `aside`, when
+  there's one, and `more` after the aside, e.g. the picks like the show."
+  [attrs content aside more]
+  (cond-> [:article.with-details attrs (into [:div] content) aside]
+    more (conj more)))

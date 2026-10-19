@@ -157,8 +157,7 @@
                        :error  {:message "The server answered 404."}})))
 
 (defscene a-show-in-the-library
-  "A show that the listener subscribes to, with the choice of where its new
-  episodes go."
+  "A show that the listener subscribes to."
   (let [k (first (keys (:feeds lib)))]
     (ui/page {:route   {:name :route/show :path-params {:guid k} :query-params {}}
               :library lib})))

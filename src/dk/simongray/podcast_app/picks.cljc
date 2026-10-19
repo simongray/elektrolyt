@@ -112,7 +112,8 @@
 
 (def home
   "The picks of Home in the `state`: like the episodes that the listener
-  heard last, but the explicit ones."
+  heard last, and explicit ones only where the listener chose explicit
+  picks."
   (memo/remember-last
    (fn [{:keys [library] :as state}]
      (some-> library (recommended nil (opts state :home false))))
@@ -172,7 +173,7 @@
   (zipmap ids (range (count ids) 0 -1)))
 
 (defn show-seeds
-  "The ids of the episodes of the show of the feed `source`, as
+  "The ids of the episodes of `lib` of the show of the feed `source`, as
   episode/source gives it, that its picks start from, and their weights,
   as a pair: those that the listener heard, the last weighing the most, or
   else its newest. A show outside the library has only its newest."
@@ -198,14 +199,16 @@
 (def like-show
   "The picks under the Show page of the show `guid` in the `state`: like
   its episodes that the listener heard, or else its newest, and explicit
-  too where the show is, or those episodes are."
+  too where the show is, or those episodes are. A show without episodes
+  has none, and nil means that they aren't known yet."
   (memo/remember-last
    (fn [{:keys [library] :as state} guid]
      (when-let [{:keys [feed] :as source} (and library (episode/source state guid))]
        (let [[ids weights] (show-seeds library source)
              explicit?     (or (resolve/explicit? feed) (explicit-in? library ids feed))]
-         (when (seq ids)
+         (if (seq ids)
            (recommended library ids (cond-> (outside (opts state :show explicit?) source)
-                                      weights (assoc :weight-fn weights)))))))
+                                      weights (assoc :weight-fn weights)))
+           {:episodes [] :terms []}))))
    (fn [state guid]
      (conj (library-key state) guid (:feed (episode/source state guid))))))

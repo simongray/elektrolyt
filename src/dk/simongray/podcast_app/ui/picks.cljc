@@ -39,9 +39,9 @@
 ;; https://www.nngroup.com/articles/mobile-carousels/
 ;; https://www.w3.org/WAI/tutorials/carousels/
 (defn picks-list
-  "The `episodes` of the picks in the `state`, after the line of why, of
-  `lead` and their `terms`, or else `none`."
-  [state lead none {:keys [episodes terms]}]
+  "The episodes of the `picks` in the `state`, after the line of why, of
+  `lead` and their terms, or else `none`."
+  [state lead none {:keys [episodes terms] :as picks}]
   (if (empty? episodes)
     [:p none]
     (list
@@ -52,10 +52,10 @@
          [:article.pick (row state episode)]])])))
 
 (defn section
-  "The section of the `picks` in the `state`, whose heading has the `id` and
-  says `heading`, with the line of why after `lead`. Without picks, it
-  says `none`, or is left out when that's nil."
-  [state {:keys [id heading lead none]} {:keys [episodes] :as picks}]
+  "The `section` of the `picks` in the `state`, whose heading has its :id
+  and says its :heading, with the line of why after its :lead. Without
+  picks, it says its :none, or is left out when that's nil."
+  [state {:keys [id heading lead none] :as section} {:keys [episodes] :as picks}]
   (when (or (seq episodes) none)
     [:section.picks {:aria-labelledby id}
      [:h2 {:id id} heading]
@@ -70,10 +70,10 @@
 ;; Closed until the listener opens it, so that the page leads with its own
 ;; content, and the picks are only worked out then
 (defn folded
-  "The section of the picks of `place` in the `state`, as section has them,
+  "The `section` of the picks of `place` in the `state`, as section has it,
   closed until the listener opens it with the button of its heading, and
   then with the picks that `picks-fn` gives."
-  [state {:keys [id heading lead none]} place picks-fn]
+  [state {:keys [id heading lead none] :as section} place picks-fn]
   (let [open   (open? state place)
         region (str id "-list")]
     [:section.picks {:aria-labelledby id}

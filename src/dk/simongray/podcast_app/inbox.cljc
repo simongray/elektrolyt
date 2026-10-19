@@ -35,11 +35,13 @@
 ;; app, chose the queue or nowhere for a show, or for every new show
 (defn inbox-only
   "The `state` with the new episodes of each show, and of a new show, going
-  to the inbox, or the `state` itself where they all do already."
+  to the inbox, or the `state` itself where they all do already. That
+  includes the shows that the listener unsubscribed from, whose settings
+  hold again when they subscribe again."
   [state]
   (let [p        (some-> (:library state) :profile)
         ks       (remove #(to-inbox? (profile/settings p %))
-                         (keys (profile/subscriptions p)))
+                         (keys (:subscriptions p)))
         defaults (:subscription-defaults (profile/preferences p))]
     (cond-> state
       (seq ks)

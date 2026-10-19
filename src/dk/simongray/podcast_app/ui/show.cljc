@@ -197,7 +197,7 @@
    " instead."])
 
 ;; HTML, header and hgroup: the introduction of the show's article, its
-;; heading first, with its author as its subtitle, and its description as
+;; heading first, with its byline as its subtitle, and its description as
 ;; its summary
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element

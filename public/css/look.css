@@ -43,7 +43,6 @@ h4 {
 /* The headings of the sections as a book's running heads, in the face's
    own small caps, but not the headings that title an item of a list */
 main h2:not(.inbox-episode h2) {
-  font-size: var(--step-2);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.08em;
   color: var(--ink-2);
@@ -135,9 +134,8 @@ time,
   --on-bar-fill: oklch(from var(--bar-seed) 30% min(c, 0.1) calc(h + 180));
   /* the glow of type reversed out of a bar (see the player) */
   --bloom: 0 0 6px oklch(from var(--on-bar) l c h / 0.3);
-  /* A faint tint of the seed's own hue from the right, behind the rail
-     and the main content alike, so that the line between them doesn't
-     cut it. Its alpha is the seed's chroma, so that a grey seed, e.g.
+  /* A faint tint of the seed's own hue from the right, behind the main
+     content. Its alpha is the seed's chroma, so that a grey seed, e.g.
      the app's own, tints nothing. */
   --tint: light-dark(oklch(from var(--seed) 96.5% min(c, 0.022) h / calc(c * 12)), oklch(from var(--seed) 22.5% min(c, 0.022) h / calc(c * 12)));
   background: linear-gradient(to left, var(--tint), transparent 70%) var(--paper);
@@ -305,11 +303,6 @@ time,
     color: var(--ink);
   }
 
-  /* the rail is no bar, so it has no shadow when no player is below it */
-  .shell:not(:has(> #player)) > nav {
-    box-shadow: none;
-  }
-
   /* on the paper, a tone of each page's colour that reads as text, or of
      the player's */
   .shell > nav,
@@ -361,18 +354,22 @@ button.primary {
 }
 
 button.primary:hover {
-  background: var(--grain) 0 0 / var(--grain-size), color-mix(in oklch, var(--accent), var(--ink) 18%);
+  background: var(--grain) 0 0 / var(--grain-size), color-mix(in oklab, var(--accent), var(--ink) 18%);
 }
 
 /* A heading that opens what's below it: its own words, with a caret
    after them that faces down while it's closed and up once it's open */
-button.disclosure,
-button.disclosure:hover {
+button.disclosure {
   font: inherit;
   letter-spacing: inherit;
   color: inherit;
   background: none;
   border: 0;
+}
+
+button.disclosure:hover {
+  color: var(--ink);
+  background: none;
 }
 
 button.disclosure::after {
@@ -390,10 +387,6 @@ button.disclosure::after {
 button.disclosure[aria-expanded="true"]::after {
   vertical-align: 0.05em;
   transform: rotate(-135deg);
-}
-
-button.disclosure:hover {
-  color: var(--ink);
 }
 
 button[aria-disabled="true"] {
@@ -625,6 +618,13 @@ hgroup > p {
   box-shadow: 0 -3px 5px -2px oklch(0% 0 0 / 0.3);
 }
 
+/* the rail is no bar, so it has no shadow when no player is below it */
+@media (min-width: 37.5em) {
+  .shell:not(:has(> #player)) > nav {
+    box-shadow: none;
+  }
+}
+
 /* the artwork meets the bar's edges, with no frame */
 .player-artwork {
   outline: 0;
@@ -712,8 +712,8 @@ search p {
 }
 
 @media (prefers-contrast: more) and (min-width: 37.5em) {
-  :root:not([data-contrast="standard"]) .shell > nav,
-  :root:not([data-contrast="standard"]) .shell > nav li {
+  :root:not([data-contrast="standard"]) .shell[data-palette="pages"] > nav,
+  :root:not([data-contrast="standard"]) .shell[data-palette="pages"] > nav li {
     --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
   }
 
@@ -737,8 +737,8 @@ search p {
 }
 
 @media (min-width: 37.5em) {
-  :root[data-contrast="more"] .shell > nav,
-  :root[data-contrast="more"] .shell > nav li {
+  :root[data-contrast="more"] .shell[data-palette="pages"] > nav,
+  :root[data-contrast="more"] .shell[data-palette="pages"] > nav li {
     --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
   }
 

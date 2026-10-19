@@ -1,5 +1,6 @@
 (ns dk.simongray.podcast-app.ui.artwork
-  "The artwork of a show as an img, in the size that fits."
+  "The artwork of a show or an episode as an img, in the size that fits,
+  and as a link where its title beside it is one."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.artwork :as thumbnails]))
 
@@ -39,9 +40,9 @@
 ;; empty. The artwork itself stays the src, which a browser without srcset
 ;; loads.
 (defn img
-  "The img of the :artwork of a show `x`, at `size` CSS pixels square, with
-  its sizes as its srcset and the `attrs` merged in, e.g. :loading, or nil
-  without artwork."
+  "The img of the :artwork of a show or an episode `x`, at `size` CSS
+  pixels square, with its sizes as its srcset and the `attrs` merged in,
+  e.g. :loading, or nil without artwork."
   [{:keys [artwork] :as x} size attrs]
   (when artwork
     (let [candidates (sizes x)]

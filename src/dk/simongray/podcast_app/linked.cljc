@@ -8,7 +8,7 @@
   the :status of their fetch, :fetching, :done or :failed, the :podroll,
   as cards, and the :publisher, a map of its :title and the cards of its
   :shows. A card is what the page shows of a show: its :guid, :title, the
-  :url of its feed and its :artwork."
+  :url of its feed, and its :artwork and :artwork-sizes."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]))
 
@@ -48,9 +48,3 @@
     (cond-> {:podroll (into [] (keep card) podroll)}
       (seq others) (assoc :publisher {:title (some-> (:feed publisher) resolve/title)
                                       :shows others}))))
-
-(defn wanted?
-  "Whether the shows that the show `guid` of the `state` links to, in its
-  parsed `feed`, are still to be fetched."
-  [state guid feed]
-  (and (links? feed) (nil? (get-in state [:linked guid]))))

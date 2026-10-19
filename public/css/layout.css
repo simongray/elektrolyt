@@ -186,7 +186,7 @@ hgroup > p {
     text-align: end;
   }
 
-  /* as far from the rail's line as its links are */
+  /* as far from the rail's edge as its links are */
   .shell > main {
     padding-inline: var(--space-5);
   }
@@ -477,14 +477,15 @@ search p {
 }
 
 
-/* The Details of a show or an episode below its content, and where
-   there's room for a column of 16 rem and the gap between sections
-   beside content that's 60% of the page at least, i.e. from 48 rem, in
-   that column, below the artwork, which leaves the header for it, so
-   that the content has the rest of the page. There they're set flush against the
-   content, as notes in a book's margin are beside its text. The artwork is positioned in the column rather than
-   moved there, so that the header and the order of the page stay the
-   same at every width (WCAG 2.2, SC 1.3.2). */
+/* The Details of a show or an episode, and the picks like it, below its
+   content. Where there's room for a column of 16 rem and the gap between
+   sections beside content that's 60% of the page at least, i.e. from
+   48 rem, the artwork heads that column, and the Details and the picks
+   are below it, set flush against the content, as notes in a book's
+   margin are beside its text, so that the content has the rest of the
+   page. The artwork is positioned in the column rather than moved there,
+   so that the header and the order of the page stay the same at every
+   width (WCAG 2.2, SC 1.3.2). */
 .with-details {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

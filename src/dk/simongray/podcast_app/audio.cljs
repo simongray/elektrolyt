@@ -240,10 +240,10 @@
     (library/add-episode library url (:feed (episode/source state guid)) item-guid)))
 
 (defn play!
-  "Play the `playable` episode of an Episode page in the player of the
-  `store`, from `t` seconds when it's given: first add it to the library,
-  unless it's there, so that its progress is kept, and make it the current
-  episode, at the front of the queue."
+  "Play the `playable` episode, e.g. of an Episode page or a pick, in the
+  player of the `store`, from `t` seconds when it's given: first add it to
+  the library, unless it's there, so that its progress is kept, and make
+  it the current episode, at the front of the queue."
   [store {:keys [id] :as playable} t]
   (try
     (swap! store assoc :library (added @store playable))
