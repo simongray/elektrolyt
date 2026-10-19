@@ -61,6 +61,13 @@ input[type="file"] {
   min-height: var(--control-height);
 }
 
+/* a heading's button, as tall as its line, which is taller than 24 px */
+button.disclosure {
+  min-height: 0;
+  padding: 0;
+  text-align: inherit;
+}
+
 /* A list whose role is explicit has no markers, and so no room for them.
    It keeps role="list", since Safari drops the semantics of a list
    without markers.

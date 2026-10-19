@@ -37,19 +37,57 @@
 ;; needs keys, focus and announcements of its own (W3C WAI, Carousels)
 ;; https://www.nngroup.com/articles/mobile-carousels/
 ;; https://www.w3.org/WAI/tutorials/carousels/
+(defn picks-list
+  "The `episodes` of the picks in the `state`, after the line of why, of
+  `lead` and their `terms`, or else `none`."
+  [state lead none {:keys [episodes terms]}]
+  (if (empty? episodes)
+    [:p none]
+    (list
+     (why lead terms)
+     [:ul.picks {:role "list"}
+      (for [{pick-id :id :as episode} episodes]
+        [:li {:replicant/key (pr-str pick-id)}
+         [:article.pick (row state episode)]])])))
+
 (defn section
   "The section of the `picks` in the `state`, whose heading has the `id` and
   says `heading`, with the line of why after `lead`. Without picks, it
   says `none`, or is left out when that's nil."
-  [state {:keys [id heading lead none]} {:keys [episodes terms]}]
+  [state {:keys [id heading lead none]} {:keys [episodes] :as picks}]
   (when (or (seq episodes) none)
     [:section.picks {:aria-labelledby id}
      [:h2 {:id id} heading]
-     (if (empty? episodes)
-       [:p none]
-       (list
-        (why lead terms)
-        [:ul.picks {:role "list"}
-         (for [{pick-id :id :as episode} episodes]
-           [:li {:replicant/key (pr-str pick-id)}
-            [:article.pick (row state episode)]])]))]))
+     (picks-list state lead none picks)]))
+
+(defn open?
+  "Whether the listener opened the picks of `place` in the `state`, e.g.
+  [:show guid]."
+  [state place]
+  (boolean (get-in state [:picks-open place])))
+
+;; Closed until the listener opens it, so that the page leads with its own
+;; content, and the picks are only worked out then. WAI-ARIA APG,
+;; disclosure: a button in the heading, which says whether it's expanded,
+;; so that the caret beside the heading's words opens it.
+;; https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/
+(defn folded
+  "The section of the picks of `place` in the `state`, as section has them,
+  closed until the listener opens it with the button of its heading, and
+  then with the picks that `picks-fn` gives."
+  [state {:keys [id heading lead none]} place picks-fn]
+  (let [open   (open? state place)
+        region (str id "-list")]
+    [:section.picks {:aria-labelledby id}
+     [:h2 {:id id}
+      [:button.disclosure {:type          "button"
+                           :aria-expanded (str open)
+                           :aria-controls region
+                           :on            {:click [[:store/assoc-in [:picks-open place] (not open)]]}}
+       heading]]
+     [:div {:id region}
+      (when open
+        (if-let [picks (picks-fn)]
+          (picks-list state lead none picks)
+          ;; before the library's index is made
+          [:p {:role "status"} "Looking for episodes like it…"]))]]))

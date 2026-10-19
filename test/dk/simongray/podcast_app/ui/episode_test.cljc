@@ -78,15 +78,16 @@
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]
     (is (= "Episode 2: The Present – Elektrolyt" (ui/document-title (episode-page nil))))
-    (is (= ["h1" "h2" "h3" "h2"]
+    (is (= ["h1" "h2" "h3" "h2" "h2"]
            (keep #(when (vector? %) (re-find #"^h[1-6]" (name (first %))))
                  (nodes (elements :main#main x))))
-        "the title, Show notes, the notes' own heading below it, and the Details")
+        "the title, Show notes, the notes' own heading below it, the Details and the picks")
     (let [[article] (elements :article.with-details x)]
       (is (= (pr-str [episode-test/g "https://example.org/?p=2"]) (:replicant/key (second article)))
           "the episode as an article, with a key of its own, so that its files are read when it mounts")
-      (is (= [:aside.details {:aria-labelledby "details"}] (subvec (last article) 0 2))
-          "the Details last, after the show notes")
+      (is (= [[:aside.details {:aria-labelledby "details"}] [:section.picks {:aria-labelledby "episode-picks"}]]
+             (map #(subvec % 0 2) (take-last 2 article)))
+          "the Details after the show notes, and the picks after them")
       (let [[header] (elements :header.episode-intro article)]
         (is (= ["Episode 2: The Present" "A Show"] (map text-of (rest (second header))))
             "its header beginning with its heading, and its show as the subtitle")))))

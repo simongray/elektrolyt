@@ -255,8 +255,9 @@
 
 (def picks-section
   "The section of the picks under an episode: its heading's id and text,
-  and the lead of its line of why."
-  {:id "episode-picks" :heading "More like this" :lead "About"})
+  the lead of its line of why, and what it says without picks."
+  {:id "episode-picks" :heading "More like this" :lead "About"
+   :none "Nothing in your library is like it yet."})
 
 ;; YouTube's Up next starts from the video that plays, and Nielsen Norman
 ;; Group found people expect recommendations after they've watched
@@ -290,5 +291,5 @@
          (when (:transcript view)
            (transcript page files))]
         aside
-        (picks-ui/section state picks-section (picks/like-episode state page)))))
+        (picks-ui/folded state picks-section [:episode id] #(picks/like-episode state page)))))
     (list heading (missing state))))

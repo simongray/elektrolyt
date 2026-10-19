@@ -28,6 +28,28 @@
         "each its title alone, which its page has the rest of")
     (is (empty? (buttons x)) "and no buttons")))
 
+(deftest picks-on-request
+  (let [place  [:show "g"]
+        asked  (atom 0)
+        picks  #(do (swap! asked inc) picked)
+        closed (picks-ui/folded {:library lib} section place picks)
+        open   (picks-ui/folded {:library lib :picks-open {place true}} section place picks)
+        button #(second (first (elements :button.disclosure (elements :h2 %))))]
+    (is (= "More like this" (text-of (elements :h2 closed))) "a button of the heading's words")
+    (is (= ["false" "episode-picks-list"] ((juxt :aria-expanded :aria-controls) (button closed))))
+    (is (= [[:store/assoc-in [:picks-open place] true]] (get-in (button closed) [:on :click]))
+        "which opens it")
+    (is (empty? (elements :article.pick closed)) "closed, without picks")
+    (is (= 1 @asked) "which are only worked out once it's open")
+    (is (= "true" (:aria-expanded (button open))))
+    (is (= [[:store/assoc-in [:picks-open place] false]] (get-in (button open) [:on :click]))
+        "and closes it again")
+    (is (= ["Grinders compared" "Gears"] (map text-of (elements :h3 open))))
+    (is (= "Looking for episodes like it…"
+           (text-of (elements :p (picks-ui/folded {:library lib :picks-open {place true}}
+                                                  section place (constantly nil)))))
+        "or, before the library's index is made, that they're on the way")))
+
 (deftest the-artwork-of-a-pick
   (let [x               (picks-ui/row {:library lib} (assoc (first (:episodes picked))
                                                             :artwork "https://example.org/art.jpg"))

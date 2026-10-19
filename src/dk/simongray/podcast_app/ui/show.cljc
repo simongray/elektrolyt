@@ -257,9 +257,10 @@
           (show-cards state (:shows publisher))])])))
 
 (def picks-section
-  "The section of the picks under a show: its heading's id and text, and
-  the lead of its line of why."
-  {:id "show-picks" :heading "More like this show" :lead "About"})
+  "The section of the picks under a show: its heading's id and text, the
+  lead of its line of why, and what it says without picks."
+  {:id "show-picks" :heading "More like this show" :lead "About"
+   :none "Nothing in your library is like it yet."})
 
 (defn content
   "The content of the Show page of the `state` under its `heading`: an
@@ -284,6 +285,6 @@
           [(intro state heading page)
            (episodes state page)]
           aside
-          (picks-ui/section state picks-section (picks/like-show state (guid state))))
+          (picks-ui/folded state picks-section [:show (guid state)] #(picks/like-show state (guid state))))
          (when source
            (linked-shows state (:title page) source)))))))

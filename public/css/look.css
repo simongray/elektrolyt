@@ -336,6 +336,38 @@ button.primary:hover {
   background: var(--grain) 0 0 / var(--grain-size), color-mix(in oklch, var(--accent), var(--ink) 18%);
 }
 
+/* A heading that opens what's below it: its own words, with a caret
+   after them that faces down while it's closed and up once it's open */
+button.disclosure,
+button.disclosure:hover {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+}
+
+button.disclosure::after {
+  content: "";
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin-inline-start: 0.5em;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  vertical-align: 0.25em;
+  transform: rotate(45deg);
+}
+
+button.disclosure[aria-expanded="true"]::after {
+  vertical-align: 0.05em;
+  transform: rotate(-135deg);
+}
+
+button.disclosure:hover {
+  color: var(--ink);
+}
+
 button[aria-disabled="true"] {
   color: var(--ink-3);
   border-color: var(--rule-soft);
