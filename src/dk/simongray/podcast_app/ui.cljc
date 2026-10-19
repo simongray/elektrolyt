@@ -12,6 +12,7 @@
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui.episode :as episode-ui]
             [dk.simongray.podcast-app.ui.inbox :as inbox-ui]
@@ -106,18 +107,20 @@
 ;; list's role is explicit, since the CSS removes its markers (see app.css).
 ;; The app's name comes first and links to the queue, as a site's name
 ;; links to its home page; a phone, whose tab bar has no room for it,
-;; leaves it out. Each page's link names its page for its colour.
+;; leaves it out. Each page's link names its page for its colour, unless
+;; the listener turned the colours off.
 (defn main-nav
   "The navigation between the pages for the `state`: the app's name, the
   main pages and Settings, as a tab bar on a phone and a rail on a wider
   screen."
   [state]
-  [:nav {:aria-label "Main"}
-   [:a.app-name {:href (routes/href :route/queue)} app-name]
-   [:ul {:role "list"}
-    (for [route-name destinations]
-      [:li {:data-page (page-name route-name)}
-       (page-link state route-name (nav-label state route-name))])]])
+  (let [colours? (settings/navigation-colors? (settings/preferences state))]
+    [:nav {:aria-label "Main"}
+     [:a.app-name {:href (routes/href :route/queue)} app-name]
+     [:ul {:role "list"}
+      (for [route-name destinations]
+        [:li {:data-page (when colours? (page-name route-name))}
+         (page-link state route-name (nav-label state route-name))])]]))
 
 ;; The heading takes the focus after each navigation, which the users who
 ;; tested the techniques of client-side routing found the best experience

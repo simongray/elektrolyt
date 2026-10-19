@@ -44,9 +44,10 @@
 
 (deftest an-episode-that-plays
   (let [x (player-ui/region (state {}))]
+    (is (= "medium" (:data-size (second x))) "in the size that the listener prefers, medium at first")
     (is (re-find #"Episode 7" (text-of (elements :div.player-title x))))
     (is (re-find #"News" (text-of (elements :div.player-title x))) "with its chapter")
-    (is (= ["Pause" "Controls" "Back 15 s" "Forward 30 s" "Previous chapter" "Next chapter" "Mute"]
+    (is (= ["Pause" "Back 15 s" "Forward 30 s" "Controls" "Previous chapter" "Next chapter" "Mute"]
            (map text-of (buttons x))))
     (testing "the seek bar, which a screen reader reads in words"
       (is (= {:min 0 :max 3600 :step 1 :value 75 :aria-valuetext "1 minute, 15 seconds"}

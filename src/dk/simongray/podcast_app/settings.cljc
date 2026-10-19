@@ -72,6 +72,29 @@
   [state]
   (some-> (#{:standard :more} (:contrast (preferences state))) name))
 
+;; The app's own preference, which syncs with the others, but which
+;; profile/default-preferences doesn't name, since another app's navigation
+;; needn't have colours
+(defn navigation-colors?
+  "Whether each page's link in the navigation has a colour of its own, by
+  the listener's preferences `prefs`, as it does until they turn it off."
+  [prefs]
+  (:navigation-colors? prefs true))
+
+(def player-sizes
+  "The sizes of the player, and so of its artwork, with the text of each,
+  which layout.css has the heights of."
+  [[:small "Small"]
+   [:medium "Medium"]
+   [:large "Large"]])
+
+(defn player-size
+  "The size of the player by the listener's preferences `prefs`, medium
+  until they choose another, as a :player-size that the app keeps, as it
+  does :navigation-colors?."
+  [prefs]
+  (:player-size prefs :medium))
+
 (defn new-episodes
   "Where the new episodes of a new show go by the preferences of the
   `state`, as profile/new-episodes names it."

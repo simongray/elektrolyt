@@ -45,7 +45,9 @@
       (is (= "inbox" (chosen x "default-new-episodes")))
       (is (= "auto" (chosen x "light-or-dark")) "the device's colours")
       (is (= "auto" (chosen x "contrast")) "and its contrast")
-      (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours"))
+      (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours")
+      (is (true? (:checked (second (by-id x :input "navigation-colours")))) "and the navigation's")
+      (is (= "medium" (chosen x "player-size")) "and a player of medium size"))
     (testing "each change applied at once"
       (is (= [[:settings/prefer :appearance [:event/target-keyword]]]
              (get-in (by-id x :select "light-or-dark") [1 :on :change])))
@@ -53,6 +55,8 @@
              (get-in (by-id x :select "contrast") [1 :on :change])))
       (is (= [[:settings/prefer :artwork-colors? [:event/target-checked]]]
              (get-in (by-id x :input "artwork-colours") [1 :on :change])))
+      (is (= [[:settings/prefer :navigation-colors? [:event/target-checked]]]
+             (get-in (by-id x :input "navigation-colours") [1 :on :change])))
       (is (= [[:settings/prefer :skip-back [:event/target-number]]]
              (get-in (by-id x :select "skip-back") [1 :on :change])))
       (is (= [[:settings/new-episodes [:event/target-keyword]]]

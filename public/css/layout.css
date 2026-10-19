@@ -419,48 +419,78 @@ search input {
 }
 
 
-/* The player: the episode and its Play button in a row, with the other
-   controls below it, which a phone shows on request. The player is a row
-   of the shell's grid, outside the main content that scrolls, so it never
-   covers what has the focus (WCAG 2.2, SC 2.4.11). */
+/* The player: a grid of rows of a fixed height, so that its artwork, at
+   its edges, is square and as tall as they are. On a phone that's one row
+   of the episode, Play and Controls, which shows the seek bar, the skips
+   and the other controls below it. Wider than that, it's two rows, with
+   the skips beside Play and the seek bar below them, and Controls shows
+   the rest below both. The player is a row of the shell's grid, outside
+   the main content that scrolls, so it never covers what has the focus
+   (WCAG 2.2, SC 2.4.11). */
 #player {
+  --player-height: 4.5rem;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
+  grid-template-columns: var(--player-height) minmax(0, 1fr) auto auto;
+  grid-template-rows: var(--player-height);
+  grid-template-areas:
+    "art    title  play   more"
+    "seek   seek   seek   seek"
+    "skips  skips  skips  skips"
+    "extras extras extras extras";
+  align-items: center;
+  column-gap: 0.5em;
+  padding-right: var(--gutter);
 }
 
-/* The artwork at the player's edge, square, as tall as the episode's row
-   on a phone, whose controls open below it, and as the whole player
-   wider than that, whose controls wrap beside it, where it fills the
-   height of more rows by cutting its edges */
+/* the size that the listener chose in Settings, medium by default */
+#player[data-size="small"] {
+  --player-height: 4rem;
+}
+
+#player[data-size="large"] {
+  --player-height: 5rem;
+}
+
 .player-artwork {
   display: block;
-  width: 4rem;
-  height: auto;
-  aspect-ratio: 1;
+  grid-area: art;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
-.player-body {
-  display: flex;
-  flex-wrap: wrap;
-  grid-column: 2;
-  align-items: center;
-  gap: 0.5em;
-  min-width: 0;
-}
-
-.player-now {
-  display: flex;
-  flex: 1 1 100%;
-  align-items: center;
-  gap: 0.5em;
-  min-width: 0;
-}
-
 .player-title {
-  flex: 1;
+  grid-area: title;
   min-width: 0;
+}
+
+#player > .primary {
+  grid-area: play;
+}
+
+.player-more {
+  grid-area: more;
+}
+
+.player-skips {
+  display: flex;
+  grid-area: skips;
+  gap: 0.5em;
+}
+
+/* the rows below the artwork start at the player's edge */
+.player-seek,
+.player-skips,
+.player-controls {
+  padding: var(--space-2) 0 0 var(--gutter);
+}
+
+.player-controls {
+  padding-bottom: var(--space-2);
+}
+
+#player:has(.player-controls.collapsed) :is(.player-seek, .player-skips) {
+  display: none;
 }
 
 /* A line each for the title and the show, cut short, so that the player
@@ -475,7 +505,7 @@ search input {
 
 .player-controls {
   display: flex;
-  flex: 1 1 100%;
+  grid-area: extras;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5em;
@@ -487,7 +517,7 @@ search input {
 
 .player-seek {
   display: flex;
-  flex: 1 1 100%;
+  grid-area: seek;
   align-items: center;
   gap: 0.5em;
 }
@@ -504,23 +534,35 @@ search input {
 }
 
 @media (min-width: 37.5em) {
-  .player-artwork {
-    align-self: stretch;
-    width: 7rem;
+  #player {
+    --player-height: 8rem;
+    grid-template-columns: var(--player-height) minmax(0, 1fr) auto auto auto;
+    grid-template-rows: calc(var(--player-height) - 2.5rem) 2.5rem;
+    grid-template-areas:
+      "art    title  play   skips  more"
+      "art    seek   seek   seek   seek"
+      "extras extras extras extras extras";
+    column-gap: var(--space-3);
   }
 
-  .player-now {
-    flex: 0 1 22em;
+  #player[data-size="small"] {
+    --player-height: 6rem;
   }
 
-  .player-more {
-    display: none;
+  #player[data-size="large"] {
+    --player-height: 10rem;
   }
 
-  .player-controls,
-  .player-controls.collapsed {
+  #player:has(.player-controls.collapsed) .player-seek,
+  .player-seek {
     display: flex;
-    flex: 1 1 30em;
+    padding: 0;
+  }
+
+  #player:has(.player-controls.collapsed) .player-skips,
+  .player-skips {
+    display: flex;
+    padding: 0;
   }
 }
 

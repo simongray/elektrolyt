@@ -10,6 +10,7 @@
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]))
 
@@ -51,7 +52,7 @@
   dragged, with the time so far and the time left."
   [media seeking]
   (let [shown (cond-> media seeking (assoc :current-time seeking))]
-    [:div.player-seek
+    [:div#player-seek.player-seek
      [:label.visually-hidden {:for "player-position"} "Position"]
      [:time {:datetime (str "PT" (long (or (:current-time shown) 0)) "S")}
       (player/clock (:current-time shown))]
@@ -68,11 +69,11 @@
   "The buttons that skip back and forward by the seconds that the
   listener prefers, `back` and `forward`."
   [back forward]
-  (list
+  [:div#player-skips.player-skips
    [:button {:type "button" :on {:click [[:player/press {:action :seekbackward}]]}}
     (str "Back " back " s")]
    [:button {:type "button" :on {:click [[:player/press {:action :seekforward}]]}}
-    (str "Forward " forward " s")]))
+    (str "Forward " forward " s")]])
 
 (defn chapter-buttons
   "The buttons that go to the previous and the next chapter of the
@@ -141,10 +142,12 @@
 
 ;; WAI-ARIA APG, disclosure pattern: a button with aria-expanded that shows
 ;; and hides the controls below it, which leaves the history and the focus
-;; as they are
+;; as they are. On a phone it shows the seek bar and the skips too, which a
+;; desktop always shows, so it names them all.
 (defn content
   "The content of the player of the `state`: the episode that plays, in
-  this tab or another, and its controls."
+  this tab or another, and its controls, each a part of the player's grid
+  in layout.css."
   [{:keys [player library] :as state}]
   (let [{:keys [seeking expanded? volume volume-locked?]} player
         playback       (player/shown-playback player)
@@ -158,28 +161,26 @@
               :on                   {:ended [[:player/ended]]}}]
      (artwork playback (:current-time media)
               (colors/placeholder state (colors/playing state)))
-     [:div.player-body
-      [:div.player-now
-       (now-playing playback (:current-time media))
-       (play-button media)
-       ;; as a string, since Replicant leaves out an attribute of false
-       [:button.player-more {:type          "button"
-                             :aria-expanded (str (boolean expanded?))
-                             :aria-controls "player-controls"
-                             :on            {:click [[:player/expand (not expanded?)]]}}
-        "Controls"]]
-      ;; a group named as the button that shows it on a phone, which a
-      ;; screen reader names as it enters the controls
-      [:div {:id         "player-controls"
-             :role       "group"
-             :aria-label "Controls"
-             :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
-       (seek-bar (player/with-duration media playback) seeking)
-       (skip-buttons back forward)
-       (chapter-buttons playback)
-       (speed media)
-       (volume-controls media (or volume 1) volume-locked?)
-       (next-up state)]]
+     (now-playing playback (:current-time media))
+     (play-button media)
+     (skip-buttons back forward)
+     ;; as a string, since Replicant leaves out an attribute of false
+     [:button.player-more {:type          "button"
+                           :aria-expanded (str (boolean expanded?))
+                           :aria-controls "player-seek player-skips player-controls"
+                           :on            {:click [[:player/expand (not expanded?)]]}}
+      "Controls"]
+     (seek-bar (player/with-duration media playback) seeking)
+     ;; a group named as the button that shows it, which a screen reader
+     ;; names as it enters the controls
+     [:div {:id         "player-controls"
+            :role       "group"
+            :aria-label "Controls"
+            :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
+      (chapter-buttons playback)
+      (speed media)
+      (volume-controls media (or volume 1) volume-locked?)
+      (next-up state)]
      (status-line player))))
 
 ;; WAI-ARIA APG, landmark regions: a section with a label is a region, the
@@ -191,5 +192,6 @@
   has an episode, in this tab or another, or else nil."
   [{:keys [player] :as state}]
   (when (and (:id player) (player/shown-playback player))
-    [:section#player {:aria-label "Player"}
+    [:section#player {:aria-label "Player"
+                      :data-size  (name (settings/player-size (settings/preferences state)))}
      (content state)]))

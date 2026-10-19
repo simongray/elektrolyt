@@ -1,5 +1,7 @@
 (ns dk.simongray.podcast-app.ui-test
   (:require [clojure.test :refer [deftest is]]
+            [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]))
 
 (defn elements
@@ -51,4 +53,8 @@
 
 (deftest each-link-of-the-navigation-names-its-page
   (is (= ["queue" "inbox" "library" "search" "settings"]
-         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}}))))))
+         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}})))))
+  (is (every? nil? (map (comp :data-page second)
+                        (elements :li (ui/main-nav (-> {:route {:name :route/queue} :library inbox-test/lib}
+                                                       (settings/preferred {:navigation-colors? false}))))))
+      "unless the listener turned the colours of the navigation off"))

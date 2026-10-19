@@ -64,9 +64,30 @@
                 :selected (= (option-value v) (option-value chosen))}
        text])]])
 
+;; WAI-ARIA APG, switch pattern: a checkbox with role="switch", which every
+;; browser announces as a switch, and which look.css draws as one in every
+;; browser. Its label stays the same as it turns on and off.
+;; https://www.w3.org/WAI/ARIA/apg/patterns/switch/
+;; https://webkit.org/blog/15054/an-html-switch-control/
+(defn switch
+  "A switch with the `id`, labelled `label` and described by the `hint`,
+  on when `on?`, whose change sets the listener's preference `k`."
+  [id label hint on? k]
+  [:div.setting
+   [:input {:type             "checkbox"
+            :switch           true
+            :role             "switch"
+            :id               id
+            :checked          (boolean on?)
+            :aria-describedby (str id "-hint")
+            :on               {:change [[:settings/prefer k [:event/target-checked]]]}}]
+   [:label {:for id} label]
+   [:p {:id (str id "-hint")} hint]])
+
 (defn appearance
   "The choice of the app's colours, by the listener's preferences `prefs`:
-  light or dark, the contrast, and whether the artwork colours the app,
+  light or dark, the contrast, whether the artwork colours the app, and
+  whether each page's link in the navigation has a colour of its own,
   which sync with the profile as the other preferences do."
   [{:keys [appearance contrast artwork-colors?] :as prefs}]
   (group :appearance "Appearance"
@@ -74,19 +95,16 @@
                  appearance [:settings/prefer :appearance [:event/target-keyword]])
          (choice "contrast" "Contrast" settings/contrasts
                  contrast [:settings/prefer :contrast [:event/target-keyword]])
-         [:div.setting
-          [:input {:type             "checkbox"
-                   :switch           true
-                   :role             "switch"
-                   :id               "artwork-colours"
-                   :checked          (boolean artwork-colors?)
-                   :aria-describedby "artwork-colours-hint"
-                   :on               {:change [[:settings/prefer :artwork-colors? [:event/target-checked]]]}}]
-          [:label {:for "artwork-colours"} "Colours from the artwork"]
-          [:p#artwork-colours-hint
-           "The player, links and buttons take their colours from the artwork "
-           "of what plays, or of the show on screen. Otherwise they keep the "
-           "app's own dark grey."]]))
+         (switch "artwork-colours" "Colours from the artwork"
+                 (str "The player, links and buttons take their colours from the "
+                      "artwork of what plays, or of the show on screen. Otherwise "
+                      "they keep the app's own dark grey.")
+                 artwork-colors? :artwork-colors?)
+         (switch "navigation-colours" "Colours in the navigation"
+                 "Each page's link has a colour of its own."
+                 (settings/navigation-colors? prefs) :navigation-colors?)
+         (choice "player-size" "Player size" settings/player-sizes
+                 (settings/player-size prefs) [:settings/prefer :player-size [:event/target-keyword]])))
 
 (defn playback
   "The settings of how the listener plays, by their preferences `prefs`."
@@ -101,24 +119,10 @@
          (choice "speed" "Speed"
                  (for [s player/speeds] [s (str s "×")])
                  playback-rate [:settings/prefer :playback-rate [:event/target-number]])
-         ;; WAI-ARIA APG, switch pattern: a checkbox with role="switch",
-         ;; which every browser announces as a switch, and which look.css
-         ;; draws as one in every browser. Its label stays the same as it
-         ;; turns on and off.
-         ;; https://www.w3.org/WAI/ARIA/apg/patterns/switch/
-         ;; https://webkit.org/blog/15054/an-html-switch-control/
-         [:div.setting
-          [:input {:type             "checkbox"
-                   :switch           true
-                   :role             "switch"
-                   :id               "continuous"
-                   :checked          (boolean continuous?)
-                   :aria-describedby "continuous-hint"
-                   :on               {:change [[:settings/prefer :continuous? [:event/target-checked]]]}}]
-          [:label {:for "continuous"} "Continuous play"]
-          [:p#continuous-hint
-           "When an episode ends and the queue has no other, the next "
-           "episode of its show plays."]]
+         (switch "continuous" "Continuous play"
+                 (str "When an episode ends and the queue has no other, the next "
+                      "episode of its show plays.")
+                 continuous? :continuous?)
          (choice "track-buttons" "Next and previous on the lock screen go to"
                  settings/track-buttons
                  track-buttons [:settings/prefer :track-buttons [:event/target-keyword]])))
