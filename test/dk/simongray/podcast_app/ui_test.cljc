@@ -90,6 +90,10 @@
 (deftest each-link-of-the-navigation-names-its-page
   (is (= ["home" "queue" "library" "search" "settings"]
          (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}})))))
+  (is (= ["queue" "library" nil]
+         (map #(:data-page (second (ui/main-nav {:route {:name %}})))
+              [:route/queue :route/inbox :route/show]))
+      "and the navigation names the page that it's on, for its tone, e.g. the Library on the Inbox page")
   (let [preferring #(-> {:route {:name :route/queue} :library inbox-test/lib}
                         (settings/preferred {:navigation-palette %}))]
     (is (= "color-blind" (:data-palette (second (ui/page (preferring :color-blind)))))

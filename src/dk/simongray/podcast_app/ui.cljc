@@ -160,16 +160,19 @@
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
 ;; list's role is explicit, since the CSS removes its markers (see layout.css).
 ;; Each page's link names its page for its colour, from the palette that
-;; the listener chose, unless they chose none.
+;; the listener chose, unless they chose none, and so does the navigation
+;; itself, for the tone of the rail, on a page of it
 (defn main-nav
   "The navigation between the pages for the `state`: the main pages and
   Settings, as a tab bar on a phone and a rail on a wider screen."
   [state]
-  (let [palette (settings/navigation-palette state)]
-    [:nav {:aria-label "Main"}
+  (let [palette (settings/navigation-palette state)
+        colour  #(when-not (= :none palette) (page-name %))
+        current (get-in state [:route :name])]
+    [:nav {:aria-label "Main" :data-page (colour (get part-of current current))}
      [:ul {:role "list"}
       (for [route-name destinations]
-        [:li {:data-page (when-not (= :none palette) (page-name route-name))}
+        [:li {:data-page (colour route-name)}
          (page-link state route-name (nav-label state route-name))])]]))
 
 ;; The heading takes the focus after each navigation, which the users who

@@ -170,6 +170,7 @@ time,
    its link, so the labels are in the ink, and the current page's in the
    darker ink.
    https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html */
+.shell > nav,
 .shell > nav li {
   --label: lch(from var(--page) 82 min(c, 40) h);
 }
@@ -191,43 +192,53 @@ time,
    hex rather than from one tone. These are on a bar, and the paper's
    are below.
    https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html */
+.shell[data-palette="color-blind"] > nav[data-page="home"],
 .shell[data-palette="color-blind"] > nav li[data-page="home"] {
   --label: #fd7933;
 }
 
+.shell[data-palette="color-blind"] > nav[data-page="queue"],
 .shell[data-palette="color-blind"] > nav li[data-page="queue"] {
   --label: #ffa0a5;
 }
 
+.shell[data-palette="color-blind"] > nav[data-page="library"],
 .shell[data-palette="color-blind"] > nav li[data-page="library"] {
   --label: #9abdff;
 }
 
+.shell[data-palette="color-blind"] > nav[data-page="search"],
 .shell[data-palette="color-blind"] > nav li[data-page="search"] {
   --label: #fad7ff;
 }
 
+.shell[data-palette="color-blind"] > nav[data-page="settings"],
 .shell[data-palette="color-blind"] > nav li[data-page="settings"] {
   --label: #cfcfcf;
 }
 
 @media (min-width: 37.5em) {
+  .shell[data-palette="color-blind"] > nav[data-page="home"],
   .shell[data-palette="color-blind"] > nav li[data-page="home"] {
     --label: light-dark(#bf3a00, #a1790c);
   }
 
+  .shell[data-palette="color-blind"] > nav[data-page="queue"],
   .shell[data-palette="color-blind"] > nav li[data-page="queue"] {
     --label: light-dark(#87182f, #ef8f94);
   }
 
+  .shell[data-palette="color-blind"] > nav[data-page="library"],
   .shell[data-palette="color-blind"] > nav li[data-page="library"] {
     --label: light-dark(#1c6bbc, #85adf4);
   }
 
+  .shell[data-palette="color-blind"] > nav[data-page="search"],
   .shell[data-palette="color-blind"] > nav li[data-page="search"] {
     --label: light-dark(#6c2b7a, #f8c7ff);
   }
 
+  .shell[data-palette="color-blind"] > nav[data-page="settings"],
   .shell[data-palette="color-blind"] > nav li[data-page="settings"] {
     --label: light-dark(#686868, #c1c1c1);
   }
@@ -236,6 +247,7 @@ time,
 /* The player's colour, the listener's other choice: every label in a tone
    of the bar's colour, the complement of the hue of what plays, which
    changes with it, light on a bar, as the page colours are */
+.shell[data-palette="player"] > nav,
 .shell[data-palette="player"] > nav li {
   --label: oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180));
 }
@@ -270,13 +282,15 @@ time,
   max-inline-size: var(--measure);
 }
 
-/* Wider than a phone, the rail lies on the paper beside the text, as a
-   book's contents would. It has the paper's grain and the content's
-   tokens again, and a thin grey line between them stops short of its top
-   and of the player. */
+/* Wider than a phone, the rail lies beside the text, as a book's contents
+   would, on a paper of its own: the paper's grain and the content's
+   tokens again, in a tone of the label's colour of the page that it's
+   on, or else of the colour of the show that the page is about, as its
+   links are. The two papers meet with no line between them. */
 @media (min-width: 37.5em) {
   .shell > nav {
-    background: var(--grain) 0 0 / var(--grain-size);
+    background: var(--grain) 0 0 / var(--grain-size),
+                color-mix(in oklab, var(--label, light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h))) 7%, var(--paper));
     color-scheme: inherit;
     --ink: inherit;
     --ink-2: inherit;
@@ -298,21 +312,14 @@ time,
 
   /* on the paper, a tone of each page's colour that reads as text, or of
      the player's */
+  .shell > nav,
   .shell > nav li {
     --label: light-dark(lch(from var(--page) 42 min(c, 50) h), lch(from var(--page) 78 min(c, 40) h));
   }
 
+  .shell[data-palette="player"] > nav,
   .shell[data-palette="player"] > nav li {
     --label: light-dark(oklch(from var(--bar-seed) 44% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 80% min(c, 0.08) calc(h + 180)));
-  }
-
-  /* the line, as thick as an hr */
-  .shell > nav::after {
-    content: "";
-    position: absolute;
-    inset-block: var(--space-5);
-    inset-inline-end: 0;
-    border-inline-end: 1px solid var(--divider);
   }
 
   .shell > nav a {
@@ -522,8 +529,7 @@ img {
   background: var(--grain) 0 0 / var(--grain-size), var(--rule-soft);
 }
 
-/* A break between the parts of a text, e.g. of a show's notes, as thick
-   as the line beside the rail */
+/* A break between the parts of a text, e.g. of a show's notes */
 hr {
   border: 0;
   border-top: 1px solid var(--divider);
@@ -706,10 +712,12 @@ search p {
 }
 
 @media (prefers-contrast: more) and (min-width: 37.5em) {
+  :root:not([data-contrast="standard"]) .shell > nav,
   :root:not([data-contrast="standard"]) .shell > nav li {
     --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
   }
 
+  :root:not([data-contrast="standard"]) .shell[data-palette="player"] > nav,
   :root:not([data-contrast="standard"]) .shell[data-palette="player"] > nav li {
     --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
   }
@@ -729,10 +737,12 @@ search p {
 }
 
 @media (min-width: 37.5em) {
+  :root[data-contrast="more"] .shell > nav,
   :root[data-contrast="more"] .shell > nav li {
     --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
   }
 
+  :root[data-contrast="more"] .shell[data-palette="player"] > nav,
   :root[data-contrast="more"] .shell[data-palette="player"] > nav li {
     --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
   }

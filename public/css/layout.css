@@ -178,8 +178,8 @@ hgroup > p {
     flex: none;
   }
 
-  /* against the line beside the rail, which they face, as a book's
-     contents face their page numbers */
+  /* against the edge of the rail, which they face, as a book's contents
+     face their page numbers */
   .shell > nav a {
     justify-content: flex-end;
     padding-inline: var(--space-4) var(--space-5);
