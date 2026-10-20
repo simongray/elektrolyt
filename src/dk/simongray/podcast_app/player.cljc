@@ -106,6 +106,18 @@
            :current-time shared-position)
     media))
 
+;; The one question of every view that offers Play or Pause, so that a
+;; page's button and the player's agree while another tab plays
+(defn playing
+  "The id of the episode that plays, as the `player` shows it: another
+  tab's, where its playback is the newest, or else this tab's, or nil
+  while it's paused."
+  [player]
+  (when (false? (:paused (shown-media player)))
+    (if-let [shared (elsewhere player)]
+      (:id shared)
+      (:id player))))
+
 (defn shown-playback
   "What library/playback gives for the episode that the `player` shows:
   another tab's, where its newest playback is of another, or else its
