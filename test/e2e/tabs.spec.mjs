@@ -1,6 +1,7 @@
-// Two tabs of the app share the library in the browser's storage. Each is
-// a replica of the device, and catches up with what the other saves, so
-// that neither writes over the other.
+// Two tabs of the app share the library in the browser's storage. Each
+// writes its changes on condition of the version that it read, and again
+// onto what the other wrote when the other wrote first, so that neither
+// writes over the other.
 
 import { test, expect, announcement, episodePath, episodes, navLink, showPath, showTitle }
   from './fixtures.mjs';
@@ -82,5 +83,75 @@ test('a refresh in one tab reaches the other', async ({ page, context, show }) =
   await page.getByRole('main').getByRole('button', { name: 'Check for new episodes' }).click();
   await expect(announcement(page)).toHaveText('1 new episode');
   await expect(episodesOf(other).filter({ hasText: fourth.title })).toHaveCount(1);
+  expect(errors, 'the errors that the other tab threw').toEqual([]);
+});
+
+/** The button that queues the episode of the Episode page in the `page`. */
+function addToQueue(page) {
+  return page.getByRole('main').getByRole('button', { name: 'Add to queue' });
+}
+
+/** The headings of the episodes of the queue on the Queue page of the `page`. */
+function queueHeadings(page) {
+  return page.getByRole('main').getByRole('region', { name: /^(Now playing|Up next)$/ })
+    .getByRole('heading', { level: 3 });
+}
+
+/** The titles of the episodes of the queue of the `page`, in alphabetical order. */
+async function queued(page) {
+  return (await queueHeadings(page).allTextContents()).toSorted();
+}
+
+test('two tabs that change the library at once keep both changes', async ({ page, context }) => {
+  const errors = [];
+  await subscribe(page);
+  const other = await otherTab(context, errors);
+  await page.goto(episodePath(first));
+  await other.goto(episodePath(second));
+  await expect(addToQueue(page)).toBeVisible();
+  await expect(addToQueue(other)).toBeVisible();
+
+  // both change the version that they read, so the one that writes second
+  // writes again onto what the first wrote. A dispatched click skips
+  // Playwright's checks before a click, which take long enough that one tab
+  // most often reads what the other wrote before it changes the library.
+  await Promise.all([addToQueue(page).dispatchEvent('click'), addToQueue(other).dispatchEvent('click')]);
+  await expect(announcement(page)).toHaveText(`Added ${first.title} to the queue`);
+  await expect(announcement(other)).toHaveText(`Added ${second.title} to the queue`);
+
+  for (const tab of [page, other]) {
+    await navLink(tab, 'Queue').click();
+    await expect(upNext(tab)).toHaveCount(2);
+    expect(await queued(tab), 'the queue of each tab').toEqual([first.title, second.title]);
+  }
+  await page.reload();
+  await expect(queueHeadings(page)).toHaveCount(2);
+  expect(await queued(page), 'the queue after a reload').toEqual([first.title, second.title]);
+  expect(errors, 'the errors that the other tab threw').toEqual([]);
+});
+
+test('a refresh in one tab and a change in the other at once keep both', async ({ page, context, show }) => {
+  const errors = [];
+  await subscribe(page);
+  const other = await otherTab(context, errors);
+  await other.goto(episodePath(first));
+  await expect(addToQueue(other)).toBeVisible();
+  show.publish(fourth);
+  await navLink(page, 'Library').click();
+  const check = page.getByRole('main').getByRole('button', { name: 'Check for new episodes' });
+
+  await Promise.all([check.dispatchEvent('click'), addToQueue(other).dispatchEvent('click')]);
+  await expect(announcement(page)).toHaveText('1 new episode');
+  await expect(announcement(other)).toHaveText(`Added ${first.title} to the queue`);
+
+  for (const tab of [page, other]) {
+    await expect(navLink(tab, 'Library'), 'the new episode in the inbox of each tab')
+      .toHaveAccessibleName('Library 1 new episode');
+    await navLink(tab, 'Queue').click();
+    await expect(upNext(tab), 'and the queue of each').toHaveText([first.title]);
+  }
+  await page.reload();
+  await expect(navLink(page, 'Library')).toHaveAccessibleName('Library 1 new episode');
+  await expect(queueHeadings(page), 'both after a reload').toHaveText([first.title]);
   expect(errors, 'the errors that the other tab threw').toEqual([]);
 });
