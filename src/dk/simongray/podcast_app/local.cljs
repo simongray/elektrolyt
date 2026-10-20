@@ -22,6 +22,14 @@
   [key]
   (try (.removeItem js/localStorage key) (catch :default _ nil)))
 
+(defn stored-number
+  "The finite number that this browser keeps under `key`, or nil, also for
+  what isn't one."
+  [key]
+  (let [n (js/parseFloat (stored key))]
+    (when (js/Number.isFinite n)
+      n)))
+
 (defn stored-edn
   "The value that this browser keeps under `key` as EDN, or nil, also for
   what isn't EDN."
