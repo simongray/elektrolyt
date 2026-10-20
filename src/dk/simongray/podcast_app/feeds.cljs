@@ -218,7 +218,7 @@
       ;; a show subscribed to from its page loses the URL of its feed from
       ;; the address bar, since the library knows it now
       (.then #(do (page/canonicalize! %) %))
-      (.then (fn [_] (app-library/save!)))
+      (.then (fn [_] (app-library/save! store)))
       (.then #(when (:error %)
                 (js/console.error "The library wasn't saved" (clj->js %))))))
 
@@ -230,7 +230,7 @@
   [store url title]
   (let [guid (get-in @store [:route :path-params :guid])]
     (app-library/change! store (subscription/unsubscribed @store url title))
-    (app-library/save!)
+    (app-library/save! store)
     (apply rfe/replace-state (routes/show-route guid title url))))
 
 (def linked-except

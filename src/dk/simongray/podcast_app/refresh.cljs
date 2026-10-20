@@ -11,8 +11,8 @@
   that only a feed with something new is fetched whole and parsed.
 
   One refresh runs at a time across the tabs, so a tab whose worker finds
-  another refreshing catches up with what that one saves. A hidden tab
-  doesn't refresh, so with every tab hidden, nothing does."
+  another refreshing reads what that one writes. A hidden tab doesn't
+  refresh, so with every tab hidden, nothing does."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.fetching :as fetching]
             [dk.simongray.podcast-app.library :as app-library]
@@ -67,7 +67,7 @@
   [store asked?]
   (let [{:keys [library refresh-status]} @store
         online? (.-onLine js/navigator)]
-    (when (and library @app-library/the-replica (not (:running? refresh-status)))
+    (when (and library @app-library/known (not (:running? refresh-status)))
       (some-> @timer js/clearTimeout)
       (swap! store #(cond-> (assoc % :refresh-status {:running? true :done 0})
                       asked? (assoc :announcement "Checking for new episodes…")))
@@ -82,7 +82,7 @@
                      (swap! store assoc :refresh-status {:running? false})
                      (let [lib (app-library/change! store {:operation [:library/refreshed found]})]
                        (swap! store refreshed (:refresh lib) asked?)
-                       (.then (app-library/save!)
+                       (.then (app-library/save! store)
                               #(when (:error %)
                                  (js/console.error "The library wasn't saved" (clj->js %))))))))
           (.catch (fn [e]

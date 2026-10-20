@@ -61,7 +61,7 @@
   [store]
   (let [started (js/Date.now)]
     (swap! store assoc-in [:player :saved] started)
-    (-> (app-library/save!)
+    (-> (app-library/save! store)
         (.then #(if (:error %)
                   (js/console.error "The library wasn't saved" (clj->js %))
                   (unsaved/saved! unsaved-prefix started))))))

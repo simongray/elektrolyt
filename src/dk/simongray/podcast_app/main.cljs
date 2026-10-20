@@ -358,9 +358,8 @@
                :ignore-anchor-click? routed-click?}))
 
 (defn restore-library!
-  "Restore the library that this browser saved into the store, as the
-  replica of this tab, which catches up with what the other tabs and the
-  worker save.
+  "Read the library that this browser wrote into the store, which then
+  reads what the other tabs write, as app-library/open! has it.
 
   A library that doesn't restore stays out of the store rather than be
   replaced by a new one, which the next save would write over the old."
