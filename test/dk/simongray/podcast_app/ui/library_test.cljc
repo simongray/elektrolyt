@@ -25,7 +25,7 @@
         "or the listener's choice")))
 
 (deftest a-refresh-under-way
-  (let [x (library-ui/content {:library queue-test/lib :refresh {:running? true :done 3 :total 40}})]
+  (let [x (library-ui/content {:library queue-test/lib :refresh-status {:running? true :done 3 :total 40}})]
     (is (re-find #"Checking 3 of 40 shows" (text-of x)))
     (is (= "true" (:aria-busy (attributes :ul x))))
     (is (= "true" (get-in (first (buttons x)) [1 :aria-disabled])) "a button that keeps the focus")))

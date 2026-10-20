@@ -52,8 +52,8 @@
   which the listener asked for when `asked?`."
   [state result asked?]
   (let [summary (shows/summary result asked?)]
-    (cond-> (assoc state :refresh {:running? false
-                                   :result   (select-keys result [:at :counts :added])})
+    (cond-> (assoc state :refresh-status {:running? false
+                                          :result   (select-keys result [:at :counts :added])})
       summary (assoc :announcement summary))))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: one message as a refresh that the
@@ -64,24 +64,24 @@
   due, or, when the listener `asked?`, every feed of a subscription, and
   wait for the next. Nothing starts while a refresh is under way."
   [store asked?]
-  (let [{:keys [library refresh]} @store]
-    (when (and library @app-library/the-replica (not (:running? refresh)))
+  (let [{:keys [library refresh-status]} @store]
+    (when (and library @app-library/the-replica (not (:running? refresh-status)))
       (some-> @timer js/clearTimeout)
-      (swap! store #(cond-> (assoc % :refresh {:running? true :done 0})
+      (swap! store #(cond-> (assoc % :refresh-status {:running? true :done 0})
                       asked? (assoc :announcement "Checking for new episodes…")))
       (-> (worker/refresh! @app-library/web-worker
                            @app-library/the-replica
                            (cond-> {:head-check? true
                                     :online?     (.-onLine js/navigator)}
                              asked? (assoc :feed-guids (vec (keys (library/subscriptions library)))))
-                           #(swap! store update :refresh merge %))
+                           #(swap! store update :refresh-status merge %))
           (.then (fn [{:keys [refresh busy?]}]
                    (if busy?
-                     (swap! store assoc :refresh {:running? false})
+                     (swap! store assoc :refresh-status {:running? false})
                      (swap! store refreshed refresh asked?))))
           (.catch (fn [e]
                     (js/console.error "The library didn't refresh" e)
-                    (swap! store assoc :refresh {:running? false})))
+                    (swap! store assoc :refresh-status {:running? false})))
           (.finally #(schedule! store))))))
 
 (defn refresh-if-due!

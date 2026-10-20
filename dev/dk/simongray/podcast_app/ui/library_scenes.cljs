@@ -47,7 +47,7 @@
 
 (defscene while-it-refreshes
   "A refresh under way, which the list says it's busy with."
-  (ui/page (library-page {:refresh {:running? true :done 12 :total 40}})))
+  (ui/page (library-page {:refresh-status {:running? true :done 12 :total 40}})))
 
 (defscene no-shows-yet
   "A library with no subscriptions."

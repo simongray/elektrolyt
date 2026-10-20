@@ -4,9 +4,10 @@
 
   The state keeps the listener's choices for the page as :library-view, a
   map of its :sort, one of sorts, and its :layout, one of layouts, which
-  this browser keeps, and the refresh under way or done as :refresh, a map
-  of whether it's :running?, how many feeds are :done of the :total, and
-  its :result, the counts and the episodes :added."
+  this browser keeps, and the refresh under way or done as
+  :refresh-status, apart from the library's own :refresh: a map of
+  whether it's :running?, how many feeds are :done of the :total, and its
+  :result, the counts and the episodes :added."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.memo :as memo]

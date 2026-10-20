@@ -23,8 +23,8 @@
 (defn refresh-line
   "When the feeds were last fetched, `updated`, and the button that checks
   them all, or how far the refresh of the `state` has come."
-  [{:keys [refresh] :as state} updated]
-  (let [{:keys [running? done total]} refresh]
+  [{:keys [refresh-status] :as state} updated]
+  (let [{:keys [running? done total]} refresh-status]
     [:div.library-refresh
      [:p (cond
            running? (if total
@@ -62,7 +62,7 @@
 (defn content
   "The content of the Library page of the `state`, below its heading: the
   start of the inbox, and the shows."
-  [{:keys [library refresh] :as state}]
+  [{:keys [library refresh-status] :as state}]
   (let [all (shows/all-shows library)]
     (if (empty? all)
       (list
@@ -79,5 +79,5 @@
         (refresh-line state (shows/updated-at library))
         [:ul {:role      "list"
               :class     ["library-shows" (name (shows/choice state :layout))]
-              :aria-busy (str (boolean (:running? refresh)))}
+              :aria-busy (str (boolean (:running? refresh-status)))}
          (map #(show-item state %) (shows/sorted all (shows/choice state :sort)))]]))))

@@ -27,12 +27,12 @@
                     :waiting
                     (partition 2 1 states))))
 
-(def idle {:refresh {:running? false}})
-(def running {:refresh {:running? true :done 0}})
-(def done {:refresh {:running? false :result {:counts {}}}})
+(def idle {:refresh-status {:running? false}})
+(def running {:refresh-status {:running? true :done 0}})
+(def done {:refresh-status {:running? false :result {:counts {}}}})
 
 (deftest the-marks-wait-for-the-feeds
-  (is (= [:started :started :fetched] (phases [idle running (assoc-in running [:refresh :done] 1) done]))
+  (is (= [:started :started :fetched] (phases [idle running (assoc-in running [:refresh-status :done] 1) done]))
       "a refresh that started after the import fetches its feeds")
   (is (= [:waiting :started :fetched] (phases [running done running done]))
       "one that was under way already doesn't, but the next one does")
