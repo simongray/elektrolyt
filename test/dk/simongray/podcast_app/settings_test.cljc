@@ -24,6 +24,14 @@
   (is (nil? (settings/contrast (settings/preferred state {:contrast :auto}))) "or the device's contrast")
   (is (nil? (settings/theme {})) "and before the library is restored"))
 
+(deftest the-look-to-keep
+  (is (= {:theme "dark" :contrast "more"}
+         (settings/look (settings/preferred state {:appearance :dark :contrast :more}))))
+  (is (= {:theme nil :contrast nil} (settings/look state))
+      "the device's, which forgets the copies of an earlier choice")
+  (is (nil? (settings/look {}))
+      "but nothing to go by without the library, which keeps them"))
+
 (deftest the-directories-of-a-search
   (is (= [[:podcastindex true] [:apple true] [:fyyd true] [:gpodder false]]
          (settings/directory-rows state))

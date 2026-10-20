@@ -71,6 +71,15 @@
   [state]
   (some-> (#{:standard :more} (:contrast (preferences state))) name))
 
+(defn look
+  "The colours and the contrast that the listener chose in the `state`, as
+  a map of the :theme and the :contrast, each nil for the device's, or nil
+  where there are no preferences to read, e.g. before the library is
+  restored or when it failed to."
+  [state]
+  (when (preferences state)
+    {:theme (theme state) :contrast (contrast state)}))
+
 (defn artwork-colors?
   "Whether the pages take colours from artwork in the `state`, which they
   do until the listener prefers the app's own."
