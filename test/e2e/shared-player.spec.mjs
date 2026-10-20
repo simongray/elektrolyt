@@ -32,8 +32,10 @@ test('one playback, which every tab shows and controls', async ({ page, context 
   const there = player(other);
   await expect(there.getByRole('status')).toHaveText('Playing in another tab.');
   const seekBar = there.getByRole('slider', { name: 'Position' });
+  // another tab hears where the playback is every heartbeat of play-nice,
+  // 5 seconds, so its seek bar moves on once in that time
   const before = Number(await seekBar.inputValue());
-  await expect.poll(async () => Number(await seekBar.inputValue()), { timeout: 5_000 })
+  await expect.poll(async () => Number(await seekBar.inputValue()), { timeout: 12_000 })
     .toBeGreaterThan(before);
 
   const height = () => there.evaluate(p => p.getBoundingClientRect().height);
