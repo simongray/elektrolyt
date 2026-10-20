@@ -18,6 +18,7 @@
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.library :as app-library]
+            [dk.simongray.podcast-app.local :as local]
             [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.player :as player]))
 
@@ -307,7 +308,7 @@
   (when-let [el (element)]
     (media/volume! el level {:curve :cubic})
     (swap! store assoc-in [:player :volume] level)
-    (media/keep-level! volume-key level)))
+    (local/store! volume-key (str level))))
 
 (defn mute!
   "Mute the player, or unmute it where `muted?` is false."
@@ -471,7 +472,7 @@
   (swap! store restored
          (unsaved/kept-played unsaved-prefix)
          (unsaved/kept-position unsaved-prefix)
-         (media/kept-level volume-key)))
+         (local/stored-number volume-key)))
 
 ;; Page Lifecycle API: hidden is the last state that a page can count on
 ;; seeing, e.g. before a phone discards it, so the player reports and saves
