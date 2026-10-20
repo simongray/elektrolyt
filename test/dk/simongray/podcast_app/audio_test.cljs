@@ -11,8 +11,8 @@
 
 (def url "https://example.org/feed.xml")
 
-(defn restored [state played kept volume]
-  (operations/changed state (audio/restored played kept volume)))
+(defn restored [state volume]
+  (operations/changed state (audio/restored volume)))
 
 (def feed
   {:rss/title "A Show"
@@ -26,37 +26,37 @@
                                 :rss/guid      {:content "two"}
                                 :rss/enclosure {:url "https://example.org/2.mp3" :type "audio/mpeg"}}))
 
-(deftest the-episode-played-last-through-a-reload
+(deftest the-player-as-the-page-loads
   (let [lib     (-> (library/make "test")
                     (library/add-episode url two-feed "one")
                     (library/add-episode url two-feed "two"))
         feed-id (first (keys (:feeds lib)))
-        one     [feed-id "one"]
         two     [feed-id "two"]
-        played  (dissoc (library/step lib [:play one]) :effects)
-        current #(some-> % :library :profile queue/current)
-        now     (js/Date.now)]
-    (is (= one (current {:library played})))
-    (is (= two (current (restored{:library played} {:id two :at now} nil nil)))
-        "the episode that this browser played last, which no save had")
-    (is (= one (current (restored{:library played} nil nil nil))) "nothing kept")
-    (is (= two (get-in (restored{:library played} {:id two :at now} nil nil) [:player :id]))
-        "which the player has")))
-
-(deftest the-player-as-the-page-loads
-  (let [lib (library/add-episode (library/make "test") url feed "one")
-        id  [(first (keys (:feeds lib))) "one"]
-        now (js/Date.now)
-        lib (library/update-profile lib queue/enqueue id)]
-    (is (= 636 (:position (player/entry (:library (restored{:library lib} nil
-                                                                  {:id id :position 636 :duration 3600 :at now}
-                                                                  nil))
-                                        id)))
-        "the library told of the position that this browser kept")
-    (is (= 0.4 (get-in (restored{:library lib} nil nil 0.4) [:player :volume]))
+        played  (-> (library/step lib [:play two])
+                    (dissoc :effects)
+                    (library/update-profile profile/progress two 636 3600))]
+    (is (= two (get-in (restored {:library played} nil) [:player :id]))
+        "with the episode that the queue has at its front")
+    (is (= 636 (:position (player/playback (restored {:library played} nil) two)))
+        "where the listener left it")
+    (is (= 0.4 (get-in (restored {:library played} 0.4) [:player :volume]))
         "at the volume that this browser keeps")
-    (is (= 1 (get-in (restored{:library lib} nil nil nil) [:player :volume]))
+    (is (= 1 (get-in (restored {:library played} nil) [:player :volume]))
         "or all of it")))
+
+(deftest the-moments-of-a-report
+  (let [reports (atom [])
+        store   (atom {:library (library/make "test") :player {:id ["feed" "one"]}})
+        report  (audio/reporter store)]
+    (with-redefs [audio/report! (fn [_ media] (swap! reports conj (:current-time media)))]
+      (report {:paused false :current-time 10.4})
+      (report {:paused false :current-time 11.2})
+      (is (= [10] @reports) "as it starts, but not a second later")
+      (report {:paused true :current-time 12.0})
+      (is (= [10 12] @reports) "at a pause")
+      (swap! store assoc-in [:player :id] ["feed" "two"])
+      (report {:paused false :current-time 0.5})
+      (is (= [10 12 0] @reports) "and as another episode starts"))))
 
 (defn playing
   "A store of the player with the episode `id` of the picks' library,

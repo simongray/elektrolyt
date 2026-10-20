@@ -1,8 +1,14 @@
 (ns dk.simongray.podcast-app.audio
   "The audio element of the player, and what the app does to it as the
   effects of the views' actions, with play-nice: play an episode of the
-  library, tell the library of each move with library/step, keep the lock
-  screen in step, and save the library now and then.
+  library, tell the library of each move with library/step and write it,
+  and keep the lock screen in step.
+
+  The element says where playback is now, and the library where the
+  listener left it. So the player tells the library where the element is
+  at the moments that player/report? names and as the page is hidden. A
+  move of the listener's goes through the library too, and each change is
+  written at once.
 
   The element is the same for every episode. A phone's browser lets a page
   play an element that the listener started, so the next episode of the
@@ -20,7 +26,7 @@
             [dk.simongray.play-nice.session :as session]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.media-session :as media-session]
-            [dk.simongray.podcast.app.unsaved :as unsaved]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.library :as app-library]
@@ -46,25 +52,13 @@
   volume belongs to this device rather than to the listener's profile."
   "dk.simongray.podcast-app.volume")
 
-;; A save of the library to IndexedDB takes a few steps, which a page that
-;; reloads or closes never finishes, so podcast-clj's app.unsaved keeps the
-;; position and the episode that the listener played in localStorage too,
-;; e.g. for a reload right after Play, which would otherwise bring the
-;; episode before back
-(def unsaved-prefix
-  "The prefix of the keys in localStorage under which app.unsaved keeps
-  the player's moves that the library's save may not have yet."
-  "dk.simongray.podcast-app")
-
 (defn save!
-  "Save the library of the `store`, and note when."
+  "A promise of the write of the changes to the library of the `store`
+  that wait, which logs a write that failed."
   [store]
-  (let [started (js/Date.now)]
-    (swap! store assoc-in [:player :saved] started)
-    (-> (app-library/save! store)
-        (.then #(if (:error %)
-                  (js/console.error "The library wasn't saved" (clj->js %))
-                  (unsaved/saved! unsaved-prefix started))))))
+  (.then (app-library/save! store)
+         #(when (:error %)
+            (js/console.error "The library wasn't saved" (clj->js %)))))
 
 (defonce ^{:doc "The BroadcastChannel of the player across the tabs, opened
   at its first use, or nil where the browser has none."}
@@ -105,14 +99,15 @@
 ;; only when the step does none of them. It ends an episode in its outro as
 ;; well as at its end, so the pick is its :fallback-fn.
 (defn step!
-  "Run the player `event` through library/step in the `store`, do its
-  effects, and give them. An episode that ends with nothing else to play
-  is followed by the first pick after it, when the listener chose
-  Autoplay."
+  "Run the player `event` through library/step in the `store`, write the
+  library, do the effects of the step, and give them. An episode that ends
+  with nothing else to play is followed by the first pick after it, when
+  the listener chose Autoplay."
   [store event]
   (let [state             @store
         {:keys [effects]} (app-library/change! store {:operation [:player/step event]}
                                                {:fallback-fn #(picks/autoplayed state %)})]
+    (save! store)
     (apply-effects! store effects)
     effects))
 
@@ -138,12 +133,11 @@
                                              (media-session/actions library id)))))))
 
 (defn moved!
-  "Save the library of the `store` and post the state of its `element` to
-  the other tabs after the listener moved it while it's paused, since no
-  pause will do either."
+  "Post the state of the `element` of the player of the `store` to the
+  other tabs after the listener moved it while it's paused, since no pause
+  will."
   [store ^js element]
   (when (.-paused element)
-    (save! store)
     (tell! store (media/state element))))
 
 (defn press!
@@ -166,14 +160,32 @@
 
 (defn report!
   "Tell the library of the `store` where the element is, by its `media`
-  state."
+  state, and write it."
   [store {:keys [current-time duration] :as media}]
   (when-let [id (and (number? current-time) (get-in @store [:player :id]))]
     (let [duration (when (and (number? duration) (js/Number.isFinite duration))
                      duration)]
-      (unsaved/keep-position! unsaved-prefix id current-time duration)
-      (swap! store assoc-in [:player :reported] current-time)
       (step! store [:progress id current-time duration]))))
+
+(defn reporter
+  "A function that tells the library of the `store` where the audio
+  element is, by each media state of the element that media/watch! gives
+  it, at the moments that player/report? names. It keeps the last state,
+  and when it last reported in the episode of the player, to itself."
+  [store]
+  (let [seen (atom {})]
+    (fn [media]
+      (let [shown                       (player/whole-seconds media)
+            now                         (js/Date.now)
+            {:keys [library player]}    @store
+            id                          (:id player)
+            {old :media last :at :as s} @seen
+            outro                       (some-> (:profile library)
+                                                (profile/outro-start (first id) id))]
+        (if (player/report? old shown (when (= id (:id s)) last) now outro)
+          (do (reset! seen {:media shown :at now :id id})
+              (report! store shown))
+          (swap! seen assoc :media shown))))))
 
 (defonce ^{:doc "The timeout that shows that the player waits for data,
   after half a second, as Media Chrome does, so that a short wait says
@@ -198,20 +210,15 @@
 
 (defn changed!
   "Keep the `media` state of the element in the player of the `store`, to
-  the whole second, and tell the library and save it when it's time.
-  While the element plays, and as it pauses, post each change to the
-  other tabs."
+  the whole second. While the element plays, and as it pauses, post each
+  change to the other tabs."
   [store media]
-  (let [{old :media :keys [reported saved]} (:player @store)
-        shown                               (player/whole-seconds media)]
+  (let [old   (get-in @store [:player :media])
+        shown (player/whole-seconds media)]
     (when (not= shown old)
       (swap! store assoc-in [:player :media] shown)
       (when (or (false? (:paused shown)) (false? (:paused old)))
         (tell! store media)))
-    (when (player/report? old shown reported)
-      (report! store shown))
-    (when (player/save? old shown saved (js/Date.now))
-      (save! store))
     (buffering! store shown)))
 
 (defn answered!
@@ -255,8 +262,7 @@
   return the element."
   [store id t]
   (let [pb (player/playback @store id)]
-    (swap! store update :player assoc
-           :id id :answer nil :reported nil :seeking nil)
+    (swap! store update :player assoc :id id :answer nil :seeking nil)
     (read-library-files! store id)
     ;; the render of the swap is done, so the element is in the page
     (when-let [el (element)]
@@ -292,8 +298,6 @@
         el    (cue! store id
                     (or t (some-> there (tabs/position (js/Date.now))))
                     (:playback-rate there))]
-    (when-not (= id (:id p))
-      (unsaved/keep-played! unsaved-prefix id))
     (some->> el (play-element! store))))
 
 (defn added
@@ -313,7 +317,6 @@
     (app-library/change! store (added @store playable))
     (step! store [:play id])
     (play-id! store id t)
-    (save! store)
     (catch :default e
       (js/console.error "The episode didn't play" e))))
 
@@ -325,11 +328,10 @@
 (defn ended!
   "Tell the library that the episode of the player of the `store` ended,
   which plays the next one of the queue, or else the first pick after it
-  when the listener chose Autoplay, and save it."
+  when the listener chose Autoplay."
   [store]
   (when-let [id (get-in @store [:player :id])]
-    (step! store [:ended id])
-    (save! store)))
+    (step! store [:ended id])))
 
 (defn chapter!
   "Go to the chapter in `direction`, :previous or :next, of the episode of
@@ -357,9 +359,8 @@
     (let [el (element)]
       (some-> el (media/rate! rate))
       (app-library/change! store (settings/preferred {:playback-rate rate}))
-      (if (some-> el .-paused)
-        (moved! store el)
-        (save! store)))))
+      (save! store)
+      (some->> el (moved! store)))))
 
 (defn volume!
   "Set the volume slider of the player of the `store` to `level`, and keep
@@ -497,19 +498,21 @@
 
 (defn mounted!
   "Follow the audio `element` that the player of the `store` mounted: keep
-  its state, put it on the lock screen, let it pause when another tab
-  plays, and follow the keys pressed in the player. Load the episode of a
-  player that the page restored, where nothing loaded it yet."
+  its state, tell the library where it is, put it on the lock screen, let
+  it pause when another tab plays, and follow the keys pressed in the
+  player. Load the episode of a player that the page restored, where
+  nothing loaded it yet."
   [store ^js element]
   (let [{:keys [player] :as state} @store
-        {:keys [id volume]}        player]
+        {:keys [id volume]}        player
+        events                     {:events (conj media/events :timeupdate)}]
     (when (and id (not (.getAttribute element "src")))
       (media/source! element (player/playback state id))
       (read-library-files! store id))
     (media/volume! element (or volume 1) {:curve :cubic})
     (reset! detach!
-            (juxt (media/watch! element #(changed! store %)
-                                {:events (conj media/events :timeupdate)})
+            (juxt (media/watch! element #(changed! store %) events)
+                  (media/watch! element (reporter store) events)
                   (session/attach! element)
                   (tabs/attach! element player/element-name)
                   (controls/listen! (.closest element "#player") element
@@ -517,38 +520,32 @@
     (lock-screen! store)))
 
 (defn restored
-  "The change as the page loads: the library told by unsaved/restored of
-  the episode that this browser `played` last and of the position that it
-  `kept`, and the player with the episode that the queue has at its
-  front, paused where the listener left it, at the `volume` that this
-  browser keeps, or all of it."
-  [played kept volume]
-  {:operation [:player/restore played kept]
-   :ui        (fn [state]
-                (let [id (some-> state :library :profile queue/current)]
-                  (cond-> (assoc-in state [:player :volume] (or volume 1))
-                    (player/playback state id) (assoc-in [:player :id] id))))})
+  "The change as the page loads: the player with the episode that the
+  queue has at its front, paused where the listener left it, at the
+  `volume` that this browser keeps, or all of it."
+  [volume]
+  {:ui (fn [state]
+         (let [id (some-> state :library :profile queue/current)]
+           (cond-> (assoc-in state [:player :volume] (or volume 1))
+             (player/playback state id) (assoc-in [:player :id] id))))})
 
 (defn restored!
-  "Restore the player of the `store` with restored as the page loads,
-  from what this browser keeps."
+  "Restore the player of the `store` with restored as the page loads, at
+  the volume that this browser keeps."
   [store]
-  (app-library/change! store (restored (unsaved/kept-played unsaved-prefix)
-                                       (unsaved/kept-position unsaved-prefix)
-                                       (local/stored-number volume-key))))
+  (app-library/change! store (restored (local/stored-number volume-key))))
 
 ;; Page Lifecycle API: hidden is the last state that a page can count on
-;; seeing, e.g. before a phone discards it, so the player reports and saves
-;; there, and never at unload
+;; seeing, e.g. before a phone discards it, so the player reports there,
+;; and never at unload
 ;; https://developer.chrome.com/docs/web-platform/page-lifecycle-api
 (defn hidden!
-  "Tell the library where the player of the `store` is, and save it, as
+  "Tell the library where the player of the `store` is, and write it, as
   the page is hidden, while its element plays. The play lock makes it the
   only element across the tabs that does."
   [store]
   (when-let [el (and (get-in @store [:player :id]) (playing-element))]
-    (report! store (media-of el))
-    (save! store)))
+    (report! store (media-of el))))
 
 (defn gone!
   "While the element of the player of the `store` plays, tell the other

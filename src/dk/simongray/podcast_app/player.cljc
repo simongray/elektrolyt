@@ -7,8 +7,6 @@
   - :id, the episode of this tab's player, [feed-guid item-guid]
   - :media, the state of the audio element, as play-nice's media/watch!
     gives it, to the whole second
-  - :reported, the position last reported to the library, and :saved, when
-    the library was last saved, in milliseconds
   - :seeking, the seconds that the seek bar is dragged to, while it is
   - :expanded?, whether the controls show on a phone
   - :volume and :volume-locked?, the level of the volume slider, and
@@ -22,10 +20,13 @@
 
   Every move goes through library/step, as podcast-clj's inspector does it,
   so that the profile keeps the position and the played marks, and syncs
-  them. One tab plays at a time, by play-nice's play lock, and only that
-  tab tells the library where it is on its own. It also posts its media
-  state to the other tabs. Their players show its playback and send it
-  their commands, and their paused elements move to where it pauses."
+  them. The audio element says where playback is now, and the profile
+  where the listener left it, so the player tells the library at the
+  moments that report? names, and the library writes it at once. One tab
+  plays at a time, by play-nice's play lock, and only that tab tells the
+  library where it is on its own. It also posts its media state to the
+  other tabs. Their players show its playback and send it their commands,
+  and their paused elements move to where it pauses."
   (:require [dk.simongray.play-nice.page.tabs :as tabs]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.format.chapters :as chapters]
@@ -51,14 +52,15 @@
   "The speeds that the player offers, with the text of each, e.g. 1.5×."
   (for [s speeds] [s (str s "×")]))
 
+;; podcast-clj's profile/listened asks for a report at least every 30
+;; seconds, since its count of listening time takes a longer gap for a
+;; pause. Each report writes the library, so the player reports at half
+;; that gap rather than every few seconds. A report has to reach the outro
+;; for the episode to skip it, so reaching it is a moment of its own.
 (def report-seconds
   "How many seconds of playing pass between two reports of the position to
-  the library, as in podcast-clj's inspector and AntennaPod."
-  5)
-
-(def save-ms
-  "How many milliseconds of playing pass between two saves of the library."
-  30000)
+  the library."
+  15)
 
 ;; One writer of the position at a time. The play lock lets one tab's
 ;; element play at a time, and pauses the one it takes over from, so a tab
@@ -69,25 +71,21 @@
 ;; library through their actions, e.g. audio/press!.
 (defn report?
   "Whether the player tells the library where it is, as the audio element
-  goes from the state `old` to `new`, having last reported the position
-  `reported`: at a pause, and while it plays, after a seek and every
-  report-seconds."
-  [old {:keys [paused seeking current-time] :as new} reported]
+  goes from the state `old` to `new` at `now`, having last reported at
+  `last`, both in milliseconds, in an episode whose outro starts at
+  `outro` seconds, or nil: at a pause, and while it plays, after a seek,
+  as it reaches the outro and every report-seconds."
+  [old {:keys [paused seeking current-time] :as new} last now outro]
   (boolean
-   (or (and paused (false? (:paused old)))
-       (and (not paused)
-            (or (and (:seeking old) (not seeking))
-                (and (number? current-time)
-                     (>= (abs (- current-time (or reported -10))) report-seconds)))))))
-
-(defn save?
-  "Whether the player saves the library, as the audio element goes from the
-  state `old` to `new` at `now`, having last saved it at `saved`, both in
-  milliseconds: at a pause, and every save-ms of playing."
-  [old {:keys [paused] :as new} saved now]
-  (boolean
-   (or (and paused (false? (:paused old)))
-       (and (not paused) (>= (- now (or saved 0)) save-ms)))))
+   (and (number? current-time)
+        (or (and paused (false? (:paused old)))
+            (and (not paused)
+                 (or (and (:seeking old) (not seeking))
+                     (and (number? outro)
+                          (number? (:current-time old))
+                          (< (:current-time old) outro)
+                          (<= outro current-time))
+                     (>= (- now (or last 0)) (* 1000 report-seconds))))))))
 
 (def told-keys
   "The keys of an element's media state that the playing tab posts to the

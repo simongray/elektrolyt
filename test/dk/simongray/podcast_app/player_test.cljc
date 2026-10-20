@@ -35,21 +35,22 @@
                     player)})
 
 (deftest when-the-library-hears-of-it
-  (let [playing {:paused false :current-time 100}]
-    (is (player/report? playing {:paused true :current-time 101} 100) "at a pause")
-    (is (player/report? {:paused false :seeking true} {:paused false :seeking false :current-time 600} 100)
+  (let [playing {:paused false :current-time 100}
+        now     1000000
+        last    (- now 3000)]
+    (is (player/report? playing {:paused true :current-time 101} last now nil) "at a pause")
+    (is (player/report? {:paused false :seeking true} {:paused false :seeking false :current-time 600} last now nil)
         "after a seek")
-    (is (player/report? playing {:paused false :current-time 105} 100) "every five seconds")
-    (is (not (player/report? playing {:paused false :current-time 103} 100)) "but not sooner")
-    (is (not (player/report? {:paused true} {:paused true :current-time 100} 50)) "nor while paused")
-    (is (not (player/report? {:paused true :seeking true} {:paused true :seeking false :current-time 600} 100))
+    (is (player/report? {:paused false :current-time 1739} {:paused false :current-time 1740} last now 1740)
+        "as it reaches the outro")
+    (is (not (player/report? {:paused false :current-time 1741} {:paused false :current-time 1742} last now 1740))
+        "but not again in it")
+    (is (player/report? playing {:paused false :current-time 101} (- now 15000) now nil) "every fifteen seconds")
+    (is (player/report? playing {:paused false :current-time 101} nil now nil) "and as it starts")
+    (is (not (player/report? playing {:paused false :current-time 103} last now nil)) "but not sooner")
+    (is (not (player/report? {:paused true} {:paused true :current-time 100} nil now nil)) "nor while paused")
+    (is (not (player/report? {:paused true :seeking true} {:paused true :seeking false :current-time 600} nil now nil))
         "nor after the seek of a paused element, e.g. as it loads an episode that another tab plays")))
-
-(deftest when-the-library-is-saved
-  (is (player/save? {:paused false} {:paused true} 0 1000) "at a pause")
-  (is (player/save? {:paused false} {:paused false} 1000 31000) "every 30 seconds of playing")
-  (is (not (player/save? {:paused false} {:paused false} 1000 20000)) "but not sooner")
-  (is (not (player/save? {:paused true} {:paused true} 0 99999)) "nor while paused"))
 
 (deftest a-render-a-second
   (is (= {:current-time 12.0 :paused false} (player/whole-seconds {:current-time 12.7 :paused false})))
