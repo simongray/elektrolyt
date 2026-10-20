@@ -33,8 +33,7 @@
                     (library/add-episode url two-feed "two"))
         feed-id (first (keys (:feeds lib)))
         two     [feed-id "two"]
-        played  (-> (library/step lib [:play two])
-                    (dissoc :effects)
+        played  (-> (:library (library/step lib [:play two]))
                     (library/update-profile profile/progress two 636 3600))]
     (is (= two (get-in (restored {:library played} nil) [:player :id]))
         "with the episode that the queue has at its front")
@@ -64,9 +63,7 @@
   current and `position` seconds into its 1800, with the listener's
   preferences `prefs`."
   [id position prefs]
-  (atom (-> {:library (-> picks-test/lib
-                          (library/step [:play id])
-                          (dissoc :effects)
+  (atom (-> {:library (-> (:library (library/step picks-test/lib [:play id]))
                           (library/update-profile profile/progress id position 1800))
              :player  {:id id}}
             (operations/changed (settings/preferred prefs)))))

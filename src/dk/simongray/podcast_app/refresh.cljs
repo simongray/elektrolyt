@@ -27,10 +27,17 @@
   library again, e.g. after the computer slept."
   (* 60 60 1000))
 
+(defn next-one
+  "When the library of the `state` should refresh next, after the last
+  refresh, which waits a while after one that found the device offline, or
+  nil when it has nothing to fetch or the state no library."
+  [{:keys [library refresh-status]}]
+  (some-> library (library/next-refresh {:after (:result refresh-status)})))
+
 (defn due?
-  "Whether the library `lib` has feeds that are due now."
-  [lib]
-  (when-let [next-one (some-> lib library/next-refresh)]
+  "Whether the library of the `state` has feeds that are due now."
+  [state]
+  (when-let [next-one (next-one state)]
     (<= (inst-ms next-one) (+ (js/Date.now) 1000))))
 
 (declare refresh!)
@@ -40,7 +47,7 @@
   visible then."
   [store]
   (some-> @timer js/clearTimeout)
-  (when-let [next-one (some-> (:library @store) library/next-refresh)]
+  (when-let [next-one (next-one @store)]
     (let [wait (max 1000 (min max-wait-ms (- (inst-ms next-one) (js/Date.now))))]
       (reset! timer
               (js/setTimeout #(if (= "visible" js/document.visibilityState)
@@ -49,12 +56,12 @@
                              wait)))))
 
 (defn refreshed
-  "The `state` once the refresh that gave the :refresh `result` is done,
-  which the listener asked for when `asked?`."
+  "The `state` once the refresh that gave the `result` beside the library
+  is done, which the listener asked for when `asked?`."
   [state result asked?]
   (let [summary (shows/summary result asked?)]
     (cond-> (assoc state :refresh-status {:running? false
-                                          :result   (select-keys result [:at :counts :added])})
+                                          :result   (dissoc result :library)})
       summary (assoc :announcement summary))))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: one message as a refresh that the
@@ -80,8 +87,8 @@
           (.then (fn [{:keys [found busy?]}]
                    (if busy?
                      (swap! store assoc :refresh-status {:running? false})
-                     (let [lib (app-library/change! store {:operation [:library/refreshed found]})]
-                       (swap! store refreshed (:refresh lib) asked?)
+                     (let [result (app-library/change! store {:operation [:library/refreshed found]})]
+                       (swap! store refreshed result asked?)
                        (.then (app-library/save! store)
                               #(when (:error %)
                                  (js/console.error "The library wasn't saved" (clj->js %))))))))
@@ -94,6 +101,6 @@
   "Refresh the library of the `store` when feeds are due, e.g. as the app
   starts or the page becomes visible, and wait for the next otherwise."
   [store]
-  (if (some-> (:library @store) due?)
+  (if (due? @store)
     (refresh! store false)
     (schedule! store)))

@@ -46,13 +46,18 @@
 ;; show's settings, for the apps that offer it.
 (def config
   "The config of the library in every tab and the worker of the app."
-  {:send         send
-   :codec        transit/codec
-   :new-episodes :inbox})
+  {:new-episodes :inbox})
+
+(def options
+  "The options of every call to the library in the tabs and the worker of
+  the app, which are functions and so stay out of its config: its requests
+  go through the proxy, and its documents are in Transit."
+  {:send  send
+   :codec transit/codec})
 
 (def document-name
   "The name of the library's own document in the store, as podcast-clj
-  names it in the codec of the config."
+  names it in the codec of the options."
   (str "library" (:extension transit/codec)))
 
 (def channel-name
@@ -83,15 +88,20 @@
   (delay (when (exists? js/BroadcastChannel)
            (js/BroadcastChannel. channel-name))))
 
+(defn applied
+  "What the `operation` gives of the `library`, applied with the `opts` of
+  operations/applied and the options of the library's calls."
+  [library operation opts]
+  (operations/applied library operation (merge options opts)))
+
 (defn applied-all
   "The `library` with the `ops`, maps of the :operation and its :opts as
-  waiting holds them, applied in order, without the effects of a step. An
-  operation that throws on this library, e.g. a subscription that another
-  tab made first, is left out."
+  waiting holds them, applied in order. An operation that throws on this
+  library, e.g. a subscription that another tab made first, is left out."
   [library ops]
   (reduce (fn [lib {:keys [operation opts]}]
             (try
-              (dissoc (operations/applied lib operation opts) :effects)
+              (:library (applied lib operation opts))
               (catch :default e
                 (js/console.warn "An operation didn't apply to the stored library"
                                  (clj->js operation) e)
@@ -107,11 +117,11 @@
   the version written, as read! gives them, or the :error of the write."
   [store {:keys [library version] :as known} f]
   (let [changed (f library)]
-    (.then (library/write! changed store {:if-version version :before library})
+    (.then (library/write! changed store (assoc options :if-version version :before library))
            (fn [{:keys [conflict? error] :as written}]
              (cond
                error     written
-               conflict? (.then (library/read! library store) #(durable-swap! store % f))
+               conflict? (.then (library/read! library store options) #(durable-swap! store % f))
                :else     {:library changed :version (:version written)})))))
 
 (defn in-turn!
@@ -169,10 +179,10 @@
 
 (defn change!
   "Make the `change` of operations/changed to the app `state`, an atom,
-  with the `opts` of operations/applied, and give the library as its
-  operation left it, with the :effects of a step. The time of the change
-  is now, unless the `opts` give its :at. The operation waits for the next
-  save!.
+  with the `opts` of operations/applied, and give what its operation gave,
+  as applied gives it, e.g. the :effects of a step beside the library. The
+  time of the change is now, unless the `opts` give its :at. The operation
+  waits for the next save!.
 
   An operation that throws changes nothing, and the throw goes on to the
   caller."
@@ -182,14 +192,13 @@
    (when change
      (let [before (:library @state)
            opts   (merge {:at (js/Date.)} opts)
-           lib    (if operation
-                    (operations/applied before operation opts)
-                    before)]
+           given  (when operation
+                    (applied before operation opts))]
        (when (and operation before)
          (swap! waiting conj {:operation operation :opts opts}))
        (swap! state #(ui (cond-> %
-                           operation (assoc :library (some-> lib (dissoc :effects))))))
-       lib))))
+                           operation (assoc :library (:library given)))))
+       given))))
 
 (defn stored-version
   "A promise of the version of the library's document in the store, from
@@ -211,7 +220,7 @@
        (.then (stored-version)
               (fn [stored]
                 (when (not= stored version)
-                  (.then (library/read! library store)
+                  (.then (library/read! library store options)
                          (fn [read]
                            (reset! known read)
                            (swap! state assoc :library
@@ -246,7 +255,9 @@
   what the other tabs write. A library that doesn't read leaves the state
   without one, and the promise fails."
   [state]
-  (.then (library/read! (library/make (device/id! device-key) {:config config}) store)
+  (.then (library/read! (library/make (device/id! device-key) {:config config :codec transit/codec})
+                        store
+                        options)
          (fn [{:keys [library] :as read}]
            (reset! known read)
            (swap! state assoc :library (applied-all library @waiting))

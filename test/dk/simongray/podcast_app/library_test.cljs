@@ -12,7 +12,7 @@
 
 (def empty-store
   "What library/read! gives of a store without a library."
-  {:library (library/make "phone" {:config {:codec transit/codec}}) :version nil})
+  {:library (library/make "phone" {:codec transit/codec}) :version nil})
 
 (defn queued
   "The operation that puts the episode `id` at the end of the queue."
@@ -30,7 +30,7 @@
                 (app-library/durable-swap! s empty-store #(app-library/applied-all % [(queued ["f" "b"])]))])
           (.then (fn [[a b]]
                    (is (= #{"1" "2"} (set [(:version a) (:version b)])) "one after the other")
-                   (library/read! (:library empty-store) s)))
+                   (library/read! (:library empty-store) s app-library/options)))
           (.then (fn [{:keys [version] lib :library}]
                    (is (= "2" version))
                    (is (= #{["f" "a"] ["f" "b"]} (set (queue lib)))
@@ -68,7 +68,7 @@
       (-> (library/refresh! queued {:at    #inst "2026-10-22T12:00:00Z"
                                     :fetch (fn [u _] {:status 200 :url u :feed newer})
                                     :send  (fn [_] {:status 304 :headers {} :body ""})})
-          (.then (fn [{:keys [profile]}]
+          (.then (fn [{{:keys [profile]} :library}]
                    (is (= [[k "ep4"]] (profile.queue/inbox profile)))
                    (is (= [] (profile.queue/queue profile)) "rather than the queue that the show chose")
                    (is (= :queue (profile/new-episodes (profile/settings profile k)))

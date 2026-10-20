@@ -259,7 +259,8 @@
   read-files! does, unless the Episode page has read them. The transcript
   waits for the listener."
   [store id]
-  (read-files! store id #(library/read-files! (:library @store) id {:except #{:transcript}})))
+  (read-files! store id #(library/read-files! (:library @store) id
+                                              (assoc app-library/options :except #{:transcript}))))
 
 (defn load!
   "Load the episode `id` of the library into the player of the `store`, at

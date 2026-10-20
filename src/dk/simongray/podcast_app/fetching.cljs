@@ -40,21 +40,22 @@
 
 (defn found!
   "A promise of what the request `id` found of what is `due`, as
-  library/fetch-due! gives it with the `opts` and the config of the
-  library, posting the progress of each fetch to the page."
+  library/fetch-due! gives it with the `opts`, and the config and the
+  options of the library, posting the progress of each fetch to the page."
   [id due opts]
   (let [progress (fn [{:keys [done total]}]
                    (post! {:id id :progress {:done done :total total}}))]
     (library/fetch-due! due app-library/store
-                        (merge app-library/config opts {:on-feed-fn progress}))))
+                        (merge app-library/config app-library/options opts
+                               {:on-feed-fn progress}))))
 
 (defn fetched!
   "A promise of the feed at `url` fetched with `opts` through the proxy, as
   podcast/fetch! gives it but without the :body, in the codec of the
   library."
   [url opts]
-  (.then (podcast/fetch! url (merge (select-keys app-library/config [:send]) opts))
-         #((:encode (:codec app-library/config)) (dissoc % :body))))
+  (.then (podcast/fetch! url (merge (select-keys app-library/options [:send]) opts))
+         #((:encode (:codec app-library/options)) (dissoc % :body))))
 
 (defn answer!
   "Answer the `request` of the page: what a refresh found, or :busy? while
@@ -82,7 +83,7 @@
   [url]
   (let [worker  (js/Worker. url)
         pending (atom {})
-        decode  (:decode (:codec app-library/config))
+        decode  (:decode (:codec app-library/options))
         settle! (fn [id f]
                   (when-let [{:keys [resolve reject]} (get @pending id)]
                     (swap! pending dissoc id)
