@@ -1,18 +1,27 @@
 (ns dk.simongray.podcast-app.worker
-  "The web worker of the app, which refreshes the library and fetches the
-  feeds of the Show page off the page, as podcast-clj's app.worker does
-  it, so that parsing a feed never holds the page up.
+  "The web worker of the app, which fetches the feeds that a refresh is
+  due to fetch and the feed of a Show page off the page, as
+  dk.simongray.podcast-app.fetching has it, so that parsing a feed never
+  holds the page up.
 
-  It writes the library as a replica of the device of its own, through the
-  store and the config of the page. A web worker has no DOMParser, so it
-  parses with that of @xmldom/xmldom."
+  A web worker has no DOMParser, so it parses with that of
+  @xmldom/xmldom."
   (:require ["@xmldom/xmldom" :as xmldom]
-            [dk.simongray.podcast.app.worker :as worker]
-            [dk.simongray.podcast-app.library :as app-library]))
+            [dk.simongray.podcast-app.fetching :as fetching]))
+
+(defn throwing
+  "A function that makes a parser of the class `DOMParser`, e.g. that of
+  xmldom, which throws on the errors that a browser's parser reports as a
+  parsererror element."
+  [DOMParser]
+  (fn []
+    (DOMParser. #js {:onError (fn [level message _context]
+                                (when-not (= level "warning")
+                                  (throw (js/Error. message))))})))
 
 (defn ^:export init
-  "Answer the page's requests to refresh the library and fetch feeds."
+  "Answer the page's requests to fetch feeds."
   []
-  (worker/serve! {:store      app-library/store
-                  :config     app-library/config
-                  :dom-parser xmldom/DOMParser}))
+  (when-not (exists? js/DOMParser)
+    (set! (.-DOMParser js/globalThis) (throwing xmldom/DOMParser)))
+  (fetching/serve!))

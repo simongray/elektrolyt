@@ -61,6 +61,9 @@
                                (library/subscribe library url fetched {:at at}))
         :library/unsubscribe (let [[k] args]
                                (library/unsubscribe library k {:at at}))
+        ;; what the worker found, applied at the time of its refresh
+        :library/refreshed   (let [[found] args]
+                               (library/refreshed library found))
         :player/step         (let [[event] args]
                                (library/step library event
                                              (cond-> {:at at}
