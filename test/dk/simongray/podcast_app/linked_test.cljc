@@ -16,7 +16,21 @@
   (is (= {:guid "g2" :title "Boostagram Ball"}
          (linked/card {:feed-guid "g2" :title "Boostagram Ball" :error {:status 404}}))
       "or from what the podroll says of it, when its feed failed")
-  (is (nil? (linked/card {:title "Nowhere"})) "and none for an item that names no show"))
+  (is (nil? (linked/card {:title "Nowhere"})) "and none for an item that names no show")
+  (is (= [{:href "https://example.org/300.jpg" :width 300} {:href "https://example.org/3000.jpg" :width 3000}]
+         (:artwork-sizes (linked/card {:feed-guid "g1"
+                                       :show      (assoc show :podcast/images
+                                                         [{:href "https://example.org/3000.jpg" :width 3000}
+                                                          {:href "https://example.org/300.jpg" :width 300}])})))
+      "with the sizes of its artwork, narrowest first, for a srcset"))
+
+(deftest a-fetch-that-failed
+  (is (not (linked/failed? {:podroll [{:feed-guid "g1" :show show}] :publisher {:feed {} :shows []}})))
+  (is (not (linked/failed? {})) "nothing to fetch")
+  (is (linked/failed? {:podroll [{:feed-guid "g1" :show show} {:feed-guid "g2" :error {:status 404}}]})
+      "a show of the podroll")
+  (is (linked/failed? {:publisher {:feed-url "https://example.org/pub.xml" :error {:status 500}}})
+      "the publisher's feed"))
 
 (deftest what-the-page-keeps
   (let [fetched {:podroll   [{:feed-guid "g1" :show show}]

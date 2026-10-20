@@ -73,11 +73,19 @@
       :play   (play-id! store id nil)
       :played nil)))
 
+;; The library's step plays the next of the queue, or of the show with
+;; Continuous play, and stops at the end of a sleep timer, so a pick plays
+;; only when the step does none of them. It ends an episode in its outro as
+;; well as at its end, so the pick is its :fallback-fn.
 (defn step!
   "Run the player `event` through library/step in the `store`, do its
-  effects, and give them."
+  effects, and give them. An episode that ends with nothing else to play
+  is followed by the first pick after it, when the listener chose
+  Autoplay."
   [store event]
-  (let [{:keys [effects] :as lib} (library/step (:library @store) event)]
+  (let [state                     @store
+        {:keys [effects] :as lib} (library/step (:library state) event
+                                                {:fallback-fn #(picks/autoplayed state %)})]
     (swap! store assoc :library (dissoc lib :effects))
     (apply-effects! store effects)
     effects))
@@ -258,19 +266,14 @@
   [store]
   (some->> (element) (play-element! store)))
 
-;; The library's step plays the next of the queue, or of the show with
-;; Continuous play, and stops at the end of a sleep timer, so a pick plays
-;; only when the step does none of them
 (defn ended!
   "Tell the library that the episode of the player of the `store` ended,
   which plays the next one of the queue, or else the first pick after it
   when the listener chose Autoplay, and save it."
   [store]
   (when-let [id (get-in @store [:player :id])]
-    (if-let [pick (and (empty? (step! store [:ended id]))
-                       (picks/autoplayed @store id))]
-      (play! store {:id pick} nil)
-      (save! store))))
+    (step! store [:ended id])
+    (save! store)))
 
 (defn chapter!
   "Go to the chapter in `direction`, :previous or :next, of the episode of

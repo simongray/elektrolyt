@@ -34,6 +34,12 @@
              :artwork       (some-> show resolve/artwork)
              :artwork-sizes (some-> show resolve/artwork-sizes not-empty)}))))
 
+(defn failed?
+  "Whether a part of what app.show/fetch-linked-shows! gave, `fetched`,
+  failed: the feed of a show of the podroll, or the publisher's feed."
+  [{:keys [podroll publisher]}]
+  (boolean (or (some :error podroll) (:error publisher))))
+
 (defn kept
   "What the page shows of the shows that app.show/fetch-linked-shows! gave,
   `fetched`, for the show `guid`: the cards of the podroll, and of the

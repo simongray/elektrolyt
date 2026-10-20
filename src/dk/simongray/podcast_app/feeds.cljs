@@ -237,7 +237,8 @@
   "Fetch the shows that the show `guid`, whose parsed `feed` is at `url`,
   links to into the :linked of the `store`, once: from the cache, or else
   through the app's server, and from the Podcast Index where the server
-  signs the requests to it, and keep them in the cache."
+  signs the requests to it, and keep them in the cache unless a feed
+  failed, so that the next visit asks again."
   [store guid feed url]
   (when-not (get-in @store [:linked guid])
     (swap! store assoc-in [:linked guid] {:status :fetching})
@@ -250,7 +251,8 @@
                               :index (search/index-credentials @store)})
                             (fn [fetched]
                               (let [shows (linked/kept guid fetched)]
-                                (app-cache/put! app-cache/linked guid shows)
+                                (when-not (linked/failed? fetched)
+                                  (app-cache/put! app-cache/linked guid shows))
                                 shows))))))
         (.then #(swap! store assoc-in [:linked guid] (assoc % :status :done)))
         (.catch (fn [e]

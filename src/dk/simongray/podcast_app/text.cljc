@@ -5,8 +5,8 @@
 
   Where the browser knows the language's rules, its Intl formatters write
   them, e.g. Intl.ListFormat a list. On the JVM, plain English stands in."
-  (:require [clojure.string :as str]
-            [dk.simongray.langtag :as langtag]))
+  (:require #?(:clj [clojure.string :as str])
+            [dk.simongray.podcast.feed.resolve :as resolve]))
 
 (def default-language
   "The language of the page where no document names it, e.g. in the tests:
@@ -83,19 +83,17 @@
 ;; takes the feed's language (WCAG 2.2, SC 3.1.2 Language of Parts,
 ;; technique H58). The value must be a BCP 47 tag, so a feed that names its
 ;; language English gets none: the browser would take it for an unknown
-;; language and hyphenate nothing. The en_US of some feeds means en-US.
+;; language and hyphenate nothing.
 ;; https://html.spec.whatwg.org/multipage/dom.html#the-lang-and-xml:lang-attributes
 ;; https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/hyphens
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
 (defn lang
   "The lang attribute of text in the language `tag` as a feed writes it,
-  e.g. \"en-US\" for en_us, or nil when it isn't a language tag with a
-  language of two or three letters, as ISO 639 has them."
+  e.g. \"en-US\" for en_us, or nil when it isn't a language tag, as
+  resolve/canonical-language gives it."
   [tag]
-  (when-let [{:keys [language] :as m} (some-> tag (str/replace "_" "-") langtag/parse)]
-    (when (<= 2 (count language) 3)
-      (langtag/tag m))))
+  (resolve/canonical-language tag))
 
 (def unit-symbols
   "The symbols of the units of a quantity, where Intl doesn't write them."

@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.picks-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.picks :as picks]
@@ -83,8 +84,40 @@
   (is (picks/explicit-in? lib [grinders (id "Swear Jar" 0)]) "for swearing too")
   (is (picks/explicit-in? lib [(id "Late Night" 0)]) "and of an explicit show, though it says it's clean")
   (is (not (picks/explicit-in? lib [grinders])))
-  (let [outside (show "Outside" true [] [["Swearing" "Damn."]])]
-    (is (picks/explicit-in? lib [["outside" "0"]] outside) "and in the feed of a show outside the library")))
+  (let [outside (show "Outside" true [] [["Swearing" "Damn."]])
+        feeds   {:feeds {"outside" {:feed outside :url "https://example.org/outside.xml"}}}]
+    (is (not (picks/explicit-in? lib [["outside" "0"]])))
+    (is (picks/explicit-in? lib [["outside" "0"]] feeds) "and in the feed of a show outside the library")))
+
+(deftest picks-of-a-show-outside-the-library
+  (let [url       "https://example.org/outside.xml"
+        clean     (show "Outside" false [] [["Burr grinders" "Burr grinders for espresso beans."]])
+        marked    (assoc-in clean [:rss/items 0 :itunes/explicit] true)
+        k         (guid/feed-key clean url)
+        state     (fn [feed] {:library lib :shows {k {:feed feed :url url}}})
+        page      {:id [k "0"] :guid k}
+        explicit? (fn [picked]
+                    (boolean (some #{"Espresso grinders in bed" "Damn good espresso"
+                                     "Grinders for espresso at night"}
+                                   (titles picked))))]
+    (testing "like its episode, explicit ones only when the episode is"
+      (is (seq (titles (picks/like-episode (state clean) page))))
+      (is (not (explicit? (picks/like-episode (state clean) page))))
+      (is (explicit? (picks/like-episode (state marked) page))))
+    (testing "like the show, explicit ones only when an episode of it is"
+      (is (seq (titles (picks/like-show (state clean) k))))
+      (is (not (explicit? (picks/like-show (state clean) k))))
+      (is (explicit? (picks/like-show (state marked) k))))
+    (testing "remembered while what they change with stays the same"
+      (let [s (state clean)]
+        (is (identical? (picks/like-episode s page) (picks/like-episode s page)))
+        (is (identical? (picks/like-show s k) (picks/like-show s k)))
+        (is (explicit? (picks/like-episode (preferring s {:explicit-picks? true}) page))
+            "but found again once the listener chose explicit picks")
+        (is (explicit? (picks/like-show (preferring s {:explicit-picks? true}) k)))
+        (is (not= (titles (picks/like-episode s page))
+                  (titles (picks/like-episode s (assoc page :id grinders))))
+            "or for another episode")))))
 
 (deftest picks-like-an-episode
   (let [state {:library lib}

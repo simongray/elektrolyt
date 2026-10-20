@@ -53,19 +53,13 @@
         (assoc :from clean))))
 
 (defn explicit-in?
-  "Whether any of the episodes `ids` is explicit, or of an explicit show,
-  as the library `lib` has them, or as the parsed `feed` of a show outside
-  it has them, when given."
+  "Whether any of the episodes `ids` of the library `lib` is explicit, or of
+  an explicit show, with the `opts` of library/any-meets?, e.g. the :feeds
+  of a show outside it, as outside gives them."
   ([lib ids]
-   (explicit-in? lib ids nil))
-  ([lib ids feed]
-   (boolean
-    (some (fn [[feed-key item-guid]]
-            (let [show (or (get-in lib [:feeds feed-key :feed]) feed)]
-              (when-let [item (some #(when (= item-guid (guid/item-guid %)) %)
-                                    (:rss/items show))]
-                (or (resolve/explicit? show) (resolve/explicit? show item)))))
-          ids))))
+   (explicit-in? lib ids {}))
+  ([lib ids opts]
+   (library/any-meets? lib ids {:not clean} opts)))
 
 ;; Nielsen Norman Group: say exactly what a recommendation is based on. The
 ;; words of the query that no pick holds say nothing of why they came up.
@@ -157,7 +151,7 @@
    (fn [{:keys [library] :as state} {:keys [id guid] :as page}]
      (when-let [source (and library (episode/source state guid))]
        (recommended library [id]
-                    (outside (opts state :episode (explicit-in? library [id] (:feed source)))
+                    (outside (opts state :episode (explicit-in? library [id] (outside {} source)))
                              source))))
    (fn [state {:keys [id guid]}]
      (conj (library-key state) (pr-str id) (:feed (episode/source state guid))))))
@@ -205,7 +199,8 @@
    (fn [{:keys [library] :as state} guid]
      (when-let [{:keys [feed] :as source} (and library (episode/source state guid))]
        (let [[ids weights] (show-seeds library source)
-             explicit?     (or (resolve/explicit? feed) (explicit-in? library ids feed))]
+             explicit?     (or (resolve/explicit? feed)
+                               (explicit-in? library ids (outside {} source)))]
          (if (seq ids)
            (recommended library ids (cond-> (outside (opts state :show explicit?) source)
                                       weights (assoc :weight-fn weights)))

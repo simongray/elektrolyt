@@ -25,9 +25,6 @@
          ;; requests, newer than what podcast-clj depends on
          dk.simongray/like-minded {:mvn/version "0.7.0"}
          dk.simongray/wary-fetch  {:mvn/version "0.16.0"}
-         ;; the language tags of feeds, which podcast-clj parses with it
-         ;; too, for the lang of their text
-         dk.simongray/langtag-clj {:mvn/version "0.2.0"}
          ;; what the app's server tells the page, as transit
          com.cognitect/transit-cljs {:mvn/version "0.8.280"}}
 
