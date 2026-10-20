@@ -15,7 +15,6 @@
             [dk.simongray.podcast.profile.opml :as profile.opml]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast.util.time :as time]
-            [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.queue :as queue]))
 
 (defn- profile-changed
@@ -48,7 +47,6 @@
         :inbox/dismiss-all   (changed profile.queue/dismiss-all)
         :inbox/enqueue-all   (changed profile.queue/enqueue-all)
         :inbox/undismiss-all (changed profile.queue/undismiss-all)
-        :inbox/only          (inbox/inbox-only library at)
         :settings/prefer     (changed profile/prefer)
         :opml/subscribe      (changed profile.opml/from-opml)
         :opml/mark-played    (let [[list] args]

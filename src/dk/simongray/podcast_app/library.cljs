@@ -40,10 +40,15 @@
   "The IndexedDB database of the library, which opens at its first use."
   (indexeddb/store "dk.simongray.podcast-app.library"))
 
+;; The app offers no choice of where new episodes go, so every one of them
+;; arrives in the inbox, though an earlier version of the app, or another
+;; app, chose the queue or nowhere for a show. That choice stays in the
+;; show's settings, for the apps that offer it.
 (def config
   "The config of the library in every tab and the worker of the app."
-  {:send  send
-   :codec transit/codec})
+  {:send         send
+   :codec        transit/codec
+   :new-episodes :inbox})
 
 (def document-name
   "The name of the library's own document in the store, as podcast-clj

@@ -2,7 +2,6 @@
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.mind-meld :as crdt]
             [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.operations :as operations]))
@@ -75,32 +74,3 @@
     (is (= [(id 1) (id 2) (id 3)] (profile.queue/queue (:profile (:library queued))))
         "the oldest first, as a refresh queues them")
     (is (= "Added 3 episodes to the queue" (:announcement queued)))))
-
-(defn new-episodes
-  "Where the new episodes of the show of the `state` go, and those of a
-  new show."
-  [state]
-  (let [p (:profile (:library state))]
-    [(profile/new-episodes (profile/settings p k))
-     (profile/new-episodes (merge profile/default-settings
-                                  (:subscription-defaults (profile/preferences p))))]))
-
-(defn inbox-only [state]
-  (operations/changed state {:operation [:inbox/only]}))
-
-(deftest every-new-episode-arrives-in-the-inbox
-  (is (identical? lib (inbox/inbox-only lib #inst "2026-10-20")) "as they do at first")
-  (is (nil? (inbox/inbox-only nil #inst "2026-10-20")) "and before the library is restored")
-  (let [elsewhere {:library (-> lib
-                                (library/update-profile profile/configure k
-                                                        (profile/new-episodes-settings :queue))
-                                (library/update-profile profile/prefer
-                                                        {:subscription-defaults
-                                                         (profile/new-episodes-settings :none)}))}]
-    (is (= [:queue :none] (new-episodes elsewhere)))
-    (is (= [:inbox :inbox] (new-episodes (inbox-only elsewhere)))
-        "though an earlier version of the app sent them elsewhere")
-    (is (= :inbox (first (new-episodes (inbox-only
-                                        (update elsewhere :library library/update-profile
-                                                profile/unsubscribe k)))))
-        "even for a show that the listener unsubscribed from, whose settings hold again")))
