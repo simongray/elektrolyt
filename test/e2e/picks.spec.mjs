@@ -150,12 +150,15 @@ test("Home's picks are like the episode heard last, of other shows", async ({ pa
 test('Autoplay plays the first pick once the episode ends with nothing queued', async ({ page, context }) => {
   await serve(context, [coffee, brew, bikes]);
   await subscribe(page, [coffee, brew, bikes]);
-  await navLink(page, 'Settings').click();
-  await page.getByRole('main').getByRole('switch', { name: 'Autoplay' }).check();
 
   const audio = await play(page, coffee, 0);
   const title = page.getByRole('region', { name: 'Player' }).locator('.player-title a');
   await expect(title).toHaveText(coffee.episodes[0][0]);
+  // The listener chooses Autoplay after play loads the episode's page, since
+  // that load can cut the save of the choice short, e.g. while a refresh
+  // holds the library.
+  await navLink(page, 'Settings').click();
+  await page.getByRole('main').getByRole('switch', { name: 'Autoplay' }).check();
   // The fixture's frames of 24 bytes have no room for a Xing header, so a
   // browser guesses its duration from its size, a little long. Chrome on
   // Linux plays to the end of its data and waits there without ending it,
