@@ -9,7 +9,8 @@
   :settings-status, a map of the :group of settings that it's about and
   its :text, and what the browser said of its storage as :storage, a map
   of :supported?, :persisted? and the :usage in bytes."
-  (:require [dk.simongray.podcast.profile :as profile]))
+  (:require [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast-app :as-alias app]))
 
 ;; Apple Podcasts offers skips of 10 to 60 seconds, and AntennaPod a list
 ;; of them too, rather than a number to type, which can't be wrong
@@ -35,8 +36,8 @@
 ;; listener choose, since some want a dark device but light pages
 ;; https://web.dev/articles/prefers-color-scheme
 (def appearances
-  "The colours that the app can have, as profile/default-preferences names
-  them for :appearance, with the text of each."
+  "The colours that the app can have, as the app keeps them, with the text
+  of each."
   [[:auto "Automatic, as the device"]
    [:light "Light"]
    [:dark "Dark"]])
@@ -46,11 +47,26 @@
 ;; on a device that asks for more
 ;; https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
 (def contrasts
-  "The contrasts that the app can have, as profile/default-preferences
-  names them for :contrast, with the text of each."
+  "The contrasts that the app can have, as the app keeps them, with the
+  text of each."
   [[:auto "Automatic, as the device"]
    [:standard "Standard"]
    [:more "More"]])
+
+;; podcast-clj's profile/prefer: preferences that only this app reads sync
+;; with the others under keys of its own namespace, which other apps leave
+;; alone. Until October 2026, the app kept them under the same keys
+;; without a namespace, which a profile may still hold.
+(def defaults
+  "The preferences that the app keeps of its own, by their keys in the
+  profile, with their values until the listener chooses others."
+  {::app/appearance         :auto
+   ::app/contrast           :auto
+   ::app/artwork-colors?    true
+   ::app/navigation-palette :pages
+   ::app/player-size        :medium
+   ::app/explicit-picks?    false
+   ::app/autoplay?          false})
 
 (defn preferences
   "The listener's preferences in the library of the `state`, or nil before
@@ -58,17 +74,25 @@
   [state]
   (some-> (:library state) :profile profile/preferences))
 
+(defn preference
+  "The app's own preference `k` in the `state`, one of the keys of
+  defaults: the listener's choice, under `k` or the key without its
+  namespace that the app kept before, or else the default."
+  [state k]
+  (let [prefs (preferences state)]
+    (get prefs k (get prefs (keyword (name k)) (defaults k)))))
+
 (defn theme
   "The colours that the listener chose in the `state`, \"light\" or
   \"dark\", or nil for the device's."
   [state]
-  (some-> (#{:light :dark} (:appearance (preferences state))) name))
+  (some-> (#{:light :dark} (preference state ::app/appearance)) name))
 
 (defn contrast
   "The contrast that the listener chose in the `state`, \"standard\" or
   \"more\", or nil for the device's."
   [state]
-  (some-> (#{:standard :more} (:contrast (preferences state))) name))
+  (some-> (#{:standard :more} (preference state ::app/contrast)) name))
 
 (defn look
   "The colours and the contrast that the listener chose in the `state`, as
@@ -83,27 +107,24 @@
   "Whether the pages take colours from artwork in the `state`, which they
   do until the listener prefers the app's own."
   [state]
-  (:artwork-colors? (preferences state) true))
+  (preference state ::app/artwork-colors?))
 
 ;; The colours that colour-coded's vision namespace found for colour
 ;; blindness keep the pages apart for protans, deutans and tritans, but are
 ;; closer to each other than the pages' own colours, so they're a choice
 (def navigation-palettes
   "The colours that the links of the navigation can have, as the app keeps
-  them for :navigation-palette, with the text of each."
+  them, with the text of each."
   [[:pages "A colour for each page"]
    [:player "The player's colour"]
    [:color-blind "Colours for colour blindness"]
    [:none "None"]])
 
-;; The app's own preference, which syncs with the others, but which
-;; profile/default-preferences doesn't name, since another app's navigation
-;; needn't have colours
 (defn navigation-palette
   "The colours of the links of the navigation that the listener chose in
   the `state`, a colour for each page until they choose others."
   [state]
-  (:navigation-palette (preferences state) :pages))
+  (preference state ::app/navigation-palette))
 
 (def player-sizes
   "The sizes of the player, and so of its artwork, with the text of each,
@@ -114,26 +135,23 @@
 
 (defn player-size
   "The size of the player that the listener chose in the `state`, medium
-  until they choose another, as a :player-size that the app keeps, as it
-  does :navigation-palette."
+  until they choose another."
   [state]
-  (:player-size (preferences state) :medium))
+  (preference state ::app/player-size))
 
 (defn explicit-picks?
   "Whether the picks of the `state` may be explicit episodes anywhere, as
-  they may not until the listener chooses so, as an :explicit-picks? that
-  the app keeps."
+  they may not until the listener chooses so."
   [state]
-  (:explicit-picks? (preferences state) false))
+  (preference state ::app/explicit-picks?))
 
 ;; Pocket Casts' Autoplay is off until the listener turns it on
 ;; https://blog.pocketcasts.com/2023/07/25/introducing-autoplay/
 (defn autoplay?
   "Whether a pick plays when nothing else would after an episode ends, in
-  the `state`, which it doesn't until the listener chooses so, as an
-  :autoplay? that the app keeps."
+  the `state`, which it doesn't until the listener chooses so."
   [state]
-  (:autoplay? (preferences state) false))
+  (preference state ::app/autoplay?))
 
 (defn preferred
   "The change that sets the listener's preferences `prefs`."

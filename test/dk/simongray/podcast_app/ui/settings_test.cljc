@@ -1,5 +1,6 @@
 (ns dk.simongray.podcast-app.ui.settings-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
             [dk.simongray.podcast-app.ui.settings :as settings-ui]
             [dk.simongray.podcast-app.ui-test :refer [elements nodes text-of]]))
@@ -47,13 +48,13 @@
       (is (= "pages" (chosen x "navigation-colours")) "and a colour for each page")
       (is (= "medium" (chosen x "player-size")) "and a player of medium size"))
     (testing "each change applied at once"
-      (is (= [[:settings/prefer :appearance [:event/target-keyword]]]
+      (is (= [[:settings/prefer ::app/appearance [:event/target-keyword]]]
              (get-in (by-id x :select "light-or-dark") [1 :on :change])))
-      (is (= [[:settings/prefer :contrast [:event/target-keyword]]]
+      (is (= [[:settings/prefer ::app/contrast [:event/target-keyword]]]
              (get-in (by-id x :select "contrast") [1 :on :change])))
-      (is (= [[:settings/prefer :artwork-colors? [:event/target-checked]]]
+      (is (= [[:settings/prefer ::app/artwork-colors? [:event/target-checked]]]
              (get-in (by-id x :input "artwork-colours") [1 :on :change])))
-      (is (= [[:settings/prefer :navigation-palette [:event/target-keyword]]]
+      (is (= [[:settings/prefer ::app/navigation-palette [:event/target-keyword]]]
              (get-in (by-id x :select "navigation-colours") [1 :on :change])))
       (is (= [[:settings/prefer :skip-back [:event/target-number]]]
              (get-in (by-id x :select "skip-back") [1 :on :change]))))

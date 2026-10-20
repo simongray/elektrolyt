@@ -3,6 +3,7 @@
   navigation links to, the navigation in the colours that the listener can
   choose, and a path that no page has."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]
@@ -22,7 +23,7 @@
   [palette]
   (operations/changed {:route   {:name :route/queue :path-params {}}
                        :library (library/make "scenes")}
-                      (settings/preferred {:navigation-palette palette})))
+                      (settings/preferred {::app/navigation-palette palette})))
 
 (defscene colours-for-colour-blindness
   "The navigation in the colours that keep its pages apart for colour

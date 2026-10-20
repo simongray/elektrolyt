@@ -12,7 +12,8 @@
   https://www.nngroup.com/articles/toggle-switch-guidelines/
   https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings
   https://design-system.service.gov.uk/components/fieldset/"
-  (:require [dk.simongray.podcast-app.player :as player]
+  (:require [dk.simongray.podcast-app :as-alias app]
+            [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.settings :as settings]
@@ -81,22 +82,25 @@
   in the navigation has a colour of its own, and the size of the player,
   which sync with the profile as the other preferences do."
   [state]
-  (let [{:keys [appearance contrast]} (settings/preferences state)]
-    (group :appearance "Appearance"
-           (choice "light-or-dark" "Light or dark" settings/appearances
-                   appearance [:settings/prefer :appearance [:event/target-keyword]])
-           (choice "contrast" "Contrast" settings/contrasts
-                   contrast [:settings/prefer :contrast [:event/target-keyword]])
-           (switch "artwork-colours" "Colours from the artwork"
-                   (str "The player takes its colours from the artwork of what "
-                        "plays, and a show's page from the show's artwork. "
-                        "Otherwise the player keeps the app's own dark grey, and a "
-                        "show's page the app's own colours.")
-                   (settings/artwork-colors? state) :artwork-colors?)
-           (choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
-                   (settings/navigation-palette state) [:settings/prefer :navigation-palette [:event/target-keyword]])
-           (choice "player-size" "Player size" settings/player-sizes
-                   (settings/player-size state) [:settings/prefer :player-size [:event/target-keyword]]))))
+  (group :appearance "Appearance"
+         (choice "light-or-dark" "Light or dark" settings/appearances
+                 (settings/preference state ::app/appearance)
+                 [:settings/prefer ::app/appearance [:event/target-keyword]])
+         (choice "contrast" "Contrast" settings/contrasts
+                 (settings/preference state ::app/contrast)
+                 [:settings/prefer ::app/contrast [:event/target-keyword]])
+         (switch "artwork-colours" "Colours from the artwork"
+                 (str "The player takes its colours from the artwork of what "
+                      "plays, and a show's page from the show's artwork. "
+                      "Otherwise the player keeps the app's own dark grey, and a "
+                      "show's page the app's own colours.")
+                 (settings/artwork-colors? state) ::app/artwork-colors?)
+         (choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
+                 (settings/navigation-palette state)
+                 [:settings/prefer ::app/navigation-palette [:event/target-keyword]])
+         (choice "player-size" "Player size" settings/player-sizes
+                 (settings/player-size state)
+                 [:settings/prefer ::app/player-size [:event/target-keyword]])))
 
 (defn playback
   "The settings of how the listener plays, by their preferences in the
@@ -120,7 +124,7 @@
            (switch "autoplay" "Autoplay"
                    (str "When an episode ends and neither the queue nor Continuous "
                         "play has another, the first of More like your queue plays.")
-                   (settings/autoplay? state) :autoplay?)
+                   (settings/autoplay? state) ::app/autoplay?)
            (choice "track-buttons" "Next and previous on the lock screen go to"
                    settings/track-buttons
                    track-buttons [:settings/prefer :track-buttons [:event/target-keyword]]))))
@@ -134,7 +138,7 @@
                  (str "Unless this is on, recommendations are explicit only under "
                       "an explicit episode or show, and at the end of a queue that "
                       "has one.")
-                 (settings/explicit-picks? state) :explicit-picks?)))
+                 (settings/explicit-picks? state) ::app/explicit-picks?)))
 
 ;; Kagi's lenses: only those turned on in the settings appear while
 ;; searching. The order of the rows is the order of the lists of the
