@@ -112,15 +112,23 @@
 
 ;; HTML, scroll to the fragment, which a navigation by pushState leaves
 ;; undone: the start of the element at the top, as far as the page
-;; scrolls. The focus moves there too, as the skip link moves it.
+;; scrolls. The focus moves there too, as the skip link moves it. A face
+;; that the page needs only once it's laid out, e.g. the bold of a
+;; heading, loads after the scroll and moves the text above the element,
+;; so it scrolls again once the fonts are in, unless the focus moved on.
 ;; https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-fragid
+;; https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready
 (defn scroll-to!
   "Scroll the element `id` to the top of the page and move the focus to
   it, like a fragment of the URL."
   [id]
   (when-let [^js target (js/document.getElementById id)]
-    (.scrollIntoView target #js {:block "start" :inline "nearest"})
-    (.focus target #js {:preventScroll true})))
+    (let [scroll! #(.scrollIntoView target #js {:block "start" :inline "nearest"})]
+      (scroll!)
+      (.focus target #js {:preventScroll true})
+      (some-> js/document .-fonts .-ready
+              (.then #(when (identical? target js/document.activeElement)
+                        (scroll!)))))))
 
 (defn open-dialog!
   "Open the dialog `id` as a modal one, with no answer yet."

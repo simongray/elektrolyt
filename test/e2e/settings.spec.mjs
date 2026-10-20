@@ -51,7 +51,9 @@ test('continuous play is a switch', async ({ page }) => {
 
 /** The distance of the `heading` from the top of the main content, inside its edge, and how far the whole page scrolled. */
 function landing(heading) {
-  return heading.evaluate(h => {
+  return heading.evaluate(async h => {
+    // once the faces that the page needs are in, which move the text
+    await document.fonts.ready;
     const main = h.closest('main');
     return {
       below: h.getBoundingClientRect().top - (main.getBoundingClientRect().top + main.clientTop),

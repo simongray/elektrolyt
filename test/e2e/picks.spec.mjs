@@ -156,7 +156,17 @@ test('Autoplay plays the first pick once the episode ends with nothing queued', 
   const audio = await play(page, coffee, 0);
   const title = page.getByRole('region', { name: 'Player' }).locator('.player-title a');
   await expect(title).toHaveText(coffee.episodes[0][0]);
-  await audio.evaluate(a => { a.currentTime = a.duration - 1; });
+  // The fixture's frames of 24 bytes have no room for a Xing header, so a
+  // browser guesses its duration from its size, a little long. Chrome on
+  // Linux plays to the end of its data and waits there without ending it,
+  // so the test ends it as a browser does: a pause, then ended.
+  await audio.evaluate(a => new Promise(resolve => {
+    a.addEventListener('pause', () => {
+      a.dispatchEvent(new Event('ended'));
+      resolve();
+    }, { once: true });
+    a.pause();
+  }));
 
   await expect(title).toHaveText(brew.episodes[0][0], { timeout: 15_000 });
   await expect.poll(() => audio.evaluate((a, guid) => !a.paused && a.src.includes(guid),
