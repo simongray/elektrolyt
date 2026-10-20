@@ -43,7 +43,7 @@
   image of the chapter at the current time, or else the playback, whose
   artwork the player shows, or nil."
   [{:keys [player] :as state}]
-  (let [playback (player/shown-playback player)
+  (let [playback (player/shown-playback state)
         chapter  (player/chapter-at playback (:current-time (player/shown-media player)))]
     (if-let [image (:img chapter)]
       {:artwork image}
@@ -130,7 +130,8 @@
     {:style {:background-color c}}))
 
 (comment
-  (wanted {:route  {:name :route/queue}
-           :player {:playback {:artwork "https://example.org/a.jpg"}}})
+  (require '[dk.simongray.podcast-app.player-test :as player-test])
+  ;; the artwork of what plays, for the bars
+  (wanted (assoc (player-test/state {}) :route {:name :route/queue}))
   ;; => [{:artwork "https://example.org/a.jpg"}]
   #_.)

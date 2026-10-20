@@ -92,9 +92,8 @@
               (reduce #(library/update-profile %1 profile/progress %2 600) lib heard)
               (reduce #(library/update-profile %1 profile.queue/enqueue %2) lib queued))]
     (cond-> {:route {:name route-name} :library lib}
-      (seq queued) (assoc :player {:id       (first queued)
-                                   :playback (library/playback lib (first queued))
-                                   :media    {:paused true :current-time 600 :duration 1800}}))))
+      (seq queued) (assoc :player {:id    (first queued)
+                                   :media {:paused true :current-time 600 :duration 1800}}))))
 
 (def listener
   "The state of a listener who heard about value for value, and queued a

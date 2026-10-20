@@ -1,24 +1,9 @@
 (ns dk.simongray.podcast-app.ui.player-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.player-test :refer [state]]
             [dk.simongray.podcast-app.ui.player :as player-ui]
             [dk.simongray.podcast-app.ui-test :refer [elements nodes text-of]]))
-
-(def playback
-  {:id       ["f" "e"]
-   :title    "Episode 7"
-   :show     "A Show"
-   :chapters {:document {:chapters [{:start-time 0 :title "Intro"} {:start-time 60 :title "News"}]}}})
-
-(defn state
-  "The state of a page whose player has the episode of the test, with the
-  `player` merged in."
-  [player]
-  {:library (library/make "test")
-   :player  (merge {:id       ["f" "e"]
-                    :playback playback
-                    :media    {:paused false :current-time 75 :duration 3600 :playback-rate 1.5}}
-                   player)})
 
 (defn buttons
   "The buttons of the Hiccup `x`, with or without a class."

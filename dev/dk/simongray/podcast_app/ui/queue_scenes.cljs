@@ -16,9 +16,8 @@
                 (library/step [:progress (id (first is)) 630 5400]))]
     {:route   {:name :route/queue}
      :library lib
-     :player  {:id       (id (first is))
-               :playback (library/playback lib (id (first is)))
-               :media    {:paused true :current-time 630 :duration 5400}}}))
+     :player  {:id    (id (first is))
+               :media {:paused true :current-time 630 :duration 5400}}}))
 
 (defscene the-queue
   "The episode that plays, and three up next, each with its buttons."

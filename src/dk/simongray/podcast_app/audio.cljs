@@ -6,8 +6,15 @@
 
   The element is the same for every episode. A phone's browser lets a page
   play an element that the listener started, so the next episode of the
-  queue plays in it too, and the lock screen keeps its session."
-  (:require [dk.simongray.play-nice.controls :as controls]
+  queue plays in it too, and the lock screen keeps its session.
+
+  One tab's element plays at a time, by play-nice's play lock. As its
+  media state changes, that tab posts it to the other tabs on a
+  BroadcastChannel of the app's own, and it runs the commands that they
+  send it. When it pauses, the other tabs move their paused elements to
+  where it stopped, so that Play in any tab goes on from there."
+  (:require [cljs.reader :as reader]
+            [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.media :as media]
             [dk.simongray.play-nice.page.tabs :as tabs]
             [dk.simongray.play-nice.session :as session]
@@ -26,6 +33,13 @@
   "The audio element of the player, or nil before anything plays."
   []
   (js/document.querySelector "#player audio"))
+
+(defn playing-element
+  "The audio element of the player while it plays, or nil."
+  []
+  (let [el (element)]
+    (when (and el (not (.-paused el)))
+      el)))
 
 (def volume-key
   "The key of the level of the volume slider in localStorage, since the
@@ -52,15 +66,27 @@
                   (js/console.error "The library wasn't saved" (clj->js %))
                   (unsaved/saved! unsaved-prefix started))))))
 
-(defn playback
-  "What library/playback gives for the episode `id` of the `state`, with
-  what the Episode page read of its files, e.g. a chapters file, and the
-  artwork of its chapters through the app's proxy."
-  [{:keys [library episodes] :as state} id]
-  (some-> (library/playback library id (if-let [read (get-in episodes [id :result])]
-                                         {:read read}
-                                         {}))
-          (update :metadata player/with-proxied-chapters)))
+(defonce ^{:doc "The BroadcastChannel of the player across the tabs, opened
+  at its first use, or nil where the browser has none."}
+  channel
+  (delay (when (exists? js/BroadcastChannel)
+           (js/BroadcastChannel. player/channel-name))))
+
+(defonce ^{:doc "The id of this tab on the channel."}
+  tab
+  (str (random-uuid)))
+
+(defn post!
+  "Send the `message` to the other tabs on the channel, as EDN."
+  [message]
+  (some-> ^js @channel (.postMessage (pr-str message))))
+
+(defn tell!
+  "Post the `media` state of this tab's element, as media/state returns
+  it, to the other tabs, with the episode of the player of the `store`."
+  [store media]
+  (post! {:type  :told
+          :state (player/told media (get-in @store [:player :id]) tab (js/Date.now))}))
 
 (declare press! play-id!)
 
@@ -104,13 +130,22 @@
   "Show the episode of the player of the `store` on the lock screen, with
   the buttons that do something for it."
   [store]
-  (let [{:keys [library player]} @store
-        {:keys [id playback]}    player]
+  (let [{:keys [library player] :as state} @store
+        id                                 (:id player)]
     (when-let [el (and id (element))]
-      (session/metadata! (:metadata playback))
+      (session/metadata! (:metadata (player/playback state id)))
       (session/actions! (select-keys (handlers store el)
                                      (concat [:play :pause :stop]
                                              (media-session/actions library id)))))))
+
+(defn moved!
+  "Save the library of the `store` and post the state of its `element` to
+  the other tabs after the listener moved it while it's paused, since no
+  pause will do either."
+  [store ^js element]
+  (when (.-paused element)
+    (save! store)
+    (tell! store (media/state element))))
 
 (defn press!
   "Do what the Media Session action of `details` asks for in the player of
@@ -121,7 +156,8 @@
         id                       (:id player)]
     (when-let [el (and id (element))]
       (swap! store assoc-in [:player :seeking] nil)
-      (run! #(step! store %) (media-session/events library id (.-currentTime el) details)))))
+      (run! #(step! store %) (media-session/events library id (.-currentTime el) details))
+      (moved! store el))))
 
 (defn media-of
   "The position and the duration of the audio `element`, under the keys of
@@ -163,18 +199,21 @@
 
 (defn changed!
   "Keep the `media` state of the element in the player of the `store`, to
-  the whole second, and tell the library and save it when it's time, as
-  long as no other tab has the newest playback."
+  the whole second, and tell the library and save it when it's time.
+  While the element plays, and as it pauses, post each change to the
+  other tabs."
   [store media]
-  (let [{old :media :keys [reported saved] :as p} (:player @store)
-        media                                      (player/whole-seconds media)]
-    (when (not= media old)
-      (swap! store assoc-in [:player :media] media))
-    (when (and (player/writes? p) (player/report? old media reported))
-      (report! store media))
-    (when (player/save? old media saved (js/Date.now))
+  (let [{old :media :keys [reported saved]} (:player @store)
+        shown                               (player/whole-seconds media)]
+    (when (not= shown old)
+      (swap! store assoc-in [:player :media] shown)
+      (when (or (false? (:paused shown)) (false? (:paused old)))
+        (tell! store media)))
+    (when (player/report? old shown reported)
+      (report! store shown))
+    (when (player/save? old shown saved (js/Date.now))
       (save! store))
-    (buffering! store media)))
+    (buffering! store shown)))
 
 (defn answered!
   "Keep the browser's `answer` to a play in the player of the `store`, when
@@ -191,8 +230,8 @@
 (defn read-files!
   "Read the files of the episode `id` into the :episodes of the `store`
   once, with `read`, a function that gives a promise of them, e.g. for the
-  chapters of a chapters file or the media file, and show them in the
-  player and on the lock screen while the player has the episode."
+  chapters of a chapters file or the media file, and show them on the lock
+  screen while the player has the episode."
   [store id read]
   (when-not (get-in @store [:episodes id :status])
     (swap! store assoc-in [:episodes id :status] :reading)
@@ -200,7 +239,6 @@
         (.then (fn [result]
                  (swap! store update-in [:episodes id] assoc :status :read :result result)
                  (when (= id (get-in @store [:player :id]))
-                   (swap! store assoc-in [:player :playback] (playback @store id))
                    (lock-screen! store))))
         (.catch #(swap! store update-in [:episodes id] assoc :status :read
                         :error {:message (ex-message %)})))))
@@ -214,12 +252,12 @@
 
 (defn load!
   "Load the episode `id` of the library into the player of the `store`, at
-  `t` seconds when it's given, or else where the listener left it, and
+  `t` seconds when they're given, or else where the listener left it, and
   return the element."
   [store id t]
-  (let [pb (playback @store id)]
+  (let [pb (player/playback @store id)]
     (swap! store update :player assoc
-           :id id :playback pb :answer nil :reported nil :seeking nil)
+           :id id :answer nil :reported nil :seeking nil)
     (read-library-files! store id)
     ;; the render of the swap is done, so the element is in the page
     (when-let [el (element)]
@@ -227,17 +265,36 @@
       (lock-screen! store)
       el)))
 
+(defn cue!
+  "Load the episode `id` of the library into the player of the `store`,
+  unless it has it already, and return the element. Move it to `t`
+  seconds and set its `rate` when they're given."
+  [store id t rate]
+  (let [el (if (= id (get-in @store [:player :id]))
+             (let [el (element)]
+               (when (and el (number? t))
+                 (media/seek! el t))
+               el)
+             (load! store id t))]
+    (when (and el (number? rate))
+      (media/rate! el rate))
+    el))
+
 (defn play-id!
-  "Play the episode `id` of the library in the player of the `store`, from
-  `t` seconds when it's given, or else from where the player is in it, or
-  where the listener left it."
+  "Play the episode `id` of the library in the player of the `store`: from
+  `t` seconds when they're given, or else from where another tab plays it
+  (at that tab's rate), from where the player is in it, or from where the
+  listener left it."
   [store id t]
-  (let [same? (= id (get-in @store [:player :id]))
-        el    (if same? (element) (load! store id t))]
-    (when-not same?
+  (let [p     (:player @store)
+        there (let [there (player/elsewhere p)]
+                (when (= id (:id there))
+                  there))
+        el    (cue! store id
+                    (or t (some-> there (tabs/position (js/Date.now))))
+                    (:playback-rate there))]
+    (when-not (= id (:id p))
       (unsaved/keep-played! unsaved-prefix id))
-    (when (and same? el (number? t))
-      (media/seek! el t))
     (some->> el (play-element! store))))
 
 (defn added
@@ -280,11 +337,13 @@
   "Go to the chapter in `direction`, :previous or :next, of the episode of
   the player of the `store`."
   [store direction]
-  (let [{:keys [id playback]} (:player @store)
-        el                    (element)]
-    (when-let [doc (and id el (player/chapter-doc playback))]
+  (let [{:keys [player] :as state} @store
+        id                         (:id player)
+        el                         (element)]
+    (when-let [doc (and id el (player/chapter-doc (player/playback state id)))]
       (report! store (media-of el))
-      (step! store [:chapter id direction doc]))))
+      (step! store [:chapter id direction doc])
+      (moved! store el))))
 
 (defn drag!
   "Show the seek bar at the seek of `details` while it's dragged, and seek
@@ -297,9 +356,12 @@
   "Play at `rate`, and keep it as the listener's preference."
   [store rate]
   (when (js/Number.isFinite rate)
-    (some-> (element) (media/rate! rate))
-    (swap! store update :library library/update-profile profile/prefer {:playback-rate rate})
-    (save! store)))
+    (let [el (element)]
+      (some-> el (media/rate! rate))
+      (swap! store update :library library/update-profile profile/prefer {:playback-rate rate})
+      (if (some-> el .-paused)
+        (moved! store el)
+        (save! store)))))
 
 (defn volume!
   "Set the volume slider of the player of the `store` to `level`, and keep
@@ -315,114 +377,121 @@
   [muted?]
   (some-> (element) (media/muted! muted?)))
 
-(defn shared-handlers
-  "The handlers of the actions that the other tabs send to the player of the
-  `store` while its `element` plays: those of the lock screen and the
-  keys, and those of the player's own controls."
-  [store element]
-  (merge (handlers store element)
-         {:drag    #(drag! store %)
-          :chapter #(chapter! store (:direction %))
-          :rate    #(rate! store (:rate %))
-          :volume  #(volume! store (:volume %))
-          :muted   #(mute! (:muted %))}))
+(defn command!
+  "Do the `command` in the player of the `store`, as its controls or
+  another tab ask: [:pause], [:press details], [:drag details], [:chapter
+  direction], [:rate rate], [:volume level] or [:mute muted?]."
+  [store [kind x]]
+  (case kind
+    :pause   (some-> (element) media/pause!)
+    :press   (press! store x)
+    :drag    (drag! store x)
+    :chapter (chapter! store x)
+    :rate    (rate! store x)
+    :volume  (volume! store x)
+    :mute    (mute! x)
+    nil))
 
 ;; W3C Remote Playback API: while the media plays elsewhere, the local
 ;; player shows the remote state, and its commands go there
 ;; https://www.w3.org/TR/remote-playback/
 (defn act!
-  "Do the action of `details` to the playback that the player of the
-  `store` shows: in the tab that plays it, where that's another, and else
-  here with `local!`, from where the playback is, telling the other tabs
-  of a change of the paused element."
-  [store details local!]
-  (if (player/playing-elsewhere? (:player @store))
-    (do (swap! store assoc-in [:player :seeking] nil)
-        (tabs/press! player/element-name details))
-    (let [el (element)]
-      (when (and el (.-paused el))
-        (tabs/align! el))
-      (local!)
-      (when (and el (.-paused el))
-        (tabs/share! el)))))
+  "Do the `command`, as for command!, to the playback that the player of
+  the `store` shows: in the tab that plays it, when that's another tab, or
+  else here. The volume and the mute change here as well, since this
+  tab's slider shows the level that the browser keeps."
+  [store [kind details :as command]]
+  (if (player/elsewhere (:player @store))
+    (do (swap! store assoc-in [:player :seeking] (when (= :drag kind) (:seek-time details)))
+        (post! {:type :command :command command})
+        (when (#{:volume :mute} kind)
+          (command! store command)))
+    (command! store command)))
 
-(defn pause-shown!
-  "Pause the playback that the player of the `store` shows, where it
-  plays."
-  [store]
-  (if (player/playing-elsewhere? (:player @store))
-    (tabs/press! player/element-name {:action :pause})
-    (some-> (element) media/pause!)))
-
-(defn resume-shown!
-  "Play the playback that the player of the `store` shows, here: the
-  episode of another tab's newest playback, where it's another than this
-  one's, or else this one, from where the playback is."
-  [store]
-  (let [{:keys [id] :as p} (:player @store)
-        other              (:id (player/elsewhere p))]
-    (if (and other (not= other id))
-      (play-id! store other nil)
-      (resume! store))))
-
-(defn drag-shown!
-  "Show the seek bar at the seek of `details` while it's dragged, and seek
-  near there, in the tab that plays."
-  [store {:keys [seek-time] :as details}]
-  (if (player/playing-elsewhere? (:player @store))
-    (do (swap! store assoc-in [:player :seeking] seek-time)
-        (tabs/press! player/element-name (assoc details :action :drag)))
-    (drag! store details)))
-
-(defn volume-shown!
-  "Set the volume of the player of the `store` to `level`, and of the tab
-  that plays, whose sound the listener hears."
-  [store level]
-  (volume! store level)
-  (when (player/playing-elsewhere? (:player @store))
-    (tabs/press! player/element-name {:action :volume :volume level})))
-
-(defn mute-shown!
-  "Mute the player of the `store`, or unmute it where `muted?` is false,
-  and the tab that plays."
-  [store muted?]
-  (mute! muted?)
-  (when (player/playing-elsewhere? (:player @store))
-    (tabs/press! player/element-name {:action :muted :muted muted?})))
-
-(defonce ^{:doc "The interval that moves the playback of another tab on in
-  the player while it plays there."}
+(defonce ^{:doc "The interval that moves the clock of the player on while
+  another tab plays."}
   ticker
   (atom nil))
 
-(defn shared-moved
-  "The `state` with the player's :shared-position, where the newest
-  playback across the tabs is by now, to the whole second, and the
-  :shared-playback of its episode, as library/playback gives it."
-  [state]
-  (let [{:keys [shared shared-playback]} (:player state)
-        id                               (:id shared)]
-    (update state :player assoc
-            :shared-position (some-> shared (tabs/position (js/Date.now)) js/Math.floor)
-            :shared-playback (when id
-                               (if (= id (:id shared-playback))
-                                 shared-playback
-                                 (playback state id))))))
+(declare ticked!)
 
-(defn shared!
-  "Keep the newest playback across the tabs, `shared`, as tabs/watch!
-  gives it, in the player of the `store`, moved on every second while
-  another tab plays it."
-  [store shared]
-  (swap! store #(shared-moved (assoc-in % [:player :shared] shared)))
-  (let [moving? (player/playing-elsewhere? (:player @store))]
+(defn clock!
+  "Move the clock of the player of the `store` on once a second while
+  another tab plays, and stop it otherwise."
+  [store]
+  (let [moving? (some? (player/elsewhere (:player @store)))]
     (cond
       (and moving? (not @ticker))
-      (reset! ticker (js/setInterval #(swap! store shared-moved) 1000))
+      (reset! ticker (js/setInterval #(ticked! store) 1000))
 
       (and (not moving?) @ticker)
       (do (js/clearInterval @ticker)
           (reset! ticker nil)))))
+
+(defn follow!
+  "Move the paused element of the player of the `store` to where another
+  tab's media `state` stopped, so that Play here goes on from there, and
+  forget that tab's playback."
+  [store {:keys [id current-time playback-rate] :as state}]
+  (when-not (playing-element)
+    (cue! store id current-time playback-rate))
+  (swap! store update :player dissoc :elsewhere)
+  (clock! store))
+
+(defn ticked!
+  "Move the clock of the player of the `store` on to now. Once the tab that
+  played has gone silent, e.g. because it crashed, follow its playback to
+  where it last was."
+  [store]
+  (let [{:keys [elsewhere] :as p} (:player (swap! store assoc-in [:player :now] (js/Date.now)))]
+    (if (and elsewhere (not (player/elsewhere p)))
+      (follow! store elsewhere)
+      (clock! store))))
+
+(defn told!
+  "Take the media `state` that another tab posted into the player of the
+  `store`, if it's the newer one: keep it while that tab plays, or else
+  follow it to where it stopped."
+  [store state]
+  (let [now                 (js/Date.now)
+        {:keys [elsewhere]} (:player @store)
+        newer               (player/heard elsewhere state now)]
+    (cond
+      (identical? newer elsewhere)
+      nil
+
+      (false? (:paused newer))
+      (do (swap! store update :player assoc :elsewhere newer :now now)
+          (clock! store))
+
+      :else
+      (follow! store newer))))
+
+(defn heard!
+  "Handle the `message` that another tab sent on the channel, in the
+  player of the `store`: its media state, the question of a tab that just
+  opened, which the playing tab answers, or a command for the playing
+  tab."
+  [store {:keys [type] :as message}]
+  (case type
+    :told    (told! store (:state message))
+    :ask     (some->> (playing-element) media/state (tell! store))
+    :command (when (playing-element)
+               (command! store (:command message)))
+    nil))
+
+(defn listen!
+  "Follow the messages that the other tabs send on the channel, in the
+  player of the `store`, and ask the tab that plays, if any, for its media
+  state."
+  [store]
+  (when-let [^js ch @channel]
+    (.addEventListener ch "message"
+                       (fn [^js e]
+                         (let [message (try (reader/read-string (.-data e)) (catch :default _ nil))]
+                           (when (map? message)
+                             (heard! store message)))))
+    (post! {:type :ask})))
 
 (defonce ^{:doc "The function that stops following the element."}
   detach!
@@ -430,24 +499,21 @@
 
 (defn mounted!
   "Follow the audio `element` that the player of the `store` mounted: keep
-  its state, put it on the lock screen, share its playback with the other
-  tabs, let it pause when another tab plays, and follow the keys pressed
-  in the player. Load the episode of a player that the page restored,
-  where nothing loaded it yet."
+  its state, put it on the lock screen, let it pause when another tab
+  plays, and follow the keys pressed in the player. Load the episode of a
+  player that the page restored, where nothing loaded it yet."
   [store ^js element]
-  (let [{:keys [id playback volume]} (:player @store)]
+  (let [{:keys [player] :as state} @store
+        {:keys [id volume]}        player]
     (when (and id (not (.getAttribute element "src")))
-      (media/source! element playback)
+      (media/source! element (player/playback state id))
       (read-library-files! store id))
     (media/volume! element (or volume 1) {:curve :cubic})
     (reset! detach!
             (juxt (media/watch! element #(changed! store %)
                                 {:events (conj media/events :timeupdate)})
                   (session/attach! element)
-                  (tabs/attach! element player/element-name
-                                {:id-fn    #(get-in @store [:player :id])
-                                 :handlers (shared-handlers store element)
-                                 :align?   true})
+                  (tabs/attach! element player/element-name)
                   (controls/listen! (.closest element "#player") element
                                     (handlers store element))))
     (lock-screen! store)))
@@ -460,10 +526,9 @@
   browser keeps, or all of it."
   [state played kept volume]
   (let [state (update state :library unsaved/restored played kept)
-        id    (some-> state :library :profile queue/current)
-        pb    (when id (playback state id))]
+        id    (some-> state :library :profile queue/current)]
     (cond-> (assoc-in state [:player :volume] (or volume 1))
-      pb (update :player assoc :id id :playback pb))))
+      (player/playback state id) (assoc-in [:player :id] id))))
 
 (defn restored!
   "Restore the player of the `store` with restored as the page loads,
@@ -480,13 +545,19 @@
 ;; https://developer.chrome.com/docs/web-platform/page-lifecycle-api
 (defn hidden!
   "Tell the library where the player of the `store` is, and save it, as
-  the page is hidden, unless another tab has the newest playback."
+  the page is hidden, while its element plays. The play lock makes it the
+  only element across the tabs that does."
   [store]
-  (when-let [el (and (get-in @store [:player :id])
-                     (player/writes? (:player @store))
-                     (element))]
+  (when-let [el (and (get-in @store [:player :id]) (playing-element))]
     (report! store (media-of el))
     (save! store)))
+
+(defn gone!
+  "While the element of the player of the `store` plays, tell the other
+  tabs that its playback stops where it is, as the page goes."
+  [store]
+  (when-let [el (playing-element)]
+    (tell! store (assoc (media/state el) :paused true))))
 
 (defn volume-locked!
   "Note in the player of the `store` whether the device locks the volume."

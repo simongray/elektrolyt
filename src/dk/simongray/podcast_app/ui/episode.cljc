@@ -78,7 +78,7 @@
   its `entry` in the profile left it, or pauses it while the `player`
   plays it, in this tab or another."
   [page player entry t]
-  (if (some-> (:id page) (= (player/playing player)))
+  (if (player/playing player (:id page))
     [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
     [:button.primary {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
      (play-label page entry t)]))

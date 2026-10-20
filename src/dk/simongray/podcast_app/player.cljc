@@ -4,8 +4,7 @@
 
   The state keeps it as :player, a map of these keys:
 
-  - :id, the episode that plays, [feed-guid item-guid]
-  - :playback, what library/playback gives for it
+  - :id, the episode of this tab's player, [feed-guid item-guid]
   - :media, the state of the audio element, as play-nice's media/watch!
     gives it, to the whole second
   - :reported, the position last reported to the library, and :saved, when
@@ -17,23 +16,31 @@
   - :answer, the browser's last refusal to play, e.g. {:refused
     :not-allowed}
   - :buffering?, whether it has waited for data for half a second
-  - :shared, the newest playback across the tabs, as play-nice's
-    tabs/watch! gives it, with :shared-position, where it is by now, and
-    :shared-playback, what library/playback gives for its episode
+  - :elsewhere, the media state that the tab that plays posted last, as
+    told makes it, and :now, the time in milliseconds of the clock that
+    moves its position on
 
   Every move goes through library/step, as podcast-clj's inspector does it,
   so that the profile keeps the position and the played marks, and syncs
-  them. The tabs share one playback, which every tab's player shows, and
-  only the tab whose playback is the newest tells the library where it
-  is: the one that plays, or the one where the listener last changed it
-  while nothing played."
-  (:require [dk.simongray.podcast.format.chapters :as chapters]
+  them. One tab plays at a time, by play-nice's play lock, and only that
+  tab tells the library where it is on its own. It also posts its media
+  state to the other tabs. Their players show its playback and send it
+  their commands, and their paused elements move to where it pauses."
+  (:require [dk.simongray.play-nice.page.tabs :as tabs]
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.format.chapters :as chapters]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.util.time :as time]
+            [dk.simongray.podcast-app.memo :as memo]
             [dk.simongray.wary-fetch.proxy :as proxy]))
 
 (def element-name
   "The name of the lock that keeps one player playing across the tabs."
+  "dk.simongray.podcast-app.player")
+
+(def channel-name
+  "The name of the BroadcastChannel on which the playing tab posts its
+  media state, and the other tabs send it their commands."
   "dk.simongray.podcast-app.player")
 
 (def speeds
@@ -53,18 +60,25 @@
   "How many milliseconds of playing pass between two saves of the library."
   30000)
 
+;; One writer of the position at a time. The play lock lets one tab's
+;; element play at a time, and pauses the one it takes over from, so a tab
+;; reports on its own only while its element plays, or as it pauses. A
+;; paused tab would report the position it loaded, whose newer stamp would
+;; replace the position of the tab that plays, and count time as listened
+;; that no one heard. The listener's own moves in a paused tab reach the
+;; library through their actions, e.g. audio/press!.
 (defn report?
   "Whether the player tells the library where it is, as the audio element
   goes from the state `old` to `new`, having last reported the position
-  `reported`: at a pause, after a seek, and every report-seconds of
-  playing."
+  `reported`: at a pause, and while it plays, after a seek and every
+  report-seconds."
   [old {:keys [paused seeking current-time] :as new} reported]
   (boolean
    (or (and paused (false? (:paused old)))
-       (and (:seeking old) (not seeking))
        (and (not paused)
-            (number? current-time)
-            (>= (abs (- current-time (or reported -10))) report-seconds)))))
+            (or (and (:seeking old) (not seeking))
+                (and (number? current-time)
+                     (>= (abs (- current-time (or reported -10))) report-seconds)))))))
 
 (defn save?
   "Whether the player saves the library, as the audio element goes from the
@@ -75,57 +89,73 @@
    (or (and paused (false? (:paused old)))
        (and (not paused) (>= (- now (or saved 0)) save-ms)))))
 
+(def told-keys
+  "The keys of an element's media state that the playing tab posts to the
+  other tabs."
+  [:paused :ended :current-time :duration :playback-rate :volume :muted :status])
+
+(defn told
+  "The media state that the tab `tab` posts to the others: the told-keys
+  of its element's `media` state, the episode `id`, the :tab, and `now`
+  in milliseconds, as the :at that tabs/position moves on from and the
+  :changed that tabs/newest compares."
+  [media id tab now]
+  (assoc (select-keys media told-keys) :id id :tab tab :at now :changed now))
+
+(defn heard
+  "The newer at `now` of the media state `kept` of another tab and the one
+  that a tab just `told` of: the told one, unless the kept one comes from
+  another tab and tabs/newest prefers it, e.g. one that plays while the
+  told one paused as its tab lost the play lock."
+  [kept told now]
+  (if (and kept
+           (not= (:tab kept) (:tab told))
+           (= (:tab kept) (:tab (tabs/newest [told kept] now))))
+    kept
+    told))
+
 (defn elsewhere
-  "The newest playback across the tabs, in the :shared of the `player`,
-  when it's another tab's, or nil."
-  [{:keys [shared] :as player}]
-  (when (and shared (not (:here? shared)))
-    shared))
+  "The media state that the `player` keeps as :elsewhere, while that tab
+  still plays at the :now of its clock, or else nil. tabs/newest counts a
+  tab as gone once it's been silent for three of play-nice's heartbeats.
+  It's nil while this tab's element plays too, since the tab it took the
+  play lock from may still post its last state."
+  [{:keys [elsewhere media now] :as player}]
+  (when-not (false? (:paused media))
+    (let [there (some-> elsewhere vector (tabs/newest now))]
+      (when (false? (:paused there))
+        there))))
 
-(defn playing-elsewhere?
-  "Whether another tab plays the playback that the `player` shows."
+(defn shown-id
+  "The episode that the `player` shows: the one that another tab plays,
+  or else its own."
   [player]
-  (false? (:paused (elsewhere player))))
-
-;; Only one writer of the position at a time, which the play lock settles
-;; while an episode plays. Another tab's write of an older position would
-;; take the newer one's place in the profile, by its newer stamp, and its
-;; reports would count time as listened that no one heard.
-(defn writes?
-  "Whether the `player` of this tab tells the library where it is: unless
-  another tab's playback is the newest."
-  [player]
-  (nil? (elsewhere player)))
+  (:id (or (elsewhere player) player)))
 
 (defn shown-media
-  "The media state that the `player` shows: another tab's newest playback,
-  at the position it has reached by now, or else its own element's."
-  [{:keys [media shared-position] :as player}]
-  (if-let [shared (elsewhere player)]
-    (assoc (select-keys shared [:paused :ended :duration :playback-rate :volume :muted :status])
-           :current-time shared-position)
+  "The media state that the `player` shows: that of the other tab while it
+  plays, at the position it has reached by the :now of its clock to the
+  whole second, or else this tab's element's."
+  [{:keys [media now] :as player}]
+  (if-let [there (elsewhere player)]
+    (assoc (select-keys there told-keys)
+           :current-time (some-> (tabs/position there now) Math/floor))
     media))
 
 ;; The one question of every view that offers Play or Pause, so that a
-;; page's button and the player's agree while another tab plays
+;; page's button, the player's and its status line agree while another tab
+;; plays
 (defn playing
-  "The id of the episode that plays, as the `player` shows it: another
-  tab's, where its playback is the newest, or else this tab's, or nil
-  while it's paused."
-  [player]
-  (when (false? (:paused (shown-media player)))
-    (if-let [shared (elsewhere player)]
-      (:id shared)
-      (:id player))))
+  "Where the episode `id` plays, as the `player` knows it: :here,
+  :elsewhere in another tab, or nil while it doesn't play."
+  [{:keys [media] :as player} id]
+  (when (some? id)
+    (cond
+      (= id (:id (elsewhere player)))
+      :elsewhere
 
-(defn shown-playback
-  "What library/playback gives for the episode that the `player` shows:
-  another tab's, where its newest playback is of another, or else its
-  own."
-  [{:keys [playback shared-playback] :as player}]
-  (if (and (elsewhere player) shared-playback)
-    shared-playback
-    playback))
+      (and (= id (:id player)) (false? (:paused media)))
+      :here)))
 
 (defn whole-seconds
   "The `media` state of the audio element with its position to the whole
@@ -152,6 +182,29 @@
             (mapv (fn [chapter]
                     (update chapter :artwork #(mapv (fn [image] (update image :src proxied)) %)))
                   chapters))))
+
+(defn playback
+  "What library/playback gives for the episode `id` of the `state`, with
+  what the Episode page read of its files, e.g. a chapters file, and the
+  artwork of its chapters through the app's proxy, or nil."
+  [{:keys [library episodes] :as state} id]
+  (when (and library id)
+    (some-> (library/playback library id (if-let [read (get-in episodes [id :result])]
+                                           {:read read}
+                                           {}))
+            (update :metadata with-proxied-chapters))))
+
+(def shown-playback
+  "The playback of the episode that the player of a state shows. It's made
+  again only when the library's feeds or profile, the files read of the
+  episode, or the episode itself change, since the page renders every
+  second while it plays."
+  (memo/remember-last
+   (fn [state]
+     (playback state (shown-id (:player state))))
+   (fn [{:keys [library episodes player] :as state}]
+     (let [id (shown-id player)]
+       (into [(:feeds library) (:profile library) (get-in episodes [id :result])] id)))))
 
 (defn chapter-doc
   "The chapters document of the `playback`, or nil."
@@ -195,7 +248,7 @@
   why it doesn't play, or that it waits for data, or nil."
   [{:keys [media answer buffering?] :as player}]
   (cond
-    (playing-elsewhere? player)
+    (= :elsewhere (playing player (shown-id player)))
     "Playing in another tab."
 
     (:error media)
