@@ -39,9 +39,11 @@ How to work on the app
 - **Research first, and cite it.** Base a new feature or UI pattern on
   research into how it's done well, and cite the sources in a comment where
   the code makes the decision.
-- **Fix the libraries at the source.** When podcast-clj, play-nice or
-  another of my libraries is buggy or confusing, fix it there rather than
-  work around it in the app.
+- **Fix the libraries at the source, when it's a fix.** When the fix is a
+  bug, a pure function or a platform edge of podcast-clj, play-nice or
+  another of my libraries, fix it there rather than work around it in the
+  app. Build coordination, persistence and policy in the app first, and
+  move them to a library once a second app needs them.
 - **Point out what's generic.** Code that would be useful beyond the app is
   a candidate for a library of its own.
 
