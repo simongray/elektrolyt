@@ -143,8 +143,7 @@
     (is (= [] (titles (picks/home {:library lib}))) "nothing before the listener has heard anything")
     (is (= [] (:terms (picks/home {:library lib}))))
     ;; as the player has it, which puts what plays at the front of the queue
-    (let [heard (-> lib
-                    (library/step [:play grinders])
+    (let [heard (-> (:library (library/step lib [:play grinders]))
                     (library/update-profile profile/progress grinders 60))]
       (is (= ["Grinders compared"] (titles (picks/home {:library heard})))
           "but no episode of an explicit show, though it says it's clean")

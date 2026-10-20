@@ -14,7 +14,8 @@
   first of them in the player."
   [& is]
   (let [lib (-> (reduce #(library/update-profile %1 profile.queue/enqueue (id %2)) lib is)
-                (library/step [:progress (id (first is)) 630 5400]))]
+                (library/step [:progress (id (first is)) 630 5400])
+                :library)]
     {:route   {:name :route/queue}
      :library lib
      :player  {:id    (id (first is))

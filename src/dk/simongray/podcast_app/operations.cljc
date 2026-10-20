@@ -23,54 +23,61 @@
   [library at f & args]
   (update library :profile #(apply f % (concat args [at]))))
 
+(defn- given
+  "What a function of podcast-clj's library gave, `x`, as a map of the
+  :library and what else it tells, e.g. the :effects of a step."
+  [x]
+  (if (contains? x :library) x {:library x}))
+
 (defn applied
-  "The `library` with the `operation` applied at the :at of the `opts`, the
-  instant of the listener's action, or now, or nil for a nil `library`. A
-  step keeps its :effects, for the player to do."
+  "What the `operation` gives of the `library`, applied at the :at of the
+  `opts`, the instant of the listener's action, or now: a map of the new
+  :library and what else it tells, as podcast-clj's library returns them,
+  e.g. the :effects of a step, or nil for a nil `library`. The other
+  `opts` go to the library's calls, e.g. its :codec."
   [library [kind & args :as operation] opts]
   (when library
     (let [at      (or (:at opts) (time/now))
           changed #(apply profile-changed library at %1 args)]
-      (case kind
-        :episode/add         (let [[id url feed item-guid] args]
-                               (if (library/playback library id)
-                                 library
-                                 (library/add-episode library url feed item-guid
-                                                      {:at at})))
-        :queue/enqueue       (changed profile.queue/enqueue)
-        :queue/play-next     (changed profile.queue/play-next)
-        :queue/move          (changed profile.queue/move)
-        :queue/dequeue       (changed profile.queue/dequeue)
-        :queue/dequeue-all   (changed profile.queue/dequeue-all)
-        :queue/restore       (changed queue/restore)
-        :inbox/dismiss       (changed profile.queue/dismiss)
-        :inbox/dismiss-all   (changed profile.queue/dismiss-all)
-        :inbox/enqueue-all   (changed profile.queue/enqueue-all)
-        :inbox/undismiss-all (changed profile.queue/undismiss-all)
-        :settings/prefer     (changed profile/prefer)
-        :opml/subscribe      (changed profile.opml/from-opml)
-        :opml/mark-played    (let [[list] args]
-                               (library/episodes-from-opml library list {:at at}))
-        :library/subscribe   (let [[url fetched] args]
-                               (library/subscribe library url fetched {:at at}))
-        :library/unsubscribe (let [[k] args]
-                               (library/unsubscribe library k {:at at}))
-        ;; what the worker found, applied at the time of its refresh
-        :library/refreshed   (let [[found] args]
-                               (library/refreshed library found))
-        :player/step         (let [[event] args]
-                               (library/step library event {:at at}))))))
+      (given
+       (case kind
+         :episode/add         (let [[id url feed item-guid] args]
+                                (if (library/playback library id)
+                                  library
+                                  (library/add-episode library url feed item-guid
+                                                       {:at at})))
+         :queue/enqueue       (changed profile.queue/enqueue)
+         :queue/play-next     (changed profile.queue/play-next)
+         :queue/move          (changed profile.queue/move)
+         :queue/dequeue       (changed profile.queue/dequeue)
+         :queue/dequeue-all   (changed profile.queue/dequeue-all)
+         :queue/restore       (changed queue/restore)
+         :inbox/dismiss       (changed profile.queue/dismiss)
+         :inbox/dismiss-all   (changed profile.queue/dismiss-all)
+         :inbox/enqueue-all   (changed profile.queue/enqueue-all)
+         :inbox/undismiss-all (changed profile.queue/undismiss-all)
+         :settings/prefer     (changed profile/prefer)
+         :opml/subscribe      (changed profile.opml/from-opml)
+         :opml/mark-played    (let [[list] args]
+                                (library/episodes-from-opml library list {:at at}))
+         :library/subscribe   (let [[url fetched] args]
+                                (library/subscribe library url fetched {:at at}))
+         :library/unsubscribe (let [[k] args]
+                                (library/unsubscribe library k {:at at}))
+         ;; what the worker found, applied at the time of its refresh
+         :library/refreshed   (let [[found] args]
+                                (library/refreshed library found (dissoc opts :at)))
+         :player/step         (let [[event] args]
+                                (library/step library event (assoc opts :at at))))))))
 
 (defn changed
   "The `state` with the `change` made to it, with the `opts` of applied:
-  its operation applied to the library, without the effects of a step, and
-  then its change to the UI."
+  its operation applied to the library, and then its change to the UI."
   ([state change]
    (changed state change {}))
   ([state {:keys [operation ui] :or {ui identity}} opts]
    (ui (cond-> state
-         operation (update :library #(some-> (applied % operation opts)
-                                             (dissoc :effects)))))))
+         operation (update :library #(:library (applied % operation opts)))))))
 
 (comment
   (applied nil [:queue/move ["feed" "item"] 2] {})
