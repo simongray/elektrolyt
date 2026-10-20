@@ -9,12 +9,12 @@
   the shows that a show links to."
   (:require [dk.simongray.podcast.app.episode :as episode]
             [dk.simongray.podcast.app.show :as app.show]
-            [dk.simongray.podcast.app.worker :as worker]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.cache :as app-cache]
+            [dk.simongray.podcast-app.fetching :as fetching]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.linked :as linked]
             [dk.simongray.podcast-app.page :as page]
@@ -101,7 +101,7 @@
       ;; in the worker, since a feed of 20 MB takes a third of a second or
       ;; more to parse; the start of the feed already shows the first
       ;; episodes, parsed here, since it's small
-      (-> (worker/fetch! @app-library/web-worker url fetch-opts)
+      (-> (fetching/fetch! url fetch-opts)
           (.then (fn [{:keys [feed error] :as fetched}]
                    (if feed
                      (show-fetched! store guid url fetched)
@@ -120,8 +120,7 @@
   (let [{:keys [feed validators checked?]} (get-in @store [:shows guid])]
     (when (and feed (not checked?))
       (swap! store update-in [:shows guid] assoc :checked? true :checking? true)
-      (-> (worker/fetch! @app-library/web-worker url
-                         (merge fetch-opts (select-keys validators [:etag :last-modified])))
+      (-> (fetching/fetch! url (merge fetch-opts (select-keys validators [:etag :last-modified])))
           (.then (fn [{:keys [status] :as fetched}]
                    (cond
                      (:feed fetched)
@@ -208,7 +207,7 @@
   (swap! store subscription/subscribing url)
   (-> (if-let [fetched (show/whole-feed @store url)]
         (js/Promise.resolve fetched)
-        (worker/fetch! @app-library/web-worker url fetch-opts))
+        (fetching/fetch! url fetch-opts))
       (.then (fn [fetched]
                (try
                  (app-library/change! store (subscription/subscribed url title fetched))

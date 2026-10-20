@@ -1,7 +1,6 @@
 (ns dk.simongray.podcast-app.library
   "The listener's library on this device, kept in IndexedDB between visits
-  and shared by the tabs and the workers of the app, and the app's web
-  worker.
+  and shared by the tabs of the app.
 
   The library is podcast-clj's, and its requests go through the proxy of
   the app's server. As podcast-clj's guide has it, the id of the device
@@ -9,16 +8,16 @@
   makes no new device at the next visit, and the library has a database of
   its own, since a save deletes the documents of any other library there.
 
-  Each tab and worker writes the library as a replica of the device, as
-  like-minded's replica has it with the library's kind, so that none of
-  them loses what another writes. The documents are in Transit, which
-  reads about 30 times faster than EDN."
+  Each tab writes the library as a replica of the device, as like-minded's
+  replica has it with the library's kind, so that none of them loses what
+  another writes. The app's web worker writes only the documents of the
+  feeds that it fetched, as dk.simongray.podcast-app.fetching has it. The
+  documents are in Transit, which reads about 30 times faster than EDN."
   (:require [dk.simongray.like-minded.device :as device]
             [dk.simongray.like-minded.replica :as replica]
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.app.worker :as worker]
             [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.wary-fetch.proxy :as proxy]))
 
@@ -84,11 +83,6 @@
        (swap! state #(ui (cond-> %
                            operation (assoc :library (some-> lib (dissoc :effects))))))
        lib))))
-
-(defonce ^{:doc "The client of the app's web worker, which refreshes the
-  library and fetches feeds, made at its first use."}
-  web-worker
-  (delay (worker/client "/js/worker.js" config)))
 
 ;; Storage Standard, sections 7.1 and 8: a browser can clear a site's
 ;; storage when the device runs low, unless the site asks for it to persist.

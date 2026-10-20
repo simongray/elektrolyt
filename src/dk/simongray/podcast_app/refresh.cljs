@@ -1,8 +1,9 @@
 (ns dk.simongray.podcast-app.refresh
-  "Keeping the feeds of the library current with podcast-clj's
-  library/refresh!, in the app's web worker: as the app starts, whenever
-  the library is due again while the page is visible, and when the
-  listener asks.
+  "Keeping the feeds of the library current, as podcast-clj's
+  library/refresh! does it in parts: the page says what's due, the app's
+  web worker fetches it, and the page applies what it found to the
+  library. It runs as the app starts, whenever the library is due again
+  while the page is visible, and when the listener asks.
 
   A refresh fetches only the feeds that are due, by each feed's own
   schedule, and those that answer 304 cost no body. A feed whose server
@@ -13,7 +14,7 @@
   another refreshing catches up with what that one saves. A hidden tab
   doesn't refresh, so with every tab hidden, nothing does."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.app.worker :as worker]
+            [dk.simongray.podcast-app.fetching :as fetching]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.shows :as shows]))
 
@@ -64,21 +65,26 @@
   due, or, when the listener `asked?`, every feed of a subscription, and
   wait for the next. Nothing starts while a refresh is under way."
   [store asked?]
-  (let [{:keys [library refresh-status]} @store]
+  (let [{:keys [library refresh-status]} @store
+        online? (.-onLine js/navigator)]
     (when (and library @app-library/the-replica (not (:running? refresh-status)))
       (some-> @timer js/clearTimeout)
       (swap! store #(cond-> (assoc % :refresh-status {:running? true :done 0})
                       asked? (assoc :announcement "Checking for new episodes…")))
-      (-> (worker/refresh! @app-library/web-worker
-                           @app-library/the-replica
-                           (cond-> {:head-check? true
-                                    :online?     (.-onLine js/navigator)}
-                             asked? (assoc :feed-guids (vec (keys (library/subscriptions library)))))
-                           #(swap! store update :refresh-status merge %))
-          (.then (fn [{:keys [refresh busy?]}]
+      (-> (fetching/fetch-due! (library/due library
+                                            (cond-> {:online? online?}
+                                              asked? (assoc :feed-guids
+                                                            (vec (keys (library/subscriptions library))))))
+                               {:head-check? true :online? online?}
+                               #(swap! store update :refresh-status merge %))
+          (.then (fn [{:keys [found busy?]}]
                    (if busy?
                      (swap! store assoc :refresh-status {:running? false})
-                     (swap! store refreshed refresh asked?))))
+                     (let [lib (app-library/change! store {:operation [:library/refreshed found]})]
+                       (swap! store refreshed (:refresh lib) asked?)
+                       (.then (app-library/save!)
+                              #(when (:error %)
+                                 (js/console.error "The library wasn't saved" (clj->js %))))))))
           (.catch (fn [e]
                     (js/console.error "The library didn't refresh" e)
                     (swap! store assoc :refresh-status {:running? false})))
