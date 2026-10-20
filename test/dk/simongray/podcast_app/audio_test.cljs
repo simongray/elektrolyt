@@ -3,6 +3,7 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
+            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.picks-test :as picks-test]
@@ -79,7 +80,7 @@
           pick     (picks-test/id "Brew Lab" 0)
           now      #(some-> % :library :profile queue/current)]
       (testing "as the episode ends"
-        (let [store (playing grinders 1790 {:autoplay? true})]
+        (let [store (playing grinders 1790 {::app/autoplay? true})]
           (audio/ended! store)
           (is (= pick (get-in @store [:player :id])) "the first pick plays")
           (is (= pick (now @store)) "current, at the front of the queue"))
@@ -89,7 +90,7 @@
       (testing "as it ends in the outro that the listener skips"
         (let [outro #(update % :library library/update-profile profile/configure
                              (first grinders) {:skip-outro 60})
-              store (atom (outro @(playing grinders 1700 {:autoplay? true})))]
+              store (atom (outro @(playing grinders 1700 {::app/autoplay? true})))]
           (audio/report! store {:current-time 1750 :duration 1800})
           (is (= pick (get-in @store [:player :id])))
           (is (= pick (now @store))))))))
