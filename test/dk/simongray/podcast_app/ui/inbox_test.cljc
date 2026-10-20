@@ -1,7 +1,7 @@
 (ns dk.simongray.podcast-app.ui.inbox-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.inbox :as inbox]
-            [dk.simongray.podcast-app.inbox-test :refer [id state]]
+            [dk.simongray.podcast-app.inbox-test :refer [changed id state]]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.ui.inbox :as inbox-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]
@@ -41,11 +41,11 @@
         "and anything else to the page's heading")))
 
 (deftest the-undo-of-a-dismissal
-  (let [x (inbox-ui/content (inbox/dismissed (state 1 2) (id 2)))]
+  (let [x (inbox-ui/content (changed inbox/dismissed (state 1 2) (id 2)))]
     (is (= [[:inbox/undo] [:page/focus (inbox-ui/control-id (id 2) :dismiss)]]
            (clicked x "Undo dismissing Episode 2"))
         "which gives the focus to the episode that it puts back"))
-  (let [x (inbox-ui/content (inbox/all-dismissed (state 1 2)))]
+  (let [x (inbox-ui/content (changed inbox/all-dismissed (state 1 2)))]
     (is (re-find #"No new episodes" (text-of x)))
     (is (some? (button-of x "Undo dismissing all")) "and stays once the inbox is empty")))
 

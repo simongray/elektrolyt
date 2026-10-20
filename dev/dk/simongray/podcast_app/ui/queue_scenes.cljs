@@ -3,6 +3,7 @@
   undo of a removal, and a queue with nothing in it."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile.queue :as profile.queue]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.ui :as ui]
             [dk.simongray.podcast-app.scenes :refer [id lib]]
@@ -26,7 +27,8 @@
 (defscene after-a-removal
   "The undo of the episode that the listener just removed, which stays
   until the next change."
-  (ui/page (queue/removed (queued 275 274 273 272) (id 273))))
+  (let [state (queued 275 274 273 272)]
+    (ui/page (operations/changed state (queue/removed state (id 273))))))
 
 (defscene nothing-up-next
   "A queue with only the episode that plays."

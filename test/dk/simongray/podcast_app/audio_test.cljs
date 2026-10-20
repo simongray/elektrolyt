@@ -4,11 +4,15 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app.audio :as audio]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.picks-test :as picks-test]
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.settings :as settings]))
 
 (def url "https://example.org/feed.xml")
+
+(defn restored [state played kept volume]
+  (operations/changed state (audio/restored played kept volume)))
 
 (def feed
   {:rss/title "A Show"
@@ -33,10 +37,10 @@
         current #(some-> % :library :profile queue/current)
         now     (js/Date.now)]
     (is (= one (current {:library played})))
-    (is (= two (current (audio/restored {:library played} {:id two :at now} nil nil)))
+    (is (= two (current (restored{:library played} {:id two :at now} nil nil)))
         "the episode that this browser played last, which no save had")
-    (is (= one (current (audio/restored {:library played} nil nil nil))) "nothing kept")
-    (is (= two (get-in (audio/restored {:library played} {:id two :at now} nil nil) [:player :id]))
+    (is (= one (current (restored{:library played} nil nil nil))) "nothing kept")
+    (is (= two (get-in (restored{:library played} {:id two :at now} nil nil) [:player :id]))
         "which the player has")))
 
 (deftest the-player-as-the-page-loads
@@ -44,14 +48,14 @@
         id  [(first (keys (:feeds lib))) "one"]
         now (js/Date.now)
         lib (library/update-profile lib queue/enqueue id)]
-    (is (= 636 (:position (player/entry (:library (audio/restored {:library lib} nil
+    (is (= 636 (:position (player/entry (:library (restored{:library lib} nil
                                                                   {:id id :position 636 :duration 3600 :at now}
                                                                   nil))
                                         id)))
         "the library told of the position that this browser kept")
-    (is (= 0.4 (get-in (audio/restored {:library lib} nil nil 0.4) [:player :volume]))
+    (is (= 0.4 (get-in (restored{:library lib} nil nil 0.4) [:player :volume]))
         "at the volume that this browser keeps")
-    (is (= 1 (get-in (audio/restored {:library lib} nil nil nil) [:player :volume]))
+    (is (= 1 (get-in (restored{:library lib} nil nil nil) [:player :volume]))
         "or all of it")))
 
 (defn playing
@@ -64,7 +68,7 @@
                           (dissoc :effects)
                           (library/update-profile profile/progress id position 1800))
              :player  {:id id}}
-            (settings/preferred prefs))))
+            (operations/changed (settings/preferred prefs)))))
 
 (deftest autoplay-after-an-episode
   ;; Node has no audio element, no IndexedDB and no network

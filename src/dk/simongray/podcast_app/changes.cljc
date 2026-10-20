@@ -1,14 +1,13 @@
 (ns dk.simongray.podcast-app.changes
   "Changes of the listener's profile that a page announces, e.g. a
   dismissal from the inbox or a move in the queue, with the change that
-  undoes the last of them, until the next."
-  (:require [dk.simongray.podcast.app.library :as library]))
+  undoes the last of them, until the next.")
 
-(defn changed
-  "The `state` with its library changed by the function of the profile
-  `f` and its `args`, as library/update-profile takes them, what a screen
-  reader hears of it, the `announcement`, and the `undo` of it under the
-  key `undo-key`, or none."
-  [state undo-key announcement undo f & args]
-  (-> (apply update state :library library/update-profile f args)
-      (assoc :announcement announcement undo-key undo)))
+(defn announced
+  "The change of the state that applies the `operation` to the library, as
+  dk.simongray.podcast-app.operations has it, with what a screen reader
+  hears of it, the `announcement`, and the `undo` of it under the key
+  `undo-key`, or none."
+  [undo-key announcement undo operation]
+  {:operation operation
+   :ui        #(assoc % :announcement announcement undo-key undo)})

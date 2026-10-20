@@ -33,7 +33,7 @@
            (get-in (button-of x "Clear the queue") [:on :click])))))
 
 (deftest the-undo-of-the-last-change
-  (let [x (queue-ui/content (queue/removed (state true 1 2 3) (id 2)))]
+  (let [x (queue-ui/content (queue-test/changed queue/removed (state true 1 2 3) (id 2)))]
     (is (= [[:queue/undo] [:page/focus (queue-ui/control-id (id 2) :remove)]]
            (get-in (button-of x "Undo removing Episode 2") [:on :click]))
         "which gives the focus to the episode that it puts back")))

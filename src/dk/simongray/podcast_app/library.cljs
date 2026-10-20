@@ -19,6 +19,7 @@
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.worker :as worker]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.wary-fetch.proxy :as proxy]))
 
 (def send
@@ -63,6 +64,26 @@
   (if-let [r @the-replica]
     (replica/save! r)
     (js/Promise.resolve nil)))
+
+(defn change!
+  "Make the `change` of operations/changed to the app `state`, an atom,
+  with the `opts` of operations/applied, and give the library as its
+  operation left it, with the :effects of a step. The time of the change
+  is now, unless the `opts` give its :at.
+
+  An operation that throws changes nothing, and the throw goes on to the
+  caller."
+  ([state change]
+   (change! state change {}))
+  ([state {:keys [operation ui] :or {ui identity} :as change} opts]
+   (when change
+     (let [before (:library @state)
+           lib    (if operation
+                    (operations/applied before operation (merge {:at (js/Date.)} opts))
+                    before)]
+       (swap! state #(ui (cond-> %
+                           operation (assoc :library (some-> lib (dissoc :effects))))))
+       lib))))
 
 (defonce ^{:doc "The client of the app's web worker, which refreshes the
   library and fetches feeds, made at its first use."}

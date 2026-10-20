@@ -10,7 +10,6 @@
   once it's undone, the :done."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.changes :as changes]
             [dk.simongray.podcast-app.memo :as memo]
             [dk.simongray.podcast-app.text :as text]))
@@ -34,23 +33,22 @@
 ;; arrives in the inbox, though an earlier version of the app, or another
 ;; app, chose the queue or nowhere for a show, or for every new show
 (defn inbox-only
-  "The `state` with the new episodes of each show, and of a new show, going
-  to the inbox, or the `state` itself where they all do already. That
-  includes the shows that the listener unsubscribed from, whose settings
-  hold again when they subscribe again."
-  [state]
-  (let [p        (some-> (:library state) :profile)
+  "The `library` with the new episodes of each show, and of a new show,
+  going to the inbox at `at`, or the `library` itself where they all do
+  already. That includes the shows that the listener unsubscribed from,
+  whose settings hold again when they subscribe again."
+  [library at]
+  (let [p        (:profile library)
         ks       (remove #(to-inbox? (profile/settings p %))
                          (keys (:subscriptions p)))
         defaults (:subscription-defaults (profile/preferences p))]
-    (cond-> state
+    (cond-> library
       (seq ks)
-      (update :library library/update-profile
-              (fn [p at] (reduce #(profile/configure %1 %2 to-inbox at) p ks)))
+      (update :profile #(reduce (fn [p k] (profile/configure p k to-inbox at)) % ks))
 
       (and p (not (to-inbox? defaults)))
-      (update :library library/update-profile profile/prefer
-              {:subscription-defaults (merge defaults to-inbox)}))))
+      (update :profile profile/prefer
+              {:subscription-defaults (merge defaults to-inbox)} at))))
 
 (defn episodes
   "The episodes in the inbox of the `state`, the newest first."
@@ -63,48 +61,46 @@
   (some #(when (= id (:id %)) (:title %)) (episodes state)))
 
 (defn dismissed
-  "The `state` with the episode `id` dismissed from the inbox, which an
-  undo puts back."
+  "The change of the `state` that dismisses the episode `id` from the
+  inbox, which an undo puts back, or nil when it isn't there."
   [state id]
-  (if-let [title (titled state id)]
-    (changes/changed state :inbox-undo
-                     (str "Dismissed " title)
-                     {:label (str "Undo dismissing " title)
-                      :ids   [id]
-                      :done  (str "Put " title " back in the inbox")}
-                     profile.queue/dismiss id)
-    state))
+  (when-let [title (titled state id)]
+    (changes/announced :inbox-undo
+                       (str "Dismissed " title)
+                       {:label (str "Undo dismissing " title)
+                        :ids   [id]
+                        :done  (str "Put " title " back in the inbox")}
+                       [:inbox/dismiss id])))
 
 (defn all-dismissed
-  "The `state` with every episode of the inbox dismissed, which an undo
-  puts back."
+  "The change of the `state` that dismisses every episode of the inbox,
+  which an undo puts back, or nil when it's empty."
   [state]
   (let [ids     (mapv :id (episodes state))
         counted (text/counted (count ids) "episode")]
-    (if (seq ids)
-      (changes/changed state :inbox-undo
-                       (str "Dismissed " counted)
-                       {:label "Undo dismissing all"
-                        :ids   ids
-                        :done  (str "Put " counted " back in the inbox")}
-                       profile.queue/dismiss-all ids)
-      state)))
+    (when (seq ids)
+      (changes/announced :inbox-undo
+                         (str "Dismissed " counted)
+                         {:label "Undo dismissing all"
+                          :ids   ids
+                          :done  (str "Put " counted " back in the inbox")}
+                         [:inbox/dismiss-all ids]))))
 
 (defn all-queued
-  "The `state` with every episode of the inbox at the end of the queue, the
-  oldest first, as a refresh queues new episodes."
+  "The change of the `state` that puts every episode of the inbox at the
+  end of the queue, the oldest first, as a refresh queues new episodes, or
+  nil when it's empty."
   [state]
   (let [ids (mapv :id (episodes state))]
-    (if (seq ids)
-      (changes/changed state :inbox-undo
-                       (str "Added " (text/counted (count ids) "episode") " to the queue")
-                       nil
-                       profile.queue/enqueue-all (rseq ids))
-      state)))
+    (when (seq ids)
+      (changes/announced :inbox-undo
+                         (str "Added " (text/counted (count ids) "episode") " to the queue")
+                         nil
+                         [:inbox/enqueue-all (vec (rseq ids))]))))
 
 (defn undone
-  "The `state` with the dismissal that it can undo undone."
+  "The change of the `state` that undoes the dismissal that it can undo, or
+  nil when there's none."
   [state]
-  (if-let [{:keys [done ids]} (:inbox-undo state)]
-    (changes/changed state :inbox-undo done nil profile.queue/undismiss-all ids)
-    state))
+  (when-let [{:keys [done ids]} (:inbox-undo state)]
+    (changes/announced :inbox-undo done nil [:inbox/undismiss-all ids])))

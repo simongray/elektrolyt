@@ -4,7 +4,8 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
-            [dk.simongray.podcast-app.inbox :as inbox]))
+            [dk.simongray.podcast-app.inbox :as inbox]
+            [dk.simongray.podcast-app.operations :as operations]))
 
 (def url "https://example.org/feed.xml")
 
@@ -45,26 +46,31 @@
 (defn titles [state]
   (map :title (inbox/episodes state)))
 
+(defn changed
+  "The `state` with the change that `f` gives for it and the `args` made."
+  [f state & args]
+  (operations/changed state (apply f state args)))
+
 (deftest the-inbox
   (is (= ["Episode 3" "Episode 2" "Episode 1"] (titles (state 1 3 2))) "the newest first")
   (is (= [] (inbox/episodes {})) "and none before the library is restored"))
 
 (deftest a-dismissal-and-its-undo
-  (let [dismissed (inbox/dismissed (state 1 2 3) (id 2))]
+  (let [dismissed (changed inbox/dismissed (state 1 2 3) (id 2))]
     (is (= ["Episode 3" "Episode 1"] (titles dismissed)))
     (is (= "Dismissed Episode 2" (:announcement dismissed)))
     (is (= "Undo dismissing Episode 2" (get-in dismissed [:inbox-undo :label])))
-    (let [undone (inbox/undone dismissed)]
+    (let [undone (changed inbox/undone dismissed)]
       (is (= ["Episode 3" "Episode 2" "Episode 1"] (titles undone)) "back in its place")
       (is (= "Put Episode 2 back in the inbox" (:announcement undone)))
       (is (nil? (:inbox-undo undone))))))
 
 (deftest all-at-once
-  (let [dismissed (inbox/all-dismissed (state 1 2 3))]
+  (let [dismissed (changed inbox/all-dismissed (state 1 2 3))]
     (is (= [] (titles dismissed)))
     (is (= "Dismissed 3 episodes" (:announcement dismissed)))
-    (is (= ["Episode 3" "Episode 2" "Episode 1"] (titles (inbox/undone dismissed)))))
-  (let [queued (inbox/all-queued (state 1 2 3))]
+    (is (= ["Episode 3" "Episode 2" "Episode 1"] (titles (changed inbox/undone dismissed)))))
+  (let [queued (changed inbox/all-queued (state 1 2 3))]
     (is (= [] (titles queued)))
     (is (= [(id 1) (id 2) (id 3)] (profile.queue/queue (:profile (:library queued))))
         "the oldest first, as a refresh queues them")
@@ -79,10 +85,12 @@
      (profile/new-episodes (merge profile/default-settings
                                   (:subscription-defaults (profile/preferences p))))]))
 
+(defn inbox-only [state]
+  (operations/changed state {:operation [:inbox/only]}))
+
 (deftest every-new-episode-arrives-in-the-inbox
-  (let [state {:library lib}]
-    (is (identical? state (inbox/inbox-only state)) "as they do at first")
-    (is (identical? {} (inbox/inbox-only {})) "and before the library is restored"))
+  (is (identical? lib (inbox/inbox-only lib #inst "2026-10-20")) "as they do at first")
+  (is (nil? (inbox/inbox-only nil #inst "2026-10-20")) "and before the library is restored")
   (let [elsewhere {:library (-> lib
                                 (library/update-profile profile/configure k
                                                         (profile/new-episodes-settings :queue))
@@ -90,9 +98,9 @@
                                                         {:subscription-defaults
                                                          (profile/new-episodes-settings :none)}))}]
     (is (= [:queue :none] (new-episodes elsewhere)))
-    (is (= [:inbox :inbox] (new-episodes (inbox/inbox-only elsewhere)))
+    (is (= [:inbox :inbox] (new-episodes (inbox-only elsewhere)))
         "though an earlier version of the app sent them elsewhere")
-    (is (= :inbox (first (new-episodes (inbox/inbox-only
+    (is (= :inbox (first (new-episodes (inbox-only
                                         (update elsewhere :library library/update-profile
                                                 profile/unsubscribe k)))))
         "even for a show that the listener unsubscribed from, whose settings hold again")))

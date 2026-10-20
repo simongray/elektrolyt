@@ -58,47 +58,44 @@
   (some #(when (= id (:id %)) (:title %)) (:episodes (view (:library state)))))
 
 (defn moved
-  "The `state` with the episode `id` moved to `to`, a position of Up next
-  from 1, if it's one."
+  "The change of the `state` that moves the episode `id` to `to`, a
+  position of Up next from 1, or nil when it's none."
   [state id to]
   (let [n (count (up-next state))]
-    (if (and (position state id) (<= 1 to n))
-      (changes/changed state :queue-undo
-                       (str "Moved " (titled state id) " to position " to " of " n)
-                       nil
-                       queue/move id (+ (dec to) (offset state)))
-      state)))
+    (when (and (position state id) (<= 1 to n))
+      (changes/announced :queue-undo
+                         (str "Moved " (titled state id) " to position " to " of " n)
+                         nil
+                         [:queue/move id (+ (dec to) (offset state))]))))
 
 (defn removed
-  "The `state` with the episode `id` taken out of the queue, which an undo
-  puts back in its place."
+  "The change of the `state` that takes the episode `id` out of the queue,
+  which an undo puts back in its place, or nil when it isn't queued."
   [state id]
   (let [index (index-of (:episodes (view (:library state))) id)
         title (titled state id)]
-    (if index
-      (changes/changed state :queue-undo
-                       (str "Removed " title " from the queue")
-                       {:label   (str "Undo removing " title)
-                        :restore [[id index]]
-                        :done    (str "Put " title " back in the queue")}
-                       queue/dequeue id)
-      state)))
+    (when index
+      (changes/announced :queue-undo
+                         (str "Removed " title " from the queue")
+                         {:label   (str "Undo removing " title)
+                          :restore [[id index]]
+                          :done    (str "Put " title " back in the queue")}
+                         [:queue/dequeue id]))))
 
 (defn cleared
-  "The `state` with Up next taken out of the queue, which an undo puts back
-  in order."
+  "The change of the `state` that takes Up next out of the queue, which an
+  undo puts back in order, or nil when it's empty."
   [state]
   (let [ids     (mapv :id (up-next state))
         n       (count ids)
         counted (text/counted n "episode")]
-    (if (seq ids)
-      (changes/changed state :queue-undo
-                       (str "Cleared " counted " from the queue")
-                       {:label   "Undo clearing the queue"
-                        :restore (mapv vector ids (range (offset state) (+ (offset state) n)))
-                        :done    (str "Put " counted " back in the queue")}
-                       queue/dequeue-all ids)
-      state)))
+    (when (seq ids)
+      (changes/announced :queue-undo
+                         (str "Cleared " counted " from the queue")
+                         {:label   "Undo clearing the queue"
+                          :restore (mapv vector ids (range (offset state) (+ (offset state) n)))
+                          :done    (str "Put " counted " back in the queue")}
+                         [:queue/dequeue-all ids]))))
 
 (defn restore
   "The `profile` with the episodes of the `pairs` of an undo back in the
@@ -112,23 +109,22 @@
           pairs))
 
 (defn undone
-  "The `state` with the change that it can undo undone."
+  "The change of the `state` that undoes the change that it can undo, or
+  nil when there's none."
   [state]
-  (if-let [{:keys [done] :as undo} (:queue-undo state)]
-    (changes/changed state :queue-undo done nil restore (:restore undo))
-    state))
+  (when-let [{:keys [done] :as undo} (:queue-undo state)]
+    (changes/announced :queue-undo done nil [:queue/restore (:restore undo)])))
 
 (defn added
-  "The `state` with the episode `id` titled `title` at the end of the
+  "The change that puts the episode `id` titled `title` at the end of the
   queue, or after the current episode when `next?`."
-  [state id title next?]
-  (changes/changed state :queue-undo
-                   (if next?
-                     (str "Playing " title " next")
-                     (str "Added " title " to the queue"))
-                   nil
-                   (if next? queue/play-next queue/enqueue)
-                   id))
+  [id title next?]
+  (changes/announced :queue-undo
+                     (if next?
+                       (str "Playing " title " next")
+                       (str "Added " title " to the queue"))
+                     nil
+                     [(if next? :queue/play-next :queue/enqueue) id]))
 
 (defn queued?
   "Whether the episode `id` is in the queue of the library of the `state`."

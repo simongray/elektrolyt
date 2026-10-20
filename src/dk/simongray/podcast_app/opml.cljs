@@ -10,8 +10,8 @@
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.format.opml :as format.opml]
             [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.podcast.profile.opml :as profile.opml]
             [dk.simongray.podcast-app.audio :as audio]
+            [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.refresh :as refresh]
             [dk.simongray.podcast-app.text :as text]))
 
@@ -21,18 +21,20 @@
   (count (some-> state :library :profile profile/subscriptions)))
 
 (defn imported
-  "The `state` with the shows of the OPML subscription `list` subscribed
-  to, and the page's status line saying how many of them are new."
+  "The change of the `state` that subscribes to the shows of the OPML
+  subscription `list`, with the page's status line saying how many of
+  them are new."
   [state list]
-  (let [before (subscribed-count state)
-        after  (update state :library library/update-profile profile.opml/from-opml list)
-        added  (- (subscribed-count after) before)]
-    (assoc after :settings-status
-           {:group :subscriptions
-            :text  (if (pos? added)
-                     (str "Subscribed to " (text/counted added "show")
-                          " from the file. Their episodes are on the way.")
-                     "You subscribe to every show of the file already.")})))
+  (let [before (subscribed-count state)]
+    {:operation [:opml/subscribe list]
+     :ui        (fn [after]
+                  (let [added (- (subscribed-count after) before)]
+                    (assoc after :settings-status
+                           {:group :subscriptions
+                            :text  (if (pos? added)
+                                     (str "Subscribed to " (text/counted added "show")
+                                          " from the file. Their episodes are on the way.")
+                                     "You subscribe to every show of the file already.")})))}))
 
 ;; WCAG 2.2, SC 3.3.3 Error Suggestion: what went wrong, and what to do
 (def unreadable
@@ -74,7 +76,7 @@
                (fn [_ _ old new]
                  (when (= :fetched (swap! phase waited old new))
                    (remove-watch store k)
-                   (swap! store update :library library/episodes-from-opml list)
+                   (app-library/change! store {:operation [:opml/mark-played list]})
                    (audio/save! store))))))
 
 (defn import!
@@ -84,7 +86,7 @@
   (-> (.text file)
       (.then (fn [text]
                (let [list (format.opml/parse text)]
-                 (swap! store imported list)
+                 (app-library/change! store (imported @store list))
                  (mark-when-fetched! store list)
                  (-> (audio/save! store)
                      (.then #(refresh/refresh! store false))))))

@@ -21,13 +21,13 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.media-session :as media-session]
             [dk.simongray.podcast.app.unsaved :as unsaved]
-            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.local :as local]
             [dk.simongray.podcast-app.picks :as picks]
-            [dk.simongray.podcast-app.player :as player]))
+            [dk.simongray.podcast-app.player :as player]
+            [dk.simongray.podcast-app.settings :as settings]))
 
 (defn element
   "The audio element of the player, or nil before anything plays."
@@ -110,10 +110,9 @@
   is followed by the first pick after it, when the listener chose
   Autoplay."
   [store event]
-  (let [state                     @store
-        {:keys [effects] :as lib} (library/step (:library state) event
-                                                {:fallback-fn #(picks/autoplayed state %)})]
-    (swap! store assoc :library (dissoc lib :effects))
+  (let [state             @store
+        {:keys [effects]} (app-library/change! store {:operation [:player/step event]}
+                                               {:fallback-fn #(picks/autoplayed state %)})]
     (apply-effects! store effects)
     effects))
 
@@ -298,12 +297,11 @@
     (some->> el (play-element! store))))
 
 (defn added
-  "The library of the `state` with the episode of the `playable` of an
-  Episode page, as episode/playable gives it, unless it has it already."
-  [{:keys [library] :as state} {:keys [id guid url item-guid]}]
-  (if (library/playback library id)
-    library
-    (library/add-episode library url (:feed (episode/source state guid)) item-guid)))
+  "The change of the `state` that adds the episode of the `playable` of an
+  Episode page, as episode/playable gives it, to the library, unless it
+  has it already."
+  [state {:keys [id guid url item-guid]}]
+  {:operation [:episode/add id url (:feed (episode/source state guid)) item-guid]})
 
 (defn play!
   "Play the `playable` episode, e.g. of an Episode page or a pick, in the
@@ -312,7 +310,7 @@
   it the current episode, at the front of the queue."
   [store {:keys [id] :as playable} t]
   (try
-    (swap! store assoc :library (added @store playable))
+    (app-library/change! store (added @store playable))
     (step! store [:play id])
     (play-id! store id t)
     (save! store)
@@ -358,7 +356,7 @@
   (when (js/Number.isFinite rate)
     (let [el (element)]
       (some-> el (media/rate! rate))
-      (swap! store update :library library/update-profile profile/prefer {:playback-rate rate})
+      (app-library/change! store (settings/preferred {:playback-rate rate}))
       (if (some-> el .-paused)
         (moved! store el)
         (save! store)))))
@@ -519,25 +517,25 @@
     (lock-screen! store)))
 
 (defn restored
-  "The `state` as the page loads: its library told by unsaved/restored of
+  "The change as the page loads: the library told by unsaved/restored of
   the episode that this browser `played` last and of the position that it
-  `kept`, and its player with the episode that the queue has at its
+  `kept`, and the player with the episode that the queue has at its
   front, paused where the listener left it, at the `volume` that this
   browser keeps, or all of it."
-  [state played kept volume]
-  (let [state (update state :library unsaved/restored played kept)
-        id    (some-> state :library :profile queue/current)]
-    (cond-> (assoc-in state [:player :volume] (or volume 1))
-      (player/playback state id) (assoc-in [:player :id] id))))
+  [played kept volume]
+  {:operation [:player/restore played kept]
+   :ui        (fn [state]
+                (let [id (some-> state :library :profile queue/current)]
+                  (cond-> (assoc-in state [:player :volume] (or volume 1))
+                    (player/playback state id) (assoc-in [:player :id] id))))})
 
 (defn restored!
   "Restore the player of the `store` with restored as the page loads,
   from what this browser keeps."
   [store]
-  (swap! store restored
-         (unsaved/kept-played unsaved-prefix)
-         (unsaved/kept-position unsaved-prefix)
-         (local/stored-number volume-key)))
+  (app-library/change! store (restored (unsaved/kept-played unsaved-prefix)
+                                       (unsaved/kept-position unsaved-prefix)
+                                       (local/stored-number volume-key))))
 
 ;; Page Lifecycle API: hidden is the last state that a page can count on
 ;; seeing, e.g. before a phone discards it, so the player reports and saves

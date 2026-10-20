@@ -3,6 +3,7 @@
   chapters, its controls on a phone, an episode that plays in another tab,
   the ways it can fail to play, and its colours and sizes."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.scenes :refer [artwork feed url]]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]
@@ -96,9 +97,9 @@
 (defscene a-small-player
   "The player at the smallest of the sizes that the listener can choose in
   Settings."
-  (ui/page (settings/preferred (playing {}) {:player-size :small})))
+  (ui/page (operations/changed (playing {}) (settings/preferred {:player-size :small}))))
 
 (defscene a-large-player
   "The player at the largest of the sizes that the listener can choose in
   Settings."
-  (ui/page (settings/preferred (playing {}) {:player-size :large})))
+  (ui/page (operations/changed (playing {}) (settings/preferred {:player-size :large}))))

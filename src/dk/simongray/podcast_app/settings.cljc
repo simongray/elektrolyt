@@ -9,8 +9,7 @@
   :settings-status, a map of the :group of settings that it's about and
   its :text, and what the browser said of its storage as :storage, a map
   of :supported?, :persisted? and the :usage in bytes."
-  (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.profile :as profile]))
+  (:require [dk.simongray.podcast.profile :as profile]))
 
 ;; Apple Podcasts offers skips of 10 to 60 seconds, and AntennaPod a list
 ;; of them too, rather than a number to type, which can't be wrong
@@ -137,9 +136,9 @@
   (:autoplay? (preferences state) false))
 
 (defn preferred
-  "The `state` with the listener's preferences `prefs` changed."
-  [state prefs]
-  (update state :library library/update-profile profile/prefer prefs))
+  "The change that sets the listener's preferences `prefs`."
+  [prefs]
+  {:operation [:settings/prefer prefs]})
 
 (def directories
   "The directories that the Settings page offers, in the order in which it
@@ -163,20 +162,20 @@
               [d false]))))
 
 (defn turned
-  "The `state` with a search asking the directory `source`, at the end of
-  the order, where `on?`, or leaving it out."
+  "The change of the `state` that has a search ask the directory `source`,
+  at the end of the order, where `on?`, or leave it out."
   [state source on?]
   (let [others (filterv #(not= source %) (searched state))]
-    (preferred state {:search-sources (if on? (conj others source) others)})))
+    (preferred {:search-sources (if on? (conj others source) others)})))
 
 (defn moved-source
-  "The `state` with the directory `source` at the position `to`, from 1, in
-  the order of those that a search asks."
+  "The change of the `state` that puts the directory `source` at the
+  position `to`, from 1, in the order of those that a search asks."
   [state source to]
   (let [others (filterv #(not= source %) (searched state))
         i      (max 0 (min (count others) (dec to)))]
-    (preferred state {:search-sources (into (conj (subvec others 0 i) source)
-                                            (subvec others i))})))
+    (preferred {:search-sources (into (conj (subvec others 0 i) source)
+                                      (subvec others i))})))
 
 (defn cleared
   "The `state` once the cache is empty, or not, by `error`: without the
