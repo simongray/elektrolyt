@@ -209,7 +209,13 @@
   (-> (if-let [fetched (show/whole-feed @store url)]
         (js/Promise.resolve fetched)
         (worker/fetch! @app-library/web-worker url fetch-opts))
-      (.then #(swap! store subscription/subscribed url title %))
+      (.then (fn [fetched]
+               (try
+                 (app-library/change! store (subscription/subscribed url title fetched))
+                 (catch :default e
+                   (app-library/change! store (subscription/failed url title
+                                                                   {:message (ex-message e)}))))
+               @store))
       ;; a show subscribed to from its page loses the URL of its feed from
       ;; the address bar, since the library knows it now
       (.then #(do (page/canonicalize! %) %))
@@ -224,7 +230,7 @@
   and save the library."
   [store url title]
   (let [guid (get-in @store [:route :path-params :guid])]
-    (swap! store subscription/unsubscribed url title)
+    (app-library/change! store (subscription/unsubscribed @store url title))
     (app-library/save!)
     (apply rfe/replace-state (routes/show-route guid title url))))
 

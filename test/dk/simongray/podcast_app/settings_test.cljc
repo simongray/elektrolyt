@@ -1,10 +1,19 @@
 (ns dk.simongray.podcast-app.settings-test
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.settings :as settings]))
 
 (def state
   {:library inbox-test/lib})
+
+(defn preferred [state prefs]
+  (operations/changed state (settings/preferred prefs)))
+
+(defn changed
+  "The `state` with the change that `f` gives for it and the `args` made."
+  [f state & args]
+  (operations/changed state (apply f state args)))
 
 (deftest skips
   (is (= [5 10 15 30 45 60] (settings/skip-options 15)))
@@ -12,21 +21,21 @@
 
 (deftest preferences
   (is (= 30 (:skip-forward (settings/preferences state))) "the defaults, at first")
-  (is (= 45 (:skip-forward (settings/preferences (settings/preferred state {:skip-forward 45})))))
+  (is (= 45 (:skip-forward (settings/preferences (preferred state {:skip-forward 45})))))
   (is (nil? (settings/preferences {})) "and none before the library is restored"))
 
 (deftest the-colours-of-the-app
   (is (nil? (settings/theme state)) "the device's, at first")
-  (is (= "dark" (settings/theme (settings/preferred state {:appearance :dark}))))
-  (is (= "light" (settings/theme (settings/preferred state {:appearance :light}))))
-  (is (nil? (settings/theme (settings/preferred state {:appearance :auto}))))
-  (is (= "more" (settings/contrast (settings/preferred state {:contrast :more}))))
-  (is (nil? (settings/contrast (settings/preferred state {:contrast :auto}))) "or the device's contrast")
+  (is (= "dark" (settings/theme (preferred state {:appearance :dark}))))
+  (is (= "light" (settings/theme (preferred state {:appearance :light}))))
+  (is (nil? (settings/theme (preferred state {:appearance :auto}))))
+  (is (= "more" (settings/contrast (preferred state {:contrast :more}))))
+  (is (nil? (settings/contrast (preferred state {:contrast :auto}))) "or the device's contrast")
   (is (nil? (settings/theme {})) "and before the library is restored"))
 
 (deftest the-look-to-keep
   (is (= {:theme "dark" :contrast "more"}
-         (settings/look (settings/preferred state {:appearance :dark :contrast :more}))))
+         (settings/look (preferred state {:appearance :dark :contrast :more}))))
   (is (= {:theme nil :contrast nil} (settings/look state))
       "the device's, which forgets the copies of an earlier choice")
   (is (nil? (settings/look {}))
@@ -36,11 +45,11 @@
   (is (= [[:podcastindex true] [:apple true] [:fyyd true] [:gpodder false]]
          (settings/directory-rows state))
       "the Podcast Index, Apple Podcasts and fyyd at first, and gpodder.net left out")
-  (is (= [:podcastindex :apple :fyyd :gpodder] (settings/searched (settings/turned state :gpodder true)))
+  (is (= [:podcastindex :apple :fyyd :gpodder] (settings/searched (changed settings/turned state :gpodder true)))
       "turned on at the end")
-  (is (= [:apple :fyyd] (settings/searched (settings/turned state :podcastindex false))))
-  (is (= [:fyyd :podcastindex :apple] (settings/searched (settings/moved-source state :fyyd 1))))
-  (is (= [:podcastindex :fyyd :apple] (settings/searched (settings/moved-source state :apple 9)))
+  (is (= [:apple :fyyd] (settings/searched (changed settings/turned state :podcastindex false))))
+  (is (= [:fyyd :podcastindex :apple] (settings/searched (changed settings/moved-source state :fyyd 1))))
+  (is (= [:podcastindex :fyyd :apple] (settings/searched (changed settings/moved-source state :apple 9)))
       "no further than the end"))
 
 (deftest clearing-the-cache

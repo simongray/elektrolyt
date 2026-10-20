@@ -34,12 +34,13 @@
   store
   (atom {}))
 
-(defn profile-changed!
-  "Change the state of the `store` with `f` of it and the `args`, a change
-  of the listener's profile, e.g. of the queue, and save the library."
-  [store f & args]
-  (apply swap! store f args)
-  (audio/save! store))
+(defn changed!
+  "Make the `change` of operations/changed to the `store`, e.g. of the
+  listener's queue, and save the library, unless the `change` is nil."
+  [store change]
+  (when change
+    (app-library/change! store change)
+    (audio/save! store)))
 
 (def library-view-key
   "The key of the listener's choices for the Library page in localStorage,
@@ -242,23 +243,22 @@
 (nxr/register-effect! :queue/add
   (fn [_ store {:keys [id] :as playable} title next?]
     (try
-      (swap! store #(-> (assoc % :library (audio/added % playable))
-                        (queue/added id title next?)))
-      (audio/save! store)
+      (app-library/change! store (audio/added @store playable))
+      (changed! store (queue/added id title next?))
       (catch :default e
         (js/console.error "The episode couldn't be queued" e)))))
 
 (nxr/register-effect! :queue/move
   (fn [_ store id to]
-    (profile-changed! store queue/moved id to)))
+    (changed! store (queue/moved @store id to))))
 
 (nxr/register-effect! :queue/remove
   (fn [_ store id]
-    (profile-changed! store queue/removed id)))
+    (changed! store (queue/removed @store id))))
 
 (nxr/register-effect! :queue/undo
   (fn [_ store]
-    (profile-changed! store queue/undone)))
+    (changed! store (queue/undone @store))))
 
 ;; once the dialog has closed, since the page is inert while it's open
 (nxr/register-effect! :queue/clear-closed
@@ -266,39 +266,39 @@
     (when-let [dialog (some-> (:replicant/dom-event dispatch-data) .-target)]
       (when (= "clear" (.-returnValue dialog))
         (set! (.-returnValue dialog) "")
-        (profile-changed! store queue/cleared)
+        (changed! store (queue/cleared @store))
         (page/focus! focus-id)))))
 
 (nxr/register-effect! :inbox/dismiss
   (fn [_ store id]
-    (profile-changed! store inbox/dismissed id)))
+    (changed! store (inbox/dismissed @store id))))
 
 (nxr/register-effect! :inbox/dismiss-all
   (fn [_ store]
-    (profile-changed! store inbox/all-dismissed)))
+    (changed! store (inbox/all-dismissed @store))))
 
 (nxr/register-effect! :inbox/queue-all
   (fn [_ store]
-    (profile-changed! store inbox/all-queued)))
+    (changed! store (inbox/all-queued @store))))
 
 (nxr/register-effect! :inbox/undo
   (fn [_ store]
-    (profile-changed! store inbox/undone)))
+    (changed! store (inbox/undone @store))))
 
 ;; The settings
 
 (nxr/register-effect! :settings/prefer
   (fn [_ store k v]
     (when (or (boolean? v) (keyword? v) (js/Number.isFinite v))
-      (profile-changed! store settings/preferred {k v}))))
+      (changed! store (settings/preferred {k v})))))
 
 (nxr/register-effect! :settings/search-source
   (fn [_ store source on?]
-    (profile-changed! store settings/turned source (boolean on?))))
+    (changed! store (settings/turned @store source (boolean on?)))))
 
 (nxr/register-effect! :settings/move-source
   (fn [_ store source to]
-    (profile-changed! store settings/moved-source source to)))
+    (changed! store (settings/moved-source @store source to))))
 
 ;; the input is emptied, so that choosing the same file again imports it
 ;; again
@@ -368,9 +368,9 @@
   (-> (app-library/open! store)
       ;; the title of a show that only the library keeps is known now
       (.then #(page/canonicalize! @store))
-      (.then #(let [s @store]
-                (when-not (identical? s (inbox/inbox-only s))
-                  (profile-changed! store inbox/inbox-only))))
+      (.then #(when-let [lib (:library @store)]
+                (when-not (identical? lib (inbox/inbox-only lib (js/Date.)))
+                  (changed! store {:operation [:inbox/only]}))))
       (.catch #(js/console.error "The library didn't restore" %))))
 
 (defn load-server-info!

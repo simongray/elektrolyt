@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.player-test :as player-test]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]))
@@ -94,7 +95,7 @@
               [:route/queue :route/inbox :route/show]))
       "and the navigation names the page that it's on, for its tone, e.g. the Library on the Inbox page")
   (let [preferring #(-> {:route {:name :route/queue} :library inbox-test/lib}
-                        (settings/preferred {:navigation-palette %}))]
+                        (operations/changed (settings/preferred {:navigation-palette %})))]
     (is (= "color-blind" (:data-palette (second (ui/page (preferring :color-blind)))))
         "from the colours for colour blindness, when the listener chose them")
     (is (every? nil? (map (comp :data-page second) (elements :li (ui/main-nav (preferring :none)))))

@@ -4,6 +4,7 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.settings :as settings]))
 
@@ -62,7 +63,7 @@
   (mapv :title (:episodes picked)))
 
 (defn preferring [state prefs]
-  (settings/preferred state prefs))
+  (operations/changed state (settings/preferred prefs)))
 
 (deftest the-options-of-each-place
   (let [state {:library lib}]

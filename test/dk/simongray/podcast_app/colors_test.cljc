@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.player-test :as player-test]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]))
@@ -85,6 +86,6 @@
       (is (nil? (colors/focus (-> page
                                   (assoc-in [:colors (:artwork show)] {:seed "#24476b"})
                                   (assoc :library inbox-test/lib)
-                                  (settings/preferred {:artwork-colors? false}))))
+                                  (operations/changed (settings/preferred {:artwork-colors? false})))))
           "or the app's own, when the listener prefers them"))
     (is (nil? (colors/focus state)) "and never what plays, which colours the player alone")))
