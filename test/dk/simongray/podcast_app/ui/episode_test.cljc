@@ -74,7 +74,14 @@
         "while it's paused")
     (is (= [[:player/pause]] (get-in (button (playing (:id page) true) nil nil) [1 :on :click]))
         "and Pause while it plays, with no aria-pressed")
-    (is (= "Play" (text-of (button (playing ["other" "x"] true) nil nil))) "while another one plays")))
+    (is (= "Play" (text-of (button (playing ["other" "x"] true) nil nil))) "while another one plays")
+    (let [there {:id     ["other" "x"]
+                 :media  {:paused true}
+                 :shared {:id (:id page) :paused false :current-time 100}}]
+      (is (= [[:player/pause]] (get-in (button there nil nil) [1 :on :click]))
+          "and Pause while another tab plays it, as the player says")
+      (is (= "Play" (text-of (button (assoc-in there [:shared :paused] true) nil nil)))
+          "but not once that tab paused it"))))
 
 (deftest the-buttons-that-queue-it
   (let [page    (episode-ui/route-page (episode-page nil))

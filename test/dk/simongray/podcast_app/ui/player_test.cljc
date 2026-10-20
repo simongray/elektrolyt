@@ -34,7 +34,8 @@
 
 (deftest the-main-action
   (is (= [:button.primary :button.primary]
-         (map (comp first player-ui/play-button) [{:paused true} {:paused false}]))
+         (map (comp first player-ui/play-button)
+              [{:id [:feed "ep"] :media {:paused true}} {:id [:feed "ep"] :media {:paused false}}]))
       "Play and Pause, which the look fills"))
 
 (deftest nothing-playing

@@ -76,9 +76,9 @@
 (defn play-button
   "The button that plays the episode `page`, from `t` seconds or from where
   its `entry` in the profile left it, or pauses it while the `player`
-  plays it."
+  plays it, in this tab or another."
   [page player entry t]
-  (if (and (= (:id page) (:id player)) (false? (get-in player [:media :paused])))
+  (if (some-> (:id page) (= (player/playing player)))
     [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
     [:button.primary {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
      (play-label page entry t)]))

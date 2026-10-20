@@ -41,10 +41,10 @@
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
 ;; Pause, has no aria-pressed
 (defn play-button
-  "The button that plays the episode of the `media` state, or pauses it,
-  wherever it plays."
-  [{:keys [paused] :as media}]
-  (if (false? paused)
+  "The button that plays the episode that the `player` shows, or pauses
+  it, wherever it plays."
+  [player]
+  (if (player/playing player)
     [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
     [:button.primary {:type "button" :on {:click [[:player/resume]]}} "Play"]))
 
@@ -158,7 +158,7 @@
      (artwork playback (:current-time media) href
               (colors/placeholder state (colors/playing state)))
      (now-playing playback (:current-time media) href)
-     (play-button media)
+     (play-button player)
      (skip-buttons back forward)
      ;; as a string, since Replicant leaves out an attribute of false
      [:button.player-more {:type          "button"
