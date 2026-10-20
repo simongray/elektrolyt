@@ -194,15 +194,18 @@
   Pedestal's set syntax, with the Podcast Index credentials `podcastindex`,
   or nil, and the thumbnails kept in `artwork-dir`. The proxy fetches four
   files at once, of 32 MB at most, as podcast-clj's server does, and signs
-  the requests to the Podcast Index. The thumbnails are made four at a
-  time too."
+  the requests to the Podcast Index. The thumbnails' handler fetches and
+  scales two artworks at once, as artwork/defaults has it, which with the
+  proxy's four fit in a heap of 320 MB."
   [podcastindex artwork-dir]
   (let [send       (if podcastindex
                      (podcastindex/sender podcastindex {:send client/send!})
                      client/send!)
         proxy      (at-most 4 30 (proxy/handler {:user-agent client/user-agent
                                                  :send       send}))
-        thumbnails (at-most 4 30 (artwork/handler {:cache-dir artwork-dir}))]
+        ;; without at-most, which would hold up the thumbnails of the
+        ;; folder too, since the handler counts its own jobs
+        thumbnails (artwork/handler {:cache-dir artwork-dir})]
     #{["/proxy" :any proxy :route-name ::proxy]
       ["/artwork" :any thumbnails :route-name ::artwork]
       ["/api/server" :get (server-info podcastindex) :route-name ::server-info]}))
