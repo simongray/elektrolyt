@@ -89,6 +89,29 @@ export function navLink(page, title) {
 }
 
 /**
+ * The names of the documents in the cache's database, which is opened as
+ * like-minded opens it, so that a test that comes first makes it the same.
+ */
+export function cached(page) {
+  return page.evaluate(() => new Promise((resolve, reject) => {
+    const request = indexedDB.open('dk.simongray.podcast-app.cache', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('bodies');
+      request.result.createObjectStore('versions');
+    };
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const keys = db.transaction('versions').objectStore('versions').getAllKeys();
+      keys.onsuccess = () => {
+        db.close();
+        resolve(keys.result);
+      };
+    };
+  }));
+}
+
+/**
  * The show that the routes serve. A test can publish an episode, hold the
  * fetches of the feed until it releases them, give the feed headers, e.g.
  * a Cache-Control, or give the show artwork, as a map of its url, its type

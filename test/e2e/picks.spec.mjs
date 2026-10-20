@@ -5,7 +5,7 @@
 // those of the fixtures, which answer the rest, e.g. the audio.
 
 import { createHash } from 'node:crypto';
-import { test, expect, navLink } from './fixtures.mjs';
+import { test, expect, cached, navLink } from './fixtures.mjs';
 
 /** A show with a podcast:guid, its URL and its episodes, each a title and notes. */
 function show(guid, title, episodes, podroll = []) {
@@ -188,7 +188,8 @@ test('a show recommends the shows of its podroll, and asks again for those that 
   await page.reload();
   await expect(titles).toHaveText([brew.title, flaky.title]);
 
-  // and one without is kept
+  // and one without is kept, once the page is idle
+  await expect.poll(() => cached(page)).toContainEqual(expect.stringMatching(/^linked\./));
   failing.add(flaky);
   await page.reload();
   await expect(titles).toHaveText([brew.title, flaky.title]);

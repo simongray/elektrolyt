@@ -8,34 +8,11 @@
 // between two loads, and a feed's server says max-age=1 where a show
 // should be past its time.
 
-import { test, expect, episodes, feedUrl, navLink, showPath } from './fixtures.mjs';
+import { test, expect, cached, episodes, feedUrl, navLink, showPath } from './fixtures.mjs';
 
 const noon = new Date('2026-10-18T12:00:00Z');
 
 const hour = 60 * 60 * 1000;
-
-/**
- * The names of the documents in the cache's database, which is opened as
- * like-minded opens it, so that a test that comes first makes it the same.
- */
-function cached(page) {
-  return page.evaluate(() => new Promise((resolve, reject) => {
-    const request = indexedDB.open('dk.simongray.podcast-app.cache', 1);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore('bodies');
-      request.result.createObjectStore('versions');
-    };
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
-      const keys = db.transaction('versions').objectStore('versions').getAllKeys();
-      keys.onsuccess = () => {
-        db.close();
-        resolve(keys.result);
-      };
-    };
-  }));
-}
 
 /** Answer Apple's searches through the proxy as `answer` says, and fyyd's with none. */
 async function directories(context, answer) {
