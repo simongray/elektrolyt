@@ -3,9 +3,9 @@
   podcast apps hand them to each other.
 
   An import subscribes to the shows of the file, with their folders and
-  tags, refreshes the feeds, and then takes over the episodes that the
-  file says were played or started, as Overcast's extended export writes
-  them. An export downloads the subscriptions as a file, with those
+  tags, refreshes the feeds, and once a refresh has fetched them, takes
+  over the episodes that the file says were played or started, as
+  Overcast's extended export writes them. An export downloads the subscriptions as a file, with those
   episodes, in the same form."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.format.opml :as format.opml]
@@ -41,6 +41,42 @@
    :text  (str "That file couldn't be read as OPML. Choose a file that a "
                "podcast app exported.")})
 
+;; The marks need the feeds, but refresh! starts nothing while a refresh is
+;; under way, which began before the import and so lacks its feeds, and
+;; finds nothing to fetch while another tab's worker refreshes. The next
+;; refresh comes at once, since the new feeds are due.
+(defn waited
+  "The phase of an import's wait for its feeds, from `phase` as the state
+  of its store goes from `old` to `new`:
+
+  - :waiting until a refresh starts after the import
+  - :started while that one runs
+  - :fetched once it's done, or :waiting again where it found another
+    tab's worker refreshing, or failed"
+  [phase old new]
+  (let [running? #(boolean (get-in % [:refresh :running?]))]
+    (case phase
+      :waiting (if (and (running? new) (not (running? old))) :started :waiting)
+      :started (cond
+                 (running? new)                  :started
+                 (get-in new [:refresh :result]) :fetched
+                 :else                           :waiting)
+      phase)))
+
+(defn mark-when-fetched!
+  "Take over the episodes that the OPML `list` says were played or started
+  into the library of the `store` once a refresh has fetched its feeds, as
+  waited tells, and save it."
+  [store list]
+  (let [k     (gensym "opml-import")
+        phase (atom :waiting)]
+    (add-watch store k
+               (fn [_ _ old new]
+                 (when (= :fetched (swap! phase waited old new))
+                   (remove-watch store k)
+                   (swap! store update :library library/episodes-from-opml list)
+                   (audio/save! store))))))
+
 (defn import!
   "Import the OPML `file` that the listener chose into the library of the
   `store`, as the namespace describes."
@@ -49,11 +85,9 @@
       (.then (fn [text]
                (let [list (format.opml/parse text)]
                  (swap! store imported list)
+                 (mark-when-fetched! store list)
                  (-> (audio/save! store)
-                     (.then #(refresh/refresh! store false))
-                     (.then (fn [_]
-                              (swap! store update :library library/episodes-from-opml list)
-                              (audio/save! store)))))))
+                     (.then #(refresh/refresh! store false))))))
       (.catch (fn [e]
                 (js/console.error "The OPML file wasn't imported" e)
                 (swap! store assoc :settings-status unreadable)))))
