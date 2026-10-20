@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.player-test :as player-test]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]))
 
@@ -13,9 +14,8 @@
                    {:href "https://example.org/a-100.jpg" :width 100}]})
 
 (def state
-  "The Queue page while the episode plays."
-  {:route  {:name :route/queue}
-   :player {:id (:id playing) :playback playing}})
+  "The Queue page while an episode in the artwork of `playing` plays."
+  (assoc (player-test/state {}) :route {:name :route/queue}))
 
 (deftest the-image-to-work-the-colours-out-from
   (is (= "https://example.org/a-100.jpg" (colors/source playing)) "the smallest")
@@ -25,8 +25,7 @@
       "or the artwork itself, which the server can't fetch"))
 
 (deftest the-artworks-that-a-page-wants
-  (is (= [{:artwork (:artwork playing) :artwork-sizes (:artwork-sizes playing)}]
-         (colors/wanted state))
+  (is (= [{:artwork (:artwork playing)}] (colors/wanted state))
       "the artwork of what plays, for the bars")
   (testing "once only"
     (is (empty? (colors/wanted (assoc-in state [:colors (:artwork playing)] {:status :loading}))))
@@ -40,10 +39,8 @@
 (def chaptered
   "The state of the Queue page while the episode plays at 75 seconds, in
   a chapter with an image of its own."
-  (-> state
-      (assoc-in [:player :playback :chapters :document :chapters]
-                [{:start-time 0 :title "A"} {:start-time 60 :title "B" :img "https://example.org/b.png"}])
-      (assoc-in [:player :media :current-time] 75)))
+  (assoc-in state [:episodes player-test/id :result :chapters :document :chapters]
+            [{:start-time 0 :title "A"} {:start-time 60 :title "B" :img "https://example.org/b.png"}]))
 
 (deftest the-image-of-a-chapter-colours-the-bars
   (is (= {:artwork "https://example.org/b.png"} (colors/playing chaptered)))

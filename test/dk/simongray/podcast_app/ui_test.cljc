@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.inbox-test :as inbox-test]
+            [dk.simongray.podcast-app.player-test :as player-test]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]))
 
@@ -65,8 +66,7 @@
       "and the app's name alone on Home, as its heading is"))
 
 (deftest the-landmarks-keep-their-order
-  (let [state {:route  {:name :route/queue}
-               :player {:id ["f" "e"] :playback {:id ["f" "e"]}}}]
+  (let [state (assoc (player-test/state {}) :route {:name :route/queue})]
     (is (= [:a.skip-link :nav :main#main :section#player]
            (map first (drop 2 (ui/page state))))
         "after the shell's attributes")
@@ -75,9 +75,8 @@
         "and the player only while it has an episode")))
 
 (deftest the-colours-of-the-artwork
-  (let [playing "https://example.org/playing.jpg"
-        state   {:route  {:name :route/queue}
-                 :player {:id ["f" "e"] :playback {:id ["f" "e"] :artwork playing}}}]
+  (let [playing "https://example.org/a.jpg"
+        state   (assoc (player-test/state {}) :route {:name :route/queue})]
     (is (= {:data-palette "pages"} (second (ui/page state)))
         "the app's own colours, while the artwork's are unknown")
     (is (= {:data-palette "pages" :style {:--bar-seed "#9e2a2b"}}

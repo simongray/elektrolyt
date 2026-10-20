@@ -3,22 +3,26 @@
   chapters, its controls on a phone, an episode that plays in another tab,
   the ways it can fail to play, and its colours and sizes."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast-app.scenes :refer [artwork]]
+            [dk.simongray.podcast-app.scenes :refer [artwork feed url]]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
 
-(def playback
-  "What library/playback gives for an episode with chapters."
-  {:id       ["917393e3-1b1e-5cef-ace4-edaa54e1f810" "PC20-273"]
-   :src      "https://example.org/273.mp3"
-   :title    "Episode 273: \"Advertising is the Horse and Buggies of Podcasting\""
-   :show     "Podcasting 2.0"
-   :artwork  artwork
-   :chapters {:source   :file
-              :document {:chapters [{:start-time 0 :title "Show Open"}
-                                    {:start-time 81 :title "A sales meeting with the Christian broadcasters"}
-                                    {:start-time 666 :title "Show and tell: PodcastIndexRobot.com"}]}}})
+(def lib
+  "A library subscribed to the scenes' show, in its artwork."
+  (library/subscribe (library/make "scenes") url (assoc feed :itunes/image {:href artwork})))
+
+(def id
+  "The episode of the scenes, which has chapters."
+  [(first (keys (:feeds lib))) "PC20-273"])
+
+(def episodes
+  "What the app read of the episode's files: its chapters file."
+  {id {:status :read
+       :result {:chapters {:source   :file
+                           :document {:chapters [{:start-time 0 :title "Show Open"}
+                                                 {:start-time 81 :title "A sales meeting with the Christian broadcasters"}
+                                                 {:start-time 666 :title "Show and tell: PodcastIndexRobot.com"}]}}}}})
 
 (def media
   "The state of the audio element, 10 minutes and 30 seconds in."
@@ -34,13 +38,13 @@
   "The state of the queue with the `player` merged into one that plays the
   episode of the scenes."
   [player]
-  {:route   {:name :route/queue}
-   :library (library/make "scenes")
-   :player  (merge {:id       (:id playback)
-                    :playback playback
-                    :media    media
-                    :volume   1}
-                   player)})
+  {:route    {:name :route/queue}
+   :library  lib
+   :episodes episodes
+   :player   (merge {:id     id
+                     :media  media
+                     :volume 1}
+                    player)})
 
 (defscene nothing-playing
   "Before the listener plays anything, when the page has no player."
@@ -74,11 +78,10 @@
 (defscene playing-in-another-tab
   "The playback of another tab, 15 minutes in, which this tab's player
   shows and controls, with its own element paused where it loaded."
-  (ui/page (playing {:media           (assoc media :paused true)
-                     :shared          (assoc media :id (:id playback) :at 0 :changed 0
-                                             :current-time 900)
-                     :shared-position 900
-                     :shared-playback playback})))
+  (ui/page (playing {:media     (assoc media :paused true)
+                     :elsewhere (assoc media :id id :tab "other" :at 0 :changed 0
+                                       :current-time 900)
+                     :now       0})))
 
 (defscene a-play-that-the-browser-refused
   "A play before the page may play, e.g. after a reload, which the

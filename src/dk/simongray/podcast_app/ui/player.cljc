@@ -44,7 +44,7 @@
   "The button that plays the episode that the `player` shows, or pauses
   it, wherever it plays."
   [player]
-  (if (player/playing player)
+  (if (player/playing player (player/shown-id player))
     [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
     [:button.primary {:type "button" :on {:click [[:player/resume]]}} "Play"]))
 
@@ -144,7 +144,7 @@
   in layout.css."
   [{:keys [player library] :as state}]
   (let [{:keys [seeking expanded? volume volume-locked?]} player
-        playback       (player/shown-playback player)
+        playback       (player/shown-playback state)
         media          (player/shown-media player)
         [back forward] (player/skips (:profile library))
         href           (when-let [id (:id playback)]
@@ -186,8 +186,8 @@
 (defn region
   "The player of the `state`, which stays as the pages change, while it
   has an episode, in this tab or another, or else nil."
-  [{:keys [player] :as state}]
-  (when (and (:id player) (player/shown-playback player))
+  [state]
+  (when (player/shown-playback state)
     [:section#player {:aria-label "Player"
                       :data-size  (name (settings/player-size state))}
      (content state)]))
