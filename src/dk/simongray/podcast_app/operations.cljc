@@ -25,13 +25,10 @@
   (update library :profile #(apply f % (concat args [at]))))
 
 (defn applied
-  "The `library` with the `operation` applied, with the `opts` below, or nil
-  for a nil `library`. A step keeps its :effects, for the player to do.
-
-  - :at, the instant of the listener's action, now by default
-  - :fallback-fn, the next episode after one that ends with nothing else
-    to play, as library/step takes it"
-  [library [kind & args :as operation] {:keys [fallback-fn] :as opts}]
+  "The `library` with the `operation` applied at the :at of the `opts`, the
+  instant of the listener's action, or now, or nil for a nil `library`. A
+  step keeps its :effects, for the player to do."
+  [library [kind & args :as operation] opts]
   (when library
     (let [at      (or (:at opts) (time/now))
           changed #(apply profile-changed library at %1 args)]
@@ -64,10 +61,7 @@
         :library/refreshed   (let [[found] args]
                                (library/refreshed library found))
         :player/step         (let [[event] args]
-                               (library/step library event
-                                             (cond-> {:at at}
-                                               fallback-fn
-                                               (assoc :fallback-fn fallback-fn))))))))
+                               (library/step library event {:at at}))))))
 
 (defn changed
   "The `state` with the `change` made to it, with the `opts` of applied:

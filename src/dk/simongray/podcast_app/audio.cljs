@@ -82,34 +82,39 @@
   (post! {:type  :told
           :state (player/told media (get-in @store [:player :id]) tab (js/Date.now))}))
 
-(declare press! play-id!)
+(declare autoplay! press! play-id!)
 
 (defn apply-effects!
   "Do the `effects` of library/step in the player of the `store`."
   [store effects]
   (doseq [[kind id position] effects]
     (case kind
-      :seek   (some-> (element) (media/seek! position))
-      :stop   (some-> (element) media/pause!)
-      :play   (play-id! store id nil)
-      :played nil)))
+      :seek         (some-> (element) (media/seek! position))
+      :stop         (some-> (element) media/pause!)
+      :play         (play-id! store id nil)
+      :played       nil
+      :nothing-next (autoplay! store id))))
 
-;; The library's step plays the next of the queue, or of the show with
-;; Continuous play, and stops at the end of a sleep timer, so a pick plays
-;; only when the step does none of them. It ends an episode in its outro as
-;; well as at its end, so the pick is its :fallback-fn.
 (defn step!
   "Run the player `event` through library/step in the `store`, write the
-  library, do the effects of the step, and give them. An episode that ends
-  with nothing else to play is followed by the first pick after it, when
-  the listener chose Autoplay."
+  library, do the effects of the step, and give them."
   [store event]
-  (let [state             @store
-        {:keys [effects]} (app-library/change! store {:operation [:player/step event]}
-                                               {:fallback-fn #(picks/autoplayed state %)})]
+  (let [{:keys [effects]} (app-library/change! store {:operation [:player/step event]})]
     (save! store)
     (apply-effects! store effects)
     effects))
+
+;; The library's step plays the next of the queue, or of the show with
+;; Continuous play, and stops at the end of a sleep timer, so a pick plays
+;; only when the step says that nothing plays next, which it says of an
+;; episode that ends in its outro too
+(defn autoplay!
+  "Play the first pick after the episode `id` in the player of the `store`,
+  as Play does, when the listener chose Autoplay."
+  [store id]
+  (when-let [pick (picks/autoplayed @store id)]
+    (step! store [:play pick])
+    (play-id! store pick nil)))
 
 (defn handlers
   "The handlers of the actions of the lock screen and the keys for the
