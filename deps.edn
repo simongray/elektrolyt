@@ -3,8 +3,7 @@
  ;; podcast-clj for the feeds and the listener's library, play-nice for the
  ;; playing, colour-coded for the colours of the artwork, Replicant for the
  ;; rendering, Nexus for the actions that the views dispatch, and reitit for
- ;; the routes. podcast-clj is ahead of its release, and colour-coded has
- ;; none yet, so both come from Git.
+ ;; the routes. podcast-clj is ahead of its release, so it comes from Git.
  ;;
  ;; Replicant comes from the commit of its PR #83 too, which fixes issue #81:
  ;; a keyed child that moves to the front and changes keeps its old vdom, so
@@ -13,17 +12,17 @@
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
  :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
-                                   :git/sha "ed20b62495e1b4f0ca9bbfe598d8103e68816bc5"}
-         dk.simongray/play-nice   {:mvn/version "0.4.0"}
-         dk.simongray/colour-coded {:git/url "https://github.com/simongray/colour-coded.git"
-                                    :git/sha "0b9be2d2c57a2728a8d620c7d0f08424222c206c"}
+                                   :git/sha "05be75e7810da3656d245515df1bade6b009f9a8"}
+         dk.simongray/play-nice   {:mvn/version "0.5.0"}
+         dk.simongray/colour-coded {:mvn/version "0.1.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
          metosin/reitit-frontend  {:mvn/version "0.11.0"}
-         ;; the caches of searches and shows, and the cache mode of their
-         ;; requests, newer than what podcast-clj depends on
-         dk.simongray/like-minded {:mvn/version "0.7.0"}
+         ;; the caches of searches and shows, the cache mode of their
+         ;; requests and the id of the browser, newer than what podcast-clj
+         ;; depends on
+         dk.simongray/like-minded {:mvn/version "0.8.0"}
          dk.simongray/wary-fetch  {:mvn/version "0.16.0"}
          ;; what the app's server tells the page, as transit
          com.cognitect/transit-cljs {:mvn/version "0.8.280"}}
