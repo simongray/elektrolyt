@@ -54,13 +54,13 @@
   - :fetched once it's done, or :waiting again where it found another
     tab's worker refreshing, or failed"
   [phase old new]
-  (let [running? #(boolean (get-in % [:refresh :running?]))]
+  (let [running? #(boolean (get-in % [:refresh-status :running?]))]
     (case phase
       :waiting (if (and (running? new) (not (running? old))) :started :waiting)
       :started (cond
-                 (running? new)                  :started
-                 (get-in new [:refresh :result]) :fetched
-                 :else                           :waiting)
+                 (running? new)                         :started
+                 (get-in new [:refresh-status :result]) :fetched
+                 :else                                  :waiting)
       phase)))
 
 (defn mark-when-fetched!
