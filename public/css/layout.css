@@ -66,11 +66,13 @@ button.disclosure {
   text-align: inherit;
 }
 
-/* A list whose role is explicit has no markers, and so no room for them.
-   It keeps role="list", since Safari drops the semantics of a list
-   without markers.
+/* A list whose role is explicit has no markers, and so no room for them,
+   nor margins of its own, since the layout spaces its rows. It keeps
+   role="list", since Safari drops the semantics of a list without
+   markers.
    https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html */
 [role="list"] {
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -240,10 +242,6 @@ search p {
 
 /* A result has its artwork beside its title, author and button, whether or
    not it has artwork */
-.search-results {
-  margin: 0;
-}
-
 .search-results > li {
   padding-block: var(--space-3);
 }
@@ -326,7 +324,7 @@ search p {
   gap: 1.5em;
 }
 
-@media (min-width: 48em) {
+@container (min-width: 30rem) {
   .search-lists {
     grid-auto-flow: column;
     grid-auto-columns: minmax(22.5rem, 1fr);
@@ -345,34 +343,6 @@ search p {
 }
 
 
-/* The episodes of a show, each its artwork beside its title and facts, as
-   the queue's are */
-.episodes {
-  margin: 0;
-}
-
-.episodes > li {
-  padding-block: var(--space-3);
-}
-
-.episodes article {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  column-gap: 1em;
-  align-items: start;
-}
-
-.episodes img {
-  grid-row: span 2;
-  width: 48px;
-  object-fit: cover;
-}
-
-.episodes article > :not(img) {
-  grid-column: 2;
-}
-
-.episodes h3,
 .search-results h3 {
   margin: 0;
 }
@@ -386,7 +356,7 @@ search p {
 .episode-intro,
 .show-intro {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 6rem minmax(0, 1fr);
   column-gap: 1em;
   align-items: start;
 }
@@ -400,7 +370,7 @@ search p {
 .episode-intro img,
 .show-intro img {
   grid-column: 1;
-  width: 96px;
+  width: 6rem;
   object-fit: cover;
 }
 
@@ -438,14 +408,14 @@ search p {
 @media (min-width: 37.5em) {
   .episode-intro,
   .show-intro {
-    grid-template-columns: 160px minmax(0, 1fr);
+    grid-template-columns: 10rem minmax(0, 1fr);
     grid-template-rows: auto 1fr;
   }
 
   .episode-intro img,
   .show-intro img {
     grid-row: 1 / span 2;
-    width: 160px;
+    width: 10rem;
   }
 
   .episode-intro > hgroup,
@@ -460,10 +430,6 @@ search p {
 }
 
 /* The chapters, each its time in a column beside its title */
-.chapters {
-  margin: 0;
-}
-
 .chapters li {
   display: grid;
   grid-template-columns: 4.5em minmax(0, 1fr);
@@ -500,13 +466,22 @@ search p {
 }
 
 /* The content beside the column of the artwork, the Details and the picks
-   below them, with a last row that takes what the content is taller */
+   below them, each right after what's above it, and a last row that takes
+   what the content is taller. Where there's artwork, an empty first row
+   of the column keeps its place, since the artwork lies over it. */
 @container (min-width: 48rem) {
   .with-details {
     --column: 16rem;
     position: relative;
     grid-template-columns: var(--column) minmax(0, 1fr);
-    grid-template-rows: var(--column) auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  .with-details:has(.episode-intro > img, .show-intro > img)::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 1;
+    height: var(--column);
   }
 
   .with-details > :first-child {
@@ -514,18 +489,9 @@ search p {
     grid-row: 1 / -1;
   }
 
-  .with-details > aside {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
+  .with-details > aside,
   .with-details > .picks {
     grid-column: 1;
-    grid-row: 3;
-  }
-
-  .with-details:not(:has(.episode-intro > img, .show-intro > img)) > aside {
-    grid-row: 1 / span 2;
   }
 
   .with-details .episode-intro img,
@@ -756,15 +722,18 @@ search p {
   display: contents;
 }
 
-/* The queue and the inbox: each episode's artwork beside its title, show
-   and times, with its buttons below, which wrap on a phone */
+/* The queue, the inbox and a show's episodes: each episode's artwork
+   beside its title, show and times, with its buttons below, which wrap
+   on a phone */
 .queue > li,
-.inbox > li {
+.inbox > li,
+.episodes > li {
   padding-block: var(--space-3);
 }
 
 .queue-episode,
-.inbox-episode {
+.inbox-episode,
+.show-episode {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   column-gap: 1em;
@@ -772,24 +741,28 @@ search p {
 }
 
 .queue-episode img,
-.inbox-episode img {
+.inbox-episode img,
+.show-episode img {
   grid-row: span 3;
   width: 48px;
+  object-fit: cover;
 }
 
 .queue-episode > :not(img),
-.inbox-episode > :not(img) {
+.inbox-episode > :not(img),
+.show-episode > :not(img) {
   grid-column: 2;
   overflow-wrap: anywhere;
 }
 
 .queue-episode :is(h3, p),
-.inbox-episode :is(h2, h3, p) {
+.inbox-episode :is(h2, h3, p),
+.show-episode :is(h3, p) {
   margin: 0;
 }
 
 /* The picks: each episode's artwork and its title, in a short row */
-.picks > li {
+.pick-list > li {
   padding-block: var(--space-2);
 }
 
@@ -816,9 +789,9 @@ search p {
   margin-block: var(--space-2) 0;
 }
 
-/* Home's start of the queue and its picks, side by side where two columns
-   of rows fit beside the rail */
-@media (min-width: 64em) {
+/* Home's start of the queue and its picks, side by side where the main
+   content has room for two columns of rows */
+@container (min-width: 46rem) {
   .home-lists {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -856,22 +829,6 @@ search p {
    and the grid wider than that. */
 .library-show h3 {
   margin: 0;
-}
-
-/* The title's link covers the whole tile, so that a click on the artwork
-   follows it too, while a keyboard and a screen reader still find one
-   link per show, named by its title (Inclusive Components, Cards:
-   https://inclusive-components.design/cards/) */
-.library-show,
-.linked-show {
-  position: relative;
-}
-
-.library-show h3 a::after,
-.linked-show h3 a::after {
-  content: "";
-  position: absolute;
-  inset: 0;
 }
 
 /* The shows that a show links to, as a grid of small tiles */

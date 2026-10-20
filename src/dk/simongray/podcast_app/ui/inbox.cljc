@@ -162,5 +162,4 @@
        [:p "No new episodes."]
        (list
         (episode-list state episodes :h3 newest-count)
-        [:p.list-more [:a {:href (routes/href :route/inbox)} "The whole Inbox"] ": "
-         (text/counted n "new episode")]))]))
+        (lists-ui/more :route/inbox "The whole Inbox" (text/counted n "new episode"))))]))

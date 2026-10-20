@@ -17,7 +17,8 @@
 
 (deftest a-section-of-picks
   (let [x (picks-ui/section {:library lib} section picked)]
-    (is (= [:h2 {:id "episode-picks"} "More like this"] (first (elements :h2 x))))
+    (is (= [:h2 {:id "episode-picks" :tabindex -1} "More like this"] (first (elements :h2 x)))
+        "whose heading a link to the section moves the focus to")
     (is (= "About burr, espresso, beans and grind" (text-of (elements :p.picks-why x)))
         "the first five of the words that they share, as a list")
     (is (= ["/search?q=burr" "/search?q=espresso" "/search?q=beans" "/search?q=grind"]
@@ -32,27 +33,27 @@
   (let [place  [:show "g"]
         asked  (atom 0)
         picks  #(do (swap! asked inc) picked)
+        opened {:library lib :open {[:picks :show "g"] true}}
         closed (picks-ui/folded {:library lib} section place picks)
-        open   (picks-ui/folded {:library lib :picks-open {place true}} section place picks)
+        open   (picks-ui/folded opened section place picks)
         button #(second (first (elements :button.disclosure (elements :h2 %))))]
     (is (= "More like this" (text-of (elements :h2 closed))) "a button of the heading's words")
-    (is (= ["false" "episode-picks-list"] ((juxt :aria-expanded :aria-controls) (button closed))))
-    (is (= [[:store/assoc-in [:picks-open place] true]] (get-in (button closed) [:on :click]))
+    (is (= ["false" "episode-picks-content"] ((juxt :aria-expanded :aria-controls) (button closed))))
+    (is (= [[:store/assoc-in [:open [:picks :show "g"]] true]] (get-in (button closed) [:on :click]))
         "which opens it")
     (is (empty? (elements :article.pick closed)) "closed, without picks")
     (is (= 1 @asked) "which are only worked out once it's open")
     (is (= "true" (:aria-expanded (button open))))
-    (is (= [[:store/assoc-in [:picks-open place] false]] (get-in (button open) [:on :click]))
+    (is (= [[:store/assoc-in [:open [:picks :show "g"]] false]] (get-in (button open) [:on :click]))
         "and closes it again")
     (is (= ["Grinders compared" "Gears"] (map text-of (elements :h3 open))))
     (is (= "Looking for episodes like it…"
-           (text-of (elements :p (picks-ui/folded {:library lib :picks-open {place true}}
-                                                  section place (constantly nil)))))
+           (text-of (elements :p (picks-ui/folded opened section place (constantly nil)))))
         "or, before the library's index is made, that they're on the way")))
 
 (deftest the-artwork-of-a-pick
-  (let [x               (picks-ui/row {:library lib} (assoc (first (:episodes picked))
-                                                            :artwork "https://example.org/art.jpg"))
+  (let [x               (picks-ui/section {:library lib} section
+                                          (assoc-in picked [:episodes 0 :artwork] "https://example.org/art.jpg"))
         [[_ art-attrs]] (elements :a.artwork-link x)
         [[_ title-attrs]] (elements :a (elements :h3 x))]
     (is (= (:href title-attrs) (:href art-attrs)) "a link to the page that the title links to")

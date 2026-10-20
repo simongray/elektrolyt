@@ -11,15 +11,15 @@
   https://support.pocketcasts.com/article/subscribing-to-podcasts/"
   (:require [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.queue :as queue]
-            [dk.simongray.podcast-app.routes :as routes]
             [dk.simongray.podcast-app.shows :as shows]
+            [dk.simongray.podcast-app.ui.lists :as lists-ui]
             [dk.simongray.podcast-app.ui.picks :as picks-ui]
             [dk.simongray.podcast-app.ui.queue :as queue-ui]))
 
 (def queue-count
-  "How many episodes of the queue Home shows: what plays and the next
-  three, or else the first four, as many as the picks beside them."
-  4)
+  "How many episodes of the queue Home shows: what plays and the next, or
+  else the first, as many as the picks beside them."
+  (get-in picks/places [:home :limit]))
 
 (defn up-next
   "The section of the start of the queue of the `state`, marked Now
@@ -29,17 +29,16 @@
   (let [episodes (:episodes (queue/view library))
         playing  (:id (queue/current state))]
     [:section {:aria-labelledby "home-queue"}
-     [:h2#home-queue "Up next"]
+     [:h2#home-queue {:tabindex -1} "Up next"]
      (if (empty? episodes)
        (queue-ui/empty-queue state)
        (list
-        [:ul.queue {:role "list"}
+        [:ol.queue {:role "list"}
          (for [{:keys [id] :as episode} (take queue-count episodes)]
            [:li {:replicant/key (pr-str id)}
             [:article.queue-episode
              (queue-ui/row state episode (when (= playing id) ["Now playing"]))]])]
-        [:p.list-more [:a {:href (routes/href :route/queue)} "The whole queue"] ": "
-         (queue-ui/summary episodes)]))]))
+        (lists-ui/more :route/queue "The whole queue" (queue-ui/summary episodes))))]))
 
 (def picks-section
   "The section of Home's picks: its heading's id and text, the lead of
@@ -52,7 +51,7 @@
 (def about
   "The section about the app, whose text is still to be written."
   [:section {:aria-labelledby "about"}
-   [:h2#about "About"]
+   [:h2#about {:tabindex -1} "About"]
    [:p "To be written."]])
 
 (defn content

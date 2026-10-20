@@ -40,22 +40,24 @@
 
 ;; Inclusive Components, Cards: the title is the link, rather than the
 ;; whole tile, whose every word would be the link's name, and the artwork
-;; beside it is decoration. The stylesheet stretches the link over the
-;; tile, so that a click on the artwork follows it too. The list keeps
-;; role="list", since Safari drops the semantics of a list without markers.
+;; links there too, for a pointer alone, as it does beside every title. The
+;; list keeps role="list", since Safari drops the semantics of a list
+;; without markers.
 ;; https://inclusive-components.design/cards/
 (defn show-item
-  "The `show` of the library in the `state`: its artwork, its title, which
-  links to its page, its counts, and when its newest episode came out."
+  "The `show` of the library in the `state`: its artwork and its title,
+  which link to its page, its counts, and when its newest episode came
+  out."
   [state {:keys [feed-guid title newest counts] :as show}]
-  [:li {:replicant/key feed-guid}
-   [:article.library-show
-    (artwork/img show 160 (colors/placeholder state show))
-    [:h3 [:a {:href (routes/show-href feed-guid title)} title]]
-    (when-let [text (shows/counts-text counts)]
-      [:p text])
-    (when newest
-      [:p "Newest episode " (time-ui/date newest)])]])
+  (let [href (routes/show-href feed-guid title)]
+    [:li {:replicant/key feed-guid}
+     [:article.library-show
+      (artwork/linked href (artwork/img show 160 (colors/placeholder state show)))
+      [:h3 [:a {:href href} title]]
+      (when-let [text (shows/counts-text counts)]
+        [:p text])
+      (when newest
+        [:p "Newest episode " (time-ui/date newest)])]]))
 
 (defn content
   "The content of the Library page of the `state`, below its heading: the
@@ -70,7 +72,7 @@
       (list
        (inbox-ui/section state)
        [:section {:aria-labelledby "shows"}
-        [:h2#shows "Shows"]
+        [:h2#shows {:tabindex -1} "Shows"]
         [:div.library-tools
          (choice state :sort "Sort by" shows/sorts)
          (choice state :layout "Show as" shows/layouts)]

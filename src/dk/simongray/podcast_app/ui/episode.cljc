@@ -7,6 +7,7 @@
   the start of the feed has the episode."
   (:require [dk.simongray.play-nice.media.fragment :as fragment]
             [dk.simongray.podcast.format.transcript :as transcript]
+            [dk.simongray.podcast-app.colors :as colors]
             [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.links :as links]
             [dk.simongray.podcast-app.picks :as picks]
@@ -135,7 +136,8 @@
   (let [entry (player/entry (:library state) id)]
     [:header.episode-intro
      [:hgroup heading [:p [:a {:href (:href show) :lang (text/lang language)} (:title show)]]]
-     (artwork/img page 256 {:fetchpriority "high" :sizes artwork/intro-sizes})
+     (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
+                                  (colors/placeholder state page)))
      [:div.episode-intro-body
       (facts-ui/line
        (concat (numbering-facts numbering)
@@ -174,28 +176,23 @@
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/chapters/jsonChapters.md
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
-;; Closed until the listener opens it, as the transcript is, so that the
-;; notes come before a long list
+;; Folded, as the transcript is, so that the notes come before a long list
 (defn chapters
-  "The `chapters` of the episode `page` as a list of their times and titles,
-  which link to the web page of a chapter that has one, once the listener
-  opened them, `open`."
-  [{:keys [id language] :as page} chapters open]
+  "The `chapters` of the episode `page` in the `state` as a list of their
+  times and titles, which link to the web page of a chapter that has one,
+  once the listener opened them."
+  [state {:keys [id language] :as page} chapters]
   (let [lang (text/lang language)]
-    [:section {:aria-labelledby "chapters"}
-     (controls-ui/disclosure :h2 "chapters" "Chapters" "chapter-list" open
-                             [[:store/assoc-in [:chapters-open id] (not open)]])
-     [:div#chapter-list
-      (when open
-        [:ol.chapters {:role "list"}
-         (for [{:keys [start-time title url]} chapters]
-           [:li {:replicant/key start-time}
-            (time-link page start-time (time-ui/clock start-time))
-            " "
-            (if (url/web-url? url)
-              (links/new-tab [:a {:href url :lang lang} (or title url)])
-              (when title
-                [:span {:lang lang} title]))])])]]))
+    (controls-ui/folded state {:id "chapters" :heading "Chapters" :place [:chapters id]}
+                        #(vector :ol.chapters {:role "list"}
+                                 (for [{:keys [start-time title url]} chapters]
+                                   [:li {:replicant/key start-time}
+                                    (time-link page start-time (time-ui/clock start-time))
+                                    " "
+                                    (if (url/web-url? url)
+                                      (links/new-tab [:a {:href url :lang lang} (or title url)])
+                                      (when title
+                                        [:span {:lang lang} title]))])))))
 
 ;; WAI, Transcribing Audio to Text: the transcript is on the page of the
 ;; media itself, in paragraphs that name who speaks. It's behind a
@@ -211,34 +208,33 @@
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
 (defn transcript
-  "The transcript of the episode `page`, with the `files` read so far, in
-  paragraphs of a speaker's turn or about a minute, once the listener
-  opened it, `open`, which reads it."
-  [{:keys [id view] :as page} files open]
+  "The transcript of the episode `page` in the `state`, with the `files`
+  read so far, in paragraphs of a speaker's turn or about a minute, once
+  the listener opened it, which reads it."
+  [state {:keys [id view] :as page} files]
   (let [{:keys [transcript-status]}       files
         {:keys [document error language]} (:transcript files)]
-    [:section {:aria-labelledby "transcript"}
-     (controls-ui/disclosure :h2 "transcript" "Transcript" "transcript-text" open
-                             (cond-> [[:store/assoc-in [:transcript-open id] (not open)]]
-                               (not open) (conj [:episode/read-transcript id view])))
-     [:div#transcript-text
-      (when open
-        (cond
-          (= :reading transcript-status)
-          [:p {:role "status"} "Loading the transcript…"]
+    (controls-ui/folded
+     state {:id      "transcript"
+            :heading "Transcript"
+            :place   [:transcript id]
+            :on-open [[:episode/read-transcript id view]]}
+     #(cond
+        (= :reading transcript-status)
+        [:p {:role "status"} "Loading the transcript…"]
 
-          (or error (and (= :read transcript-status) (empty? (:segments document))))
-          [:p {:role "status"} "The transcript couldn't be read."]
+        (or error (and (= :read transcript-status) (empty? (:segments document))))
+        [:p {:role "status"} "The transcript couldn't be read."]
 
-          document
-          [:div.transcript {:lang (text/lang (or language (:language page)))}
-           (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
-             [:p
-              (when start-time
-                (list (time-link page start-time (time-ui/clock start-time)) " "))
-              (when speaker
-                (list [:strong speaker] ": "))
-              body])]))]]))
+        document
+        [:div.transcript {:lang (text/lang (or language (:language page)))}
+         (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
+           [:p
+            (when start-time
+              (list (time-link page start-time (time-ui/clock start-time)) " "))
+            (when speaker
+              (list [:strong speaker] ": "))
+            body])]))))
 
 (def not-found
   "The content of the page of an episode that its show's feed doesn't
@@ -297,9 +293,9 @@
             [:h2#notes.visually-hidden "Show notes"]
             [:div.show-notes {:lang (text/lang language)} notes]])
          (when shown
-           (chapters page shown (get-in state [:chapters-open id])))
+           (chapters state page shown))
          (when (:transcript view)
-           (transcript page files (get-in state [:transcript-open id])))]
+           (transcript state page files))]
         aside
         (picks-ui/folded state picks-section [:episode id] #(picks/like-episode state page)))))
     (list heading (missing state))))

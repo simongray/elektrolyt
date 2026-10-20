@@ -28,12 +28,6 @@
           (map (fn [[kind s]] (if (= :element kind) (search-link s) s)))
           (text/listing-parts terms))))
 
-(defn row
-  "The pick `episode` in the `state`: its artwork and its title, which link
-  to its page."
-  [state episode]
-  (lists-ui/row state episode :h3 nil))
-
 ;; A list rather than a carousel, which hides most of what it holds, and
 ;; needs keys, focus and announcements of its own (W3C WAI, Carousels)
 ;; https://www.nngroup.com/articles/mobile-carousels/
@@ -46,10 +40,12 @@
     [:p none]
     (list
      (why lead terms)
-     [:ul.picks {:role "list"}
+     [:ul.pick-list {:role "list"}
       (for [{pick-id :id :as episode} episodes]
         [:li {:replicant/key (pr-str pick-id)}
-         [:article.pick (row state episode)]])])))
+         ;; the artwork and the title, which link to its page, which has
+         ;; the rest
+         [:article.pick (lists-ui/row state episode :h3 nil)]])])))
 
 (defn section
   "The `section` of the `picks` in the `state`, whose heading has its :id
@@ -58,30 +54,16 @@
   [state {:keys [id heading lead none] :as section} {:keys [episodes] :as picks}]
   (when (or (seq episodes) none)
     [:section.picks {:aria-labelledby id}
-     [:h2 {:id id} heading]
+     [:h2 {:id id :tabindex -1} heading]
      (picks-list state lead none picks)]))
 
-(defn open?
-  "Whether the listener opened the picks of `place` in the `state`, e.g.
-  [:show guid]."
-  [state place]
-  (boolean (get-in state [:picks-open place])))
-
-;; Closed until the listener opens it, so that the page leads with its own
-;; content, and the picks are only worked out then
 (defn folded
   "The `section` of the picks of `place` in the `state`, as section has it,
-  closed until the listener opens it with the button of its heading, and
-  then with the picks that `picks-fn` gives."
+  folded until the listener opens it, e.g. [:show guid], and then with the
+  picks that `picks-fn` gives, which are only worked out then."
   [state {:keys [id heading lead none] :as section} place picks-fn]
-  (let [open   (open? state place)
-        region (str id "-list")]
-    [:section.picks {:aria-labelledby id}
-     (controls-ui/disclosure :h2 id heading region open
-                             [[:store/assoc-in [:picks-open place] (not open)]])
-     [:div {:id region}
-      (when open
-        (if-let [picks (picks-fn)]
-          (picks-list state lead none picks)
-          ;; before the library's index is made
-          [:p {:role "status"} "Looking for episodes like it…"]))]]))
+  (controls-ui/folded state {:id id :heading heading :place (into [:picks] place) :class "picks"}
+                      #(if-let [picks (picks-fn)]
+                         (picks-list state lead none picks)
+                         ;; before the library's index is made
+                         [:p {:role "status"} "Looking for episodes like it…"])))

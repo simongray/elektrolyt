@@ -121,18 +121,18 @@
   them."
   (let [[k item-guid :as episode-id] (id :podnews 0)]
     (ui/page (assoc listener
-                    :route      {:name        :route/episode
-                                 :path-params {:guid k :hash (guid/short-hash item-guid)}}
-                    :picks-open {[:episode episode-id] true}))))
+                    :route {:name        :route/episode
+                            :path-params {:guid k :hash (guid/short-hash item-guid)}}
+                    :open  {[:picks :episode episode-id] true}))))
 
 (defscene under-a-show
   "The shows that a show recommends in its podroll, and the episodes of
   other shows like it, once the listener opened them."
   (let [k (keys-by-title "Podnews Weekly Review")]
     (ui/page (assoc listener
-                    :route      {:name :route/show :path-params {:guid k}}
-                    :picks-open {[:show k] true}
-                    :linked     {k {:status  :done
-                                    :podroll [{:guid "fountain" :title "Fountain Radio" :artwork (art "#d35400")}
-                                              {:guid "citadel" :title "Citadel Dispatch" :artwork (art "#c0392b")}
-                                              {:guid "boostagram-ball" :title "Boostagram Ball"}]}}))))
+                    :route  {:name :route/show :path-params {:guid k}}
+                    :open   {[:picks :show k] true}
+                    :linked {k {:status  :done
+                                :podroll [{:guid "fountain" :title "Fountain Radio" :artwork (art "#d35400")}
+                                          {:guid "citadel" :title "Citadel Dispatch" :artwork (art "#c0392b")}
+                                          {:guid "boostagram-ball" :title "Boostagram Ball"}]}}))))

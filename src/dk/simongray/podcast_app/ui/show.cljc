@@ -19,6 +19,7 @@
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.details :as details]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
+            [dk.simongray.podcast-app.ui.lists :as lists-ui]
             [dk.simongray.podcast-app.ui.picks :as picks-ui]
             [dk.simongray.podcast-app.ui.subscription :as subscription]
             [dk.simongray.podcast-app.ui.time :as time-ui]))
@@ -124,17 +125,17 @@
            [(details/web-link link "Website")
             (some-> url (details/web-link "Feed"))])))
 
-(defn episode
-  "An episode in the list of episodes, the `row` of its :title, its date of
-  :published and its :duration in seconds, whose title in the language
-  `lang` links to the `href` of its page, beside its artwork, or else the
-  `show`'s, which links there too."
-  [href {:keys [title published duration] :as row} lang show]
-  [:article
-   (artwork/linked href (artwork/img (if (:artwork row) row show) 48 {:loading "lazy"}))
-   [:h3 [:a {:href href :lang lang} title]]
-   (facts-ui/line [(some-> published time-ui/date)
-                   (some-> duration time-ui/duration)])])
+(defn episode-row
+  "An episode in the list of episodes in the `state`, the `row` of its
+  :title, its date of :published and its :duration in seconds, as a row
+  of a list: its artwork, or else the `show`'s, and its title in the
+  language `lang`, both a link to the `href` of its page."
+  [state href {:keys [title published duration] :as row} lang show]
+  [:article.show-episode
+   (lists-ui/linked-row href (lists-ui/thumbnail state (if (:artwork row) row show))
+                        :h3 title lang
+                        [(some-> published time-ui/date)
+                         (some-> duration time-ui/duration)])])
 
 (defn status-text
   "What the status line of the episodes says, at the `status` of the load of
@@ -177,7 +178,7 @@
        [:ol.episodes {:role "list"}
         (for [row (take shown rows)]
           [:li {:replicant/key (:guid row)}
-           (episode (routes/episode-href (or k g) (:guid row) (:title row) url) row lang page)])])
+           (episode-row state (routes/episode-href (or k g) (:guid row) (:title row) url) row lang page)])])
      (when (< shown (count rows))
        [:button {:type "button"
                  :on   {:click [[:show/more g (count rows)]]}}
@@ -224,20 +225,22 @@
        [:div.show-notes {:lang (text/lang language)} notes])]))
 
 ;; Inclusive Components, Cards: the title is the link, and the artwork
-;; beside it decoration, as in the Library's shows
+;; links there too, for a pointer alone, as in the Library's shows
 ;; https://inclusive-components.design/cards/
 (defn show-cards
   "The list of the show `cards` of linked/card in the `state`, each its
-  artwork, or a blank in its place, and its title, which links to its
+  artwork, or a blank in its place, and its title, which link to its
   page."
   [state cards]
   [:ul.linked-shows {:role "list"}
    (for [{show-guid :guid :keys [title url] :as card} cards]
-     [:li {:replicant/key show-guid}
-      [:article.linked-show
-       (or (artwork/img card 96 (colors/placeholder state card))
-           [:div.no-artwork])
-       [:h3 [:a {:href (routes/show-href show-guid title url)} (or title "Untitled show")]]]])])
+     (let [href (routes/show-href show-guid title url)]
+       [:li {:replicant/key show-guid}
+        [:article.linked-show
+         (or (artwork/linked href (artwork/img card 96 (merge {:loading "lazy"}
+                                                              (colors/placeholder state card))))
+             [:div.no-artwork])
+         [:h3 [:a {:href href} (or title "Untitled show")]]]]))])
 
 ;; Pocket Casts puts a show's podroll first among its recommendations, as
 ;; "Recommended shows by the creator", and Apple Podcasts ends a show's

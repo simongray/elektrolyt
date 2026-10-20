@@ -10,14 +10,14 @@
   map of the :seed, a hex colour from colour-coded's choose/seed, nil for
   artwork without a hue, and the :dominant colour, which an artwork shows
   while it loads, or of the :status :loading while they're worked out."
-  (:require [dk.simongray.podcast-app.inbox :as inbox]
+  (:require [dk.simongray.podcast-app.artwork :as artwork]
+            [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.player :as player]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]
-            [dk.simongray.podcast-app.shows :as shows]
-            [dk.simongray.podcast-app.ui.artwork :as artwork]))
+            [dk.simongray.podcast-app.shows :as shows]))
 
 (defn source
   "The URL to work out the colours of the artwork of `x` from: the smallest

@@ -57,7 +57,7 @@
   "The section of the episode that the player has, of the `state`."
   [state episode]
   [:section {:aria-labelledby "now-playing"}
-   [:h2#now-playing "Now playing"]
+   [:h2#now-playing {:tabindex -1} "Now playing"]
    [:article.queue-episode (row state episode)]])
 
 (defn summary

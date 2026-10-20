@@ -57,7 +57,7 @@
         "no button once they're all listed")))
 
 (deftest an-episode-beside-its-artwork
-  (let [src #(:src (second (first (elements :img (show/episode "/e" % nil {:artwork "https://example.org/show.jpg"})))))]
+  (let [src #(:src (second (first (elements :img (show/episode-row {} "/e" % nil {:artwork "https://example.org/show.jpg"})))))]
     (is (= "https://example.org/episode.jpg" (src {:title "One" :artwork "https://example.org/episode.jpg"})))
     (is (= "https://example.org/show.jpg" (src {:title "One"})) "or the show's, where it has none")))
 

@@ -14,26 +14,28 @@
             [dk.simongray.podcast-app.ui.artwork :as artwork]
             [dk.simongray.podcast-app.ui.controls :as controls-ui]
             [dk.simongray.podcast-app.ui.facts :as facts-ui]
+            [dk.simongray.podcast-app.ui.lists :as lists-ui]
             [dk.simongray.podcast-app.ui.time :as time-ui]))
 
+;; at the size of the largest player, whose rows are 10rem high (see
+;; layout.css)
 (defn artwork
   "The artwork of the `playback`, or the image of its chapter at `seconds`,
   which takes its place, at an edge of the player, with the `attrs` merged
-  in, e.g. its colour while it loads, as a link to the page of its
+  in, e.g. its colour while it loads, as a link to `href`, the page of its
   episode, as its title is."
-  [{[feed-guid item-guid] :id :keys [artwork title] :as playback} seconds attrs]
+  [{:keys [artwork] :as playback} seconds href attrs]
   (let [image (or (some-> (:img (player/chapter-at playback seconds)) player/proxied)
                   artwork)]
     (when image
-      (artwork/linked (routes/episode-href feed-guid item-guid title nil)
-                      (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs))))))
+      (artwork/linked href (artwork/img {:artwork image} 160 (merge {:class "player-artwork"} attrs))))))
 
 (defn now-playing
   "The title and the show of the `playback`, with its title of the chapter
-  at `seconds`."
-  [{[feed-guid item-guid] :id :keys [title show] :as playback} seconds]
+  at `seconds`, whose title links to `href`, the page of its episode."
+  [{:keys [title show] :as playback} seconds href]
   [:div.player-title
-   [:p [:a {:href (routes/episode-href feed-guid item-guid title nil)} title]]
+   [:p [:a {:href href} title]]
    (facts-ui/line [show (:title (player/chapter-at playback seconds))])])
 
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
@@ -144,16 +146,18 @@
   (let [{:keys [seeking expanded? volume volume-locked?]} player
         playback       (player/shown-playback player)
         media          (player/shown-media player)
-        [back forward] (player/skips (:profile library))]
+        [back forward] (player/skips (:profile library))
+        href           (when-let [id (:id playback)]
+                         (lists-ui/episode-href library id (:title playback)))]
     (list
      [:audio {:replicant/key        "player"
               :preload              "metadata"
               :replicant/on-mount   [[:player/mounted]]
               :replicant/on-unmount [[:player/unmounted]]
               :on                   {:ended [[:player/ended]]}}]
-     (artwork playback (:current-time media)
+     (artwork playback (:current-time media) href
               (colors/placeholder state (colors/playing state)))
-     (now-playing playback (:current-time media))
+     (now-playing playback (:current-time media) href)
      (play-button media)
      (skip-buttons back forward)
      ;; as a string, since Replicant leaves out an attribute of false

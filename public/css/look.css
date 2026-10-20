@@ -44,7 +44,7 @@ h4 {
    own small caps, but not the headings that title an item of a list */
 main h2:not(.inbox-episode h2) {
   font-variant-caps: all-small-caps;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--caps-tracking);
   color: var(--ink-2);
 }
 
@@ -137,6 +137,9 @@ time,
   /* A faint tint of the seed's own hue from the right, behind the main
      content. Its alpha is the seed's chroma, so that a grey seed, e.g.
      the app's own, tints nothing. */
+  /* the accent of the seed, on the paper: its links, buttons and focus
+     ring, and the tone of the rail */
+  --seed-accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
   --tint: light-dark(oklch(from var(--seed) 96.5% min(c, 0.022) h / calc(c * 12)), oklch(from var(--seed) 22.5% min(c, 0.022) h / calc(c * 12)));
   background: linear-gradient(to left, var(--tint), transparent 70%) var(--paper);
 }
@@ -190,54 +193,44 @@ time,
    hex rather than from one tone. These are on a bar, and the paper's
    are below.
    https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html */
-.shell[data-palette="color-blind"] > nav[data-page="home"],
-.shell[data-palette="color-blind"] > nav li[data-page="home"] {
-  --label: #fd7933;
+.shell[data-palette="color-blind"] [data-page="home"] {
+  --label: #ffc882;
 }
 
-.shell[data-palette="color-blind"] > nav[data-page="queue"],
-.shell[data-palette="color-blind"] > nav li[data-page="queue"] {
+.shell[data-palette="color-blind"] [data-page="queue"] {
   --label: #ffa0a5;
 }
 
-.shell[data-palette="color-blind"] > nav[data-page="library"],
-.shell[data-palette="color-blind"] > nav li[data-page="library"] {
+.shell[data-palette="color-blind"] [data-page="library"] {
   --label: #9abdff;
 }
 
-.shell[data-palette="color-blind"] > nav[data-page="search"],
-.shell[data-palette="color-blind"] > nav li[data-page="search"] {
+.shell[data-palette="color-blind"] [data-page="search"] {
   --label: #fad7ff;
 }
 
-.shell[data-palette="color-blind"] > nav[data-page="settings"],
-.shell[data-palette="color-blind"] > nav li[data-page="settings"] {
+.shell[data-palette="color-blind"] [data-page="settings"] {
   --label: #cfcfcf;
 }
 
 @media (min-width: 37.5em) {
-  .shell[data-palette="color-blind"] > nav[data-page="home"],
-  .shell[data-palette="color-blind"] > nav li[data-page="home"] {
-    --label: light-dark(#bf3a00, #a1790c);
+  .shell[data-palette="color-blind"] [data-page="home"] {
+    --label: light-dark(#bf3a00, #e06623);
   }
 
-  .shell[data-palette="color-blind"] > nav[data-page="queue"],
-  .shell[data-palette="color-blind"] > nav li[data-page="queue"] {
+  .shell[data-palette="color-blind"] [data-page="queue"] {
     --label: light-dark(#87182f, #ef8f94);
   }
 
-  .shell[data-palette="color-blind"] > nav[data-page="library"],
-  .shell[data-palette="color-blind"] > nav li[data-page="library"] {
+  .shell[data-palette="color-blind"] [data-page="library"] {
     --label: light-dark(#1c6bbc, #85adf4);
   }
 
-  .shell[data-palette="color-blind"] > nav[data-page="search"],
-  .shell[data-palette="color-blind"] > nav li[data-page="search"] {
+  .shell[data-palette="color-blind"] [data-page="search"] {
     --label: light-dark(#6c2b7a, #f8c7ff);
   }
 
-  .shell[data-palette="color-blind"] > nav[data-page="settings"],
-  .shell[data-palette="color-blind"] > nav li[data-page="settings"] {
+  .shell[data-palette="color-blind"] [data-page="settings"] {
     --label: light-dark(#686868, #c1c1c1);
   }
 }
@@ -265,7 +258,7 @@ time,
    https://developer.mozilla.org/en-US/docs/Web/CSS/background-attachment */
 .shell > main {
   background: var(--grain) 0 0 / var(--grain-size) local;
-  --accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
+  --accent: var(--seed-accent);
   --accent-ink: light-dark(oklch(100% 0 0), oklch(from var(--seed) 18% min(c, 0.03) h));
   --accent-soft: light-dark(oklch(from var(--seed) 95% min(c, 0.02) h), oklch(from var(--seed) 26% min(c, 0.03) h));
   --focus: var(--accent);
@@ -288,7 +281,7 @@ time,
 @media (min-width: 37.5em) {
   .shell > nav {
     background: var(--grain) 0 0 / var(--grain-size),
-                color-mix(in oklab, var(--label, light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h))) 7%, var(--paper));
+                color-mix(in oklab, var(--label, var(--seed-accent)) 7%, var(--paper));
     color-scheme: inherit;
     --ink: inherit;
     --ink-2: inherit;
@@ -440,7 +433,7 @@ input[role="switch"]:checked {
    and the facts below it smaller and lighter */
 .queue > li:not(:last-child),
 .inbox > li:not(:last-child),
-.picks > li:not(:last-child),
+.pick-list > li:not(:last-child),
 .episodes > li:not(:last-child),
 .search-results > li:not(:last-child) {
   border-bottom: 1px solid var(--rule-soft);
@@ -553,7 +546,7 @@ hgroup > p {
 
   /* the Details a little smaller than the content beside them */
   .with-details > aside dd {
-    font-size: 1rem;
+    font-size: var(--step--1);
   }
 }
 
@@ -700,10 +693,7 @@ search p {
   :root:not([data-contrast="standard"]) .shell {
     --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
     --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
-  }
-
-  :root:not([data-contrast="standard"]) .shell > main {
-    --accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+    --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
   }
 
   :root:not([data-contrast="standard"]) a {
@@ -714,7 +704,7 @@ search p {
 @media (prefers-contrast: more) and (min-width: 37.5em) {
   :root:not([data-contrast="standard"]) .shell[data-palette="pages"] > nav,
   :root:not([data-contrast="standard"]) .shell[data-palette="pages"] > nav li {
-    --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
+    --label: light-dark(lch(from var(--page) 30 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
   }
 
   :root:not([data-contrast="standard"]) .shell[data-palette="player"] > nav,
@@ -726,10 +716,7 @@ search p {
 :root[data-contrast="more"] .shell {
   --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
   --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
-}
-
-:root[data-contrast="more"] .shell > main {
-  --accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+  --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
 }
 
 :root[data-contrast="more"] a {
@@ -739,7 +726,7 @@ search p {
 @media (min-width: 37.5em) {
   :root[data-contrast="more"] .shell[data-palette="pages"] > nav,
   :root[data-contrast="more"] .shell[data-palette="pages"] > nav li {
-    --label: light-dark(lch(from var(--page) 34 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
+    --label: light-dark(lch(from var(--page) 30 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
   }
 
   :root[data-contrast="more"] .shell[data-palette="player"] > nav,
