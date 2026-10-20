@@ -32,13 +32,16 @@
         (do (.removeAttribute root attr)
             (local/forget! key))))))
 
+;; Without preferences to read, the copies that public/theme.js applied are
+;; the best guess at the listener's choice, so they stay
 (defn themed!
   "Give the document the colours and the contrast that the listener chose
   in the `state`, as its data-theme and its data-contrast, or else none,
-  for the device's."
+  for the device's, once the `state` has preferences to tell them by."
   [state]
-  (attributed! "data-theme" theme-key (settings/theme state))
-  (attributed! "data-contrast" contrast-key (settings/contrast state)))
+  (when-let [{:keys [theme contrast]} (settings/look state)]
+    (attributed! "data-theme" theme-key theme)
+    (attributed! "data-contrast" contrast-key contrast)))
 
 (defn bar-color
   "The colour of the page's bars as the browser computed them: the
