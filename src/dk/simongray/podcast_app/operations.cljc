@@ -11,7 +11,6 @@
   An operation is applied with the time of the listener's action, as :at,
   so that it stamps the same time whenever it's applied."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast.app.unsaved :as unsaved]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.opml :as profile.opml]
             [dk.simongray.podcast.profile.queue :as profile.queue]
@@ -68,9 +67,7 @@
                                (library/step library event
                                              (cond-> {:at at}
                                                fallback-fn
-                                               (assoc :fallback-fn fallback-fn))))
-        :player/restore      (let [[played kept] args]
-                               (unsaved/restored library played kept))))))
+                                               (assoc :fallback-fn fallback-fn))))))))
 
 (defn changed
   "The `state` with the `change` made to it, with the `opts` of applied:
