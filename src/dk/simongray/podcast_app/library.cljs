@@ -12,9 +12,9 @@
   which every tab changes as it would an atom. A change is an operation of
   dk.simongray.podcast-app.operations, which the tab applies to its own
   library at once, for the page. A save writes the operations that wait
-  with durable-swap!, on condition of the version of the document that the
-  tab knows, and again onto the stored library when another tab wrote
-  first. Then it tells the other tabs the new version on a
+  with library/durable-swap!, on condition of the version of the document
+  that the tab knows, and again onto the stored library when another tab
+  wrote first. Then it tells the other tabs the new version on a
   BroadcastChannel, so that they read it, as a page does when it's shown
   again. The app's web worker writes only the documents of the feeds that
   it fetched, as dk.simongray.podcast-app.fetching has it. The documents
@@ -103,21 +103,6 @@
           library
           ops))
 
-(defn durable-swap!
-  "A promise of `f` of the library that `known` holds, as library/read!
-  gives it, written to `store` on condition of the version that `known`
-  holds, and of `f` of the stored library again while another tab wrote
-  first, as swap! applies a function to an atom. It gives the library and
-  the version written, as read! gives them, or the :error of the write."
-  [store {:keys [library version] :as known} f]
-  (let [changed (f library)]
-    (.then (library/write! changed store (assoc options :if-version version :before library))
-           (fn [{:keys [conflict? error] :as written}]
-             (cond
-               error     written
-               conflict? (.then (library/read! library store options) #(durable-swap! store % f))
-               :else     {:library changed :version (:version written)})))))
-
 (defn in-turn!
   "A promise of what `f` gives, called once the writes and reads of this
   tab before it are done."
@@ -133,11 +118,11 @@
 
 (defn written!
   "A promise of the write of the operations that wait in the app `state`,
-  an atom, with durable-swap!, or of nil when none wait. The tab's library
-  is the one that it writes, unless another tab wrote first, when it's the
-  stored library with the operations applied again, and those that came
-  meanwhile on top. A write that fails keeps the operations waiting for
-  the next."
+  an atom, with library/durable-swap!, or of nil when none wait. The tab's
+  library is the one that it writes, unless another tab wrote first, when
+  it's the stored library with the operations applied again, and those
+  that came meanwhile on top. A write that fails keeps the operations
+  waiting for the next."
   [state]
   (let [ops @waiting
         {:keys [library] :as k} @known]
@@ -146,7 +131,9 @@
       (let [shown (:library @state)
             kept! #(swap! waiting (fn [later] (into ops later)))]
         (reset! waiting [])
-        (-> (durable-swap! store k #(if (identical? % library) shown (applied-all % ops)))
+        (-> (library/durable-swap! store k
+                                   #(if (identical? % library) shown (applied-all % ops))
+                                   options)
             (.then (fn [{:keys [error] :as written}]
                      (if error
                        (kept!)
