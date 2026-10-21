@@ -24,6 +24,26 @@ test('unsubscribing keeps the page by the URL of its feed', async ({ page }) => 
   await expect(page).not.toHaveURL(feedInAddress);
 });
 
+// HTML, section 10.2.4: a worker whose script fails to load fires error at
+// its Worker in the page, and never runs
+// https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model
+test('a worker that failed to load starts again at the next fetch', async ({ page, context }) => {
+  const main = page.getByRole('main');
+  let loads = 0;
+  await context.route(url => url.pathname === '/js/worker.js', route =>
+    ++loads === 1 ? route.abort() : route.continue());
+
+  // the start of the feed comes without the worker, and the whole feed
+  // through it
+  await page.goto(showPath);
+  await expect(main.getByText("The feed couldn't be fetched.")).toBeVisible();
+  await expect(main.getByRole('link', { name: episodes[0].title })).toBeVisible();
+
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
+  await expect(announcement(page)).toHaveText(`Subscribed to ${showTitle}`);
+  expect(loads).toBe(2);
+});
+
 test('the Details come after the episodes on a phone, and beside them on a wider screen', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 500 });
   await page.goto(showPath);
