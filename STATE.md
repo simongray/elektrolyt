@@ -51,7 +51,7 @@ In the tab, outside the store
 | `library/turns` | The chain of this tab's reads and writes, so that they take turns | `library` | `library` | The tab |
 | `runtime/timers` | The timers that wait, by name: the next refresh, a prefetch, a wait for data and the clock of a player elsewhere | `refresh`, `feeds`, `audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
 | `runtime/channels` | The BroadcastChannels, each opened at its first use | `runtime` | `runtime` | The tab |
-| `runtime/detach` | What stops following the player's audio element | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
+| `runtime/detach` | What stops following the player's audio element and clears the lock screen's buttons | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
 | `fetching/web-worker` | The web worker, and the requests that it hasn't answered | `fetching` | `refresh`, `feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `audio/tab` | This tab's id on the player's channel | `audio` | `audio` | The tab |
 | `memo` slots | The last result of a view that takes a while, e.g. the queue, a show's page, the picks | the views | the views | Until its arguments change |
@@ -98,7 +98,7 @@ In the page
 | Place | What it holds | Writer | Readers |
 |---|---|---|---|
 | The audio element | The episode's file, where it is, the volume and the rate | `audio`, through play-nice | `audio`, through `runtime/attach-player!` |
-| The Media Session | The episode on the lock screen, and its buttons | `runtime/lock-screen!`, from `audio` | The platform |
+| The Media Session | The episode on the lock screen, and its buttons while the player's element is mounted | `runtime/lock-screen!`, from `audio` | The platform |
 | `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `page`, at each render | CSS, the browser |
 | The history | The page's URL; `page/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `routes`, `page` | `runtime/follow-history!` |
 | The listeners | The page shown, hidden or restored, the end of a transition, the channels' messages and the store's changes | `runtime`, for `main`, `library`, `audio` and `opml` | — |

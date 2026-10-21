@@ -171,7 +171,8 @@
   (atom nil))
 
 (defn detach-player!
-  "Stop following the audio element of the player."
+  "Stop following the audio element of the player, and clear the buttons
+  of the lock screen."
   []
   (when-let [f @detach]
     (reset! detach nil)
@@ -195,6 +196,9 @@
             (juxt (media/watch! element on-media events)
                   (media/watch! element on-report events)
                   (session/attach! element)
+                  ;; the buttons that lock-screen! set, which attach!
+                  ;; leaves without its own :actions
+                  #(session/actions! {})
                   (tabs/attach! element lock)
                   (controls/listen! keys-element element handlers)))))
 
