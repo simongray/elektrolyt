@@ -12,6 +12,7 @@
             [dk.simongray.podcast-app.artwork-colors :as artwork-colors]
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.cache :as app-cache]
+            [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.feeds :as feeds]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.library :as app-library]
@@ -160,9 +161,16 @@
   (fn [_ store id view]
     (js/queueMicrotask #(feeds/read-files! store id view))))
 
+;; dispatched as the open transcript mounts, as the files are
 (nxr/register-effect! :episode/read-transcript
   (fn [_ store id view]
-    (feeds/read-transcript! store id view)))
+    (js/queueMicrotask #(feeds/read-transcript! store id view))))
+
+;; only past the limit, since each change of the store renders the page
+(nxr/register-effect! :episodes/forget
+  (fn [_ store]
+    (when (< (inc episode/kept-count) (count (:episodes @store)))
+      (swap! store update :episodes episode/kept (get-in @store [:player :id]) episode/kept-count))))
 
 ;; The player
 

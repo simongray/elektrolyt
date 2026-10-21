@@ -215,13 +215,13 @@
   (let [{:keys [transcript-status]}       files
         {:keys [document error language]} (:transcript files)]
     (controls-ui/folded
-     state {:id      "transcript"
-            :heading "Transcript"
-            :place   [:transcript id]
-            :on-open [[:episode/read-transcript id view]]}
+     state {:id "transcript" :heading "Transcript" :place [:transcript id]}
      #(cond
-        (= :reading transcript-status)
-        [:p {:role "status"} "Loading the transcript…"]
+        ;; read as it mounts, so that an open transcript whose read the
+        ;; state forgot is read again when its page shows once more
+        (not= :read transcript-status)
+        [:p {:role "status" :replicant/on-mount [[:episode/read-transcript id view]]}
+         "Loading the transcript…"]
 
         (or error (and (= :read transcript-status) (empty? (:segments document))))
         [:p {:role "status"} "The transcript couldn't be read."]

@@ -40,16 +40,13 @@
   - :id, the id of the heading, which names the section
   - :heading, its words
   - :place, where the state keeps that it's open, e.g. [:chapters id]
-  - :class, the class of the section, or nil
-  - :on-open, the actions that opening it dispatches too, e.g. reading a
-    transcript"
-  [state {:keys [id heading place class on-open] :as opts} content-fn]
+  - :class, the class of the section, or nil"
+  [state {:keys [id heading place class] :as opts} content-fn]
   (let [open   (open? state place)
         region (str id "-content")]
     [:section (cond-> {:aria-labelledby id} class (assoc :class class))
      (disclosure :h2 id heading region open
-                 (cond-> [[:store/assoc-in [:open place] (not open)]]
-                   (not open) (into on-open)))
+                 [[:store/assoc-in [:open place] (not open)]])
      [:div {:id region}
       (when open
         (content-fn))]]))

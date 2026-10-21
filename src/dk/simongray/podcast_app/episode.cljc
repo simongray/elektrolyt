@@ -5,9 +5,9 @@
   The page names the episode by the short hash of its guid and the slug of
   its title, as dk.simongray.podcast-app.routes has it. The state keeps
   what the files of an episode say under its id in :episodes, as a map of
-  the :status of their read, :reading or :read, its :result, and the
-  :transcript-status and :transcript once the listener asks for the
-  transcript."
+  the :status of their read, :reading or :read, the time in milliseconds
+  when it began, :at, its :result, and the :transcript-status and
+  :transcript once the listener asks for the transcript."
   (:require [dk.simongray.podcast.app.episode :as episode]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
@@ -125,6 +125,24 @@
     (:loading :checking) :loading
     :done                :not-found
     :no-show))
+
+;; A tab that plays for days would otherwise keep each transcript that the
+;; listener opened, and an hour's is ten thousand words. The number is
+;; that of the shows outside the library that the cache keeps.
+(def kept-count
+  "How many episodes' reads the state keeps, besides the one that plays:
+  those that began last."
+  20)
+
+(defn kept
+  "The `episodes` whose reads the state keeps, with only the `n` that began
+  last and the episode `playing`."
+  [episodes playing n]
+  (->> (dissoc episodes playing)
+       (sort-by (comp #(or (:at %) 0) val) >)
+       (drop n)
+       (map key)
+       (apply dissoc episodes)))
 
 (defn shown-chapters
   "The chapters to list for the `page` of an episode, with what its `files`

@@ -167,13 +167,16 @@
     (is (= "Transcript" (text-of closed)) "closed, and not read yet")
     (is (= ["false" "transcript-content"] ((juxt :aria-expanded :aria-controls) (button closed)))
         "the button of its heading")
-    (is (= [[:store/assoc-in [:open [:transcript (:id page)]] true]
-            [:episode/read-transcript (:id page) (:view page)]]
+    (is (= [[:store/assoc-in [:open [:transcript (:id page)]] true]]
            (get-in (button closed) [:on :click]))
-        "which opens it, and reads it")
+        "which opens it")
     (is (= [[:store/assoc-in [:open [:transcript (:id page)]] false]]
            (get-in (button (episode-ui/transcript open page nil)) [:on :click]))
         "or closes it")
+    (is (= [[:episode/read-transcript (:id page) (:view page)]]
+           (-> (elements :p (episode-ui/transcript open page nil)) first second :replicant/on-mount))
+        "and an open one that isn't read reads it as it shows, e.g. after the state forgot it")
+    (is (= "TranscriptLoading the transcript…" (shown nil)))
     (is (= "TranscriptLoading the transcript…" (shown {:transcript-status :reading})))
     (is (= "Transcript0:00 Adam: Hello."
            (shown {:transcript-status :read :transcript {:document doc}})))

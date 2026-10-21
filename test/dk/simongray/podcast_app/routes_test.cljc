@@ -84,9 +84,10 @@
          (routes/navigated {} inbox))))
 
 (deftest another-page-takes-the-focus
-  (is (= [[:store/assoc :route library-page] [:page/focus-heading]]
-         (routes/navigated {:route inbox} library-page)))
-  (is (= [[:store/assoc :route inbox] [:page/focus-heading]]
+  (is (= [[:store/assoc :route library-page] [:page/focus-heading] [:episodes/forget]]
+         (routes/navigated {:route inbox} library-page))
+      "and the oldest reads of episodes' files go")
+  (is (= [[:store/assoc :route inbox] [:page/focus-heading] [:episodes/forget]]
          (routes/navigated {:route nil} inbox))))
 
 (deftest the-same-page-keeps-the-focus
@@ -100,7 +101,7 @@
   (is (= [[:store/assoc :route (search-page "x")] [:search/run "x"]]
          (routes/navigated {} (search-page "x")))
       "a link to a search, or a reload")
-  (is (= [[:store/assoc :route (search-page "x")] [:page/focus-heading]]
+  (is (= [[:store/assoc :route (search-page "x")] [:page/focus-heading] [:episodes/forget]]
          (routes/navigated {:route inbox :searches {"x" {:status :done}}} (search-page "x")))
       "Back to a search that's kept")
   (is (= [[:store/assoc :route (search-page nil)]]
@@ -110,6 +111,7 @@
   (let [settings {:name :route/settings :path-params {} :query-params {} :fragment "search"}]
     (is (= [[:store/assoc :route settings]
             [:page/focus-heading]
+            [:episodes/forget]
             [:storage/check]
             [:page/scroll-to "search"]]
            (routes/navigated {:route inbox} settings))
@@ -127,6 +129,7 @@
                :query-params {:url "https://example.org/feed.xml"}}]
     (is (= [[:store/assoc :route route]
             [:page/focus-heading]
+            [:episodes/forget]
             [:show/load "g" "https://example.org/feed.xml" false]]
            (routes/navigated {:route inbox} route)))))
 
@@ -136,5 +139,6 @@
                :query-params {:url "https://example.org/feed.xml"}}]
     (is (= [[:store/assoc :route route]
             [:page/focus-heading]
+            [:episodes/forget]
             [:show/load "g" "https://example.org/feed.xml" false]]
            (routes/navigated {:route inbox} route)))))
