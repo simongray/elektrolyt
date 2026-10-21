@@ -9,7 +9,7 @@ const png = Buffer.from(
 // tests, so it sends the browser to the artwork, as it does with any
 // artwork that it can't scale. Playwright doesn't route a request that a
 // redirect makes, so the test checks the redirect rather than the image
-// it leads to. podcast-clj's tests cover the thumbnails themselves.
+// it leads to. The server's tests cover the thumbnails themselves.
 test('a row of 48 pixels takes the server\'s smallest thumbnail of the artwork, which leads to the artwork when there is none', async ({ page, show }) => {
   show.artwork = { url: 'https://art.example/show.png', type: 'image/png', body: png };
 
