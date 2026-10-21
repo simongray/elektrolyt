@@ -4,7 +4,9 @@
             [clojure.test :refer [deftest is testing]]
             [cognitect.transit :as transit]
             [dk.simongray.podcast-app.server :as server]
-            [io.pedestal.connector.test :refer [response-for]]))
+            [io.pedestal.connector.test :refer [response-for]])
+  (:import [java.nio.file Files]
+           [java.nio.file.attribute FileAttribute]))
 
 (def connector
   (server/connector {:port 8400 :client-dir "public"}))
@@ -39,6 +41,31 @@
   (testing "a missing file is a 404, even for a browser"
     (is (= 404 (:status (response-for connector :get "/js/missing.js"
                                       :headers page))))))
+
+(deftest a-file-that-a-build-wrote-again
+  (let [dir  (.toFile (Files/createTempDirectory "client" (make-array FileAttribute 0)))
+        file (io/file dir "app.js")
+        c    (server/connector {:port 8400 :client-dir (.getPath dir)})
+        get! #(response-for c :get "/app.js" :headers %)]
+    (try
+      (spit file "old")
+      (let [fetched (get! {})
+            etag    (get-in fetched [:headers "ETag"])
+            stamp   (.lastModified file)]
+        (testing "a file has an ETag of its bytes, and no date in whole seconds"
+          (is (string? etag))
+          (is (nil? (get-in fetched [:headers "Last-Modified"]))))
+        (testing "a file that the browser has is a 304"
+          (is (= 304 (:status (get! {"if-none-match" etag})))))
+        ;; written in the same second, or put back by an older build
+        (spit file "new")
+        (.setLastModified file stamp)
+        (testing "a file that a build wrote again is sent again"
+          (is (= [200 "new"] ((juxt :status :body) (get! {"if-none-match" etag})))))
+        (testing "also to a browser that kept the date of the file it has"
+          (is (= 200 (:status (get! {"if-modified-since" "Wed, 01 Jan 2031 00:00:00 GMT"}))))))
+      (finally
+        (run! io/delete-file (reverse (file-seq dir)))))))
 
 (deftest proxy-test
   (testing "the proxy needs a URL"

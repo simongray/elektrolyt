@@ -26,6 +26,9 @@
             [io.pedestal.service.interceptors :as interceptors]
             [io.pedestal.service.resources :as resources])
   (:import [java.io ByteArrayOutputStream]
+           [java.nio.file Files]
+           [java.security MessageDigest]
+           [java.util HexFormat]
            [java.util.concurrent Semaphore TimeUnit]))
 
 (defn refused
@@ -120,8 +123,7 @@
                context))}))
 
 ;; RFC 9111, sections 4.2.2 and 5.2.2.4: without no-cache, a browser may
-;; judge a file fresh by its Last-Modified alone and run the code of an
-;; older build
+;; judge a file fresh by itself and run the code of an older build
 (def revalidated
   "An interceptor that has the browser check with the server before it uses
   a cached file. The check costs a 304 when the file hasn't changed."
@@ -132,17 +134,46 @@
                response (assoc-in [:response :headers "Cache-Control"]
                                   "no-cache")))}))
 
+(defn file-tag
+  "The ETag of the bytes of the `file`: the start of their SHA-256, quoted."
+  [^java.io.File file]
+  (let [digest (.digest (MessageDigest/getInstance "SHA-256")
+                        (Files/readAllBytes (.toPath file)))]
+    (str "\"" (subs (.formatHex (HexFormat/of) digest) 0 32) "\"")))
+
+;; RFC 9110, sections 8.8.3 and 13.2.2: a validator of the file's bytes,
+;; since a Last-Modified counts whole seconds, and a browser that asks
+;; If-Modified-Since gets a 304 for a file that a build wrote again within
+;; the same second as the copy it has, or for an older build put back
+(defn tagged
+  "An interceptor that gives the answer with a file of `client-dir` an ETag
+  of its bytes in place of its Last-Modified."
+  [client-dir]
+  (interceptor/interceptor
+   {:name  ::tagged
+    :leave (fn [{:keys [request response] :as context}]
+             (let [file (io/file client-dir (str/replace (:uri request) #"^/+" ""))]
+               (cond-> context
+                 (and (= 200 (:status response)) (.isFile file))
+                 (update-in [:response :headers]
+                            #(-> (dissoc % "Last-Modified")
+                                 (assoc "ETag" (file-tag file)))))))}))
+
 (defn client-routes
   "The routes of the app's files in `client-dir`. Each file has the type of
-  its name, and a 304 when the browser has it. A dotfile isn't served."
+  its name and an ETag of its bytes, and a 304 when the browser has the
+  same. A dotfile isn't served."
   [client-dir]
-  ;; read again on each request, since shadow-cljs rewrites them
+  ;; read again on each request, since shadow-cljs rewrites them; the
+  ;; interceptors leave in the opposite order, so the ETag is there before
+  ;; not-modified looks
   (resources/file-routes {:file-root    (.getPath (io/file client-dir))
                           :cache?       false
                           :interceptors [no-dotfiles
                                          revalidated
                                          (ring-middlewares/content-type)
-                                         (ring-middlewares/not-modified)]}))
+                                         (ring-middlewares/not-modified)
+                                         (tagged client-dir)]}))
 
 (defn at-most
   "The Ring `handler` answering at most `n` requests at once, e.g. so that
