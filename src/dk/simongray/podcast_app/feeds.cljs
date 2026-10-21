@@ -205,13 +205,15 @@
 (defn subscribe!
   "Subscribe the library of the `store` to the show `title` at `url`, and
   save the library. A feed that the Show page has whole isn't fetched
-  again, and one that it hasn't is fetched in the worker."
+  again, and one that it hasn't is fetched in the worker. A fetch that
+  fails, e.g. with the worker, fails the subscription."
   [store url title]
   (app-library/persist!)
   (swap! store subscription/subscribing url)
   (-> (if-let [fetched (show/whole-feed @store url)]
         (js/Promise.resolve fetched)
-        (fetching/fetch! url fetch-opts))
+        (.catch (fetching/fetch! url fetch-opts)
+                (fn [e] {:error {:message (ex-message e)}})))
       (.then (fn [fetched]
                (try
                  (app-library/change! store (subscription/subscribed url title fetched))
