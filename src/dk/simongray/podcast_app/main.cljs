@@ -21,6 +21,7 @@
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.refresh :as refresh]
             [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.runtime :as runtime]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.searches :as searches]
             [dk.simongray.podcast-app.settings :as settings]
@@ -174,7 +175,7 @@
 
 (nxr/register-effect! :player/unmounted
   (fn [_ _]
-    (@audio/detach!)))
+    (runtime/detach-player!)))
 
 (nxr/register-effect! :player/play
   (fn [_ store playable t]
@@ -350,12 +351,12 @@
   "Follow the paths of the window's history, which dispatches the navigation
   to the current one at once."
   []
-  (rfe/start! routes/router
-              (fn [match _]
-                (nxr/dispatch store {} [[:route/navigated
-                                         (routes/match->route match)]]))
-              {:use-fragment         false
-               :ignore-anchor-click? routed-click?}))
+  (runtime/follow-history! routes/router
+                           (fn [match _]
+                             (nxr/dispatch store {} [[:route/navigated
+                                                      (routes/match->route match)]]))
+                           {:use-fragment         false
+                            :ignore-anchor-click? routed-click?}))
 
 (defn restore-library!
   "Read the library that this browser wrote into the store, which then
@@ -404,24 +405,20 @@
   []
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
   (audio/listen! store)
-  (.addEventListener js/document "visibilitychange"
-                     #(if (= "hidden" js/document.visibilityState)
-                        (audio/hidden! store)
-                        (refresh/refresh-if-due! store)))
-  (.addEventListener js/window "pagehide"
-                     #(do (audio/hidden! store)
-                          (audio/gone! store)))
+  (runtime/on-hidden! #(audio/hidden! store))
+  (runtime/on-visible! #(refresh/refresh-if-due! store))
+  (runtime/on-pagehide! #(do (audio/hidden! store)
+                             (audio/gone! store)))
   ;; the bars' colour once it has moved to the next one
-  (.addEventListener js/document "transitionend"
-                     #(when (.. % -target -classList (contains "shell"))
-                        (page/theme-colored!)))
+  (runtime/on-transitionend! #(when (.. % -classList (contains "shell"))
+                                (page/theme-colored!)))
   (audio/volume-locked! store)
   (swap! store assoc :library-view (local/stored-edn library-view-key))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
       (.finally #(audio/restored! store))
       (.then #(artwork-colors/kept-colors! store) #(artwork-colors/kept-colors! store))
       (.finally (fn []
-                  (add-watch store ::render (fn [_ _ _ state] (page/render! state)))
-                  (add-watch store ::colors (fn [_ _ _ state] (artwork-colors/colored! store state)))
+                  (runtime/watch! store ::render (fn [_ state] (page/render! state)))
+                  (runtime/watch! store ::colors (fn [_ state] (artwork-colors/colored! store state)))
                   (start-router!)
                   (refresh/refresh-if-due! store)))))

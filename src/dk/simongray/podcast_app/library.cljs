@@ -19,12 +19,12 @@
   again. The app's web worker writes only the documents of the feeds that
   it fetched, as dk.simongray.podcast-app.fetching has it. The documents
   are in Transit, which reads about 30 times faster than EDN."
-  (:require [cljs.reader :as reader]
-            [dk.simongray.like-minded.device :as device]
+  (:require [dk.simongray.like-minded.device :as device]
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.operations :as operations]
+            [dk.simongray.podcast-app.runtime :as runtime]
             [dk.simongray.wary-fetch.proxy :as proxy]))
 
 (def send
@@ -82,12 +82,6 @@
   turns
   (atom {:last (js/Promise.resolve nil) :next nil}))
 
-(defonce ^{:doc "The BroadcastChannel of the versions that the tabs write,
-  opened at its first use, or nil where the browser has none."}
-  channel
-  (delay (when (exists? js/BroadcastChannel)
-           (js/BroadcastChannel. channel-name))))
-
 (defn applied
   "What the `operation` gives of the `library`, applied with the `opts` of
   operations/applied and the options of the library's calls."
@@ -135,7 +129,7 @@
 (defn announce!
   "Tell the other tabs that this one wrote the `version` of the library."
   [version]
-  (some-> ^js @channel (.postMessage (pr-str {:version version}))))
+  (runtime/post! channel-name {:version version}))
 
 (defn written!
   "A promise of the write of the operations that wait in the app `state`,
@@ -236,18 +230,9 @@
   tell it, and when the page is visible again or shown from the
   back/forward cache."
   [state]
-  (some-> ^js @channel
-          (.addEventListener "message"
-                             (fn [^js e]
-                               (when (map? (try (reader/read-string (.-data e))
-                                                (catch :default _ nil)))
-                                 (caught-up! state)))))
-  (.addEventListener js/document "visibilitychange"
-                     #(when (= "visible" js/document.visibilityState)
-                        (caught-up! state)))
-  (.addEventListener js/window "pageshow"
-                     #(when (.-persisted %)
-                        (caught-up! state))))
+  (runtime/on-message! channel-name (fn [_] (caught-up! state)))
+  (runtime/on-visible! #(caught-up! state))
+  (runtime/on-pageshow! #(caught-up! state)))
 
 (defn open!
   "A promise of the library of this browser, as the last write left it or

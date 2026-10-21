@@ -12,7 +12,8 @@
   (:require [dk.simongray.like-minded.cache :as cache]
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
-            [dk.simongray.podcast-app.library :as app-library]))
+            [dk.simongray.podcast-app.library :as app-library]
+            [dk.simongray.podcast-app.runtime :as runtime]))
 
 (def store
   "The IndexedDB database of the caches, apart from the library's."
@@ -76,18 +77,15 @@
       (.then #(cache/fetch! c k))
       (.catch (constantly nil))))
 
-;; requestIdleCallback, where the browser has it: a large feed takes a
-;; moment to encode, which waits until the page is idle
+;; A large feed takes a moment to encode, which waits until the page is
+;; idle
 (defn put!
   "Keep the value `v` under the key `k` in the cache `c`, once the page is
   idle."
   [c k v]
-  (let [put #(-> (js/Promise.resolve nil)
-                 (.then (fn [_] (cache/put! c k v)))
-                 (.catch (fn [e] (js/console.warn "The cache wasn't written" e))))]
-    (if (exists? js/requestIdleCallback)
-      (js/requestIdleCallback put #js {:timeout 2000})
-      (js/setTimeout put 0))))
+  (runtime/idle! 2000 #(-> (js/Promise.resolve nil)
+                           (.then (fn [_] (cache/put! c k v)))
+                           (.catch (fn [e] (js/console.warn "The cache wasn't written" e))))))
 
 (defn clear!
   "A promise that every cache is empty."

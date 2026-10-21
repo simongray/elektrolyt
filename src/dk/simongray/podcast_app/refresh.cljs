@@ -16,11 +16,8 @@
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.fetching :as fetching]
             [dk.simongray.podcast-app.library :as app-library]
+            [dk.simongray.podcast-app.runtime :as runtime]
             [dk.simongray.podcast-app.shows :as shows]))
-
-(defonce ^{:doc "The timeout of the next refresh."}
-  timer
-  (atom nil))
 
 (def max-wait-ms
   "The longest wait for the next refresh, after which the page asks the
@@ -46,14 +43,12 @@
   "Refresh the library of the `store` when it's due next, if the page is
   visible then."
   [store]
-  (some-> @timer js/clearTimeout)
+  (runtime/cancel! ::next)
   (when-let [next-one (next-one @store)]
     (let [wait (max 1000 (min max-wait-ms (- (inst-ms next-one) (js/Date.now))))]
-      (reset! timer
-              (js/setTimeout #(if (= "visible" js/document.visibilityState)
-                                (refresh! store false)
-                                (schedule! store))
-                             wait)))))
+      (runtime/later! ::next wait #(if (runtime/visible?)
+                                     (refresh! store false)
+                                     (schedule! store))))))
 
 (defn refreshed
   "The `state` once the refresh that gave the `result` beside the library
@@ -75,7 +70,7 @@
   (let [{:keys [library refresh-status]} @store
         online? (.-onLine js/navigator)]
     (when (and library @app-library/known (not (:running? refresh-status)))
-      (some-> @timer js/clearTimeout)
+      (runtime/cancel! ::next)
       (swap! store #(cond-> (assoc % :refresh-status {:running? true :done 0})
                       asked? (assoc :announcement "Checking for new episodes…")))
       (-> (fetching/fetch-due! (library/due library

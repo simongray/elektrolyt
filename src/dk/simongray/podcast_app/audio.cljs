@@ -19,9 +19,7 @@
   BroadcastChannel of the app's own, and it runs the commands that they
   send it. When it pauses, the other tabs move their paused elements to
   where it stopped, so that Play in any tab goes on from there."
-  (:require [cljs.reader :as reader]
-            [dk.simongray.play-nice.controls :as controls]
-            [dk.simongray.play-nice.media :as media]
+  (:require [dk.simongray.play-nice.media :as media]
             [dk.simongray.play-nice.page.tabs :as tabs]
             [dk.simongray.play-nice.session :as session]
             [dk.simongray.podcast.app.library :as library]
@@ -32,6 +30,7 @@
             [dk.simongray.podcast-app.local :as local]
             [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.player :as player]
+            [dk.simongray.podcast-app.runtime :as runtime]
             [dk.simongray.podcast-app.settings :as settings]
             [dk.simongray.podcast-app.show :as show]))
 
@@ -60,20 +59,14 @@
          #(when (:error %)
             (js/console.error "The library wasn't saved" (clj->js %)))))
 
-(defonce ^{:doc "The BroadcastChannel of the player across the tabs, opened
-  at its first use, or nil where the browser has none."}
-  channel
-  (delay (when (exists? js/BroadcastChannel)
-           (js/BroadcastChannel. player/channel-name))))
-
-(defonce ^{:doc "The id of this tab on the channel."}
+(defonce ^{:doc "The id of this tab on the channel of the player."}
   tab
   (str (random-uuid)))
 
 (defn post!
-  "Send the `message` to the other tabs on the channel, as EDN."
+  "Send the `message` to the other tabs on the channel of the player."
   [message]
-  (some-> ^js @channel (.postMessage (pr-str message))))
+  (runtime/post! player/channel-name message))
 
 (defn tell!
   "Post the `media` state of this tab's element, as media/state returns
@@ -132,10 +125,10 @@
   (let [{:keys [library player] :as state} @store
         id                                 (:id player)]
     (when-let [el (and id (element))]
-      (session/metadata! (:metadata (player/playback state id)))
-      (session/actions! (select-keys (handlers store el)
-                                     (concat [:play :pause :stop]
-                                             (media-session/actions library id)))))))
+      (runtime/lock-screen! (:metadata (player/playback state id))
+                            (select-keys (handlers store el)
+                                         (concat [:play :pause :stop]
+                                                 (media-session/actions library id)))))))
 
 (defn moved!
   "Post the state of the `element` of the player of the `store` to the
@@ -192,24 +185,17 @@
               (report! store shown))
           (swap! seen assoc :media shown))))))
 
-(defonce ^{:doc "The timeout that shows that the player waits for data,
-  after half a second, as Media Chrome does, so that a short wait says
-  nothing."}
-  buffering-timeout
-  (atom nil))
-
+;; After half a second, as Media Chrome does, so that a short wait says
+;; nothing
 (defn buffering!
   "Show that the player of the `store` waits for data, by its `media`
   state, once it has waited half a second while it plays."
   [store {:keys [status paused] :as media}]
   (if (and (= :buffering status) (not paused))
-    (when-not @buffering-timeout
-      (reset! buffering-timeout
-              (js/setTimeout #(do (reset! buffering-timeout nil)
-                                  (swap! store assoc-in [:player :buffering?] true))
-                             500)))
-    (do (some-> @buffering-timeout js/clearTimeout)
-        (reset! buffering-timeout nil)
+    (when-not (runtime/waiting? ::buffering)
+      (runtime/later! ::buffering 500
+                      #(swap! store assoc-in [:player :buffering?] true)))
+    (do (runtime/cancel! ::buffering)
         (when (get-in @store [:player :buffering?])
           (swap! store assoc-in [:player :buffering?] false)))))
 
@@ -413,11 +399,6 @@
           (command! store command)))
     (command! store command)))
 
-(defonce ^{:doc "The interval that moves the clock of the player on while
-  another tab plays."}
-  ticker
-  (atom nil))
-
 (declare ticked!)
 
 (defn clock!
@@ -426,12 +407,11 @@
   [store]
   (let [moving? (some? (player/elsewhere (:player @store)))]
     (cond
-      (and moving? (not @ticker))
-      (reset! ticker (js/setInterval #(ticked! store) 1000))
+      (and moving? (not (runtime/waiting? ::ticker)))
+      (runtime/every! ::ticker 1000 #(ticked! store))
 
-      (and (not moving?) @ticker)
-      (do (js/clearInterval @ticker)
-          (reset! ticker nil)))))
+      (not moving?)
+      (runtime/cancel! ::ticker))))
 
 (defn follow!
   "Move the paused element of the player of the `store` to where another
@@ -490,17 +470,8 @@
   player of the `store`, and ask the tab that plays, if any, for its media
   state."
   [store]
-  (when-let [^js ch @channel]
-    (.addEventListener ch "message"
-                       (fn [^js e]
-                         (let [message (try (reader/read-string (.-data e)) (catch :default _ nil))]
-                           (when (map? message)
-                             (heard! store message)))))
-    (post! {:type :ask})))
-
-(defonce ^{:doc "The function that stops following the element."}
-  detach!
-  (atom (constantly nil)))
+  (runtime/on-message! player/channel-name #(heard! store %))
+  (post! {:type :ask}))
 
 (defn mounted!
   "Follow the audio `element` that the player of the `store` mounted: keep
@@ -510,19 +481,16 @@
   nothing loaded it yet."
   [store ^js element]
   (let [{:keys [player] :as state} @store
-        {:keys [id volume]}        player
-        events                     {:events (conj media/events :timeupdate)}]
+        {:keys [id volume]}        player]
     (when (and id (not (.getAttribute element "src")))
       (media/source! element (player/playback state id))
       (read-library-files! store id))
     (media/volume! element (or volume 1) {:curve :cubic})
-    (reset! detach!
-            (juxt (media/watch! element #(changed! store %) events)
-                  (media/watch! element (reporter store) events)
-                  (session/attach! element)
-                  (tabs/attach! element player/element-name)
-                  (controls/listen! (.closest element "#player") element
-                                    (handlers store element))))
+    (runtime/attach-player! element {:on-media     #(changed! store %)
+                                     :on-report    (reporter store)
+                                     :lock         player/element-name
+                                     :keys-element (.closest element "#player")
+                                     :handlers     (handlers store element)})
     (lock-screen! store)))
 
 (defn restored
