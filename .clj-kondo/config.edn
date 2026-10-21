@@ -3,5 +3,5 @@
  ;; a scene is a var of its own
  :lint-as       {portfolio.replicant/defscene clojure.core/def}
  ;; test fixtures need no docstrings
- :ns-groups     [{:pattern "dk\\.simongray\\.podcast-app\\..*-test" :name tests}]
+ :ns-groups     [{:pattern "dk\\.simongray\\.elektrolyt\\..*-test" :name tests}]
  :config-in-ns  {tests {:linters {:missing-docstring {:level :off}}}}}

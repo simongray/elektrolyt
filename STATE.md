@@ -6,9 +6,14 @@ it, who reads it, how long it lasts and what clears it. Each fact should
 have one writer, so a new row needs a reason, and a fact in two places
 says why.
 
-The namespaces are those of `src/dk/simongray/podcast_app/`. Only
+The namespaces are those of `src/dk/simongray/elektrolyt/`. Only
 `runtime`, `fetching` and `local` reach outside the store, which
 `runtime_test.clj` checks.
+
+The keys and databases that the browser keeps still carry the app's
+former name, `dk.simongray.podcast-app`, and so do the keys of the app's
+preferences in the profile. That way, what a listener saved before the
+rename still opens.
 
 
 In the tab's store

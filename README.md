@@ -1,5 +1,5 @@
-Podcast app
-===========
+Elektrolyt
+==========
 
 A podcast app for the browser, built on
 [podcast-clj](https://github.com/simongray/podcast-clj) and

@@ -31,13 +31,13 @@
   "Start the server, with the credentials in secrets, and the watch. Both
   are no-ops when they're already running."
   []
-  ((requiring-resolve 'dk.simongray.podcast-app.server/start!) {:secrets secrets})
+  ((requiring-resolve 'dk.simongray.elektrolyt.server/start!) {:secrets secrets})
   (watch!))
 
 (defn stop!
   "Stop the server and the watch."
   []
-  ((requiring-resolve 'dk.simongray.podcast-app.server/stop!))
+  ((requiring-resolve 'dk.simongray.elektrolyt.server/stop!))
   (shadow.server/stop!))
 
 (defn restart!
@@ -45,7 +45,7 @@
   after reloading the server's namespace: the route table holds the
   handlers it was built with."
   []
-  ((requiring-resolve 'dk.simongray.podcast-app.server/stop!))
+  ((requiring-resolve 'dk.simongray.elektrolyt.server/stop!))
   (start!))
 
 (comment

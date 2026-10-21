@@ -149,7 +149,7 @@
      than laid on top. It comes from the paper of simon.grays.blog (CC0),
      as black specks where that paper is darker than its median and white
      ones where it's lighter, so that white paper stays white and dark
-     paper dark. dev/dk/simongray/podcast_app/grain.clj makes it, and the
+     paper dark. dev/dk/simongray/elektrolyt/grain.clj makes it, and the
      look test checks the text's contrast on its strongest specks.
      https://claude.ai/artifact/MrZ7s4UY9fihNoS8hSpMfq */
   --grain: url("/images/grain.png");

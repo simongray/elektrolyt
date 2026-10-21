@@ -1,5 +1,5 @@
 {
-  "name": "podcast-app",
+  "name": "elektrolyt",
   "private": true,
   "scripts": {
     "e2e": "playwright test -c test/e2e"
