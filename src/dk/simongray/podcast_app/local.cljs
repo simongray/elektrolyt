@@ -1,4 +1,4 @@
-(ns dk.simongray.podcast-app.local
+(ns ^:runtime dk.simongray.podcast-app.local
   "What this browser keeps in localStorage for the app, apart from the
   library: values that belong to the device rather than to the listener,
   e.g. the layout of the Library page, which a screen suits.
