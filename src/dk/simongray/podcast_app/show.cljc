@@ -1,23 +1,31 @@
 (ns dk.simongray.podcast-app.show
   "What the Show page shows of a show, from the best source at hand: the
   feed that the library keeps, the whole feed, the start of the feed, or
-  what a search found.
+  what a search found. The function source picks the feed, and page makes
+  the page of it.
 
-  The state keeps each show that isn't in the library under its guid in
-  :shows, as a map of the :url of its feed, the :page that the views
-  render, the :status of its load, the :head of the feed, i.e. its start,
-  and the :feed once it's whole, which a subscription takes without a
-  fetch of its own. The status is :opening while the cache is read,
-  :previewed once the start of the feed is in, :loading while the whole
-  feed is fetched, :done once it's in, and :failed with the :error of the
-  fetch.
+  The state keeps what it knows of the feeds of shows outside the library
+  apart from the requests for them:
 
-  A whole feed comes with the :validators of its fetch and the :fetched-at
-  of it, from the cache or the network, and :checked? once this visit has
-  fetched it or found it fresh, with :checking? while it's fetched again.
-  A fetch that brings new episodes while the page lists the episodes waits
-  as :newer, with its :count of them, so that the list on screen doesn't
-  change until the listener asks."
+  - :feeds keeps each feed by its URL, as a map of the :feed, whole or its
+    start as :whole? says, the :validators and :fetched-at of the fetch of
+    a whole feed, from the cache or the network, whether this visit has
+    :checked? it, i.e. fetched it or found it fresh, the :error of a whole
+    fetch that failed, and a :newer feed that waits. A fetch that brings
+    new episodes while the page lists the episodes waits as :newer, with
+    its :count of them, so that the list on screen doesn't change until
+    the listener asks.
+  - :feed-urls keeps where the cache or the Podcast Index says the feed of
+    a show is, by its guid: the :url and where it came :from, :cache or
+    :index, or :not-found? when the index doesn't know it.
+  - :requests keeps the requests in flight, by request: [:open url] while
+    the cache is read, with :whole? once a page asks for the whole feed,
+    [:head url] and [:whole url] while the start or all of a feed is
+    fetched, [:check url] while a feed from the cache is fetched again,
+    and [:look-up guid] while the Podcast Index is asked.
+
+  The state keeps how many episodes the page lists in :episodes-shown, by
+  the guid of the show."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.show :as show]
             [dk.simongray.podcast.feed.guid :as guid]
@@ -129,16 +137,46 @@
   (memo/remember-last (fn [lib k] (view->page (library/show lib k view-opts)))
                       (fn [lib k] [(get-in lib [:feeds k]) (:profile lib) k])))
 
-(defn feed-url
-  "The URL of the feed of the show `guid` in the `state`: the one that the
-  link to its page gives, the one it was loaded from, or the one that the
-  library keeps, or nil."
+(defn requested?
+  "Whether the `request` is in flight in the `state`."
+  [state request]
+  (contains? (:requests state) request))
+
+(defn requested
+  "The `state` with the `request` in flight, with the map `m` of what it
+  needs to know about it, if any."
+  ([state request]
+   (requested state request {}))
+  ([state request m]
+   (assoc-in state [:requests request] m)))
+
+(defn answered
+  "The `state` once the `request` is no longer in flight."
+  [state request]
+  (update state :requests dissoc request))
+
+(defn source
+  "The feed of the show `guid` that its page in the `state` shows, or nil
+  when nothing says where it is.
+
+  It's the feed that the library keeps, as a map of its :url, the :key
+  that the library keeps it under and the :feed, which is :whole?. Or
+  else it's what :feeds keeps at the URL that the link to the page gives,
+  or that the cache or the Podcast Index found, with the :url, which has
+  the :feed once it has arrived."
   [state guid]
-  (or (get-in state [:route :query-params :url])
-      (get-in state [:shows guid :url])
-      (when-let [lib (:library state)]
-        (when-let [k (library-key lib guid nil)]
-          (get-in lib [:feeds k :url])))))
+  (let [lib                                (:library state)
+        {:keys [path-params query-params]} (:route state)
+        url                                (or (when (= guid (:guid path-params))
+                                                 (:url query-params))
+                                               (get-in state [:feed-urls guid :url]))
+        k                                  (some-> lib (library-key guid url))]
+    (cond
+      k   {:url    (get-in lib [:feeds k :url])
+           :key    k
+           :feed   (get-in lib [:feeds k :feed])
+           :whole? true}
+      url (assoc (get-in state [:feeds url]) :url url))))
 
 (defn search-result
   "The result of a search in the `state` for the show `guid`, or nil."
@@ -146,18 +184,6 @@
   (some (fn [search]
           (some #(when (= guid (:guid %)) %) (search/results-of search)))
         (vals (:searches state))))
-
-(defn page
-  "The page of the show `guid` in the `state`, from the library, its load,
-  or a search, or nil when none of them has it."
-  [state guid]
-  (let [{:keys [page] :as loaded} (get-in state [:shows guid])
-        lib                       (:library state)
-        k                         (when lib (library-key lib guid (feed-url state guid)))]
-    (cond
-      k     (library-page lib k)
-      page  page
-      :else (some-> (search-result state guid) result->page))))
 
 (defn with-sized-artwork
   "The `page` of a feed with the artwork of the page `known` before it, when
@@ -168,25 +194,50 @@
     (merge page (select-keys known [:artwork :artwork-sizes]))
     page))
 
+(def feed-page
+  "The page of the show of the parsed `feed` at `url`, with the artwork of
+  the search `result` that found it, made again only when one of them
+  changes, since a feed of thousands of episodes takes a while."
+  (memo/remember-last (fn [url feed result]
+                        (with-sized-artwork (feed->page url feed)
+                          (some-> result result->page)))))
+
+(defn page
+  "The page of the show `guid` in the `state`, from the feed that source
+  picks, or from a search before the feed has arrived, or nil when none
+  of them has it."
+  [state guid]
+  (let [{:keys [url key feed]} (source state guid)
+        result                 (search-result state guid)]
+    (cond
+      key    (library-page (:library state) key)
+      feed   (feed-page url feed result)
+      result (result->page result))))
+
+(defn status
+  "Where the feed of the show `guid` in the `state` stands: :looking-up
+  where it is, :done once it's whole, while it's :checking again, :loading
+  it, or :failed, or nil when nothing loads it."
+  [state guid]
+  (let [{:keys [url key feed whole? error]} (source state guid)]
+    (cond
+      (requested? state [:look-up guid])                    :looking-up
+      (or key whole?)                                       (if (requested? state [:check url])
+                                                              :checking
+                                                              :done)
+      (some #(requested? state [% url]) [:open :head :whole]) :loading
+      error                                                 :failed
+      ;; the start of a feed whose whole fetch hasn't begun, e.g. after a
+      ;; pointer on a link asked for it
+      feed                                                  :loading)))
+
 (defn arrived
-  "The show `guid` in the `state` once its `feed` at `url` has arrived, the
-  start of it or, when `whole?`, all of it. A start that arrives after the
-  whole feed changes nothing."
-  [state guid url feed whole?]
-  (let [shown (get-in state [:shows guid])
-        known (or (:page shown) (some-> (search-result state guid) result->page))]
-    (if (and (not whole?) (= :done (:status shown)))
-      state
-      (assoc-in state [:shows guid]
-                (cond-> (assoc shown
-                               :url    url
-                               :page   (with-sized-artwork (feed->page url feed) known)
-                               :status (cond
-                                         whole?                          :done
-                                         (= :loading (:status shown))   :loading
-                                         :else                           :previewed))
-                  whole?       (-> (assoc :feed feed) (dissoc :head))
-                  (not whole?) (assoc :head feed))))))
+  "The `state` once the start of the feed at `url` has arrived, `feed`. A
+  start that arrives after the whole feed changes nothing."
+  [state url feed]
+  (if (get-in state [:feeds url :whole?])
+    state
+    (update-in state [:feeds url] assoc :feed feed :whole? false)))
 
 (defn cache-key
   "The key in the cache of the feed at `url`, as podcast-clj normalizes the
@@ -225,15 +276,25 @@
          (+ (inst-ms fetched-at) (* 60 60 1000)))))
 
 (defn whole
-  "The show `guid` in the `state` with the whole feed at `url` that a fetch
-  gave, `fetched` at the instant `fetched-at`, which this visit has
-  `checked?` when it came from the network or was fresh in the cache."
-  [state guid url fetched fetched-at checked?]
-  (-> (arrived state guid url (:feed fetched) true)
-      (update-in [:shows guid] assoc
-                 :validators (validators fetched)
-                 :fetched-at fetched-at
-                 :checked?   checked?)))
+  "The `state` with the whole feed at `url` that a fetch gave, `fetched` at
+  the instant `fetched-at`, which this visit has `checked?` when it came
+  from the network or was fresh in the cache, in place of what it knew of
+  the feed."
+  [state url fetched fetched-at checked?]
+  (assoc-in state [:feeds url] {:feed       (:feed fetched)
+                                :whole?     true
+                                :validators (validators fetched)
+                                :fetched-at fetched-at
+                                :checked?   checked?}))
+
+;; RFC 9110, section 15.5.5 and 15.5.11: a feed that's gone from a URL
+(defn gone-from-cache?
+  "Whether the whole feed of the show `guid` in the `state` failed with
+  `error` because it's gone from the URL that the cache had for it, a 404
+  or a 410, so that the Podcast Index is asked again."
+  [state guid error]
+  (and (= :cache (get-in state [:feed-urls guid :from]))
+       (contains? #{404 410} (:status error))))
 
 (defn new-episodes
   "How many episodes the feed `fresh` has that the feed `old` hasn't."
@@ -251,25 +312,25 @@
   (and (= :route/show name) (= guid (:guid path-params))))
 
 (defn refetched
-  "The show `guid` in the `state` once its feed at `url` was fetched again,
+  "The `state` once the feed at `url` of the show `guid` was fetched again,
   `fetched` at the instant `at`: in place of the feed that it had, unless
   it brings new episodes while its list shows. Those wait as :newer until
   the listener asks for them."
   [state guid url fetched at]
-  (let [n (new-episodes (get-in state [:shows guid :feed]) (:feed fetched))]
+  (let [n (new-episodes (get-in state [:feeds url :feed]) (:feed fetched))]
     (if (and (pos? n) (listed? state guid))
-      (assoc-in state [:shows guid :newer]
+      (assoc-in state [:feeds url :newer]
                 {:fetched fetched :fetched-at at :count n})
-      (whole state guid url fetched at true))))
+      (whole state url fetched at true))))
 
 (defn more-shown
   "The actions of the listener's ask for more of the `total` episodes of the
   show `guid` in the `state`: list another page of them, and say how many
   are listed now."
   [state guid total]
-  (let [shown (min total (+ (get-in state [:shows guid :shown] page-size)
+  (let [shown (min total (+ (get-in state [:episodes-shown guid] page-size)
                             page-size))]
-    [[:store/assoc-in [:shows guid :shown] shown]
+    [[:store/assoc-in [:episodes-shown guid] shown]
      [:store/assoc :announcement (str "Showing " shown " of " total " episodes")]]))
 
 (defn whole-feed
@@ -277,17 +338,16 @@
   fetch gives it, with its validators, or nil. A newer feed that waits for
   the listener comes first, since a subscription should have the newest."
   [state url]
-  (some (fn [{:keys [feed validators newer] :as shown}]
-          (when (and feed (= url (:url shown)))
-            (or (:fetched newer) (assoc validators :feed feed))))
-        (vals (:shows state))))
+  (let [{:keys [feed whole? validators newer]} (get-in state [:feeds url])]
+    (when whole?
+      (or (:fetched newer) (assoc validators :feed feed)))))
 
 (defn newer-shown
-  "The show `guid` in the `state` with the :newer feed that waited, in
+  "The `state` with the :newer feed of the show `guid` that waited, in
   place of the one on the page."
   [state guid]
-  (let [{:keys [url newer]} (get-in state [:shows guid])]
+  (let [url             (:url (source state guid))
+        {:keys [newer]} (get-in state [:feeds url])]
     (if newer
-      (-> (whole state guid url (:fetched newer) (:fetched-at newer) true)
-          (update-in [:shows guid] dissoc :newer))
+      (whole state url (:fetched newer) (:fetched-at newer) true)
       state)))

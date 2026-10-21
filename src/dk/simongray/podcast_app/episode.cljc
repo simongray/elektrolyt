@@ -34,23 +34,6 @@
     (or (some #(when (= slug (routes/slug (resolve/title %))) %) matches)
         (first matches))))
 
-(defn source
-  "The feed of the show `guid` in the `state`, as a map of the :feed, its
-  :url, the :key that the library keeps it under, when it does, and
-  whether it's :whole?, or nil when the state has none of it yet."
-  [state guid]
-  (let [lib                           (:library state)
-        url                           (show/feed-url state guid)
-        k                             (some-> lib (show/library-key guid url))
-        {:keys [feed head] :as shown} (get-in state [:shows guid])]
-    (cond
-      k    {:feed   (get-in lib [:feeds k :feed])
-            :url    (get-in lib [:feeds k :url])
-            :key    k
-            :whole? true}
-      feed {:feed feed :url (:url shown) :whole? true}
-      head {:feed head :url (:url shown) :whole? false})))
-
 ;; Apple, A Podcaster's Guide to RSS: with only one season in the feed,
 ;; Apple Podcasts doesn't display a season number
 (defn one-season?
@@ -59,8 +42,8 @@
   (>= 1 (count (into #{} (keep (comp :season resolve/numbering)) (:rss/items feed)))))
 
 (defn page-of
-  "The page of the `item` of the show `guid` in the feed `source`, as source
-  gives it. Each time in the show notes is what `time-fn` gives for the
+  "The page of the `item` of the show `guid` in the feed `source`, as
+  show/source gives it. Each time in the show notes is what `time-fn` gives for the
   page, the seconds and the text of the time.
 
   The page's link, locations and license are the item's own, since its
@@ -126,8 +109,9 @@
   have it. The `time-fn` makes the times of the show notes, as page-of has
   it."
   [state guid hash slug time-fn]
-  (when-let [src (source state guid)]
-    (page-in guid src hash slug time-fn)))
+  (let [src (show/source state guid)]
+    (when (:feed src)
+      (page-in guid src hash slug time-fn))))
 
 (defn status
   "Where the Episode page of the show `guid` in the `state` stands while it
@@ -135,15 +119,12 @@
   checking the one from the cache again, :failed to, the episode
   :not-found in it, or :no-show at all."
   [state guid]
-  (let [src                        (source state guid)
-        {:keys [status checking?]} (get-in state [:shows guid])]
-    (cond
-      (= :looking-up status)                               :looking-up
-      (= :failed status)                                   :failed
-      checking?                                            :loading
-      (:whole? src)                                        :not-found
-      (#{:opening :previewing :previewed :loading} status) :loading
-      :else                                                :no-show)))
+  (case (show/status state guid)
+    :looking-up          :looking-up
+    :failed              :failed
+    (:loading :checking) :loading
+    :done                :not-found
+    :no-show))
 
 (defn shown-chapters
   "The chapters to list for the `page` of an episode, with what its `files`

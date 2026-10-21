@@ -28,12 +28,12 @@
             [dk.simongray.podcast.app.media-session :as media-session]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
-            [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.local :as local]
             [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.player :as player]
-            [dk.simongray.podcast-app.settings :as settings]))
+            [dk.simongray.podcast-app.settings :as settings]
+            [dk.simongray.podcast-app.show :as show]))
 
 (defn element
   "The audio element of the player, or nil before anything plays."
@@ -311,7 +311,7 @@
   Episode page, as episode/playable gives it, to the library, unless it
   has it already."
   [state {:keys [id guid url item-guid]}]
-  {:operation [:episode/add id url (:feed (episode/source state guid)) item-guid]})
+  {:operation [:episode/add id url (:feed (show/source state guid)) item-guid]})
 
 (defn play!
   "Play the `playable` episode, e.g. of an Episode page or a pick, in the

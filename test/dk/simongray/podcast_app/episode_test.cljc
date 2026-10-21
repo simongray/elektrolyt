@@ -2,7 +2,8 @@
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed.guid :as guid]
-            [dk.simongray.podcast-app.episode :as episode]))
+            [dk.simongray.podcast-app.episode :as episode]
+            [dk.simongray.podcast-app.show :as show]))
 
 (def url "https://example.org/feed.xml")
 
@@ -32,13 +33,11 @@
   [:a {:href (str (:href page) "&t=" seconds)} text])
 
 (defn loaded
-  "The state of a page whose show the Show page loaded, the start of its
-  feed or, when `whole?`, all of it."
-  [whole? status]
-  {:route {:query-params {:url url}}
-   :shows {g (cond-> {:url url :status status}
-               whole?       (assoc :feed feed)
-               (not whole?) (assoc :head feed))}})
+  "The state of a page of the show g whose feed the Show page loaded, the
+  start of it or, when `whole?`, all of it."
+  [whole?]
+  {:route {:path-params {:guid g} :query-params {:url url}}
+   :feeds {url {:feed feed :whole? whole?}}})
 
 (deftest the-item-that-a-link-names
   (is (= (first items) (episode/item-of items hash-2 nil)))
@@ -48,16 +47,18 @@
   (is (nil? (episode/item-of items "0000000" nil))))
 
 (deftest where-the-feed-comes-from
-  (is (= {:feed feed :url url :whole? false} (episode/source (loaded false :loading) g)))
-  (is (= {:feed feed :url url :whole? true} (episode/source (loaded true :done) g)))
+  (is (= {:feed feed :url url :whole? false} (show/source (loaded false) g)))
+  (is (= {:feed feed :url url :whole? true} (show/source (loaded true) g)))
   (let [lib (library/subscribe (library/make "test") url {:feed feed})
         k   (first (keys (:feeds lib)))]
-    (is (= [k url true] ((juxt :key :url :whole?) (episode/source {:library lib :route {:query-params {}}} k)))
+    (is (= [k url true] ((juxt :key :url :whole?) (show/source {:library lib :route {:query-params {}}} k)))
         "the library's, under its key"))
-  (is (nil? (episode/source {} g))))
+  (is (nil? (show/source {} g)))
+  (is (nil? (episode/page {:route (:route (loaded false))} g hash-2 nil time-link))
+      "and no page before the feed has arrived"))
 
 (deftest the-page-of-an-episode
-  (let [state (loaded false :loading)
+  (let [state (loaded false)
         page  (episode/page state g hash-2 nil time-link)]
     (is (= "Episode 2: The Present" (:title page)))
     (is (= [g "https://example.org/?p=2"] (:id page)))
@@ -96,15 +97,16 @@
         "but its season where the show has two")))
 
 (deftest while-there-is-no-episode
-  (is (= :loading (episode/status (loaded false :loading) g)) "the whole feed may have it")
-  (is (= :not-found (episode/status (loaded true :done) g)))
-  (is (= :loading (episode/status (assoc-in (loaded true :done) [:shows g :checking?] true) g))
-      "but a feed from the cache that's fetched again may have it")
-  (is (= :loading (episode/status (loaded false :opening) g)) "as may the cache")
-  (is (= :looking-up (episode/status {:shows {g {:status :looking-up}}} g)))
-  (is (= :failed (episode/status (loaded false :failed) g)))
-  (is (= :no-show (episode/status {:shows {g {:status :not-found}}} g)) "the index doesn't know it")
-  (is (= :no-show (episode/status {} g)) "nothing says where its feed is"))
+  (let [on-its-way {:route (:route (loaded false))}]
+    (is (= :loading (episode/status (loaded false) g)) "the whole feed may have it")
+    (is (= :not-found (episode/status (loaded true) g)))
+    (is (= :loading (episode/status (show/requested (loaded true) [:check url]) g))
+        "but a feed from the cache that's fetched again may have it")
+    (is (= :loading (episode/status (show/requested on-its-way [:open url]) g)) "as may the cache")
+    (is (= :looking-up (episode/status (show/requested {} [:look-up g]) g)))
+    (is (= :failed (episode/status (assoc-in on-its-way [:feeds url :error] {:message "No"}) g)))
+    (is (= :no-show (episode/status {:feed-urls {g {:not-found? true}}} g)) "the index doesn't know it")
+    (is (= :no-show (episode/status {} g)) "nothing says where its feed is")))
 
 (deftest the-chapters-to-list
   (let [doc  {:chapters [{:start-time 0 :title "Intro"} {:start-time 60 :title "Hidden" :toc false}]}

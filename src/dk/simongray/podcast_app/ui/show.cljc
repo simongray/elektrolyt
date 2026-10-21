@@ -9,7 +9,6 @@
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.spec :as spec]
             [dk.simongray.podcast-app.colors :as colors]
-            [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.linked :as linked]
             [dk.simongray.podcast-app.picks :as picks]
             [dk.simongray.podcast-app.routes :as routes]
@@ -29,28 +28,11 @@
   [state]
   (get-in state [:route :path-params :guid]))
 
-(defn feed-url
-  "The URL of the feed of the show of the Show page of the `state`, from
-  show/feed-url, or nil."
+(defn source
+  "The feed of the show of the Show page of the `state`, as show/source
+  gives it, or nil."
   [state]
-  (show/feed-url state (guid state)))
-
-(defn library-key
-  "The key that the library of the `state` keeps the show of the Show page
-  under, or nil when it doesn't keep it."
-  [state]
-  (some-> (:library state) (show/library-key (guid state) (feed-url state))))
-
-;; A show that the library keeps is in it whole, so a load of its feed from
-;; before the subscription, e.g. the preview of a link, says nothing of it,
-;; only how many episodes the page lists
-(defn loaded
-  "What the `state` keeps of the load of the show of the Show page, which
-  dk.simongray.podcast-app.show describes, or of a show that the library
-  keeps, only how many episodes are :shown."
-  [state]
-  (cond-> (get-in state [:shows (guid state)])
-    (library-key state) (select-keys [:shown])))
+  (show/source state (guid state)))
 
 (defn cadence-text
   "How often a show publishes by its cadence of `ms` between episodes, in
@@ -143,8 +125,8 @@
   the count of `newer` episodes that wait."
   [status n error newer]
   (case status
-    (:opening :previewing :previewed :loading) "Loading episodes…"
-    :failed (str "The feed couldn't be fetched. " (:message error))
+    :loading "Loading episodes…"
+    :failed  (str "The feed couldn't be fetched. " (:message error))
     (str (text/counted n "episode") "."
          (when newer
            (str " " (text/counted newer "new episode") (if (= 1 newer) " is in." " are in."))))))
@@ -155,19 +137,21 @@
 ;; New episodes that arrive while the list shows wait for a button, as the
 ;; offline cookbook has it, so that the list doesn't move by itself.
 ;; https://web.dev/articles/offline-cookbook#cache-then-network
+;; A show that the library keeps is in it whole, so a load of its feed from
+;; before the subscription, e.g. the preview of a link, says nothing of it
 (defn episodes
   "The episodes of the show `page` of the Show page of the `state`, as many
-  of them as its load has :shown, with the status of the load and a button
-  for the newer episodes that wait. Each title links to the page of its
-  episode."
+  of them as :episodes-shown says, with the status of the load and a
+  button for the newer episodes that wait. Each title links to the page of
+  its episode."
   [state {rows :episodes :keys [language] :as page}]
-  (let [g                                  (guid state)
-        k                                  (library-key state)
-        url                                (when-not k (feed-url state))
-        {:keys [status shown error newer]} (loaded state)
-        shown                              (or shown show/page-size)
-        newer                              (:count newer)
-        lang                               (text/lang language)]
+  (let [g                             (guid state)
+        {:keys [key url error newer]} (source state)
+        url                           (when-not key url)
+        status                        (show/status state g)
+        shown                         (get-in state [:episodes-shown g] show/page-size)
+        newer                         (when-not key (:count newer))
+        lang                          (text/lang language)]
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
      [:p {:role "status"} (status-text status (count rows) error newer)]
@@ -178,7 +162,7 @@
        [:ol.episodes {:role "list"}
         (for [row (take shown rows)]
           [:li {:replicant/key (:guid row)}
-           (episode-row state (routes/episode-href (or k g) (:guid row) (:title row) url) row lang page)])])
+           (episode-row state (routes/episode-href (or key g) (:guid row) (:title row) url) row lang page)])])
      (when (< shown (count rows))
        [:button {:type "button"
                  :on   {:click [[:show/more g (count rows)]]}}
@@ -208,7 +192,7 @@
   it its subscription, and its description below, in the show's
   language."
   [state heading {:keys [title notes language] :as page}]
-  (let [url (feed-url state)]
+  (let [url (:url (source state))]
     [:header.show-intro
      [:hgroup heading (byline page url)]
      (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
@@ -252,8 +236,7 @@
 (defn linked-shows
   "The shows that the show of the Show page of the `state`, titled `title`,
   links to: those of its podroll, and the other shows of its publisher,
-  or nil when its feed `source`, as episode/source gives it, links to
-  none."
+  or nil when its feed `source`, as show/source gives it, links to none."
   [state title {:keys [feed url] :as source}]
   (let [show-guid                   (guid state)
         {:keys [podroll publisher]} (get-in state [:linked show-guid])]
@@ -281,17 +264,17 @@
   Details, and the shows that it links to, or else the heading and what
   became of the show."
   [state heading]
-  (let [page                  (show/page state (guid state))
-        {:keys [status error]} (loaded state)]
+  (let [page   (show/page state (guid state))
+        status (show/status state (guid state))]
     (if-not page
       (list heading
             (case status
-              :looking-up                     looking-up
-              (:opening :previewing :loading) [:p {:role "status"} "Loading the show…"]
-              :failed                         [:p {:role "status"} (status-text status 0 error nil)]
+              :looking-up looking-up
+              :loading    [:p {:role "status"} "Loading the show…"]
+              :failed     [:p {:role "status"} (status-text status 0 (:error (source state)) nil)]
               not-found))
-      (let [aside  (details/aside (details-rows page) (:people page))
-            source (episode/source state (guid state))]
+      (let [aside (details/aside (details-rows page) (:people page))
+            src   (source state)]
         (list
          (details/article
           {}
@@ -299,5 +282,5 @@
            (episodes state page)]
           aside
           (picks-ui/folded state picks-section [:show (guid state)] #(picks/like-show state (guid state))))
-         (when source
-           (linked-shows state (:title page) source)))))))
+         (when (:feed src)
+           (linked-shows state (:title page) src)))))))

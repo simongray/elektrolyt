@@ -12,6 +12,16 @@
    :rss/items (vec (for [e episodes]
                      {:rss/title e :rss/guid {:content e}}))})
 
+(defn on-page
+  "The `state` on the Show page of the show `guid`, whose link gives the
+  URL of its feed."
+  ([guid]
+   (on-page {} guid))
+  ([state guid]
+   (assoc state :route {:name         :route/show
+                        :path-params  {:guid guid}
+                        :query-params {:url url}})))
+
 (deftest the-page-from-a-feed
   (let [page (show/feed->page url (feed "A Show" "One" "Two"))]
     (is (= "A Show" (:title page)))
@@ -38,43 +48,88 @@
 
 (deftest a-feed-that-arrives-in-stages
   (let [guid  "g"
-        state {:shows {guid {:url url :status :loading}}}
-        head  (show/arrived state guid url (feed "A Show" "One") false)
-        whole (show/arrived head guid url (feed "A Show" "One" "Two") true)]
+        state (show/requested (on-page guid) [:whole url])
+        head  (-> (show/requested state [:head url])
+                  (show/answered [:head url])
+                  (show/arrived url (feed "A Show" "One")))
+        whole (-> (show/answered head [:whole url])
+                  (show/whole url {:feed (feed "A Show" "One" "Two")} #inst "2026-10-18T12:00:00Z" true))]
     (testing "the start of the feed, while the whole is fetched"
-      (is (= :loading (get-in head [:shows guid :status])))
-      (is (= ["One"] (map :title (get-in head [:shows guid :page :episodes]))))
-      (is (nil? (get-in head [:shows guid :feed]))))
+      (is (= :loading (show/status head guid)))
+      (is (= ["One"] (map :title (:episodes (show/page head guid)))))
+      (is (false? (:whole? (show/source head guid))))
+      (is (nil? (show/whole-feed head url))))
     (testing "the whole feed, which a subscription can take"
-      (is (= :done (get-in whole [:shows guid :status])))
-      (is (= 2 (count (get-in whole [:shows guid :page :episodes]))))
-      (is (some? (get-in whole [:shows guid :feed]))))
-    (is (= whole (show/arrived whole guid url (feed "A Show" "One") false))
+      (is (= :done (show/status whole guid)))
+      (is (= 2 (count (:episodes (show/page whole guid)))))
+      (is (= (feed "A Show" "One" "Two") (:feed (show/whole-feed whole url)))))
+    (is (= whole (show/arrived whole url (feed "A Show" "One")))
         "a start that arrives after the whole feed changes nothing")
-    (is (= :previewed (get-in (show/arrived {} guid url (feed "A Show") false) [:shows guid :status]))
-        "a start that a pointer on a link asked for")))
+    (is (= {:feed (feed "A Show") :whole? false}
+           (get-in (show/arrived {} url (feed "A Show")) [:feeds url]))
+        "a start that a pointer on a link asked for, kept by the URL of its feed")))
+
+(deftest where-a-feed-stands
+  (let [guid "g"]
+    (is (nil? (show/status (on-page guid) guid)) "nothing loads it yet")
+    (is (= :loading (show/status (show/requested (on-page guid) [:open url]) guid))
+        "while the cache is read")
+    (is (= :loading (show/status (assoc-in (on-page guid) [:feeds url] {:feed (feed "A Show") :whole? false}) guid))
+        "and from the start of the feed until the whole has arrived")
+    (is (= :failed (show/status (assoc-in (on-page guid) [:feeds url :error] {:message "No"}) guid)))
+    (is (= :loading (show/status (-> (on-page guid)
+                                     (assoc-in [:feeds url :error] {:message "No"})
+                                     (show/requested [:whole url]))
+                                 guid))
+        "but not while it's fetched again")
+    (let [done (show/whole (on-page guid) url {:feed (feed "A Show")} #inst "2026-10-18T12:00:00Z" false)]
+      (is (= :done (show/status done guid)))
+      (is (= :checking (show/status (show/requested done [:check url]) guid))))
+    (is (= :looking-up (show/status (show/requested {} [:look-up guid]) guid)))))
+
+(deftest where-the-feed-of-a-show-is
+  (let [guid  "917393e3-1b1e-5cef-ace4-edaa54e1f810"
+        found {:feed-urls {guid {:url url :from :index}}}]
+    (is (= {:url url} (show/source found guid)) "where the Podcast Index found it")
+    (is (= url (:url (show/source (on-page guid) guid))) "or where the link to its page says")
+    (is (nil? (:url (show/source (on-page "another") guid)))
+        "but not the link to the page of another show")
+    (is (nil? (show/source {:feed-urls {guid {:not-found? true}}} guid))
+        "and nowhere when the index doesn't know it")))
+
+(deftest a-feed-gone-from-the-url-in-the-cache
+  (let [guid   "g"
+        cached {:feed-urls {guid {:url url :from :cache}}}]
+    (is (show/gone-from-cache? cached guid {:status 404}))
+    (is (show/gone-from-cache? cached guid {:status 410}))
+    (is (not (show/gone-from-cache? cached guid {:status 500})) "rather than a server that fails")
+    (is (not (show/gone-from-cache? {:feed-urls {guid {:url url :from :index}}} guid {:status 404}))
+        "nor a URL that the index gave just now")
+    (is (not (show/gone-from-cache? (on-page guid) guid {:status 404}))
+        "nor one that the link gave")))
 
 (deftest the-artwork-of-a-search-in-its-sizes
   (let [guid  "g"
         sizes [{:href "https://i/100.jpg" :width 100} {:href "https://i/600.jpg" :width 600}]
-        state {:searches {"q" {:results [{:guid guid :url url :title "A Show"
-                                          :artwork "https://i/600.jpg" :artwork-sizes sizes}]}}}
+        state (on-page {:searches {"q" {:results [{:guid guid :url url :title "A Show"
+                                                   :artwork "https://i/600.jpg" :artwork-sizes sizes}]}}}
+                       guid)
         fed   (-> (feed "A Show" "One")
                   (assoc :itunes/image {:href "https://i/3000.jpg"}))
-        page  (get-in (show/arrived state guid url fed false) [:shows guid :page])]
+        page  (show/page (show/arrived state url fed) guid)]
     (is (= "https://i/600.jpg" (:artwork page)) "rather than the feed's one size")
     (is (= sizes (:artwork-sizes page)))))
 
 (deftest the-best-source-of-a-page
   (let [guid  "917393e3-1b1e-5cef-ace4-edaa54e1f810"
-        found {:searches {"pc20" {:results [{:guid guid :title "From the search" :url url}]}}}]
+        found (on-page {:searches {"pc20" {:results [{:guid guid :title "From the search" :url url}]}}} guid)]
     (is (= "From the search" (:title (show/page found guid))) "what a search knew, at once")
     (is (= [] (:episodes (show/page found guid))))
     (is (= "From the search"
-           (:title (show/page (assoc-in found [:shows guid] {:url url :status :loading}) guid)))
+           (:title (show/page (show/requested found [:whole url]) guid)))
         "and while the feed is on its way")
     (is (= "From the feed"
-           (:title (show/page (assoc-in found [:shows guid] {:url url :page {:title "From the feed"}}) guid)))
+           (:title (show/page (show/arrived found url (feed "From the feed")) guid)))
         "the feed once it has arrived")
     (is (nil? (show/page {} guid)) "a show that nothing knows")))
 
@@ -85,7 +140,8 @@
     (is (= k (show/library-key lib "another-guid" url)) "or by the URL of its feed")
     (is (nil? (show/library-key lib "another-guid" "https://example.org/other.xml")))
     (is (= "Kept" (:title (show/page {:library lib} k))))
-    (is (= url (show/feed-url {:library lib} k)))))
+    (is (= [url k true] ((juxt :url :key :whole?) (show/source {:library lib} k))))
+    (is (= :done (show/status {:library lib} k)))))
 
 (deftest a-feed-from-the-cache
   (let [at      #inst "2026-10-18T12:00:00Z"
@@ -98,39 +154,34 @@
     (is (not (show/fresh? (assoc fetched :not-before #inst "2026-10-18T12:01:00Z")
                           at #inst "2026-10-18T12:02:00Z"))
         "until the time that its server names")
-    (let [state (show/whole {} "g" url fetched at false)]
-      (is (= {:status :done :validators {:etag "\"v1\""} :fetched-at at :checked? false}
-             (select-keys (get-in state [:shows "g"]) [:status :validators :fetched-at :checked?])))
-      (is (= ["One"] (map :title (get-in state [:shows "g" :page :episodes])))))))
+    (let [state (show/whole (on-page "g") url fetched at false)]
+      (is (= {:whole? true :validators {:etag "\"v1\""} :fetched-at at :checked? false}
+             (select-keys (get-in state [:feeds url]) [:whole? :validators :fetched-at :checked?])))
+      (is (= ["One"] (map :title (:episodes (show/page state "g"))))))))
 
 (deftest a-feed-fetched-again
   (let [at     #inst "2026-10-18T12:00:00Z"
-        page   {:name :route/show :path-params {:guid "g"}}
-        state  (-> (show/whole {} "g" url {:feed (feed "A Show" "One")} at false)
-                   (assoc :route page))
+        state  (show/whole (on-page "g") url {:feed (feed "A Show" "One")} at false)
         newer  {:feed (feed "A Show" "Two" "One") :etag "\"v2\""}
-        later  #inst "2026-10-18T14:00:00Z"]
+        later  #inst "2026-10-18T14:00:00Z"
+        titles #(map :title (:episodes (show/page % "g")))]
     (is (= 1 (show/new-episodes (feed "A Show" "One") (feed "A Show" "Two" "One"))))
     (let [waiting (show/refetched state "g" url newer later)]
-      (is (= ["One"] (map :title (get-in waiting [:shows "g" :page :episodes])))
-          "the list on screen stays as it is")
-      (is (= 1 (get-in waiting [:shows "g" :newer :count])))
+      (is (= ["One"] (titles waiting)) "the list on screen stays as it is")
+      (is (= 1 (get-in waiting [:feeds url :newer :count])))
+      (is (= newer (show/whole-feed waiting url)) "though a subscription takes the newer feed")
       (let [shown (show/newer-shown waiting "g")]
-        (is (= ["Two" "One"] (map :title (get-in shown [:shows "g" :page :episodes])))
-            "until the listener asks for the new episodes")
-        (is (nil? (get-in shown [:shows "g" :newer])))
-        (is (= {:etag "\"v2\""} (get-in shown [:shows "g" :validators])))))
+        (is (= ["Two" "One"] (titles shown)) "until the listener asks for the new episodes")
+        (is (nil? (get-in shown [:feeds url :newer])))
+        (is (= {:etag "\"v2\""} (get-in shown [:feeds url :validators])))))
     (is (= ["Two" "One"]
-           (->> (show/refetched (assoc state :route {:name :route/episode :path-params {:guid "g"}})
-                                "g" url newer later)
-                :shows (#(get % "g")) :page :episodes (map :title)))
+           (titles (show/refetched (assoc-in state [:route :name] :route/episode) "g" url newer later)))
         "or at once where the page doesn't list them, e.g. an episode's")
     (is (= ["One, edited"]
-           (->> (show/refetched state "g" url
-                                {:feed (assoc-in (feed "A Show" "One")
-                                                 [:rss/items 0 :rss/title] "One, edited")}
-                                later)
-                :shows (#(get % "g")) :page :episodes (map :title)))
+           (titles (show/refetched state "g" url
+                                   {:feed (assoc-in (feed "A Show" "One")
+                                                    [:rss/items 0 :rss/title] "One, edited")}
+                                   later)))
         "and at once when the feed brings no new episode, e.g. an edit")))
 
 (deftest a-show-that-the-library-keeps-for-one-episode
@@ -142,9 +193,9 @@
         "but its page is that of a show outside it, since the feed has only that episode")))
 
 (deftest more-episodes
-  (is (= [[:store/assoc-in [:shows "g" :shown] 40]
+  (is (= [[:store/assoc-in [:episodes-shown "g"] 40]
           [:store/assoc :announcement "Showing 40 of 45 episodes"]]
          (show/more-shown {} "g" 45)))
-  (is (= [[:store/assoc-in [:shows "g" :shown] 45]
+  (is (= [[:store/assoc-in [:episodes-shown "g"] 45]
           [:store/assoc :announcement "Showing 45 of 45 episodes"]]
-         (show/more-shown {:shows {"g" {:shown 40}}} "g" 45))))
+         (show/more-shown {:episodes-shown {"g" 40}} "g" 45))))

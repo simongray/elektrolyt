@@ -5,7 +5,6 @@
   and of the ways it can fail."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app.scenes :refer [artwork lib url]]
-            [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
 
@@ -29,50 +28,69 @@
           :published (js/Date. (- 1792000000000 (* i 7 24 3600 1000)))
           :duration  (+ 3600 (* 137 i))})))
 
+(defn items
+  "The items of a feed of `n` episodes, newest first, every one of them a
+  week apart, as rows has them."
+  [n]
+  (vec (for [{:keys [guid title published duration]} (rows n)]
+         {:rss/guid        {:content guid}
+          :rss/title       title
+          :rss/pub-date    published
+          :itunes/duration duration})))
+
+(def podcasting
+  "The feed of the scenes' show, which says what the search knew, and no
+  episodes yet."
+  {:rss/title     "Podcasting 2.0"
+   :itunes/author "Podcast Index LLC"
+   :itunes/image  {:href artwork}
+   :rss/items     []})
+
 (defn show-page
-  "The state of the Show page with the show's entry `shown` in :shows, and
-  the `more` state merged in."
-  ([shown]
-   (show-page shown {}))
-  ([shown more]
-   (merge {:route    {:name         :route/show
-                      :path-params  {:guid guid}
-                      :query-params {:url url}}
-           :library  (library/make "scenes")
-           :searches {"pc20" {:status :done :results [(assoc known :guid guid :url url)]}}
-           :shows    {guid shown}}
-          more)))
+  "The state of the Show page of the scenes' show, with the `more` state
+  merged in, e.g. its :feeds and :requests."
+  [more]
+  (merge {:route    {:name         :route/show
+                     :path-params  {:guid guid}
+                     :query-params {:url url}}
+          :library  (library/make "scenes")
+          :searches {"pc20" {:status :done :results [(assoc known :guid guid :url url)]}}}
+         more))
+
+(defn whole
+  "The state of the Show page with the whole `feed`, and the `more` state
+  merged in."
+  ([feed]
+   (whole feed {}))
+  ([feed more]
+   (show-page (merge {:feeds {url {:feed feed :whole? true}}} more))))
 
 (defscene what-the-search-knew
   "The moment after the click: the title, the author and the artwork that
   the search found, while the feed is on its way."
-  (ui/page (show-page {:url url :status :loading})))
+  (ui/page (show-page {:requests {[:whole url] {}}})))
 
 (defscene the-start-of-the-feed
   "The first episodes from the start of the feed, while the whole feed is
   fetched."
-  (ui/page (show-page {:url    url
-                       :status :loading
-                       :page   (assoc known
-                                      :notes [:p "The podcast about podcasting, with "
-                                              [:a {:href "https://podcastindex.org"} "Podcast Index"] "."]
-                                      :episodes (rows 20))})))
+  (ui/page (show-page {:requests {[:whole url] {}}
+                       :feeds    {url {:feed   (assoc podcasting
+                                                       :rss/description (str "<p>The podcast about podcasting, with "
+                                                                             "<a href=\"https://podcastindex.org\">Podcast Index</a>.</p>")
+                                                       :rss/items (items 20))
+                                       :whole? false}}})))
 
 (defscene the-whole-feed
   "Every episode, of which the page lists 20 at a time."
-  (ui/page (show-page {:url    url
-                       :status :done
-                       :shown  40
-                       :page   (assoc known :episodes (rows 207))})))
+  (ui/page (whole (assoc podcasting :rss/items (items 207)) {:episodes-shown {guid 40}})))
 
 (defscene new-episodes-that-wait
   "A feed from the cache that was fetched again while the page showed it,
   and brought new episodes, which wait for the button so that the list
   doesn't move by itself."
-  (ui/page (show-page {:url    url
-                       :status :done
-                       :page   (assoc known :episodes (rows 207))
-                       :newer  {:count 2}})))
+  (ui/page (show-page {:feeds {url {:feed   (assoc podcasting :rss/items (items 207))
+                                    :whole? true
+                                    :newer  {:count 2}}}})))
 
 (def pc20
   "A feed like that of Podcasting 2.0, with what it says of itself, where
@@ -83,6 +101,7 @@
    :rss/language      "en"
    :rss/copyright     "Podcast Index LLC 2026"
    :itunes/author     "Podcast Index LLC"
+   :itunes/image      {:href artwork}
    :itunes/categories [{:text "News" :categories [{:text "Tech News"}]} {:text "Technology"}]
    :podcast/funding   [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]
    :podcast/people    [{:content "Adam Curry" :role "host" :href "http://curry.com/"
@@ -91,36 +110,26 @@
                         :img "https://feeds.podcastindex.org/dave_avatar.jpg"}]
    :podcast/locations [{:content "Austin, TX" :rel "creator" :osm {:type "R" :id 113314}}]
    :podcast/license   {:content "CC-BY-4.0"}
-   :rss/items         (vec (for [{:keys [guid title published duration]} (rows 20)]
-                             {:rss/guid        {:content guid}
-                              :rss/title       title
-                              :rss/pub-date    published
-                              :itunes/duration duration}))})
+   :rss/items         (items 20)})
 
 (defscene a-show-with-its-details
   "A show that says much of itself: its Details beside the episodes where
   there's room for both, and below them on a phone, and the people who
   make it."
-  (ui/page (show-page {:url    url
-                       :status :done
-                       :page   (merge (show/feed->page url pc20)
-                                      (select-keys known [:artwork :artwork-sizes]))})))
+  (ui/page (whole pc20)))
 
 (defscene in-the-colours-of-its-artwork
   "A show whose page takes the colours of its artwork, once they're worked
   out, here of a deep blue: its links and buttons, and a faint tint from
   the right."
-  (ui/page (show-page {:url    url
-                       :status :done
-                       :page   (merge (show/feed->page url pc20)
-                                      (select-keys known [:artwork :artwork-sizes]))}
-                      {:colors {artwork {:seed "#1d4e89" :dominant "#888888"}}})))
+  (ui/page (whole pc20 {:colors {artwork {:seed "#1d4e89" :dominant "#888888"}}})))
 
 (def danish
   "A feed in Danish, with long compound words in its notes and five
   episodes a week apart."
   {:rss/title       "Sprogets verden"
    :rss/language    "da"
+   :itunes/image    {:href artwork}
    :rss/description (str "<p>Et ugentligt program om det danske sprog: hvor ordene kommer fra, "
                          "hvordan de skifter betydning, og hvorfor sammensatte ord som "
                          "folketingsvalgkampagnerne og rigsfællesskabsforhandlingerne kan "
@@ -145,16 +154,11 @@
   its episodes have the feed's language, so that the browser hyphenates
   them by Danish rules and a screen reader reads them in Danish, while the
   app's own words stay English."
-  (ui/page (show-page {:url    url
-                       :status :done
-                       :page   (merge (show/feed->page url danish)
-                                      (select-keys known [:artwork :artwork-sizes]))})))
+  (ui/page (whole danish)))
 
 (defscene a-feed-that-failed
   "A fetch of the feed that failed, after what the search knew."
-  (ui/page (show-page {:url    url
-                       :status :failed
-                       :error  {:message "The server answered 404."}})))
+  (ui/page (show-page {:feeds {url {:error {:message "The server answered 404."}}}})))
 
 (defscene a-show-in-the-library
   "A show that the listener subscribes to."
