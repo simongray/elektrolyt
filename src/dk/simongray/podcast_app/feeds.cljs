@@ -19,6 +19,7 @@
             [dk.simongray.podcast-app.linked :as linked]
             [dk.simongray.podcast-app.page :as page]
             [dk.simongray.podcast-app.routes :as routes]
+            [dk.simongray.podcast-app.runtime :as runtime]
             [dk.simongray.podcast-app.search :as search]
             [dk.simongray.podcast-app.show :as show]
             [dk.simongray.podcast-app.subscription :as subscription]
@@ -189,24 +190,17 @@
         (or known (asked? :head) (asked? :whole)) (fetch-show! store guid url preview?)
         :else                                      (open-show! store guid url preview?)))))
 
-(defonce ^{:doc "The timeout of the prefetch that a pointer resting on a
-  link to a show starts, which leaving the link cancels."}
-  prefetch-timeout
-  (atom nil))
-
 (defn prefetch-soon!
   "Fetch the start of the feed of the show `guid` at `url` into the `store`
   in 65 ms, unless the pointer leaves the link to it first."
   [store guid url]
-  (some-> @prefetch-timeout js/clearTimeout)
-  (reset! prefetch-timeout (js/setTimeout #(load-show! store guid url true) 65)))
+  (runtime/later! ::prefetch 65 #(load-show! store guid url true)))
 
 (defn prefetch-cancel!
   "Cancel the prefetch that prefetch-soon! started, when the pointer
   leaves the link."
   []
-  (some-> @prefetch-timeout js/clearTimeout)
-  (reset! prefetch-timeout nil))
+  (runtime/cancel! ::prefetch))
 
 (defn subscribe!
   "Subscribe the library of the `store` to the show `title` at `url`, and

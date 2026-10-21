@@ -13,6 +13,7 @@
             [dk.simongray.podcast-app.audio :as audio]
             [dk.simongray.podcast-app.library :as app-library]
             [dk.simongray.podcast-app.refresh :as refresh]
+            [dk.simongray.podcast-app.runtime :as runtime]
             [dk.simongray.podcast-app.text :as text]))
 
 (defn subscribed-count
@@ -72,12 +73,12 @@
   [store list]
   (let [k     (gensym "opml-import")
         phase (atom :waiting)]
-    (add-watch store k
-               (fn [_ _ old new]
-                 (when (= :fetched (swap! phase waited old new))
-                   (remove-watch store k)
-                   (app-library/change! store {:operation [:opml/mark-played list]})
-                   (audio/save! store))))))
+    (runtime/watch! store k
+                    (fn [old new]
+                      (when (= :fetched (swap! phase waited old new))
+                        (runtime/unwatch! store k)
+                        (app-library/change! store {:operation [:opml/mark-played list]})
+                        (audio/save! store))))))
 
 (defn import!
   "Import the OPML `file` that the listener chose into the library of the
@@ -104,4 +105,4 @@
     (set! (.-href a) url)
     (set! (.-download a) library/opml-name)
     (.click a)
-    (js/setTimeout #(js/URL.revokeObjectURL url) 0)))
+    (runtime/soon! #(js/URL.revokeObjectURL url))))
