@@ -26,7 +26,7 @@ process.env.E2E_PORT ||= String(await freePort());
 const port = process.env.E2E_PORT;
 
 // without the secrets of the Podcast Index, which no test searches
-const start = '((requiring-resolve \'dk.simongray.podcast-app.server/start!)'
+const start = '((requiring-resolve \'dk.simongray.elektrolyt.server/start!)'
   + ` {:port ${port} :secrets nil})`;
 
 // the libraries from the checkouts beside this one, like the watch's,

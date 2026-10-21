@@ -10,19 +10,19 @@
                         :output-dir "public/js"
                         :asset-path "/js"
                         :modules    {:shared {:entries []}
-                                     :main   {:init-fn    dk.simongray.podcast-app.main/init
+                                     :main   {:init-fn    dk.simongray.elektrolyt.main/init
                                               :depends-on #{:shared}}
-                                     :worker {:init-fn    dk.simongray.podcast-app.worker/init
+                                     :worker {:init-fn    dk.simongray.elektrolyt.worker/init
                                               :depends-on #{:shared}
                                               :web-worker true}}}
             ;; a scene for each state of each view, from the namespaces of
             ;; dev/ that end in -scenes
             :portfolio {:target     :portfolio
-                        :runner-ns  dk.simongray.podcast-app.portfolio
+                        :runner-ns  dk.simongray.elektrolyt.portfolio
                         :output-dir "dev-resources/public/js"
                         :asset-path "/js"
                         :html-file  {:path  "dev-resources/public/index.html"
-                                     :title "Podcast app views"}}
+                                     :title "Elektrolyt views"}}
             ;; clojure -M:cljs:local compile test  (the tests in Node)
             :test      {:target    :node-test
                         :output-to "target/node-tests.js"
