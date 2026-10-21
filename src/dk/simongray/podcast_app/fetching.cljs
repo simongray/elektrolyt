@@ -1,4 +1,4 @@
-(ns dk.simongray.podcast-app.fetching
+(ns ^:runtime dk.simongray.podcast-app.fetching
   "The feeds that the app's web worker fetches for the page, so that
   parsing a feed never holds the page up: those that a refresh of the
   library is due to fetch, and the feed of a Show page.
@@ -10,7 +10,10 @@
   page applies what the worker found to the library. One refresh runs at
   a time across the tabs, by a Web Lock, and the worker of another tab
   answers that it's busy. A fetched feed comes back in the codec of the
-  library, since EDN reads slower than the feed parses."
+  library, since EDN reads slower than the feed parses.
+
+  The worker, its messages and the Web Lock reach outside the store, as
+  dk.simongray.podcast-app.runtime does in the page."
   (:require [cljs.reader :as reader]
             [dk.simongray.podcast :as podcast]
             [dk.simongray.podcast.app.library :as library]
@@ -18,7 +21,7 @@
 
 (def refresh-lock
   "The Web Lock that a refresh holds, by the name that podcast-clj's
-  app.worker gives it, so that the tabs of an earlier version of the app
+  app.worker gave it, so that the tabs of an earlier version of the app
   take turns with this one."
   "dk.simongray.podcast.app.worker/refresh")
 
