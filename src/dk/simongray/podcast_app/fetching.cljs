@@ -82,8 +82,9 @@
 (defn client
   "The web worker of the script at `url`, which serve! answers, for the
   page: a map of the :worker, the requests that it hasn't answered yet by
-  id, and the :next id."
-  [url]
+  id, and the :next id. Once the worker fails, the client rejects those
+  requests, stops it and calls `on-failed`."
+  [url on-failed]
   (let [worker  (js/Worker. url)
         pending (atom {})
         decode  (:decode (:codec app-library/options))
@@ -104,24 +105,38 @@
                              failed   (settle! id #(throw (js/Error. failed)))
                              fetched  (settle! id #(decode fetched))
                              :else    (settle! id #(dissoc answer :id))))))
-    ;; a worker that fails to load or throws answers nothing
+    ;; HTML, sections 10.2.4 and 10.2.5: a worker fires error when its
+    ;; script fails to load, and then never runs, or when it throws past
+    ;; answer!, which may have dropped any request
+    ;; https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model
     (.addEventListener worker "error"
                        (fn [^js e]
+                         (.terminate worker)
                          (doseq [[id _] @pending]
                            (settle! id #(throw (js/Error. (or (.-message e)
-                                                              "The worker failed")))))))
+                                                              "The worker failed")))))
+                         (on-failed))
+                       #js {:once true})
     {:worker worker :pending pending :next (atom 0)}))
 
-(defonce ^{:doc "The client of the app's web worker, made at its first use."}
+(defonce ^{:doc "The client of the app's web worker, or nil before the first
+  ask and once its worker failed."}
   web-worker
-  (delay (client "/js/worker.js")))
+  (atom nil))
+
+(defn web-worker!
+  "The client of the app's web worker, made now unless there's one, e.g. at
+  the first ask, or at the ask after its worker failed."
+  []
+  (or @web-worker
+      (reset! web-worker (client "/js/worker.js" #(reset! web-worker nil)))))
 
 (defn ask!
   "A promise of the answer of the web worker to `request`, with
   `on-progress` called with each report of its progress, which fails when
   the worker does."
   [request on-progress]
-  (let [{:keys [^js worker pending next]} @web-worker
+  (let [{:keys [^js worker pending next]} (web-worker!)
         id                                (swap! next inc)]
     (js/Promise.
      (fn [resolve reject]

@@ -52,7 +52,7 @@ In the tab, outside the store
 | `runtime/timers` | The timers that wait, by name: the next refresh, a prefetch, a wait for data and the clock of a player elsewhere | `refresh`, `feeds`, `audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
 | `runtime/channels` | The BroadcastChannels, each opened at its first use | `runtime` | `runtime` | The tab |
 | `runtime/detach` | What stops following the player's audio element | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
-| `fetching/web-worker` | The web worker, and the requests that it hasn't answered | `fetching` | `refresh`, `feeds` | The tab |
+| `fetching/web-worker` | The web worker, and the requests that it hasn't answered | `fetching` | `refresh`, `feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `audio/tab` | This tab's id on the player's channel | `audio` | `audio` | The tab |
 | `memo` slots | The last result of a view that takes a while, e.g. the queue, a show's page, the picks | the views | the views | Until its arguments change |
 
