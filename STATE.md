@@ -27,8 +27,8 @@ as long as the tab.
 | `:requests` | The requests for those feeds in flight | `feeds`, through `show` | `show/status` | When answered |
 | `:episodes-shown` | How many episodes a Show page lists, by guid | `show` (`:show/more`) | `ui/show` | Never |
 | `:searches` | The searches by query, each directory's results | `searches`, `ui/search` | `routes`, `search`, `show`, `ui/search` | Clear cache |
-| `:linked` | The shows that a show links to, by guid | `feeds` | `ui/show` | Never |
-| `:colors` | The colours of artwork, by URL | `artwork-colors` | `colors`, the views | Never |
+| `:linked` | The shows that a show links to, by guid | `feeds` | `ui/show` | Clear cache |
+| `:colors` | The colours of artwork, by URL | `artwork-colors` | `colors`, the views | Clear cache |
 | `:refresh-status` | The refresh under way, and what the last one found | `refresh` | `refresh`, `opml`, `ui/library` | Overwritten |
 | `:route` | The page | `routes`, at each navigation | `ui`, `show`, `colors` | Overwritten |
 | `:server` | What the app's server offers | `main`, once | `search`, `ui/settings` | Never |

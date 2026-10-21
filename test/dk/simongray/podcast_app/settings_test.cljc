@@ -77,6 +77,8 @@
   (let [state {:searches  {"pc20" {}}
                :feeds     {"https://example.org/feed.xml" {}}
                :feed-urls {"g" {:url "https://example.org/feed.xml" :from :index}}
+               :linked    {"g" {:podroll [] :status :done}}
+               :colors    {"https://example.org/art.jpg" {:seed "#3a6ea5" :dominant "#203040"}}
                :route     {:name :route/settings}}]
     (is (= {:route           {:name :route/settings}
             :settings-status {:group :this-browser
