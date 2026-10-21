@@ -112,6 +112,47 @@ export function cached(page) {
 }
 
 /**
+ * A report on the player's audio element: whether it has played `past` the
+ * `seconds`, its state under the names of the HTML standard, and the
+ * player's status line. Playwright runs it in the page, so it can't use
+ * anything from this module.
+ */
+function report(seconds) {
+  const player = document.querySelector('#player');
+  const audio = player?.querySelector('audio');
+  if (!audio) return { past: false, player: player ? 'no audio element' : 'none' };
+  const ready = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'];
+  const network = ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'];
+  const errors = ['MEDIA_ERR_ABORTED', 'MEDIA_ERR_NETWORK', 'MEDIA_ERR_DECODE', 'MEDIA_ERR_SRC_NOT_SUPPORTED'];
+  const { buffered, error } = audio;
+  return {
+    past: audio.currentTime > seconds,
+    currentTime: audio.currentTime,
+    paused: audio.paused,
+    readyState: ready[audio.readyState],
+    networkState: network[audio.networkState],
+    bufferedTo: buffered.length ? buffered.end(buffered.length - 1) : 0,
+    error: error && `${errors[error.code - 1]} ${error.message}`.trim(),
+    src: audio.currentSrc,
+    visibility: document.visibilityState,
+    status: player.querySelector('[role=status]')?.textContent,
+  };
+}
+
+// Playback once stayed at 0 in Firefox until the wait ran out, and the
+// failure didn't say why. A trace wouldn't either, since it keeps the
+// page's markup but not the element's state. So the wait polls a report of
+// that state, which a failure prints whole.
+/** Wait until the player's audio element in the `page` has played past `seconds`. */
+export async function playsPast(page, seconds) {
+  // On a Mac at a load average of 50, Firefox played past one second within
+  // 3 s of Play, and past two within 4 s (measured on 2026-10-21). A longer
+  // wait would only hide a stall.
+  await expect.poll(() => page.evaluate(report, seconds), { timeout: 10_000 })
+    .toEqual(expect.objectContaining({ past: true }));
+}
+
+/**
  * The show that the routes serve. A test can publish an episode, hold the
  * fetches of the feed until it releases them, give the feed headers, e.g.
  * a Cache-Control, or give the show artwork, as a map of its url, its type

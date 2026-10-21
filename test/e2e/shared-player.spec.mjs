@@ -2,7 +2,7 @@
 // episode that plays in any of them, where it has come to, and its
 // controls act on it there.
 
-import { test, expect, episodePath, episodes } from './fixtures.mjs';
+import { test, expect, episodePath, episodes, playsPast } from './fixtures.mjs';
 
 const [first] = episodes;
 
@@ -24,8 +24,7 @@ function paused(page) {
 test('one playback, which every tab shows and controls', async ({ page, context }) => {
   await page.goto(episodePath(first));
   await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
-  // the first run after a build starts the worker's code cold in every page
-  await expect.poll(() => position(page), { timeout: 15_000 }).toBeGreaterThan(2);
+  await playsPast(page, 2);
 
   const other = await context.newPage();
   await other.goto('/');
