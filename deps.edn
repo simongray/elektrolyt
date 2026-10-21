@@ -3,7 +3,7 @@
  ;; podcast-clj for the feeds and the listener's library, play-nice for the
  ;; playing, colour-coded for the colours of the artwork, Replicant for the
  ;; rendering, Nexus for the actions that the views dispatch, and reitit for
- ;; the routes. podcast-clj is ahead of its release, so it comes from Git.
+ ;; the routes.
  ;;
  ;; Replicant comes from the commit of its PR #83 too, which fixes issue #81:
  ;; a keyed child that moves to the front and changes keeps its old vdom, so
@@ -11,18 +11,17 @@
  ;; arrive in stages do. Switch back to the release on Clojars once #83 is
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
- :deps  {dk.simongray/podcast-clj {:git/url "https://github.com/simongray/podcast-clj.git"
-                                   :git/sha "6313897bdb6dd3fe8c8e93ecb32e17bedcb918e3"}
-         dk.simongray/play-nice   {:mvn/version "0.5.0"}
+ :deps  {dk.simongray/podcast-clj {:mvn/version "0.2.0"}
+         dk.simongray/play-nice   {:mvn/version "0.6.0"}
          dk.simongray/colour-coded {:mvn/version "0.1.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
          metosin/reitit-frontend  {:mvn/version "0.11.0"}
-         ;; the caches of searches and shows, the cache mode of their
-         ;; requests and the id of the browser, newer than what podcast-clj
-         ;; depends on
-         dk.simongray/like-minded {:mvn/version "0.8.0"}
+         ;; the caches of searches and shows and the id of the browser, and
+         ;; the cache mode of their requests, newer in wary-fetch than what
+         ;; podcast-clj depends on
+         dk.simongray/like-minded {:mvn/version "0.9.0"}
          dk.simongray/wary-fetch  {:mvn/version "0.16.0"}
          ;; what the app's server tells the page, as transit
          com.cognitect/transit-cljs {:mvn/version "0.8.280"}}

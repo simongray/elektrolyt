@@ -87,7 +87,6 @@ Between the tabs and the worker
 |---|---|---|---|
 | The library's channel | The version of the library that a tab wrote | `library/announce!` | `library`, which reads what's new |
 | The player's channel | The playing tab's media state, a new tab's question, and commands for the playing tab | `audio` | `audio` |
-| play-nice's channel of 0.5.0 | Each tab's media state, every 5 seconds while it plays | play-nice's `tabs/attach!` | Nothing in the app; play-nice 0.6.0 has none |
 | The play lock, a Web Lock | Which tab's element plays; a tab that plays takes it from the others | play-nice's `tabs/attach!`, through `runtime/attach-player!` | play-nice, which pauses the element that lost it |
 | The refresh lock, a Web Lock | That a worker refreshes, so one does at a time | `fetching`, in the worker | `fetching`, which answers that it's busy |
 | The worker's messages | What a refresh or a fetch asks for, and what it found, in EDN | `fetching` | `fetching` |
