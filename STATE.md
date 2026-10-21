@@ -38,7 +38,7 @@ as long as the tab.
 | `:settings-status` | The last outcome on Settings | `main`, `settings`, `opml` | `ui/settings` | Overwritten |
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `ui/settings` | At each check |
 | `:library-view` | The Library page's order and layout | `main` | `shows`, `ui/library` | Never |
-| `:open` | The sections that the listener unfolded | `ui/controls` | `ui/controls` | Never |
+| `:open` | The sections that the listener unfolded | `ui/controls` | `ui/controls` | Never, so that Back finds a section as the listener left it |
 
 
 In the tab, outside the store
