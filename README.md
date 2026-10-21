@@ -83,7 +83,7 @@ reload the server's namespace, `(restart!)` starts it again with the new
 handlers.
 
 The `:local` alias takes podcast-clj, play-nice and colour-coded from the
-checkouts beside this one, `../podcasting`, `../play-nice` and
+checkouts beside this one, `../podcast-clj`, `../play-nice` and
 `../colour-coded`, and like-minded, mind-meld and wary-fetch below
 podcast-clj too, so that a fix in any of them shows in the app at once.
 Without it, they come from the versions in `deps.edn`.
