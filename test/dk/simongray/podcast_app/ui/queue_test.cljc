@@ -1,5 +1,6 @@
 (ns dk.simongray.podcast-app.ui.queue-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.queue :as queue]
             [dk.simongray.podcast-app.queue-test :as queue-test :refer [id state]]
             [dk.simongray.podcast-app.ui.player-test :refer [buttons]]
@@ -33,10 +34,16 @@
            (get-in (button-of x "Clear the queue") [:on :click])))))
 
 (deftest the-undo-of-the-last-change
-  (let [x (queue-ui/content (queue-test/changed queue/removed (state true 1 2 3) (id 2)))]
+  (let [removed (queue-test/changed queue/removed (state true 1 2 3) (id 2))
+        x       (queue-ui/content removed)]
     (is (= [[:queue/undo] [:page/focus (queue-ui/control-id (id 2) :remove)]]
            (get-in (button-of x "Undo removing Episode 2") [:on :click]))
-        "which gives the focus to the episode that it puts back")))
+        "which gives the focus to the episode that it puts back")
+    (is (= "#up-next" (:data-refocus (button-of x "Undo removing Episode 2")))
+        "or to the heading, if it goes while it has the focus")
+    (is (nil? (button-of (queue-ui/content (queue-test/elsewhere removed profile.queue/enqueue (id 2)))
+                         "Undo removing Episode 2"))
+        "which it does once another tab queued the episode again")))
 
 (deftest an-empty-queue
   (let [x (queue-ui/content (state false))]

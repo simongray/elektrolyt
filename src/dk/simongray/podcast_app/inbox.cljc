@@ -7,8 +7,11 @@
   episode first. The state keeps the dismissal that can be undone as
   :inbox-undo, until the next change of the inbox: a map of the :label of
   its button, the :ids that it dismissed, and what a screen reader hears
-  once it's undone, the :done."
+  once it's undone, the :done. The undo puts back only what's as the
+  dismissal left it, as the queue's does."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app.changes :as changes]
             [dk.simongray.podcast-app.memo :as memo]
             [dk.simongray.podcast-app.text :as text]))
@@ -67,9 +70,40 @@
                          nil
                          [:inbox/enqueue-all (vec (rseq ids))]))))
 
+;; An episode in the inbox is neither queued nor heard, so one that's
+;; queued or heard now was handled elsewhere since the dismissal
+(defn restorable
+  "The episodes of the dismissal `undo` that are as it left them in the
+  `profile`, in order: out of the inbox, and neither queued nor heard
+  since."
+  [profile {:keys [ids]}]
+  (filterv #(not (or (queue/in-inbox? profile %)
+                     (queue/queued? profile %)
+                     (profile/played? profile %)))
+           ids))
+
+(defn offered
+  "The undo of the `state`, with only the :ids that it would put back, or
+  nil when there are none, e.g. once another tab queued them."
+  [{:keys [library inbox-undo]}]
+  (when-let [ids (some-> library :profile (restorable inbox-undo) not-empty)]
+    (assoc inbox-undo :ids ids)))
+
+(defn restore
+  "The `profile` with the episodes of the dismissal `undo` that are as it
+  left them back in the inbox at `at`."
+  [profile undo at]
+  (queue/undismiss-all profile (restorable profile undo) at))
+
 (defn undone
-  "The change of the `state` that undoes the dismissal that it can undo, or
-  nil when there's none."
-  [state]
-  (when-let [{:keys [done ids]} (:inbox-undo state)]
-    (changes/announced :inbox-undo done nil [:inbox/undismiss-all ids])))
+  "The change of the `state` that undoes the dismissal that it can undo, as
+  far as offered has it, or nil when there's nothing to put back."
+  [{undo :inbox-undo :as state}]
+  (when-let [{:keys [ids]} (offered state)]
+    (changes/announced :inbox-undo
+                       (if (= (count ids) (count (:ids undo)))
+                         (:done undo)
+                         (str "Put " (count ids) " of " (text/counted (count (:ids undo)) "episode")
+                              " back in the inbox"))
+                       nil
+                       [:inbox/restore undo])))

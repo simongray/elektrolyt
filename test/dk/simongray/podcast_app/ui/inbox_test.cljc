@@ -47,7 +47,12 @@
         "which gives the focus to the episode that it puts back"))
   (let [x (inbox-ui/content (changed inbox/all-dismissed (state 1 2)))]
     (is (re-find #"No new episodes" (text-of x)))
-    (is (some? (button-of x "Undo dismissing all")) "and stays once the inbox is empty")))
+    (is (some? (button-of x "Undo dismissing all")) "and stays once the inbox is empty")
+    (is (= "main h1" (:data-refocus (button-of x "Undo dismissing all")))
+        "until another tab leaves it nothing to put back, when the focus goes to the heading"))
+  (is (= "#inbox" (:data-refocus (button-of (inbox-ui/section (changed inbox/dismissed (state 1 2) (id 2)))
+                                            "Undo dismissing Episode 2")))
+      "the section's, on the Library page"))
 
 (deftest an-empty-inbox
   (let [x (inbox-ui/content (state))]

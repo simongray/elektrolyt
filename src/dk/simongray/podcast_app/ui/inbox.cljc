@@ -83,8 +83,10 @@
 ;; https://www.nngroup.com/articles/confirmation-dialog/
 (defn tools
   "The buttons that act on all the `episodes` of the inbox, and the one that
-  undoes the last dismissal, the `undo`."
-  [episodes undo]
+  undoes the last dismissal, the `undo` as inbox/offered has it, which
+  gives the focus to the heading that the selector `refocus` names once
+  another tab left it nothing to put back."
+  [episodes undo refocus]
   (when (or (seq episodes) undo)
     [:div.inbox-tools
      (when (seq episodes)
@@ -98,10 +100,11 @@
      ;; the focus goes to the first episode that it puts back, since the
      ;; button goes
      (when undo
-       [:button {:type "button"
-                 :id   undo-id
-                 :on   {:click [[:inbox/undo]
-                                [:page/focus (control-id (first (:ids undo)) :dismiss)]]}}
+       [:button {:type         "button"
+                 :id           undo-id
+                 :data-refocus refocus
+                 :on           {:click [[:inbox/undo]
+                                        [:page/focus (control-id (first (:ids undo)) :dismiss)]]}}
         (:label undo)])]))
 
 ;; NN/g, empty states: say why it's empty, and how it fills
@@ -131,14 +134,14 @@
 
 (defn content
   "The content of the Inbox page of the `state`, below its heading."
-  [{:keys [inbox-undo] :as state}]
+  [state]
   (let [episodes (inbox/episodes state)
         n        (count episodes)]
     (list
      (if (zero? n)
        empty-inbox
        [:p (text/counted n "new episode")])
-     (tools episodes inbox-undo)
+     (tools episodes (inbox/offered state) "main h1")
      (when (seq episodes)
        (episode-list state episodes :h2)))))
 
@@ -152,12 +155,12 @@
   "The section of the Library page of the `state` with the newest episodes
   of the inbox and their actions, the undo of the last dismissal, and a
   link to the Inbox page."
-  [{:keys [inbox-undo] :as state}]
+  [state]
   (let [episodes (inbox/episodes state)
         n        (count episodes)]
     [:section {:aria-labelledby "inbox"}
      [:h2#inbox {:tabindex -1} "Inbox"]
-     (tools nil inbox-undo)
+     (tools nil (inbox/offered state) "#inbox")
      (if (zero? n)
        [:p "No new episodes."]
        (list

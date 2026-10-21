@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.mind-meld :as crdt]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.inbox :as inbox]
             [dk.simongray.podcast-app.operations :as operations]))
@@ -63,6 +64,21 @@
       (is (= ["Episode 3" "Episode 2" "Episode 1"] (titles undone)) "back in its place")
       (is (= "Put Episode 2 back in the inbox" (:announcement undone)))
       (is (nil? (:inbox-undo undone))))))
+
+(deftest an-undo-after-another-tab-changed-the-inbox
+  (let [dismissed (changed inbox/all-dismissed (state 1 2 3))
+        elsewhere (fn [f i] (update dismissed :library library/update-profile f (id i)))
+        queued    (elsewhere profile.queue/enqueue 2)]
+    (is (= [(id 3) (id 1)] (:ids (inbox/offered queued))))
+    (is (= ["Episode 3" "Episode 1"] (titles (changed inbox/undone queued)))
+        "puts back only what's as it left it, and not an episode queued since")
+    (is (= "Put 2 of 3 episodes back in the inbox" (:announcement (changed inbox/undone queued))))
+    (is (= [(id 3) (id 1)] (:ids (inbox/offered (elsewhere profile/mark-played 2))))
+        "nor one heard since"))
+  (let [dismissed (changed inbox/dismissed (state 1 2) (id 2))
+        queued    (update dismissed :library library/update-profile profile.queue/enqueue (id 2))]
+    (is (nil? (inbox/offered queued)))
+    (is (nil? (inbox/undone queued)) "and nothing when there's nothing to put back")))
 
 (deftest all-at-once
   (let [dismissed (changed inbox/all-dismissed (state 1 2 3))]

@@ -1,6 +1,7 @@
 (ns dk.simongray.podcast-app.queue-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app.operations :as operations]
             [dk.simongray.podcast-app.queue :as queue]))
@@ -71,6 +72,34 @@
     (is (= "Episode 1" (:title (queue/current cleared))) "the episode that plays stays")
     (is (= "Cleared 2 episodes from the queue" (:announcement cleared)))
     (is (= ["Episode 2" "Episode 3"] (titles (changed queue/undone cleared))) "back in order")))
+
+(defn elsewhere
+  "The `state` with the profile changed by `f` and the `args`, as another
+  tab changes it."
+  [state f & args]
+  (update state :library #(apply library/update-profile % f args)))
+
+(deftest an-undo-after-another-tab-changed-the-queue
+  (let [cleared (changed queue/cleared (state true 1 2 3 4))]
+    (testing "puts back only what's as it left it"
+      (let [requeued (elsewhere cleared profile.queue/enqueue (id 3))
+            heard    (elsewhere cleared profile/mark-played (id 2))]
+        (is (= [(id 2) (id 4)] (:ids (queue/offered requeued))))
+        (is (= ["Episode 2" "Episode 3" "Episode 4"] (titles (changed queue/undone requeued)))
+            "each after its neighbour, where the other one stays")
+        (is (= "Put 2 of 3 episodes back in the queue" (:announcement (changed queue/undone requeued))))
+        (is (= ["Episode 3" "Episode 4"] (titles (changed queue/undone heard)))
+            "and not an episode heard since")))
+    (is (nil? (queue/offered (reduce #(elsewhere %1 profile.queue/enqueue (id %2)) cleared [2 3 4]))))
+    (is (nil? (queue/undone (reduce #(elsewhere %1 profile.queue/enqueue (id %2)) cleared [2 3 4])))
+        "and nothing when there's nothing to put back"))
+  (let [removed (changed queue/removed (state true 1 2 3 4) (id 3))]
+    (is (= ["Episode 3" "Episode 4"] (titles (changed queue/undone (elsewhere removed profile.queue/dequeue (id 2)))))
+        "after the nearest neighbour that's still queued, rather than at its old number"))
+  (let [heard-first (elsewhere (state true 1 2 3) profile/mark-played (id 2))]
+    (is (= ["Episode 2" "Episode 3"]
+           (titles (changed queue/undone (changed queue/removed heard-first (id 2)))))
+        "but one that was heard before the change comes back")))
 
 (deftest adding
   (testing "at the end, or after the episode that plays"

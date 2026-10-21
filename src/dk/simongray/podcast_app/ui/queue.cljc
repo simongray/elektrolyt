@@ -115,7 +115,7 @@
 (defn up-next
   "The section of the episodes up next of the `state`, with the undo of
   the last change."
-  [{:keys [queue-undo] :as state}]
+  [state]
   (let [episodes (queue/up-next state)
         n        (count episodes)]
     [:section {:aria-labelledby "up-next"}
@@ -125,14 +125,15 @@
        [:p.queue-summary (summary episodes)])
      ;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until
      ;; the next change, rather than in a toast that times out. The focus
-     ;; goes to the first episode that it puts back, since the button goes.
-     (when queue-undo
-       (let [[[first-id]] (:restore queue-undo)]
-         [:button {:type "button"
-                   :id   undo-id
-                   :on   {:click [[:queue/undo]
-                                  [:page/focus (control-id first-id :remove)]]}}
-          (:label queue-undo)]))
+     ;; goes to the first episode that it puts back, since the button goes,
+     ;; or to the heading once another tab left it nothing to put back.
+     (when-let [{[first-id] :ids :keys [label]} (queue/offered state)]
+       [:button {:type         "button"
+                 :id           undo-id
+                 :data-refocus "#up-next"
+                 :on           {:click [[:queue/undo]
+                                        [:page/focus (control-id first-id :remove)]]}}
+        label])
      (when (seq episodes)
        (list
         [:ol.queue {:role "list"}
