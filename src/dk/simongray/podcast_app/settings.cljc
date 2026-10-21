@@ -196,15 +196,16 @@
                                       (subvec others i))})))
 
 (defn cleared
-  "The `state` once the cache is empty, or not, by `error`: without the
-  searches, the feeds of shows and where they are, which the tab had too,
-  so that Back doesn't bring them back, and with a status that says how it
-  went."
+  "The `state` once the cache is empty, or not, by `error`, with a status
+  that says how it went. A cleared tab forgets what the cache kept too: the
+  searches, the feeds of shows and where they are, the shows they link to
+  and the colours of artwork. So Back doesn't bring them back, and the page
+  works out its colours again."
   [state error]
   (if error
     (assoc state :settings-status
            {:group :this-browser
             :text  "The searches and shows couldn't be cleared."})
-    (-> (dissoc state :searches :feeds :feed-urls)
+    (-> (dissoc state :searches :feeds :feed-urls :linked :colors)
         (assoc :settings-status {:group :this-browser
                                  :text  "Cleared the searches and shows."}))))
