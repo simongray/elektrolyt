@@ -26,8 +26,10 @@
   (async done
     (let [s (store/memory)]
       (-> (js/Promise.all
-           #js [(app-library/durable-swap! s empty-store #(app-library/applied-all % [(queued ["f" "a"])]))
-                (app-library/durable-swap! s empty-store #(app-library/applied-all % [(queued ["f" "b"])]))])
+           #js [(library/durable-swap! s empty-store #(app-library/applied-all % [(queued ["f" "a"])])
+                                       app-library/options)
+                (library/durable-swap! s empty-store #(app-library/applied-all % [(queued ["f" "b"])])
+                                       app-library/options)])
           (.then (fn [[a b]]
                    (is (= #{"1" "2"} (set [(:version a) (:version b)])) "one after the other")
                    (library/read! (:library empty-store) s app-library/options)))
