@@ -5,55 +5,77 @@
             [dk.simongray.podcast-app.ui.show :as show]
             [dk.simongray.podcast-app.ui-test :refer [elements lang-of spoken text-of]]))
 
+(def url
+  "The URL of the feed of the show g of the tests."
+  "https://example.org/feed.xml")
+
+(defn show-page
+  "The state of the Show page of the show g, whose link gives the URL of
+  its feed, with the `more` state merged in."
+  ([]
+   (show-page {}))
+  ([more]
+   (merge {:route {:name :route/show :path-params {:guid "g"} :query-params {:url url}}}
+          more)))
+
+(defn fed
+  "The feed of the show g of the tests, titled `title`, with the `more`
+  properties and the episodes `items`."
+  [title more & items]
+  (merge {:rss/title title
+          :rss/items (vec (for [[i t] (map-indexed vector items)]
+                            {:rss/title t :rss/guid {:content (str (inc i))}}))}
+         more))
+
 (deftest the-status-of-the-episodes
-  (is (= "Loading episodes…" (show/status-text :loading 20 nil nil)) "while the whole feed is fetched")
-  (is (= "Loading episodes…" (show/status-text :opening 0 nil nil)) "while the cache is read")
+  (is (= "Loading episodes…" (show/status-text :loading 20 nil nil))
+      "while the whole feed is fetched, or the cache is read")
   (is (= "207 episodes." (show/status-text :done 207 nil nil)))
-  (is (= "1 episode." (show/status-text nil 1 nil nil)) "a show that the library keeps")
+  (is (= "207 episodes." (show/status-text :checking 207 nil nil)) "and while it's fetched again")
   (is (= "The feed couldn't be fetched. The server answered 404."
          (show/status-text :failed 0 {:message "The server answered 404."} nil)))
   (is (= "207 episodes. 2 new episodes are in." (show/status-text :done 207 nil 2)))
   (is (= "207 episodes. 1 new episode is in." (show/status-text :done 207 nil 1))))
 
 (deftest a-show-that-is-still-on-its-way
-  (let [state #(hash-map :route {:name :route/show :path-params {:guid "g"} :query-params {}}
-                         :shows {"g" {:status %}})]
-    (is (= "Looking for the show in the Podcast Index…" (text-of (show/content (state :looking-up) nil))))
-    (is (= "Loading the show…" (text-of (show/content (state :loading) nil)))
+  (let [unlinked {:route {:name :route/show :path-params {:guid "g"} :query-params {}}}]
+    (is (= "Looking for the show in the Podcast Index…"
+           (text-of (show/content (assoc unlinked :requests {[:look-up "g"] {}}) nil))))
+    (is (= "Loading the show…" (text-of (show/content (show-page {:requests {[:whole url] {}}}) nil)))
         "rather than say there's no such show")
-    (is (= "Loading the show…" (text-of (show/content (state :opening) nil)))
+    (is (= "Loading the show…" (text-of (show/content (show-page {:requests {[:open url] {}}}) nil)))
         "nor while the cache is read")
-    (is (re-find #"isn't in the library" (text-of (show/content (state :not-found) nil))))))
+    (is (= "The feed couldn't be fetched. The server answered 404."
+           (text-of (show/content (show-page {:feeds {url {:error {:message "The server answered 404."}}}})
+                                  nil))))
+    (is (re-find #"isn't in the library"
+                 (text-of (show/content (assoc unlinked :feed-urls {"g" {:not-found? true}}) nil))))))
 
 (deftest a-show-that-the-library-keeps
-  (let [state  {:route   {:name :route/show :path-params {:guid inbox-test/k} :query-params {}}
-                :library inbox-test/lib
-                :shows   {inbox-test/k {:status :previewed :url inbox-test/url :shown 20}}}
+  (let [state  {:route          {:name :route/show :path-params {:guid inbox-test/k} :query-params {}}
+                :library        inbox-test/lib
+                :feeds          {inbox-test/url {:feed (fed "Old" {} "One") :whole? false}}
+                :requests       {[:whole inbox-test/url] {}}
+                :episodes-shown {inbox-test/k 20}}
         status (some #(when (= "status" (:role (second %))) (text-of %))
                      (elements :p (show/content state [:h1 "A Show"])))]
     (is (re-find #"^\d+ episodes?\.$" status)
         "lists its episodes from the library, whatever a load of the show before its subscription left")))
 
-(defn show-page
-  "The state of the Show page of the show g, whose load is `loaded`."
-  [loaded]
-  {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
-   :shows {"g" loaded}})
-
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
-        section  (show/episodes (show-page {:status :done :shown 20}) {:episodes rows})
+        section  (show/episodes (show-page {:episodes-shown {"g" 20}}) {:episodes rows})
         [_ & xs] section
         items    (some #(when (and (vector? %) (= :ol.episodes (first %))) (last %)) xs)
         button   (some #(when (and (vector? %) (= :button (first %))) %) xs)
         [_ {:keys [href]} title] (first (elements :a (first items)))]
     (is (= 20 (count items)))
     (is (= "Episode 0" title))
-    (is (re-find #"^/shows/g/episodes/\w+/episode-0$" href)
-        "each title links to the page of its episode")
+    (is (re-find #"^/shows/g/episodes/\w+/episode-0\?url=" href)
+        "each title links to the page of its episode, with the URL of the feed")
     (is (= [[:show/more "g" 45]] (get-in button [1 :on :click])))
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
-                    (show/episodes (show-page {:status :done :shown 45}) {:episodes rows})))
+                    (show/episodes (show-page {:episodes-shown {"g" 45}}) {:episodes rows})))
         "no button once they're all listed")))
 
 (deftest an-episode-beside-its-artwork
@@ -108,13 +130,12 @@
         "each where the show has it")))
 
 (deftest the-details-beside-the-episodes
-  (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {:url "https://example.org/feed.xml"}}
-               :shows {"g" {:url    "https://example.org/feed.xml"
-                            :status :done
-                            :page   {:title "A Show" :link "https://example.org" :explicit? true
-                                     :language "en"
-                                     :people [{:name "Adam" :role "host" :img "https://example.org/adam.jpg"}]
-                                     :episodes [{:guid "1" :title "One"}]}}}}
+  (let [feed  (fed "A Show" {:rss/link        "https://example.org"
+                             :itunes/explicit true
+                             :rss/language    "en"
+                             :podcast/people  [{:content "Adam" :img "https://example.org/adam.jpg"}]}
+                   "One")
+        state (show-page {:feeds {url {:feed feed :whole? true}}})
         x     (first (show/content state [:h1 "A Show"]))
         [_ _ main aside] x
         header (first (elements :header.show-intro main))
@@ -132,8 +153,8 @@
     (is (= "PeopleAdam, Host" (text-of (last (elements :div aside))))
         "and the people last, a value for each"))
   (testing "no Details before the feed has any"
-    (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
-                 :shows {"g" {:status :loading :page {:title "A Show" :episodes []}}}}
+    (let [state (show-page {:searches {"q" {:results [{:guid "g" :url url :title "A Show"}]}}
+                            :requests {[:whole url] {}}})
           [_ _ _ aside] (first (show/content state [:h1 "A Show"]))]
       (is (nil? aside)))))
 
@@ -141,12 +162,11 @@
   "The Show page of a show whose feed names the `language`, with its notes
   and an episode, under its heading."
   [language]
-  (let [state {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
-               :shows {"g" {:status :done
-                            :page   {:title    "Sprogets verden"
-                                     :language language
-                                     :notes    [:p "Et ugentligt program om det danske sprog."]
-                                     :episodes [{:guid "1" :title "Hvorfor siger vi hyggeligt?"}]}}}}]
+  (let [feed  (fed "Sprogets verden"
+                   (cond-> {:rss/description "<p>Et ugentligt program om det danske sprog.</p>"}
+                     language (assoc :rss/language language))
+                   "Hvorfor siger vi hyggeligt?")
+        state (show-page {:feeds {url {:feed feed :whole? true}}})]
     (show/content state (ui/page-heading state))))
 
 (deftest a-show-in-its-own-language
@@ -161,14 +181,13 @@
 
 (deftest a-show-that-has-no-page-yet
   (is (= [[:h1 "Show"] [:p {:role "status"} "Loading the show…"]]
-         (show/content {:route {:name :route/show :path-params {:guid "g"} :query-params {}}
-                        :shows {"g" {:status :loading}}}
-                       [:h1 "Show"]))
+         (show/content (show-page {:requests {[:whole url] {}}}) [:h1 "Show"]))
       "its heading, with no article around it"))
 
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]
-        [_ & xs]  (show/episodes (show-page {:status :done :newer {:count 2}}) {:episodes rows})
+        state     (show-page {:feeds {url {:feed (fed "A Show" {} "Episode 1") :whole? true :newer {:count 2}}}})
+        [_ & xs]  (show/episodes state {:episodes rows})
         buttons   (filter #(and (vector? %) (= :button (first %))) xs)]
     (is (= [[[:show/newer "g"]] "Show the new episodes"]
            ((juxt #(get-in % [1 :on :click]) last) (first buttons)))

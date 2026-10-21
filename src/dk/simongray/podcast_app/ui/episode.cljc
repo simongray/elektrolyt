@@ -253,7 +253,7 @@
       :loading    [:p {:role "status"} "Loading the episode…"]
       :no-show    show-ui/not-found
       :failed     [:p {:role "status"}
-                   (show-ui/status-text :failed 0 (get-in state [:shows guid :error]) nil)]
+                   (show-ui/status-text :failed 0 (:error (show-ui/source state)) nil)]
       (list not-found
             [:p [:a {:href (routes/show-href guid nil (get-in state [:route :query-params :url]))}
                  "Go to the show"]

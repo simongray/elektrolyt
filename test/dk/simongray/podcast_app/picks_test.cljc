@@ -96,7 +96,9 @@
         clean     (show "Outside" false [] [["Burr grinders" "Burr grinders for espresso beans."]])
         marked    (assoc-in clean [:rss/items 0 :itunes/explicit] true)
         k         (guid/feed-key clean url)
-        state     (fn [feed] {:library lib :shows {k {:feed feed :url url}}})
+        state     (fn [feed] {:library lib
+                              :route   {:path-params {:guid k} :query-params {:url url}}
+                              :feeds   {url {:feed feed :whole? true}}})
         page      {:id [k "0"] :guid k}
         explicit? (fn [picked]
                     (boolean (some #{"Espresso grinders in bed" "Damn good espresso"

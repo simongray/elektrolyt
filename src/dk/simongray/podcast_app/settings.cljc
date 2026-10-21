@@ -197,13 +197,14 @@
 
 (defn cleared
   "The `state` once the cache is empty, or not, by `error`: without the
-  searches and shows that the tab had too, so that Back doesn't bring them
-  back, and with a status that says how it went."
+  searches, the feeds of shows and where they are, which the tab had too,
+  so that Back doesn't bring them back, and with a status that says how it
+  went."
   [state error]
   (if error
     (assoc state :settings-status
            {:group :this-browser
             :text  "The searches and shows couldn't be cleared."})
-    (-> (dissoc state :searches :shows)
+    (-> (dissoc state :searches :feeds :feed-urls)
         (assoc :settings-status {:group :this-browser
                                  :text  "Cleared the searches and shows."}))))

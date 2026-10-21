@@ -39,21 +39,22 @@
   (guid/short-hash "https://example.org/?p=275"))
 
 (defn episode-page
-  "The state of the Episode page with the `shown` entry of its show in
-  :shows, and the `more` state merged in."
-  ([shown]
-   (episode-page shown {}))
-  ([shown more]
-   (merge {:route {:name         :route/episode
-                   :path-params  {:guid show-guid :hash hash-275}
-                   :query-params {:url url}}
-           :shows {show-guid shown}}
+  "The state of the Episode page with what :feeds keeps of the feed of its
+  show, `known`, if anything, while the whole feed is fetched, and the
+  `more` state merged in."
+  ([known]
+   (episode-page known {}))
+  ([known more]
+   (merge {:route    {:name         :route/episode
+                      :path-params  {:guid show-guid :hash hash-275}
+                      :query-params {:url url}}
+           :feeds    (if known {url known} {})
+           :requests {[:whole url] {}}}
           more)))
 
 (def from-the-start
-  "The entry of the scenes' show in :shows once the start of its feed is
-  in, while the rest is fetched."
-  {:url url :status :loading :head feed})
+  "What :feeds keeps of the feed of the scenes' show once its start is in."
+  {:feed feed :whole? false})
 
 (defn id
   "The id of the episode of the scenes."
@@ -114,7 +115,7 @@
   "An episode that says much of itself: its number and Explicit with its
   date, and its Details beside the show notes, or below them on a phone,
   with the links that support the show."
-  (ui/page (episode-page {:url url :status :loading :head (assoc feed :rss/items [with-details])})))
+  (ui/page (episode-page {:feed (assoc feed :rss/items [with-details]) :whole? false})))
 
 (def german
   "The start of a feed in German, with the scenes' episode in German."
@@ -133,7 +134,7 @@
   and its notes have the feed's language, so that the browser hyphenates
   them by German rules and a screen reader reads them in German, while
   the app's own words stay English."
-  (ui/page (episode-page {:url url :status :loading :head german})))
+  (ui/page (episode-page {:feed german :whole? false})))
 
 (def spanish-transcript
   "The reference to a transcript in Spanish, which the podcast namespace's
@@ -157,20 +158,19 @@
   it's shown, the transcript has the language that its tag names, so that
   a screen reader reads it in Spanish, while the show notes have the
   feed's."
-  (ui/page (episode-page {:url    url
-                          :status :loading
-                          :head   (assoc feed
+  (ui/page (episode-page {:feed   (assoc feed
                                          :rss/language "en"
-                                         :rss/items [(assoc item :podcast/transcripts [spanish-transcript])])}
+                                         :rss/items [(assoc item :podcast/transcripts [spanish-transcript])])
+                          :whole? false}
                          {:episodes {(id) read-spanish-transcript}
                           :open     {[:transcript (id)] true}})))
 
 (defscene while-its-feed-loads
   "A link to an episode beyond the start of the feed, while the whole feed
   is fetched."
-  (ui/page (episode-page {:url url :status :loading})))
+  (ui/page (episode-page nil)))
 
 (defscene an-episode-the-feed-has-dropped
   "A link to an episode that the whole feed doesn't have any more."
-  (ui/page (assoc-in (episode-page {:url url :status :done :feed feed})
+  (ui/page (assoc-in (episode-page {:feed feed :whole? true} {:requests {}})
                      [:route :path-params :hash] "0000000")))

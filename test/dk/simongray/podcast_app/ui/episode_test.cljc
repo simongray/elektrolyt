@@ -13,7 +13,7 @@
   ([t]
    (episode-page t {}))
   ([t more]
-   (-> (episode-test/loaded false :loading)
+   (-> (episode-test/loaded false)
        (assoc :route {:name         :route/episode
                       :path-params  {:guid episode-test/g :hash episode-test/hash-2}
                       :query-params (cond-> {:url episode-test/url} t (assoc :t t))})
@@ -111,7 +111,7 @@
             "its header beginning with its heading, and its show as the subtitle")))))
 
 (deftest an-episode-in-its-shows-language
-  (let [x (ui/page (assoc-in (episode-page nil) [:shows episode-test/g :head :rss/language] "de"))]
+  (let [x (ui/page (assoc-in (episode-page nil) [:feeds episode-test/url :feed :rss/language] "de"))]
     (is (= "de" (lang-of :h1 x)) "its title")
     (is (= "de" (lang-of :a (elements :hgroup x))) "its show's title")
     (is (= "de" (lang-of :div.show-notes x)) "its notes, which the browser hyphenates by it"))
@@ -195,7 +195,7 @@
   (testing "while the feed is on its way"
     (is (= "Loading the episode…" (text-of (episode-ui/missing (episode-page nil))))))
   (testing "once the whole feed doesn't have it"
-    (let [state (assoc (episode-test/loaded true :done)
+    (let [state (assoc (episode-test/loaded true)
                        :route {:name         :route/episode
                                :path-params  {:guid episode-test/g :hash "0000000"}
                                :query-params {:url episode-test/url}})

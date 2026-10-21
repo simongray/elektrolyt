@@ -13,10 +13,10 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.profile.queue :as profile.queue]
-            [dk.simongray.podcast-app.episode :as episode]
             [dk.simongray.podcast-app.memo :as memo]
             [dk.simongray.podcast-app.queue :as queue]
-            [dk.simongray.podcast-app.settings :as settings]))
+            [dk.simongray.podcast-app.settings :as settings]
+            [dk.simongray.podcast-app.show :as show]))
 
 ;; Nielsen Norman Group: people expect only a handful of recommendations at
 ;; a time. One episode of each show, so that a list has as many shows as it
@@ -138,7 +138,7 @@
 
 (defn outside
   "The `opts` of library/recommend with the feed `source` of a show, as
-  episode/source gives it, when the library doesn't keep it, so that the
+  show/source gives it, when the library doesn't keep it, so that the
   picks can start from its episodes."
   [opts {:keys [key feed url] :as source}]
   (cond-> opts
@@ -149,12 +149,13 @@
   it: like that episode."
   (memo/remember-last
    (fn [{:keys [library] :as state} {:keys [id guid] :as page}]
-     (when-let [source (and library (episode/source state guid))]
-       (recommended library [id]
-                    (outside (opts state :episode (explicit-in? library [id] (outside {} source)))
-                             source))))
+     (let [source (show/source state guid)]
+       (when (and library (:feed source))
+         (recommended library [id]
+                      (outside (opts state :episode (explicit-in? library [id] (outside {} source)))
+                               source)))))
    (fn [state {:keys [id guid]}]
-     (conj (library-key state) (pr-str id) (:feed (episode/source state guid))))))
+     (conj (library-key state) (pr-str id) (:feed (show/source state guid))))))
 
 (def heard-count
   "The most episodes of a show that its picks start from."
@@ -168,7 +169,7 @@
 
 (defn show-seeds
   "The ids of the episodes of `lib` of the show of the feed `source`, as
-  episode/source gives it, that its picks start from, and their weights,
+  show/source gives it, that its picks start from, and their weights,
   as a pair: those that the listener heard, the last weighing the most, or
   else its newest. A show outside the library has only its newest."
   [lib {:keys [key feed url]}]
@@ -197,13 +198,14 @@
   has none, and nil means that they aren't known yet."
   (memo/remember-last
    (fn [{:keys [library] :as state} guid]
-     (when-let [{:keys [feed] :as source} (and library (episode/source state guid))]
-       (let [[ids weights] (show-seeds library source)
-             explicit?     (or (resolve/explicit? feed)
-                               (explicit-in? library ids (outside {} source)))]
-         (if (seq ids)
-           (recommended library ids (cond-> (outside (opts state :show explicit?) source)
-                                      weights (assoc :weight-fn weights)))
-           {:episodes [] :terms []}))))
+     (let [{:keys [feed] :as source} (show/source state guid)]
+       (when (and library feed)
+         (let [[ids weights] (show-seeds library source)
+               explicit?     (or (resolve/explicit? feed)
+                                 (explicit-in? library ids (outside {} source)))]
+           (if (seq ids)
+             (recommended library ids (cond-> (outside (opts state :show explicit?) source)
+                                        weights (assoc :weight-fn weights)))
+             {:episodes [] :terms []})))))
    (fn [state guid]
-     (conj (library-key state) guid (:feed (episode/source state guid))))))
+     (conj (library-key state) guid (:feed (show/source state guid))))))

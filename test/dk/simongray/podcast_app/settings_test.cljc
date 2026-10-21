@@ -74,7 +74,10 @@
       "no further than the end"))
 
 (deftest clearing-the-cache
-  (let [state {:searches {"pc20" {}} :shows {"g" {}} :route {:name :route/settings}}]
+  (let [state {:searches  {"pc20" {}}
+               :feeds     {"https://example.org/feed.xml" {}}
+               :feed-urls {"g" {:url "https://example.org/feed.xml" :from :index}}
+               :route     {:name :route/settings}}]
     (is (= {:route           {:name :route/settings}
             :settings-status {:group :this-browser
                               :text  "Cleared the searches and shows."}}
