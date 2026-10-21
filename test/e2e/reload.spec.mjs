@@ -4,7 +4,7 @@
 // episodes; an episode of another show that Play adds to the library is
 // only there once that save is done.
 
-import { test, expect, episodePath, episodes, showPath, showTitle } from './fixtures.mjs';
+import { test, expect, episodePath, episodes, playsPast, showPath, showTitle } from './fixtures.mjs';
 
 /** The title of the episode in the player of `page`. */
 function playerTitle(page) {
@@ -13,7 +13,6 @@ function playerTitle(page) {
 
 test('the player keeps the episode played last over a reload', async ({ page }) => {
   const main = page.getByRole('main');
-  const audio = page.getByRole('region', { name: 'Player' }).locator('audio');
 
   await page.goto(showPath);
   await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
@@ -22,7 +21,7 @@ test('the player keeps the episode played last over a reload', async ({ page }) 
   await page.goto(episodePath(episodes[0]));
   await main.getByRole('button', { name: 'Play', exact: true }).click();
   await expect(playerTitle(page)).toHaveText(episodes[0].title);
-  await expect.poll(() => audio.evaluate(a => a.currentTime), { timeout: 15_000 }).toBeGreaterThan(1);
+  await playsPast(page, 1);
 
   await page.goto(episodePath(episodes[1]));
   await main.getByRole('button', { name: 'Play', exact: true }).click();

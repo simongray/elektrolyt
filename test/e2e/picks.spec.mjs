@@ -5,7 +5,7 @@
 // those of the fixtures, which answer the rest, e.g. the audio.
 
 import { createHash } from 'node:crypto';
-import { test, expect, cached, navLink } from './fixtures.mjs';
+import { test, expect, cached, navLink, playsPast } from './fixtures.mjs';
 
 /** A show with a podcast:guid, its URL and its episodes, each a title and notes. */
 function show(guid, title, episodes, podroll = []) {
@@ -125,13 +125,10 @@ async function subscribe(page, shows) {
 
 /** Play the episode `i` of the `show` from its page, and give the player's audio element. */
 async function play(page, show, i) {
-  const audio = page.getByRole('region', { name: 'Player' }).locator('audio');
   await page.goto(episodePath(show, i));
   await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
-  // the first run after a build starts the worker's code cold
-  await expect.poll(() => audio.evaluate(a => a.currentTime), { timeout: 15_000 })
-    .toBeGreaterThan(1);
-  return audio;
+  await playsPast(page, 1);
+  return page.getByRole('region', { name: 'Player' }).locator('audio');
 }
 
 test("Home's picks are like the episode heard last, of other shows", async ({ page, context }) => {
