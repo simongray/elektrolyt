@@ -68,11 +68,23 @@
       (when (not= c (.-content meta))
         (set! (.-content meta) c)))))
 
+;; WCAG 2.2, SC 2.4.3 Focus Order: an element that a render takes away
+;; while it has the focus leaves the focus on the body, where a keyboard
+;; or a screen reader loses its place, e.g. an Undo that another tab left
+;; nothing to undo
+;; https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html
 (defn render!
   "Render the page for `state` into the element of the app, and give the
-  window the page's title and the listener's colours."
+  window the page's title and the listener's colours. When the render
+  takes away the element with the focus, the element that its
+  data-refocus selector names takes the focus, if it names one."
   [state]
-  (r/render (js/document.getElementById "app") (ui/page state))
+  (let [^js focused js/document.activeElement]
+    (r/render (js/document.getElementById "app") (ui/page state))
+    (when-let [selector (and focused
+                             (not (.-isConnected focused))
+                             (some-> focused .-dataset .-refocus))]
+      (some-> (js/document.querySelector selector) .focus)))
   (set! js/document.title (ui/document-title state))
   (themed! state)
   (theme-colored!))

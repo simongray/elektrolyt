@@ -33,7 +33,7 @@ as long as the tab.
 | `:route` | The page | `routes`, at each navigation | `ui`, `show`, `colors` | Overwritten |
 | `:server` | What the app's server offers | `main`, once | `search`, `ui/settings` | Never |
 | `:announcement` | The last status message for a screen reader | `changes`, `show`, `refresh`, `subscription` | `ui` | Overwritten |
-| `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone | `changes`, through `queue` and `inbox` | `queue`, `inbox`, the views | This tab's next change |
+| `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone, which undoes only what's still as it left it | `changes`, through `queue` and `inbox` | `queue`, `inbox`, the views, which offer it while there's something to put back | This tab's next change |
 | `:subscribing`, `:subscribe-errors` | The subscriptions under way, and those that failed, by URL | `subscription` | `ui/subscription` | Per URL, once it's done |
 | `:settings-status` | The last outcome on Settings | `main`, `settings`, `opml` | `ui/settings` | Overwritten |
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `ui/settings` | At each check |

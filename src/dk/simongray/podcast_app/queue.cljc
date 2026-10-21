@@ -7,10 +7,13 @@
   episode first. The page shows that episode on its own while the player
   has it, and the rest as Up next, whose positions count from 1. The state
   keeps the change that can be undone as :queue-undo, until the next
-  change: a map of the :label of its button, the :restore pairs of the ids
-  that it took out and their places in the queue, and what a screen reader
-  hears once it's undone, the :done."
+  change: a map of the :label of its button, the :ids that it took out, in
+  order, the queue as it was :before, the ids that were :heard already,
+  and what a screen reader hears once it's undone, the :done. The undo
+  puts back only what's as the change left it, since another tab may have
+  changed the queue since."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app.changes :as changes]
             [dk.simongray.podcast-app.memo :as memo]
@@ -68,18 +71,28 @@
                          nil
                          [:queue/move id (+ (dec to) (offset state))]))))
 
+(defn undo
+  "The undo of the change that takes the episodes `ids` out of the queue
+  of the `state`, with the `label` of its button and what a screen reader
+  hears once it's undone, `done`."
+  [state ids label done]
+  (let [p (:profile (:library state))]
+    {:label  label
+     :ids    ids
+     :before (queue/queue p)
+     :heard  (into #{} (filter #(profile/played? p %)) ids)
+     :done   done}))
+
 (defn removed
   "The change of the `state` that takes the episode `id` out of the queue,
   which an undo puts back in its place, or nil when it isn't queued."
   [state id]
-  (let [index (index-of (:episodes (view (:library state))) id)
-        title (titled state id)]
-    (when index
+  (when (index-of (:episodes (view (:library state))) id)
+    (let [title (titled state id)]
       (changes/announced :queue-undo
                          (str "Removed " title " from the queue")
-                         {:label   (str "Undo removing " title)
-                          :restore [[id index]]
-                          :done    (str "Put " title " back in the queue")}
+                         (undo state [id] (str "Undo removing " title)
+                               (str "Put " title " back in the queue"))
                          [:queue/dequeue id]))))
 
 (defn cleared
@@ -87,33 +100,65 @@
   undo puts back in order, or nil when it's empty."
   [state]
   (let [ids     (mapv :id (up-next state))
-        n       (count ids)
-        counted (text/counted n "episode")]
+        counted (text/counted (count ids) "episode")]
     (when (seq ids)
       (changes/announced :queue-undo
                          (str "Cleared " counted " from the queue")
-                         {:label   "Undo clearing the queue"
-                          :restore (mapv vector ids (range (offset state) (+ (offset state) n)))
-                          :done    (str "Put " counted " back in the queue")}
+                         (undo state ids "Undo clearing the queue"
+                               (str "Put " counted " back in the queue"))
                          [:queue/dequeue-all ids]))))
 
+(defn restorable
+  "The episodes of the `undo` that are as its change left them in the
+  `profile`, in order: out of the queue, and not heard since."
+  [profile {:keys [ids heard]}]
+  (filterv #(not (or (queue/queued? profile %)
+                     (and (profile/played? profile %) (not (contains? heard %)))))
+           ids))
+
+(defn offered
+  "The undo of the `state`, with only the :ids that it would put back, or
+  nil when there are none, e.g. once another tab queued them again."
+  [{:keys [library queue-undo]}]
+  (when-let [ids (some-> library :profile (restorable queue-undo) not-empty)]
+    (assoc queue-undo :ids ids)))
+
+(defn- index-in
+  "The index of `x` in the vector `xs`, or nil."
+  [xs x]
+  (first (keep-indexed #(when (= x %2) %1) xs)))
+
+;; Selective undo, as collaborative editors have it: the undo reverses this
+;; tab's change alone, applied to the queue as it is then, which another
+;; tab or device may have changed since. So an episode goes back after its
+;; neighbour rather than at a number. (Prakash and Knister, A Framework
+;; for Undoing Actions in Collaborative Systems, ACM TOCHI 1(4), 1994.)
+;; https://doi.org/10.1145/198425.198427
 (defn restore
-  "The `profile` with the episodes of the `pairs` of an undo back in the
-  queue, each at its place, at `at`."
-  [profile pairs at]
-  (reduce (fn [p [id index]]
-            (-> p
-                (queue/enqueue id at)
-                (queue/move id index at)))
+  "The `profile` with the episodes of the `undo` that are as its change
+  left them back in the queue at `at`, each after the nearest of the
+  episodes before it that's queued now, or else at its old place."
+  [profile {:keys [before] :as undo} at]
+  (reduce (fn [p id]
+            (let [p     (queue/enqueue p id at)
+                  now   (queue/queue p)
+                  prior (some (set now) (reverse (take-while #(not= id %) before)))]
+              (queue/move p id (if prior (inc (index-in now prior)) (index-in before id)) at)))
           profile
-          pairs))
+          (restorable profile undo)))
 
 (defn undone
-  "The change of the `state` that undoes the change that it can undo, or
-  nil when there's none."
-  [state]
-  (when-let [{:keys [done] :as undo} (:queue-undo state)]
-    (changes/announced :queue-undo done nil [:queue/restore (:restore undo)])))
+  "The change of the `state` that undoes the change that it can undo, as
+  far as offered has it, or nil when there's nothing to put back."
+  [{undo :queue-undo :as state}]
+  (when-let [{:keys [ids]} (offered state)]
+    (changes/announced :queue-undo
+                       (if (= (count ids) (count (:ids undo)))
+                         (:done undo)
+                         (str "Put " (count ids) " of " (text/counted (count (:ids undo)) "episode")
+                              " back in the queue"))
+                       nil
+                       [:queue/restore undo])))
 
 (defn added
   "The change that puts the episode `id` titled `title` at the end of the

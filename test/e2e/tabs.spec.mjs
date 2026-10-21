@@ -70,6 +70,26 @@ test('a tab shows what another queues, without a reload', async ({ page, context
   expect(errors, 'the errors that the other tab threw').toEqual([]);
 });
 
+test('an undo that another tab left nothing to put back gives its focus to the heading', async ({ page, context }) => {
+  const errors = [];
+  await subscribe(page);
+  await queue(page, first);
+  await queue(page, second);
+  await navLink(page, 'Queue').click();
+  const region = page.getByRole('region', { name: 'Up next' });
+  await region.getByRole('button', { name: `Remove ${second.title}` }).press('Enter');
+  const undo = region.getByRole('button', { name: `Undo removing ${second.title}` });
+  await undo.focus();
+
+  const other = await otherTab(context, errors);
+  await queue(other, second);
+  await expect(undo).toHaveCount(0);
+  await expect(region.getByRole('heading', { level: 2, name: 'Up next' })).toBeFocused();
+  // the first plays, as a page that loads takes the front of the queue
+  await expect(upNext(page)).toHaveText([second.title]);
+  expect(errors, 'the errors that the other tab threw').toEqual([]);
+});
+
 test('a refresh in one tab reaches the other', async ({ page, context, show }) => {
   const errors = [];
   await subscribe(page);
