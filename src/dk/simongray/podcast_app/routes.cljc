@@ -132,11 +132,12 @@
 
 (defn navigated
   "The actions of the navigation to the `route` from the `state`: keep the
-  route, move the focus to the heading of a page that replaces another,
-  search for the query of a Search page that has no search for it yet,
-  load the show of a Show page or an Episode page, ask the browser how it
-  keeps the library for the Settings page, and show the part of the page
-  that the URL's fragment names.
+  route, move the focus to the heading of a page that replaces another and
+  forget the oldest reads of episodes' files, search for the query of a
+  Search page that has no search for it yet, load the show of a Show page
+  or an Episode page, ask the browser how it keeps the library for the
+  Settings page, and show the part of the page that the URL's fragment
+  names.
 
   The page that loads first keeps the focus at the start of the document,
   and so does a page that only changes its query, unless the fragment
@@ -144,9 +145,11 @@
   [state route]
   (let [{:keys [q url]} (:query-params route)]
     (cond-> [[:store/assoc :route route]]
+      ;; the reads only then, since the page that showed them has gone, and
+      ;; an Episode page reads its episode's files again as it mounts
       (and (contains? state :route)
            (not (same-page? route (:route state))))
-      (conj [:page/focus-heading])
+      (conj [:page/focus-heading] [:episodes/forget])
 
       (and (= :route/search (:name route))
            (not (str/blank? q))

@@ -116,3 +116,12 @@
         "the file's, once it's read")
     (is (nil? (episode/shown-chapters {:view {:chapters {:source :inferred :document doc}}} nil))
         "none that the show notes imply, since the notes have their times")))
+
+(deftest the-reads-that-the-state-keeps
+  (let [episodes {:a {:at 1} :b {:at 2} :c {:at 3} :d {:at 4} :e {:status :read}}]
+    (is (= #{:c :d} (set (keys (episode/kept episodes :x 2)))) "those that began last")
+    (is (= #{:a :c :d} (set (keys (episode/kept episodes :a 2)))) "and the one that plays")
+    (is (= #{:a :b :c :d} (set (keys (episode/kept episodes nil 4))))
+        "but one whose read has no time first, e.g. a transcript read alone")
+    (is (= episodes (episode/kept episodes nil 20)) "all of them within the limit")
+    (is (nil? (episode/kept nil nil 20)))))

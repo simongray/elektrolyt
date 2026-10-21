@@ -231,7 +231,7 @@
   screen while the player has the episode."
   [store id read]
   (when-not (get-in @store [:episodes id :status])
-    (swap! store assoc-in [:episodes id :status] :reading)
+    (swap! store update-in [:episodes id] assoc :status :reading :at (js/Date.now))
     (-> (read)
         (.then (fn [result]
                  (swap! store update-in [:episodes id] assoc :status :read :result result)
