@@ -97,13 +97,23 @@
   "The artworks whose colours the page of the `state` shows and that the
   :colors don't have yet, as maps of the :artwork and the :artwork-sizes,
   those that colour the page first, and each once, though e.g. what plays
-  and the page's show share theirs."
+  and the page's show share theirs. What plays next is among them on
+  every page, for the player's square of it."
   [state]
-  (->> (concat [(playing state) (page-show state)] (listed state))
+  (->> (concat [(playing state) (first (queue/up-next state)) (page-show state)]
+               (listed state))
        (filter :artwork)
        (remove #(contains? (:colors state) (:artwork %)))
        (map #(select-keys % [:artwork :artwork-sizes]))
        (once-each)))
+
+(defn bar-seed
+  "The seed of the bar of `x` in the `state`, the seed of its artwork, or
+  nil while that's unknown, or when the listener prefers the app's own
+  colours."
+  [state x]
+  (when (settings/artwork-colors? state)
+    (seed state x)))
 
 (defn attrs
   "The attributes of the shell of the page of the `state`: the seed of
@@ -112,7 +122,7 @@
   known, so that the page keeps the app's own colours until then."
   [state]
   (let [paper (some->> (focus state) (seed state))
-        bars  (when (settings/artwork-colors? state) (seed state (playing state)))
+        bars  (bar-seed state (playing state))
         style (cond-> {}
                 paper (assoc :--seed paper)
                 bars  (assoc :--bar-seed bars))]

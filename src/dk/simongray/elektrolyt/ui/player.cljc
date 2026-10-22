@@ -1,23 +1,25 @@
 (ns dk.simongray.elektrolyt.ui.player
   "The views of the player, which stays as the pages change.
 
-  On a phone it's one row of the episode and the button that plays it,
-  with a disclosure of the other controls. Wider than that, they're all in
-  view. The Episode page is the player's full view, with the notes, the
-  chapters and the transcript."
+  On a phone it's a row of the episode and Controls, which opens the
+  other controls, above the seek bar and the transport. Wider than that,
+  the transport is beside the episode, with the seek bar below them, and
+  on a wide screen the other controls are beside the transport too. Its
+  buttons are icons alone. The Episode page is the player's full view,
+  with the notes, the chapters and the transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.elektrolyt.colors :as colors]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.queue :as queue]
             [dk.simongray.elektrolyt.routes :as routes]
-            [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
-;; at the size of the largest player, whose rows are 10rem high (see
+;; at the size of the player on a desktop, whose height is 6rem (see
 ;; layout.css)
 (defn artwork
   "The artwork of the `playback`, or the image of its chapter at `seconds`,
@@ -28,25 +30,31 @@
   (let [image (or (some-> (:img (player/chapter-at playback seconds)) player/proxied)
                   artwork)]
     (when image
-      (artwork/linked href (artwork/img {:artwork image} 160 (merge {:class "player-artwork"} attrs))))))
+      (artwork/linked href (artwork/img {:artwork image} 96 (merge {:class "player-artwork"} attrs))))))
 
 (defn now-playing
   "The title and the show of the `playback`, with its title of the chapter
-  at `seconds`, whose title links to `href`, the page of its episode."
-  [{:keys [title show] :as playback} seconds href]
+  at `seconds`, whose title links to `href`, the page of its episode, and
+  whose show to `show-href`, the page of its show."
+  [{:keys [title show] :as playback} seconds href show-href]
   [:div.player-title
    [:p [:a {:href href} title]]
-   (facts-ui/line [show (:title (player/chapter-at playback seconds))])])
+   (facts-ui/line [(when show [:a {:href show-href} show])
+                   (:title (player/chapter-at playback seconds))])])
 
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
-;; Pause, has no aria-pressed
+;; Pause, has no aria-pressed. Play, Pause, Next and Previous are the IEC's
+;; symbols for equipment, so they need no words to be understood.
+;; https://en.wikipedia.org/wiki/Media_control_symbols
 (defn play-button
   "The button that plays the episode that the `player` shows, or pauses
   it, wherever it plays."
   [player]
   (if (player/playing player (player/shown-id player))
-    [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
-    [:button.primary {:type "button" :on {:click [[:player/resume]]}} "Play"]))
+    [controls-ui/icon-button {:icon icons/pause :class "player-play" :on {:click [[:player/pause]]}}
+     "Pause"]
+    [controls-ui/icon-button {:icon icons/play :class "player-play" :on {:click [[:player/resume]]}}
+     "Play"]))
 
 ;; A range input, rather than a slider of our own, since a screen reader on
 ;; a phone adjusts it with a swipe, which it always follows
@@ -65,43 +73,80 @@
                     (controls/range-attributes shown))]
      (update (time-ui/clock (player/remaining shown)) 2 #(str "−" %))]))
 
-(defn skip-buttons
-  "The buttons that skip back and forward by the seconds that the
-  listener prefers, `back` and `forward`."
-  [back forward]
-  [:div#player-skips.player-skips
-   [:button {:type "button" :on {:click [[:player/press {:action :seekbackward}]]}}
-    (str "Back " back " s")]
-   [:button {:type "button" :on {:click [[:player/press {:action :seekforward}]]}}
-    (str "Forward " forward " s")]])
+;; Phosphor has no skip by a number of seconds, and the listener chooses
+;; theirs, so the number is text inside the arrow, in the font of the page,
+;; as Apple Podcasts draws it. Its size leaves a stroke's width of air
+;; between it and the ring.
+(defn skip-icon
+  "The icon of a skip by `seconds` in the `direction`, :back or :forward,
+  with the number inside the arrow."
+  [direction seconds]
+  (let [text (str seconds)]
+    [controls-ui/icon {:icon (if (= :back direction)
+                               icons/arrow-counter-clockwise
+                               icons/arrow-clockwise)}
+     [:text {:x           128
+             :y           128
+             :dy          "0.35em"
+             :text-anchor "middle"
+             :font-size   (if (< 2 (count text)) 80 108)
+             :font-weight 700
+             :fill        "currentColor"}
+      text]]))
 
-(defn chapter-buttons
-  "The buttons that go to the previous and the next chapter of the
-  `playback`, when it has chapters."
-  [playback]
-  (when (seq (:chapters (player/chapter-doc playback)))
-    (list
-     [:button {:type "button" :on {:click [[:player/chapter :previous]]}} "Previous chapter"]
-     [:button {:type "button" :on {:click [[:player/chapter :next]]}} "Next chapter"])))
+;; In the order of a CD player's buttons, in view at every width: the
+;; previous chapter, back, Play, forward and the next chapter
+(defn transport
+  "The button that plays or pauses what the `player` shows, between those
+  that skip back and forward by the seconds that the listener prefers,
+  `back` and `forward`, and those that go to the previous and the next
+  chapter of the `playback`, when it has chapters."
+  [player playback back forward]
+  (let [chapters? (seq (:chapters (player/chapter-doc playback)))]
+    [:div#player-transport.player-transport
+     (when chapters?
+       [controls-ui/icon-button {:icon  icons/skip-back
+                                 :class "player-previous-chapter"
+                                 :on    {:click [[:player/chapter :previous]]}}
+        "Previous chapter"])
+     [controls-ui/icon-button {:icon  (skip-icon :back back)
+                               :class "player-back"
+                               :on    {:click [[:player/press {:action :seekbackward}]]}}
+      (str "Back " back " seconds")]
+     (play-button player)
+     [controls-ui/icon-button {:icon  (skip-icon :forward forward)
+                               :class "player-forward"
+                               :on    {:click [[:player/press {:action :seekforward}]]}}
+      (str "Forward " forward " seconds")]
+     (when chapters?
+       [controls-ui/icon-button {:icon  icons/skip-forward
+                                 :class "player-next-chapter"
+                                 :on    {:click [[:player/chapter :next]]}}
+        "Next chapter"])]))
 
+;; Its options, e.g. 1.5×, say what it is, so its label is for a screen
+;; reader
 (defn speed
   "The choice of the speed of the `media` state, which sets the listener's
   preference."
   [{:keys [playback-rate] :as media}]
   (list
-   [:label {:for "player-speed"} "Speed"]
+   [:label.visually-hidden {:for "player-speed"} "Speed"]
    (controls-ui/select "player-speed" player/speed-options (or playback-rate 1)
                        [:player/rate [:event/target-number]])))
 
 ;; An iPhone plays at the system's volume, which a page can neither set nor
 ;; read, so there the slider stays, disabled, for a layout that doesn't
-;; shift, and says so to a screen reader rather than a false 100%
+;; shift, and says so to a screen reader rather than a false 100%. The
+;; mute button's icon shows the sound as it is, struck out while muted, and
+;; its name says what a press does, as the browsers' own controls have it.
 (defn volume-controls
   "The mute button and the volume slider at the `level` of the `media`
   state, which is disabled where the device `locked?` the volume."
   [{:keys [muted] :as media} level locked?]
   (list
-   [:button {:type "button" :on {:click [[:player/mute (not muted)]]}}
+   [controls-ui/icon-button {:icon (if muted icons/speaker-slash icons/speaker-high)
+                             :on   {:click [[:player/mute (not muted)]]}}
     (if muted "Unmute" "Mute")]
    [:label.visually-hidden {:for "player-volume"} "Volume"]
    [:input {:type           "range"
@@ -117,13 +162,23 @@
             :on             {:input [[:player/volume [:event/target-number]]]}}]))
 
 ;; Pocket Casts, Apple Podcasts and Spotify all reach the queue from the
-;; player, which here is a page of the app
+;; player, which here is a page of the app. On a wide screen it's a square
+;; at the player's right edge, as the artwork is at its left: "Next" above
+;; the episode's artwork, whose title only a screen reader reads, in the
+;; colour that the player will take from that artwork. Narrower, it's a
+;; line of text behind Controls (layout.css).
 (defn next-up
   "The episode that plays after the one of the player of the `state`, as a
-  link to the queue, or nil."
+  link to the queue with its artwork, or nil."
   [state]
-  (when-let [{:keys [title]} (first (queue/up-next state))]
-    [:p.player-next [:a {:href (routes/href :route/queue)} "Next: " title]]))
+  (when-let [{:keys [title] :as episode} (first (queue/up-next state))]
+    (let [seed (colors/bar-seed state episode)]
+      [:a.player-next (cond-> {:href (routes/href :route/queue)}
+                        seed (assoc :style {:--bar-seed seed}))
+       [:span.player-next-label "Next" [:span.player-next-colon ":"]]
+       [:span.player-next-title " " title]
+       (artwork/img episode 64 (merge {:class "player-next-artwork"}
+                                      (colors/placeholder state episode)))])))
 
 ;; Only a screen reader reads it, as it does the page's announcer: a
 ;; sighted listener sees the player's state in its controls, and a line
@@ -136,8 +191,7 @@
 
 ;; WAI-ARIA APG, disclosure pattern: a button with aria-expanded that shows
 ;; and hides the controls below it, which leaves the history and the focus
-;; as they are. On a phone it shows the seek bar and the skips too, which a
-;; desktop always shows, so it names them all.
+;; as they are
 (defn content
   "The content of the player of the `state`: the episode that plays, in
   this tab or another, and its controls, each a part of the player's grid
@@ -148,7 +202,9 @@
         media          (player/shown-media player)
         [back forward] (player/skips (:profile library))
         href           (when-let [id (:id playback)]
-                         (lists-ui/episode-href library id (:title playback)))]
+                         (lists-ui/episode-href library id (:title playback)))
+        show-href      (when-let [[feed-guid] (:id playback)]
+                         (lists-ui/show-href library feed-guid (:show playback)))]
     (list
      [:audio {:replicant/key        "player"
               :preload              "metadata"
@@ -157,14 +213,14 @@
               :on                   {:ended [[:player/ended]]}}]
      (artwork playback (:current-time media) href
               (colors/placeholder state (colors/playing state)))
-     (now-playing playback (:current-time media) href)
-     (play-button player)
-     (skip-buttons back forward)
+     (now-playing playback (:current-time media) href show-href)
+     (transport player playback back forward)
      ;; as a string, since Replicant leaves out an attribute of false
-     [:button.player-more {:type          "button"
-                           :aria-expanded (str (boolean expanded?))
-                           :aria-controls "player-seek player-skips player-controls"
-                           :on            {:click [[:player/expand (not expanded?)]]}}
+     [controls-ui/icon-button {:icon          icons/sliders-horizontal
+                               :class         "player-more"
+                               :aria-expanded (str (boolean expanded?))
+                               :aria-controls "player-controls"
+                               :on            {:click [[:player/expand (not expanded?)]]}}
       "Controls"]
      (seek-bar (player/with-duration media playback) seeking)
      ;; a group named as the button that shows it, which a screen reader
@@ -173,10 +229,9 @@
             :role       "group"
             :aria-label "Controls"
             :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
-      (chapter-buttons playback)
       (speed media)
-      (volume-controls media (or volume 1) volume-locked?)
-      (next-up state)]
+      (volume-controls media (or volume 1) volume-locked?)]
+     (next-up state)
      (status-line player))))
 
 ;; WAI-ARIA APG, landmark regions: a section with a label is a region, the
@@ -188,6 +243,5 @@
   has an episode, in this tab or another, or else nil."
   [state]
   (when (player/shown-playback state)
-    [:section#player {:aria-label "Player"
-                      :data-size  (name (settings/player-size state))}
+    [:section#player {:aria-label "Player"}
      (content state)]))

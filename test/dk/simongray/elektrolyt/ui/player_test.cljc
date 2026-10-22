@@ -1,14 +1,19 @@
 (ns dk.simongray.elektrolyt.ui.player-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.elektrolyt.player-test :refer [state]]
+            [dk.simongray.elektrolyt.player-test :refer [id lib state]]
+            [dk.simongray.elektrolyt.queue-test :as queue-test]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
+            [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.player :as player-ui]
             [dk.simongray.elektrolyt.ui-test :refer [elements nodes text-of]]))
 
 (defn buttons
-  "The buttons of the Hiccup `x`, with or without a class."
+  "The buttons of the Hiccup `x`, with or without a class, and the buttons
+  of ui.controls' aliases."
   [x]
-  (filter #(and (vector? %) (keyword? (first %)) (re-find #"^button\b" (name (first %))))
+  (filter #(and (vector? %) (keyword? (first %)) (re-find #"^(icon-)?button\b" (name (first %))))
           (nodes x)))
 
 (defn attributes-of
@@ -18,10 +23,10 @@
         (filter #(map? (second %)) (concat (elements :input x) (elements :select x) (elements :div x)))))
 
 (deftest the-main-action
-  (is (= [:button.primary :button.primary]
-         (map (comp first player-ui/play-button)
+  (is (= [[controls/icon-button icons/play "Play"] [controls/icon-button icons/pause "Pause"]]
+         (map (comp (juxt first (comp :icon second) last) player-ui/play-button)
               [{:id [:feed "ep"] :media {:paused true}} {:id [:feed "ep"] :media {:paused false}}]))
-      "Play and Pause, which the look fills"))
+      "Play and Pause, as their icons alone, named by their words"))
 
 (deftest nothing-playing
   (is (nil? (player-ui/region {:library (library/make "test")}))
@@ -29,11 +34,14 @@
 
 (deftest an-episode-that-plays
   (let [x (player-ui/region (state {}))]
-    (is (= "medium" (:data-size (second x))) "in the size that the listener prefers, medium at first")
     (is (re-find #"Episode 7" (text-of (elements :div.player-title x))))
     (is (re-find #"News" (text-of (elements :div.player-title x))) "with its chapter")
-    (is (= ["Pause" "Back 15 s" "Forward 30 s" "Controls" "Previous chapter" "Next chapter" "Mute"]
-           (map text-of (buttons x))))
+    (is (= [(lists-ui/episode-href lib id "Episode 7") (lists-ui/show-href lib (first id) "A Show")]
+           (map (comp :href second) (elements :a (elements :div.player-title x))))
+        "the episode's title and the show's name, links to their pages")
+    (is (= ["Previous chapter" "Back 15 seconds" "Pause" "Forward 30 seconds" "Next chapter" "Controls" "Mute"]
+           (map text-of (buttons x)))
+        "the transport in the order of a CD player's")
     (testing "the seek bar, which a screen reader reads in words"
       (is (= {:min 0 :max 3600 :step 1 :value 75 :aria-valuetext "1 minute, 15 seconds"}
              (select-keys (attributes-of "player-position" x) [:min :max :step :value :aria-valuetext])))
@@ -41,6 +49,12 @@
           "where it's dragged to, while it is"))
     (is (= "1.5" (some #(when (:selected (second %)) (:value (second %))) (elements :option x)))
         "the speed that it plays at")))
+
+(deftest what-plays-next
+  (let [x (player-ui/next-up (queue-test/state true 1 2))]
+    (is (= "/queue" (:href (second x))) "a link to the queue")
+    (is (= "Next: Episode 2" (text-of x)) "named by what plays next"))
+  (is (nil? (player-ui/next-up (queue-test/state true 1))) "and nothing after the last"))
 
 (deftest the-status-line
   (is (= [:p.visually-hidden {:role "status"} "Loading…"]

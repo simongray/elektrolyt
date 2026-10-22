@@ -66,7 +66,6 @@
    ::app/contrast           :auto
    ::app/artwork-colors?    true
    ::app/navigation-palette :pages
-   ::app/player-size        :medium
    ::app/explicit-picks?    false
    ::app/autoplay?          false
    ::app/alternative-feeds? true})
@@ -128,19 +127,6 @@
   the `state`, a colour for each page until they choose others."
   [state]
   (preference state ::app/navigation-palette))
-
-(def player-sizes
-  "The sizes of the player, and so of its artwork, with the text of each,
-  which layout.css has the heights of."
-  [[:small "Small"]
-   [:medium "Medium"]
-   [:large "Large"]])
-
-(defn player-size
-  "The size of the player that the listener chose in the `state`, medium
-  until they choose another."
-  [state]
-  (preference state ::app/player-size))
 
 (defn explicit-picks?
   "Whether the picks of the `state` may be explicit episodes anywhere, as

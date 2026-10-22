@@ -124,7 +124,9 @@ time,
    lightness of its own for each token, so that the contrast holds at
    every hue. The app's own near-black has no hue, so it stays a dark
    grey. The bar is the same in light and dark, and its controls are
-   drawn for a dark ground. */
+   drawn for a dark ground. The player's square of what plays next takes
+   the bar that its own seed gives, so it has the tokens too. */
+.player-next,
 .shell {
   --bar: oklch(from var(--bar-seed) 33% min(c, 0.1) calc(h + 180));
   --on-bar: oklch(from var(--bar-seed) 97% min(c, 0.012) calc(h + 180));
@@ -134,6 +136,9 @@ time,
   --on-bar-fill: oklch(from var(--bar-seed) 30% min(c, 0.1) calc(h + 180));
   /* the glow of type reversed out of a bar (see the player) */
   --bloom: 0 0 6px oklch(from var(--on-bar) l c h / 0.3);
+}
+
+.shell {
   /* A faint tint of the seed's own hue from the right, behind the main
      content. Its alpha is the seed's chroma, so that a grey seed, e.g.
      the app's own, tints nothing. */
@@ -579,17 +584,66 @@ hgroup > p {
   outline: 0;
 }
 
-.player-title p:first-child a {
-  color: var(--on-bar);
-  font-weight: var(--weight-strong);
+/* The player's buttons are their icons, with neither an outline nor a
+   fill, but for the bar's soft fill under the pointer */
+#player .icon-button {
+  border-color: transparent;
+  background: none;
+}
+
+#player .icon-button:hover {
+  background: var(--grain) 0 0 / var(--grain-size), var(--accent-soft);
+}
+
+/* the episode's title and its show's name, links to their pages, as
+   plain as the text beside them */
+.player-title a {
   text-decoration: none;
 }
 
+.player-title p:first-child a {
+  color: var(--on-bar);
+  font-weight: var(--weight-strong);
+}
+
 .player-title p + p,
+.player-title p + p a,
 .player-seek time,
-.player-next a {
+.player-next {
   color: var(--on-bar-2);
   font-size: var(--step--1);
+}
+
+/* "Next" in small caps, as the navigation's labels are */
+.player-next-label {
+  font-variant-caps: all-small-caps;
+  letter-spacing: var(--caps-tracking);
+}
+
+/* On a wide screen, the bar that the player will take from the next
+   episode's artwork, as a mat that frames it, with the grain of the bar
+   over it */
+@media (min-width: 60em) {
+  .player-next {
+    background: var(--grain) 0 0 / var(--grain-size), var(--bar);
+    text-decoration: none;
+  }
+
+  /* a little smaller, to fit the mat above the artwork */
+  .player-next-label {
+    font-size: 0.875em;
+    line-height: 1;
+  }
+
+  .player-next:hover {
+    background: var(--grain) 0 0 / var(--grain-size),
+                linear-gradient(var(--accent-soft), var(--accent-soft)),
+                var(--bar);
+  }
+
+  .player-next-artwork {
+    border-radius: var(--artwork-radius);
+  }
 }
 
 /* Type reversed out of the bar, like the text in the coloured panels of
@@ -646,9 +700,13 @@ search p {
    edges of its controls lighter, the links and the labels on the paper
    further from it, and the links' underlines in their full colour */
 @media (prefers-contrast: more) {
+  :root:not([data-contrast="standard"]) .player-next,
   :root:not([data-contrast="standard"]) .shell {
     --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
     --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
+  }
+
+  :root:not([data-contrast="standard"]) .shell {
     --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
   }
 
@@ -667,9 +725,13 @@ search p {
   }
 }
 
+:root[data-contrast="more"] .player-next,
 :root[data-contrast="more"] .shell {
   --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
   --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
+}
+
+:root[data-contrast="more"] .shell {
   --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
 }
 

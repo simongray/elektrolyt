@@ -45,8 +45,7 @@
       (is (= "auto" (chosen x "light-or-dark")) "the device's colours")
       (is (= "auto" (chosen x "contrast")) "and its contrast")
       (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours")
-      (is (= "pages" (chosen x "navigation-colours")) "and a colour for each page")
-      (is (= "medium" (chosen x "player-size")) "and a player of medium size"))
+      (is (= "pages" (chosen x "navigation-colours")) "and a colour for each page"))
     (testing "each change applied at once"
       (is (= [[:settings/prefer ::app/appearance [:event/target-keyword]]]
              (get-in (by-id x :select "light-or-dark") [1 :on :change])))

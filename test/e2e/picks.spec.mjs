@@ -149,7 +149,7 @@ test('Autoplay plays the first pick once the episode ends with nothing queued', 
   await subscribe(page, [coffee, brew, bikes]);
 
   const audio = await play(page, coffee, 0);
-  const title = page.getByRole('region', { name: 'Player' }).locator('.player-title a');
+  const title = page.getByRole('region', { name: 'Player' }).locator('.player-title a').first();
   await expect(title).toHaveText(coffee.episodes[0][0]);
   // The listener chooses Autoplay after play loads the episode's page, since
   // that load can cut the save of the choice short, e.g. while a refresh

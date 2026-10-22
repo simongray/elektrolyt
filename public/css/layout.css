@@ -623,34 +623,49 @@ search p {
 
 /* The player: a grid of rows of a fixed height, so that its artwork, at
    its edges, is square and as tall as they are. On a phone that's one row
-   of the episode, Play and Controls, which shows the seek bar, the skips
-   and the other controls below it. Wider than that, it's two rows, with
-   the skips beside Play and the seek bar below them, and Controls shows
-   the rest below both. The player is a row of the shell's grid, outside
-   the main content that scrolls, so it never covers what has the focus
-   (WCAG 2.2, SC 2.4.11). */
+   of the episode and Controls, above the seek bar and the transport, and
+   Controls shows the other controls below them. Wider than that, it's two
+   rows, with the transport beside the episode and the seek bar below
+   them, and Controls shows the rest below both, until there's room for
+   them beside the transport. The player
+   is a row of the shell's grid, outside the main content that scrolls, so
+   it never covers what has the focus (WCAG 2.2, SC 2.4.11). */
 #player {
-  --player-height: 4.5rem;
+  --player-height: 4rem;
+  /* the room between the player's parts, the same at its right edge as
+     beside its artwork */
+  --player-space: var(--space-3);
+  --player-icon: 32px;
+  --player-target: 44px;
   display: grid;
-  grid-template-columns: var(--player-height) minmax(0, 1fr) auto auto;
+  grid-template-columns: var(--player-height) minmax(0, 1fr) auto;
   grid-template-rows: var(--player-height);
   grid-template-areas:
-    "art    title  play   more"
-    "seek   seek   seek   seek"
-    "skips  skips  skips  skips"
-    "extras extras extras extras";
+    "art       title     more"
+    "seek      seek      seek"
+    "transport transport transport"
+    "extras    extras    extras"
+    "upnext    upnext    upnext";
   align-items: center;
-  column-gap: 0.5em;
-  padding-right: var(--gutter);
+  column-gap: var(--player-space);
+  padding-right: var(--player-space);
 }
 
-/* the size that the listener chose in Settings, medium by default */
-#player[data-size="small"] {
-  --player-height: 4rem;
+/* The player's buttons are icons alone, whose lines are as heavy as the
+   stems of the title's letters in Charis Regular. Play is the same size
+   as the others, since its place in the middle of the transport sets it
+   apart. Each is at least 44 px square (WCAG 2.2, SC 2.5.5 Target Size
+   (Enhanced)), with no room inside for an outline, which they don't
+   draw. */
+#player .icon-button {
+  min-width: var(--player-target);
+  min-height: var(--player-target);
+  padding: 0;
 }
 
-#player[data-size="large"] {
-  --player-height: 5rem;
+#player .icon {
+  width: var(--player-icon);
+  height: var(--player-icon);
 }
 
 .player-artwork {
@@ -666,33 +681,31 @@ search p {
   min-width: 0;
 }
 
-#player > .primary {
-  grid-area: play;
-}
-
+/* at the right edge, its icon rather than its target as far from it as the
+   time left */
 .player-more {
   grid-area: more;
+  margin-inline-end: calc((var(--player-icon) - var(--player-target)) / 2);
 }
 
-.player-skips {
-  display: flex;
-  grid-area: skips;
-  gap: 0.5em;
-}
-
-/* the rows below the artwork start at the player's edge */
+/* the rows below the artwork start as far from the player's left edge as
+   they end from its right */
 .player-seek,
-.player-skips,
+.player-transport,
 .player-controls {
-  padding: var(--space-2) 0 0 var(--gutter);
+  padding-block-start: var(--space-2);
+  padding-inline-start: var(--player-space);
 }
 
-.player-controls {
-  padding-bottom: var(--space-2);
-}
-
-#player:has(.player-controls.collapsed) :is(.player-seek, .player-skips) {
-  display: none;
+/* The buttons of the transport side by side, their targets touching, since
+   their icons have room around them. The icons are as far from the
+   player's bottom edge as Controls' icon is from its right, since nothing
+   is below them until Controls opens. */
+.player-transport {
+  display: flex;
+  grid-area: transport;
+  justify-content: center;
+  padding-block-end: calc(var(--player-space) + (var(--player-icon) - var(--player-target)) / 2);
 }
 
 /* A line each for the title and the show, cut short, so that the player
@@ -711,10 +724,23 @@ search p {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5em;
+  padding-block-end: var(--space-2);
 }
 
-.player-controls.collapsed {
-  display: none;
+/* what's next, a line of text below the controls, and shown with them */
+.player-next {
+  grid-area: upnext;
+  padding: 0 0 var(--space-2) var(--player-space);
+  overflow-wrap: anywhere;
+}
+
+/* behind Controls until a wide screen has room for them */
+@media (width < 60em) {
+  .player-controls.collapsed,
+  #player:has(.player-controls.collapsed) .player-next,
+  .player-next-artwork {
+    display: none;
+  }
 }
 
 .player-seek {
@@ -730,35 +756,137 @@ search p {
 }
 
 @media (min-width: 37.5em) {
+  /* The transport's buttons touch, so the grid has no gaps, and the
+     title, the seek bar and Controls keep their distance themselves. The
+     chapters' columns are empty, and so take no room, for an episode
+     without chapters. */
   #player {
-    --player-height: 8rem;
-    grid-template-columns: var(--player-height) minmax(0, 1fr) auto auto auto;
+    --player-height: 6rem;
+    grid-template-columns: var(--player-height) minmax(0, 1fr) repeat(5, auto) auto;
     grid-template-rows: calc(var(--player-height) - 2.5rem) 2.5rem;
     grid-template-areas:
-      "art    title  play   skips  more"
-      "art    seek   seek   seek   seek"
-      "extras extras extras extras extras";
-    column-gap: var(--space-3);
+      "art    title  previous back   play   forward next   more"
+      "art    seek   seek     seek   seek   seek    seek   seek"
+      "extras extras extras   extras extras extras  extras extras"
+      "upnext upnext upnext   upnext upnext upnext  upnext upnext";
+    column-gap: 0;
   }
 
-  #player[data-size="small"] {
-    --player-height: 6rem;
+  .player-title {
+    padding-inline: var(--player-space);
   }
 
-  #player[data-size="large"] {
-    --player-height: 10rem;
+  .player-more {
+    margin-inline-start: var(--player-space);
   }
 
-  #player:has(.player-controls.collapsed) .player-seek,
   .player-seek {
-    display: flex;
-    padding: 0;
+    padding-block-start: 0;
   }
 
-  #player:has(.player-controls.collapsed) .player-skips,
-  .player-skips {
+  /* the transport in the first row, beside the episode */
+  .player-transport {
+    display: contents;
+  }
+
+  .player-previous-chapter {
+    grid-area: previous;
+  }
+
+  .player-back {
+    grid-area: back;
+  }
+
+  .player-play {
+    grid-area: play;
+  }
+
+  .player-forward {
+    grid-area: forward;
+  }
+
+  .player-next-chapter {
+    grid-area: next;
+  }
+}
+
+/* From 60em, the title still has 20em beside the rest of the controls, so
+   they leave Controls for the first row, after the transport, and what's
+   next is a square at the player's right edge, as tall as the player, as
+   its artwork is at its left: "Next" above the next episode's artwork.
+   Without one, the column is empty and takes no room. */
+@media (min-width: 60em) {
+  #player {
+    grid-template-columns: var(--player-height) minmax(0, 1fr) repeat(5, auto) auto auto;
+    grid-template-areas:
+      "art    title  previous back   play   forward next   extras upnext"
+      "art    seek   seek     seek   seek   seek    seek   seek   upnext";
+    padding-right: 0;
+  }
+
+  .player-more {
+    display: none;
+  }
+
+  .player-controls {
+    padding: 0 var(--player-space);
+  }
+
+  .player-controls input[type="range"] {
+    width: 6em;
+  }
+
+  .player-seek {
+    padding-inline-end: var(--player-space);
+  }
+
+  /* "Next" and the artwork below it in the middle of the square together,
+     with a mat as wide on either side of the artwork. The label's box is
+     trimmed to its letters, so that it's they that are centred, and not
+     the room above and below them in the line. */
+  .player-next {
+    --next-mat: 1.375rem;
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    align-self: stretch;
+    inline-size: var(--player-height);
     padding: 0;
+    overflow: hidden;
+  }
+
+  .player-next-label {
+    text-box: trim-both ex alphabetic;
+  }
+
+  .player-next-artwork {
+    display: block;
+    width: calc(var(--player-height) - 2 * var(--next-mat));
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  /* the colon after "Next", and the episode's title, for a screen reader */
+  .player-next-colon,
+  .player-next-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* but the title in the artwork's place, for an episode without one */
+  .player-next:not(:has(.player-next-artwork)) .player-next-title {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+    white-space: normal;
+    text-align: center;
   }
 }
 
@@ -770,11 +898,6 @@ search p {
   gap: 0.5em;
 }
 
-.player-next {
-  flex: 1 1 100%;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
 
 
 /* The link of an artwork beside its title, which leaves the artwork in

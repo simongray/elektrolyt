@@ -5,6 +5,7 @@
             [dk.simongray.elektrolyt.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.operations :as operations]
             [dk.simongray.elektrolyt.player-test :as player-test]
+            [dk.simongray.elektrolyt.queue :as queue]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]))
 
@@ -33,6 +34,9 @@
     (is (empty? (colors/wanted (assoc-in state [:colors (:artwork playing)] {:status :loading}))))
     (is (empty? (colors/wanted (assoc-in state [:colors (:artwork playing)] {:seed nil})))))
   (is (empty? (colors/wanted {:route {:name :route/queue}})) "and none while nothing plays")
+  (with-redefs [queue/up-next (constantly [{:artwork "https://example.org/next.jpg"}])]
+    (is (= [(:artwork playing) "https://example.org/next.jpg"] (map :artwork (colors/wanted state)))
+        "and of what plays next, for the player's square of it"))
   (with-redefs [show/page (constantly (select-keys playing [:artwork]))]
     (is (= [(:artwork playing)]
            (map :artwork (colors/wanted (assoc state :route {:name :route/show :path-params {:guid "g"}}))))
@@ -57,6 +61,17 @@
         "for the bars alone, on a page about no show, whose paper is the app's")
     (is (= {} (colors/attrs state)) "none while it's unknown")
     (is (= {} (colors/attrs {:route {:name :route/queue}})) "or while nothing plays")))
+
+(deftest the-seed-of-a-bar
+  (let [next-one {:artwork "https://example.org/next.jpg"}
+        colored  (-> state
+                     (assoc :library inbox-test/lib)
+                     (assoc-in [:colors (:artwork next-one)] {:seed "#24476b"}))]
+    (is (= "#24476b" (colors/bar-seed colored next-one))
+        "the seed of an artwork, e.g. of what plays next")
+    (is (nil? (colors/bar-seed (operations/changed colored (settings/preferred {::app/artwork-colors? false}))
+                               next-one))
+        "or none, when the listener prefers the app's own colours")))
 
 (deftest the-player-takes-the-colours-of-what-plays-alone
   (let [show  {:artwork "https://example.org/show.jpg"}

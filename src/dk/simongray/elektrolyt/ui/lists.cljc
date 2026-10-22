@@ -9,14 +9,25 @@
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]))
 
+(defn queue-feed-url
+  "The URL of the feed of the show `feed-guid` that the library `lib` keeps
+  for the queue alone, which a link to its pages carries, or nil for a
+  show that it's subscribed to."
+  [lib feed-guid]
+  (when-not (profile/subscribed? (:profile lib) feed-guid)
+    (get-in lib [:feeds feed-guid :url])))
+
 (defn episode-href
   "The path of the page of the episode `id` of the library `lib` titled
-  `title`, with the URL of its feed when the library keeps it for the
-  queue alone."
+  `title`."
   [lib [feed-guid item-guid :as id] title]
-  (routes/episode-href feed-guid item-guid title
-                       (when-not (profile/subscribed? (:profile lib) feed-guid)
-                         (get-in lib [:feeds feed-guid :url]))))
+  (routes/episode-href feed-guid item-guid title (queue-feed-url lib feed-guid)))
+
+(defn show-href
+  "The path of the page of the show `feed-guid` of the library `lib` titled
+  `title`."
+  [lib feed-guid title]
+  (routes/show-href feed-guid title (queue-feed-url lib feed-guid)))
 
 (defn thumbnail
   "The artwork of `x` in a row of a list of the `state`, in the colour of

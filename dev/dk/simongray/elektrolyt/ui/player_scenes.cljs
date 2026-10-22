@@ -1,12 +1,9 @@
 (ns dk.simongray.elektrolyt.ui.player-scenes
   "Scenes of the player: nothing playing, an episode that plays with its
   chapters, its controls on a phone, an episode that plays in another tab,
-  the ways it can fail to play, and its colours and sizes."
+  the ways it can fail to play, and its colours."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast-app :as-alias app]
-            [dk.simongray.elektrolyt.operations :as operations]
             [dk.simongray.elektrolyt.scenes :refer [artwork feed url]]
-            [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
 
@@ -94,13 +91,3 @@
   "The player in the colours of the artwork of what plays, once they're
   worked out, here of a deep red."
   (ui/page (assoc (playing {}) :colors {artwork {:seed "#9e2a2b" :dominant "#888888"}})))
-
-(defscene a-small-player
-  "The player at the smallest of the sizes that the listener can choose in
-  Settings."
-  (ui/page (operations/changed (playing {}) (settings/preferred {::app/player-size :small}))))
-
-(defscene a-large-player
-  "The player at the largest of the sizes that the listener can choose in
-  Settings."
-  (ui/page (operations/changed (playing {}) (settings/preferred {::app/player-size :large}))))

@@ -103,24 +103,23 @@
   "The source of the namespace of the `icons` of the `weight`, with the
   names in `excluded` excluded from clojure.core."
   [weight icons excluded]
-  (str ";; Phosphor Icons " (version) ", the " (str/capitalize weight)
-       " weight, from the npm package\n"
-       ";; @phosphor-icons/core. dk.simongray.elektrolyt.phosphor writes this\n"
-       ";; file, so change that rather than this.\n"
-       ";;\n"
-       (licence) "\n"
-       "(ns dk.simongray.elektrolyt.ui.icons\n"
-       "  \"Phosphor's icons in the " (str/capitalize weight)
-       " weight: a def for the path of each,\n"
-       "  named as Phosphor names it, e.g. play or gear-six.\n"
-       "\n"
-       "  The icon alias of ui.controls draws a path in the colour of the text\n"
-       "  around it. A release build keeps only the icons that the views use.\n"
-       "  Phosphor's site shows them all: https://phosphoricons.com\"\n"
-       "  (:refer-clojure :exclude [" (str/join " " excluded) "]))\n"
-       "\n"
-       (str/join (for [[k d] icons]
-                   (str "(def " k " " (pr-str d) ")\n")))))
+  (let [weight-name (str/capitalize weight)]
+    (str ";; Phosphor Icons " (version) ", the " weight-name " weight, from the npm package\n"
+         ";; @phosphor-icons/core. dk.simongray.elektrolyt.phosphor writes this\n"
+         ";; file, so change that rather than this.\n"
+         ";;\n"
+         (licence) "\n"
+         "(ns dk.simongray.elektrolyt.ui.icons\n"
+         "  \"Phosphor's icons in the " weight-name " weight: a def for the path of each,\n"
+         "  named as Phosphor names it, e.g. play or gear-six.\n"
+         "\n"
+         "  The icon alias of ui.controls draws a path in the colour of the text\n"
+         "  around it. A release build keeps only the icons that the views use.\n"
+         "  Phosphor's site shows them all: https://phosphoricons.com\"\n"
+         "  (:refer-clojure :exclude [" (str/join " " excluded) "]))\n"
+         "\n"
+         (str/join (for [[k d] icons]
+                     (str "(def " k " " (pr-str d) ")\n"))))))
 
 (defn write-icons!
   "Write the icons of the `weight`, e.g. \"light\", to the app's namespace

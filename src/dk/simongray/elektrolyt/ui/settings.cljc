@@ -98,10 +98,7 @@
                  (settings/artwork-colors? state) ::app/artwork-colors?)
          (choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
                  (settings/navigation-palette state)
-                 [:settings/prefer ::app/navigation-palette [:event/target-keyword]])
-         (choice "player-size" "Player size" settings/player-sizes
-                 (settings/player-size state)
-                 [:settings/prefer ::app/player-size [:event/target-keyword]])))
+                 [:settings/prefer ::app/navigation-palette [:event/target-keyword]])))
 
 (defn playback
   "The settings of how the listener plays, by their preferences in the
