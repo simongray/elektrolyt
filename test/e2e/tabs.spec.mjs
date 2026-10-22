@@ -37,6 +37,12 @@ function upNext(page) {
     .getByRole('listitem').getByRole('heading', { level: 3 });
 }
 
+/** The titles of the newest episodes of the inbox on the Library page of the `page`. */
+function inbox(page) {
+  return page.getByRole('region', { name: 'Inbox' })
+    .getByRole('listitem').getByRole('heading', { level: 3 });
+}
+
 test('two tabs keep what each other queued', async ({ page, context }) => {
   const errors = [];
   await subscribe(page);
@@ -165,13 +171,14 @@ test('a refresh in one tab and a change in the other at once keep both', async (
   await expect(announcement(other)).toHaveText(`Added ${first.title} to the queue`);
 
   for (const tab of [page, other]) {
-    await expect(navLink(tab, 'Library'), 'the new episode in the inbox of each tab')
-      .toHaveAccessibleName('Library 1 new episode');
+    await navLink(tab, 'Library').click();
+    await expect(inbox(tab), 'the new episode in the inbox of each tab').toHaveText([fourth.title]);
     await navLink(tab, 'Queue').click();
     await expect(upNext(tab), 'and the queue of each').toHaveText([first.title]);
   }
   await page.reload();
-  await expect(navLink(page, 'Library')).toHaveAccessibleName('Library 1 new episode');
   await expect(queueHeadings(page), 'both after a reload').toHaveText([first.title]);
+  await navLink(page, 'Library').click();
+  await expect(inbox(page)).toHaveText([fourth.title]);
   expect(errors, 'the errors that the other tab threw').toEqual([]);
 });

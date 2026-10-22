@@ -1,5 +1,5 @@
-/* The look: Charis on white paper, black ink, and bars in the colour of
-   the artwork of what plays. Every value comes from tokens.css, or from
+/* The look: Charis on white paper, black ink, and the player's bar in the
+   colour of the artwork of what plays. Every value comes from tokens.css, or from
    the seeds of artwork, which the views set.
 
    The design and its rounds, with the contrast of every pair at every hue
@@ -90,7 +90,7 @@ time,
 /* The app's own near-black, until the view sets the seeds of artwork on
    the shell: the --seed of the show that the page is about, for the
    paper's links, buttons and tint, and the --bar-seed of what plays, for
-   the bars */
+   the player's bar */
 .shell {
   --seed: var(--app);
   --bar-seed: var(--app);
@@ -118,13 +118,13 @@ time,
   --page: var(--settings);
 }
 
-/* The bars: the player, and the tab bar under it on a phone, in a
-   strong colour from the bar's seed. It's the seed's complement, its hue
-   turned halfway round, so that the artwork in the player doesn't sit on
-   a colour like its own, at a lightness of its own for each token, so
-   that the contrast holds at every hue. The app's own near-black has no
-   hue, so it stays a dark grey. The bars are the same in light and dark,
-   and their controls are drawn for a dark ground. */
+/* The bar of the player, in a strong colour from the bar's seed. It's
+   the seed's complement, its hue turned halfway round, so that the
+   artwork in the player doesn't sit on a colour like its own, at a
+   lightness of its own for each token, so that the contrast holds at
+   every hue. The app's own near-black has no hue, so it stays a dark
+   grey. The bar is the same in light and dark, and its controls are
+   drawn for a dark ground. */
 .shell {
   --bar: oklch(from var(--bar-seed) 33% min(c, 0.1) calc(h + 180));
   --on-bar: oklch(from var(--bar-seed) 97% min(c, 0.012) calc(h + 180));
@@ -144,10 +144,9 @@ time,
   background: linear-gradient(to left, var(--tint), transparent 70%) var(--paper);
 }
 
-/* Inside a bar, the content's tokens take the bar's values, so that every
-   rule below applies there unchanged. The bar is a colour printed on the
-   paper, so the paper's grain lies over it. */
-.shell > nav,
+/* Inside the bar, the content's tokens take the bar's values, so that
+   every rule below applies there unchanged. The bar is a colour printed
+   on the paper, so the paper's grain lies over it. */
 #player {
   background: var(--grain) 0 0 / var(--grain-size), var(--bar);
   color-scheme: dark;
@@ -164,83 +163,69 @@ time,
   --focus: var(--on-bar);
 }
 
-/* Each page's label in its page's colour, a light tone of it on a bar, in
-   LCH, so that its lightness, and so its contrast, is the same at every
-   hue. The labels say the pages, so the colour is never the only cue (WCAG
-   2.2, SC 1.4.1). Where the listener chose no colours, no page colours
-   its link, so the labels are in the ink, and the current page's in the
-   darker ink.
+/* The navigation lies on a paper of its own, as a book's contents would:
+   the paper's grain, in a tone of the label's colour of the page that
+   it's on, or else of the colour of the show that the page is about, as
+   its links are. Wider than a phone it's a rail beside the text, and the
+   two papers meet with no line between them. On a phone it's a tab bar
+   below the player. */
+.shell > nav {
+  background: var(--grain) 0 0 / var(--grain-size),
+              color-mix(in oklab, var(--label, var(--seed-accent)) 7%, var(--paper));
+}
+
+/* Each page's label in its page's colour, a tone of it that reads as text
+   on the paper, in LCH, so that its lightness, and so its contrast, is
+   the same at every hue. The labels say the pages, so the colour is never
+   the only cue (WCAG 2.2, SC 1.4.1). Where the listener chose no colours,
+   no page colours its link, so the labels are in the ink, and the current
+   page's in the darker ink.
    https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html */
 .shell > nav,
 .shell > nav li {
-  --label: lch(from var(--page) 82 min(c, 40) h);
+  --label: light-dark(lch(from var(--page) 42 min(c, 50) h), lch(from var(--page) 78 min(c, 40) h));
 }
 
-/* on a bar, with the glow of type reversed out of it (see the player) */
 .shell > nav a {
   color: var(--label, var(--ink-2));
   font-size: var(--step--1);
   font-variant-caps: all-small-caps;
   letter-spacing: var(--caps-tracking);
   text-decoration: none;
-  text-shadow: var(--bloom);
 }
 
 /* Colours for colour blindness, which the listener can choose in
    Settings: hues that colour-coded's vision namespace keeps apart for
    protans, deutans and tritans, after Machado et al. (2009), at
    lightnesses that vary within what each label's contrast allows, so in
-   hex rather than from one tone. These are on a bar, and the paper's
-   are below.
+   hex rather than from one tone.
    https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html */
 .shell[data-palette="color-blind"] [data-page="home"] {
-  --label: #ffc882;
+  --label: light-dark(#bf3a00, #e06623);
 }
 
 .shell[data-palette="color-blind"] [data-page="queue"] {
-  --label: #ffa0a5;
+  --label: light-dark(#87182f, #ef8f94);
 }
 
 .shell[data-palette="color-blind"] [data-page="library"] {
-  --label: #9abdff;
+  --label: light-dark(#1c6bbc, #85adf4);
 }
 
 .shell[data-palette="color-blind"] [data-page="search"] {
-  --label: #fad7ff;
+  --label: light-dark(#6c2b7a, #f8c7ff);
 }
 
 .shell[data-palette="color-blind"] [data-page="settings"] {
-  --label: #cfcfcf;
-}
-
-@media (min-width: 37.5em) {
-  .shell[data-palette="color-blind"] [data-page="home"] {
-    --label: light-dark(#bf3a00, #e06623);
-  }
-
-  .shell[data-palette="color-blind"] [data-page="queue"] {
-    --label: light-dark(#87182f, #ef8f94);
-  }
-
-  .shell[data-palette="color-blind"] [data-page="library"] {
-    --label: light-dark(#1c6bbc, #85adf4);
-  }
-
-  .shell[data-palette="color-blind"] [data-page="search"] {
-    --label: light-dark(#6c2b7a, #f8c7ff);
-  }
-
-  .shell[data-palette="color-blind"] [data-page="settings"] {
-    --label: light-dark(#686868, #c1c1c1);
-  }
+  --label: light-dark(#686868, #c1c1c1);
 }
 
 /* The player's colour, the listener's other choice: every label in a tone
    of the bar's colour, the complement of the hue of what plays, which
-   changes with it, light on a bar, as the page colours are */
+   changes with it, as the page colours are */
 .shell[data-palette="player"] > nav,
 .shell[data-palette="player"] > nav li {
-  --label: oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180));
+  --label: light-dark(oklch(from var(--bar-seed) 44% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 80% min(c, 0.08) calc(h + 180)));
 }
 
 /* The current page underlined, or the page that it's a part of, e.g. the
@@ -251,6 +236,19 @@ time,
   color: var(--label, var(--ink));
   text-decoration: underline 2px;
   text-underline-offset: 0.45em;
+}
+
+/* On a phone, where a tab shows its icon alone, the line is under the
+   icon instead, as wide as it. A border rather than a background, which
+   forced colours would paint over. */
+@media (width < 37.5em) {
+  .shell > nav a[aria-current]::after {
+    content: "";
+    position: absolute;
+    inset-inline: calc(50% - 12px);
+    inset-block-end: 5px;
+    border-top: 2px solid;
+  }
 }
 
 /* The paper, whose links, buttons and focus ring take the seed's own
@@ -273,44 +271,11 @@ time,
   max-inline-size: var(--measure);
 }
 
-/* Wider than a phone, the rail lies beside the text, as a book's contents
-   would, on a paper of its own: the paper's grain and the content's
-   tokens again, in a tone of the label's colour of the page that it's
-   on, or else of the colour of the show that the page is about, as its
-   links are. The two papers meet with no line between them. */
+/* the rail's titles, larger than the tab bar's, which only a screen
+   reader reads */
 @media (min-width: 37.5em) {
-  .shell > nav {
-    background: var(--grain) 0 0 / var(--grain-size),
-                color-mix(in oklab, var(--label, var(--seed-accent)) 7%, var(--paper));
-    color-scheme: inherit;
-    --ink: inherit;
-    --ink-2: inherit;
-    --ink-3: inherit;
-    --rule: inherit;
-    --rule-soft: inherit;
-    --field: inherit;
-    --accent: inherit;
-    --accent-ink: inherit;
-    --accent-soft: inherit;
-    --focus: inherit;
-    color: var(--ink);
-  }
-
-  /* on the paper, a tone of each page's colour that reads as text, or of
-     the player's */
-  .shell > nav,
-  .shell > nav li {
-    --label: light-dark(lch(from var(--page) 42 min(c, 50) h), lch(from var(--page) 78 min(c, 40) h));
-  }
-
-  .shell[data-palette="player"] > nav,
-  .shell[data-palette="player"] > nav li {
-    --label: light-dark(oklch(from var(--bar-seed) 44% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 80% min(c, 0.08) calc(h + 180)));
-  }
-
   .shell > nav a {
     font-size: var(--step-1);
-    text-shadow: none;
   }
 }
 
@@ -600,22 +565,13 @@ hgroup > p {
 }
 
 
-/* The player, on its bar: the title strong and the show lighter. The
-   top bar, the player or else a phone's tab bar, has a faint shadow above
-   it, which sets it apart from the paper, only upward, so that none falls
-   on the tab bar below the player. */
-#player,
-.shell:not(:has(> #player)) > nav {
+/* The player, on its bar: the title strong and the show lighter. The bar
+   has a faint shadow above it, which sets it apart from the paper, only
+   upward, so that none falls on a phone's tab bar below it. */
+#player {
   position: relative;
   z-index: 1;
   box-shadow: 0 -3px 5px -2px oklch(0% 0 0 / 0.3);
-}
-
-/* the rail is no bar, so it has no shadow when no player is below it */
-@media (min-width: 37.5em) {
-  .shell:not(:has(> #player)) > nav {
-    box-shadow: none;
-  }
 }
 
 /* the artwork meets the bar's edges, with no frame */
@@ -686,8 +642,8 @@ search p {
 }
 
 
-/* More contrast, as tokens.css has it: the bars' secondary text and the
-   edges of their controls lighter, the links and the labels on the paper
+/* More contrast, as tokens.css has it: the bar's secondary text and the
+   edges of its controls lighter, the links and the labels on the paper
    further from it, and the links' underlines in their full colour */
 @media (prefers-contrast: more) {
   :root:not([data-contrast="standard"]) .shell {
@@ -699,9 +655,7 @@ search p {
   :root:not([data-contrast="standard"]) a {
     text-decoration-color: currentColor;
   }
-}
 
-@media (prefers-contrast: more) and (min-width: 37.5em) {
   :root:not([data-contrast="standard"]) .shell[data-palette="pages"] > nav,
   :root:not([data-contrast="standard"]) .shell[data-palette="pages"] > nav li {
     --label: light-dark(lch(from var(--page) 30 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
@@ -723,16 +677,14 @@ search p {
   text-decoration-color: currentColor;
 }
 
-@media (min-width: 37.5em) {
-  :root[data-contrast="more"] .shell[data-palette="pages"] > nav,
-  :root[data-contrast="more"] .shell[data-palette="pages"] > nav li {
-    --label: light-dark(lch(from var(--page) 30 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
-  }
+:root[data-contrast="more"] .shell[data-palette="pages"] > nav,
+:root[data-contrast="more"] .shell[data-palette="pages"] > nav li {
+  --label: light-dark(lch(from var(--page) 30 min(c, 50) h), lch(from var(--page) 82 min(c, 35) h));
+}
 
-  :root[data-contrast="more"] .shell[data-palette="player"] > nav,
-  :root[data-contrast="more"] .shell[data-palette="player"] > nav li {
-    --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
-  }
+:root[data-contrast="more"] .shell[data-palette="player"] > nav,
+:root[data-contrast="more"] .shell[data-palette="player"] > nav li {
+  --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
 }
 
 

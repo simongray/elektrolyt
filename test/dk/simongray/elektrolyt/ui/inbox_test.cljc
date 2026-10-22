@@ -2,7 +2,6 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.elektrolyt.inbox :as inbox]
             [dk.simongray.elektrolyt.inbox-test :refer [changed id state]]
-            [dk.simongray.elektrolyt.ui :as ui]
             [dk.simongray.elektrolyt.ui.inbox :as inbox-ui]
             [dk.simongray.elektrolyt.ui.queue :as queue-ui]
             [dk.simongray.elektrolyt.ui.queue-test :refer [button-of]]
@@ -62,11 +61,7 @@
     (is (= ["/library"] (map #(:href (second %)) (elements :a x)))
         "and links to the Library, whose shows' new episodes arrive here")))
 
-(deftest the-count-of-the-inbox
-  (is (= "Library 3 new episodes" (text-of (ui/nav-label (state 1 2 3) :route/library)))
-      "on the link to the Library, whose page has the inbox")
-  (is (= "Library 1 new episode" (text-of (ui/nav-label (state 1) :route/library))))
-  (is (= "Library" (ui/nav-label (state) :route/library)) "none while it's empty")
+(deftest the-inbox-from-an-empty-queue
   (is (re-find #"Your Inbox has 2 episodes to choose from"
                (text-of (queue-ui/content (state 1 2))))
-      "and an empty queue tells of it"))
+      "an empty queue tells of the inbox"))

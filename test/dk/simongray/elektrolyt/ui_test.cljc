@@ -6,7 +6,8 @@
             [dk.simongray.elektrolyt.operations :as operations]
             [dk.simongray.elektrolyt.player-test :as player-test]
             [dk.simongray.elektrolyt.settings :as settings]
-            [dk.simongray.elektrolyt.ui :as ui]))
+            [dk.simongray.elektrolyt.ui :as ui]
+            [dk.simongray.elektrolyt.ui.controls :as controls]))
 
 (defn nodes
   "The nodes of the Hiccup `x`, itself first, at any depth."
@@ -47,7 +48,7 @@
   ([x kind]
    (->> (elements :a x)
         (filter #(= kind (:aria-current (second %))))
-        (map last))))
+        (map text-of))))
 
 (deftest the-current-page-is-marked-once
   (is (= ["Home"]
@@ -101,6 +102,13 @@
         "from the colours for colour blindness, when the listener chose them")
     (is (every? nil? (map (comp :data-page second) (elements :li (ui/main-nav (preferring :none)))))
         "or none, when the listener chose none")))
+
+(deftest each-link-of-the-navigation-has-its-pages-title-and-icon
+  (let [links (elements :a (ui/main-nav {:route {:name :route/queue}}))]
+    (is (= ["Home" "Queue" "Library" "Search" "Settings"] (map text-of links)))
+    (is (= (map ui/nav-icons ui/destinations)
+           (map #(:icon (second (first (elements controls/icon %)))) links))
+        "after the title, which a phone shows only to a screen reader")))
 
 (deftest the-canonical-path-of-a-show
   (let [url     "https://feeds.podcastindex.org/pc20.xml"

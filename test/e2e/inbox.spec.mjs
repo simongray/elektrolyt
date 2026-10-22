@@ -24,9 +24,8 @@ test('a new episode arrives in the inbox, and leaves it once dismissed or queued
   await subscribe(page);
   await checkForNewEpisodes(page, show);
 
-  // the inbox is a part of the Library, whose link counts it
+  // the inbox is a part of the Library
   const library = navLink(page, 'Library');
-  await expect(library).toHaveAccessibleName('Library 1 new episode');
   await library.click();
   const section = main.getByRole('region', { name: 'Inbox' });
   await expect(section.getByRole('heading', { name: fourth.title })).toBeVisible();
@@ -38,7 +37,6 @@ test('a new episode arrives in the inbox, and leaves it once dismissed or queued
   await main.getByRole('button', { name: `Dismiss ${fourth.title}` }).click();
   await expect(announcement(page)).toHaveText(`Dismissed ${fourth.title}`);
   await expect(main).toContainText('No new episodes');
-  await expect(library).toHaveAccessibleName('Library');
   const undo = main.getByRole('button', { name: `Undo dismissing ${fourth.title}` });
   await expect(undo).toBeFocused();
 

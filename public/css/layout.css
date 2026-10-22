@@ -166,18 +166,37 @@ hgroup > p {
   margin: 0;
 }
 
-/* each tab its label's width, and an even share of what's left, so that
-   the long labels don't touch at 320 px */
+/* each tab an even share of its width */
 .shell > nav li {
-  flex: 1 1 auto;
+  flex: 1;
 }
 
-/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced): 44 by 44 CSS pixels */
+/* WCAG 2.2, SC 2.5.5 Target Size (Enhanced): 44 by 44 CSS pixels. A link
+   holds the line under the current page's icon (look.css). */
 .shell > nav a {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
+}
+
+.shell > nav .icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* A tab shows its page's icon alone, and its title only to a screen
+   reader */
+@media (width < 37.5em) {
+  .shell > nav .title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 /* Wider than a phone, it's a rail beside the main content, the whole
@@ -211,15 +230,26 @@ hgroup > p {
     flex: none;
   }
 
-  /* against the edge of the rail, which they face, as a book's contents
-     face their page numbers */
+  /* against the edge of the rail, as a book's contents are, with each
+     page's icon after its title, where the page number would be. The two
+     share a line, and the icon's middle is the small caps' own, half
+     their height of 0.56em above the baseline, rather than the middle of
+     the whole line, which a flex row would centre it on, above them. */
   .shell > nav a {
-    justify-content: flex-end;
-    padding-inline: var(--space-4) var(--space-5);
+    display: block;
+    padding-block: calc((44px - 1lh) / 2);
+    padding-inline: var(--space-4);
     text-align: end;
   }
 
-  /* as far from the rail's edge as its links are */
+  .shell > nav .icon {
+    width: 22px;
+    height: 22px;
+    margin-inline-start: 0.5em;
+    vertical-align: calc(0.28em - 11px);
+  }
+
+  /* as far from the rail's edge as from the top of the page */
   .shell > main {
     padding-inline: var(--space-5);
   }

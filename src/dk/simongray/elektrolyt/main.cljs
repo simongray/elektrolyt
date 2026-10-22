@@ -423,7 +423,7 @@
   (runtime/on-visible! #(refresh/refresh-if-due! store))
   (runtime/on-pagehide! #(do (audio/hidden! store)
                              (audio/gone! store)))
-  ;; the bars' colour once it has moved to the next one
+  ;; the bar's colour once it has moved to the next one
   (runtime/on-transitionend! #(when (.. % -classList (contains "shell"))
                                 (page/theme-colored!)))
   (audio/volume-locked! store)

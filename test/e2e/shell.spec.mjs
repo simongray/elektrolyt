@@ -24,3 +24,14 @@ test('the rail keeps its width from page to page, so the content stays put', asy
     expect(await shell(page), title).toEqual(first);
   }
 });
+
+test('on a phone, a tab shows its icon alone, and its title names it', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 700 });
+  await page.goto('/queue');
+  const library = navLink(page, 'Library');
+  await expect(library.locator('svg')).toBeVisible();
+  expect((await library.locator('.title').boundingBox()).width, 'the title, for a screen reader')
+    .toBeLessThanOrEqual(1);
+  await library.click();
+  await expect(library).toHaveAttribute('aria-current', 'page');
+});

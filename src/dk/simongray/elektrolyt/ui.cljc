@@ -9,14 +9,15 @@
   it's restored, and the last thing to tell a screen reader as
   :announcement."
   (:require [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.inbox :as inbox]
             [dk.simongray.elektrolyt.links :as links]
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.text :as text]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.episode :as episode-ui]
             [dk.simongray.elektrolyt.ui.home :as home-ui]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.inbox :as inbox-ui]
             [dk.simongray.elektrolyt.ui.library :as library-ui]
             [dk.simongray.elektrolyt.ui.player :as player-ui]
@@ -50,6 +51,14 @@
   "The page of the navigation that each page outside it is a part of, by
   the names of their routes."
   {:route/inbox :route/library})
+
+(def nav-icons
+  "The icon of each page of the main navigation, by the name of its route."
+  {:route/home     icons/house
+   :route/queue    icons/queue
+   :route/library  icons/books
+   :route/search   icons/magnifying-glass
+   :route/settings icons/gear-six})
 
 (defn page-name
   "The name of the page of the navigation that the route named
@@ -139,29 +148,16 @@
                                 [:page/focus-heading]]}}
    "Skip to content"])
 
-;; AntennaPod counts the inbox in its navigation, here on the Library's
-;; link, whose page has the inbox. The count is part of the link's name,
-;; e.g. "Library 3 new episodes", which begins with what the link shows
-;; (WCAG 2.2, SC 2.5.3 Label in Name).
-;; https://github.com/AntennaPod/AntennaPod/pull/7398
-(defn nav-label
-  "The label of the link of the main navigation to the route named
-  `route-name` for the `state`: its title, with the count of the inbox on
-  the Library's."
-  [state route-name]
-  (let [n (when (= :route/library route-name)
-            (count (inbox/episodes state)))]
-    (if (pos? (or n 0))
-      (list (titles route-name) " " (str n)
-            [:span.visually-hidden " " (text/plural n "new episode")])
-      (titles route-name))))
-
 ;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
 ;; which a screen reader announces anyway, e.g. "Main navigation". The
 ;; list's role is explicit, since the CSS removes its markers (see layout.css).
 ;; Each page's link names its page for its colour, from the palette that
 ;; the listener chose, unless they chose none, and so does the navigation
-;; itself, for the tone of the rail, on a page of it
+;; itself, for the tone of the rail, on a page of it. Each link has its
+;; page's title and then its icon: on a phone the tab shows the icon alone,
+;; as Material's navigation bar can, and the title is for a screen reader
+;; (layout.css).
+;; https://github.com/material-components/material-components-android/blob/master/docs/components/BottomNavigation.md
 (defn main-nav
   "The navigation between the pages for the `state`: the main pages and
   Settings, as a tab bar on a phone and a rail on a wider screen."
@@ -173,7 +169,9 @@
      [:ul {:role "list"}
       (for [route-name destinations]
         [:li {:data-page (colour route-name)}
-         (page-link state route-name (nav-label state route-name))])]]))
+         (page-link state route-name
+                    (list [:span.title (titles route-name)]
+                          [controls/icon {:icon (nav-icons route-name)}]))])]]))
 
 ;; The heading takes the focus after each navigation, which the users who
 ;; tested the techniques of client-side routing found the best experience

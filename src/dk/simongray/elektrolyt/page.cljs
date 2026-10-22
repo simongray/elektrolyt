@@ -46,11 +46,10 @@
     (attributed! "data-contrast" contrast-key contrast)))
 
 (defn bar-color
-  "The colour of the page's bars as the browser computed them: the
-  player's, or else the tab bar's on a phone, or else the paper's, where
-  no bar has a colour."
+  "The colour of the player's bar as the browser computed it, or else the
+  paper's, while nothing plays."
   []
-  (->> ["#player" ".shell > nav" "body"]
+  (->> ["#player" "body"]
        (keep #(js/document.querySelector %))
        (map #(.-backgroundColor (js/getComputedStyle %)))
        (remove #{"rgba(0, 0, 0, 0)" "transparent"})
@@ -58,12 +57,13 @@
 
 ;; HTML, the theme-color meta name: a colour for the browser's own bars,
 ;; e.g. Chrome's on Android, and for the title bar of an installed app. It
-;; takes no var(), so it gets the bars' colour as the browser computed it,
+;; takes no var(), so it gets the bar's colour as the browser computed it,
 ;; in hex. Safari on iOS 26 reportedly ignores it.
 ;; https://html.spec.whatwg.org/multipage/semantics.html#meta-theme-color
 ;; https://benfrain.com/ios26-safari-theme-color-tab-tinting-with-fixed-position-elements/
 (defn theme-colored!
-  "Give the page's theme-color the colour of its bars, as they are now."
+  "Give the page's theme-color the colour of the player's bar, or of the
+  paper, as it is now."
   []
   (when-let [meta (js/document.querySelector "meta[name=theme-color]")]
     (when-let [c (some-> (bar-color) cc/hex)]

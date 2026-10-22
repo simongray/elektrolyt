@@ -111,12 +111,12 @@
 (deftest the-stylesheets-have-the-tokens
   (is (= {:space :oklch :l 0.33 :c 0.1 :turn 180} (first (tokens shell "--bar"))))
   (is (= {:space :lch :l 42 :c 50 :turn 0}
-         (first (tokens (declarations look ".shell > nav li" 2) "--label"))))
+         (first (tokens (declarations look ".shell > nav li" 0) "--label"))))
   (is (= 5 (count (filter some? (vals pages)))))
   (is (= "oklch(20% 0 0)" (get root "--app")))
   (is (= ["oklch(100% 0 0)" "oklch(17.5% 0.003 80)"] paper)))
 
-(deftest the-bars-contrast-at-every-hue
+(deftest the-bar-contrasts-at-every-hue
   (doseq [[k on wants] [["--on-bar" "--bar" 4.5]
                         ["--on-bar-2" "--bar" 4.5]
                         ["--bar-rule" "--bar" 3]
@@ -158,7 +158,7 @@
                (contrast/ratio t (specked (colour ground s clip?) t)))))
 
 (deftest the-text-contrasts-on-the-grain
-  (testing "on the bars"
+  (testing "on the bar"
     (doseq [[k on wants] [["--on-bar" "--bar" 4.5]
                           ["--on-bar-2" "--bar" 4.5]
                           ["--bar-rule" "--bar" 3]
@@ -175,16 +175,9 @@
       (is (<= 4.5 (least-specked-ratio (nth (tokens main "--accent-ink") i) accent seeds)) "a filled button's label")
       (is (<= 4.5 (least-specked-ratio accent (nth (tokens main "--accent-soft") i) seeds)) "links on a soft fill"))))
 
-(defn label-ratios
-  "The least contrast ratio of the label `label` of each page with the
-  `ground`, a token or a colour, over the `xs` seeds of the ground."
-  [label ground xs]
-  (into {} (for [[p seed] pages]
-             [p (apply min (for [clip? [false true]]
-                             (least-ratio (colour label seed clip?) ground xs)))])))
-
 (def rail-tone
-  "How much of the colour of the label of the rail's page tones its paper."
+  "How much of the colour of the label of the navigation's page tones its
+  paper."
   (-> #"color-mix\(in oklab, var\(--label, var\(--seed-accent\)\) ([\d.]+)%, var\(--paper\)\)"
       (re-find look)
       second
@@ -214,66 +207,53 @@
   (shades (nth (tokens shell "--seed-accent") i) seeds))
 
 (deftest the-labels-contrast-with-their-ground
-  (let [[on-bar] (tokens (declarations look ".shell > nav li" 0) "--label")
-        [bar]    (tokens shell "--bar")
-        rail     (tokens (declarations look ".shell > nav li" 2) "--label")]
-    (is (every? #(<= 4.5 %) (vals (label-ratios on-bar bar seeds)))
-        "on the bar of every artwork")
-    (is (every? #(<= 4.5 %) (vals (label-ratios on-bar bar [(get root "--app")])))
-        "and of the app's own near-black")
+  (let [rail (tokens (declarations look ".shell > nav li" 0) "--label")]
     (doseq [i [0 1]
             :let [labels (shades (nth rail i) (vals pages))]]
       (is (<= 4.5 (least-on-rail labels (concat labels (accents shell i)) i))
-          (str "on the rail, " (["light" "dark"] i))))))
+          (str "on the navigation's paper, " (["light" "dark"] i))))))
 
 (def player
   "The rule of the labels in the player's colour."
   ".shell[data-palette=\"player\"] > nav li")
 
 (deftest the-labels-in-the-player's-colour-contrast-at-every-hue
-  (let [[on-bar] (tokens (declarations look player 0) "--label")
-        [bar]    (tokens shell "--bar")
-        rail     (tokens (declarations look player 2) "--label")]
-    (is (<= 4.5 (least-ratio on-bar bar seeds)) "on the bar")
+  (let [rail (tokens (declarations look player 0) "--label")]
     (doseq [i [0 1]]
       (is (<= 4.5 (apply min (for [c (shades (nth rail i) seeds)]
                                (least-on-rail [c] [c] i))))
-          (str "on the rail, toned with them, " (["light" "dark"] i))))))
+          (str "on the navigation's paper, toned with them, " (["light" "dark"] i))))))
 
 (def color-blind
-  "The labels for colour blindness of each page, on a bar and on the
-  paper in light and dark."
+  "The labels for colour blindness of each page, on the paper in light and
+  dark."
   (let [rule #(str ".shell[data-palette=\"color-blind\"] [data-page=\"" % "\"]")]
     (into {} (for [p (keys pages)]
-               [p {:bar   (get (declarations look (rule p) 0) "--label")
-                   :paper (light-dark (get (declarations look (rule p) 2) "--label"))}]))))
+               [p (light-dark (get (declarations look (rule p) 0) "--label"))]))))
 
 ;; a ΔEOK of 0.02 is about the least that shows, as vision/least-difference
 ;; has it, and these are meant to look different, not just to differ
 (deftest the-labels-for-colour-blindness-stay-apart
-  (let [bars   (map :bar (vals color-blind))
-        lights (map (comp first :paper) (vals color-blind))
-        darks  (map (comp second :paper) (vals color-blind))
-        [bar]  (tokens shell "--bar")]
-    (is (every? some? (concat bars lights darks)) "as look.css has them")
-    (doseq [[ground cs] [["on the bar" bars] ["on the light paper" lights] ["on the dark paper" darks]]]
+  (let [lights (map first (vals color-blind))
+        darks  (map second (vals color-blind))]
+    (is (every? some? (concat lights darks)) "as look.css has them")
+    (doseq [[ground cs] [["on the light paper" lights] ["on the dark paper" darks]]]
       (is (every? #(<= 0.05 %) (vals (vision/least-difference cs)))
           (str ground ", for every colour vision")))
-    (is (every? #(<= 4.5 (least-ratio % bar seeds)) bars) "with contrast on the bar of every artwork")
-    (is (<= 4.5 (least-on-rail lights (concat lights (accents shell 0)) 0)) "and on the light rail")
-    (is (<= 4.5 (least-on-rail darks (concat darks (accents shell 1)) 1)) "and on the dark rail")))
+    (is (<= 4.5 (least-on-rail lights (concat lights (accents shell 0)) 0)) "with contrast on the light paper")
+    (is (<= 4.5 (least-on-rail darks (concat darks (accents shell 1)) 1)) "and on the dark paper")))
 
 (deftest more-contrast-meets-the-enhanced-level
   (let [more   (declarations look ":root[data-contrast=\"more\"] .shell" 0)
-        rail   (tokens (declarations look ":root[data-contrast=\"more\"] .shell[data-palette=\"pages\"] > nav li" 2) "--label")
-        player (tokens (declarations look (str ":root[data-contrast=\"more\"] " player) 2) "--label")
+        rail   (tokens (declarations look ":root[data-contrast=\"more\"] .shell[data-palette=\"pages\"] > nav li" 0) "--label")
+        player (tokens (declarations look (str ":root[data-contrast=\"more\"] " player) 0) "--label")
         [bar]  (tokens shell "--bar")]
-    (is (<= 7 (least-ratio (first (tokens more "--on-bar-2")) bar seeds)) "secondary text on the bars")
-    (is (<= 4.5 (least-ratio (first (tokens more "--bar-rule")) bar seeds)) "the edges of controls on the bars")
+    (is (<= 7 (least-ratio (first (tokens more "--on-bar-2")) bar seeds)) "secondary text on the bar")
+    (is (<= 4.5 (least-ratio (first (tokens more "--bar-rule")) bar seeds)) "the edges of controls on the bar")
     (doseq [i [0 1]
             :let [labels (shades (nth rail i) (vals pages))]]
       (is (<= 7 (least-ratio (nth (tokens more "--seed-accent") i) (nth paper i) seeds)) "links")
-      (is (<= 7 (least-on-rail labels (concat labels (accents more i)) i)) "labels on the rail")
+      (is (<= 7 (least-on-rail labels (concat labels (accents more i)) i)) "labels on the navigation's paper")
       (is (<= 7 (apply min (for [c (shades (nth player i) seeds)]
                              (least-on-rail [c] [c] i))))
-          "labels in the player's colour on the rail"))))
+          "labels in the player's colour on the navigation's paper"))))
