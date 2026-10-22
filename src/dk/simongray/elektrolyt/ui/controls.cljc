@@ -1,10 +1,68 @@
 (ns dk.simongray.elektrolyt.ui.controls
   "The form controls that several views share, e.g. the select of a
-  choice and the button of a folded section, whose views give the
-  actions, labels and layout.
+  choice, the button of a folded section and the buttons with icons, whose
+  views give the actions, labels and layout.
+
+  The icon and its buttons are Replicant aliases, which a view writes as
+  hiccup with the path of an icon of ui.icons, e.g.
+
+      [controls/icon-button {:icon icons/pause :on {...}} \"Pause\"]
 
   The state keeps the folded sections that the listener opened as :open,
-  a map of the place of each, e.g. [:chapters id], to true.")
+  a map of the place of each, e.g. [:chapters id], to true."
+  (:require [replicant.alias :refer [defalias]]))
+
+;; An icon in the colour of the text around it, which a screen reader
+;; skips, since the control that holds it has a name of its own. In forced
+;; colours, browsers keep an svg's currentColor in step with the text,
+;; where an icon painted as a masked background would take the colour of
+;; the background and vanish.
+;; https://www.sarasoueidan.com/blog/accessible-icon-buttons/
+;; https://www.w3.org/TR/css-color-adjust-1/#forced-color-adjust-prop
+(defalias icon
+  "The svg of the path that the `attrs` have as :icon, e.g. icons/play,
+  with the rest of the `attrs`, and the `children` drawn over the path,
+  e.g. the seconds in the arrow of a skip."
+  [attrs children]
+  (into [:svg.icon (merge {:viewBox     "0 0 256 256"
+                           :width       "1em"
+                           :height      "1em"
+                           :fill        "currentColor"
+                           :aria-hidden "true"}
+                          (dissoc attrs :icon))
+         [:path {:d (:icon attrs)}]]
+        children))
+
+(defn icon-of
+  "The icon of `x`, a path of ui.icons, or `x` itself, an icon that a view
+  drew, e.g. a skip with the seconds in its arrow."
+  [x]
+  (if (string? x)
+    [icon {:icon x}]
+    x))
+
+(defalias button
+  "A button with the `children`, its words, after the icon that the
+  `attrs` have as :icon, as icon-of takes it, and the rest of the `attrs`,
+  e.g. :on."
+  [attrs children]
+  (into [:button.with-icon (merge {:type "button"} (dissoc attrs :icon))
+         (icon-of (:icon attrs))]
+        children))
+
+;; Its words are visually hidden text rather than an aria-label, which
+;; the browsers' translations still skip. NN/g finds that few icons are
+;; understood without words, so this button is for those few, e.g. Play.
+;; https://adrianroselli.com/2019/11/aria-label-does-not-translate.html
+;; https://www.nngroup.com/articles/icon-usability/
+(defalias icon-button
+  "A button that shows only the icon that the `attrs` have as :icon, as
+  icon-of takes it, with the rest of the `attrs`, and is named by the
+  `children`, its words, which only a screen reader reads."
+  [attrs children]
+  [:button.icon-button (merge {:type "button"} (dissoc attrs :icon))
+   (icon-of (:icon attrs))
+   [:span.visually-hidden children]])
 
 ;; WAI-ARIA APG, disclosure: a button in the heading that says whether
 ;; what it shows is expanded, its words the heading's, with a caret after

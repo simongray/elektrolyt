@@ -93,6 +93,14 @@ Evaluate `(shadow.cljs.devtools.api/repl :app)` there to reach the app in an
 open tab. The `:serve` alias starts another one, whose port is in
 `.nrepl-port`.
 
+The icons are the Light weight of [Phosphor Icons](https://phosphoricons.com),
+from the npm package `@phosphor-icons/core`. Each icon's path is a def of its
+own in the `ui.icons` namespace, named as Phosphor names it, so a release
+build keeps only the icons that the views use. After you update the package,
+evaluate `(write-icons! "light")` in the `dk.simongray.elektrolyt.phosphor`
+namespace to write them again. Phosphor's licence, MIT, is at the top of that
+file.
+
 To run the tests in Node:
 
 ```bash

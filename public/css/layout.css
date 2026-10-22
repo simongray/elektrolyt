@@ -66,6 +66,37 @@ button.disclosure {
   text-align: inherit;
 }
 
+/* A button with an icon before its words, centred on their line, and a
+   button of an icon alone, a square as tall as the other controls. The
+   icon is larger than the words, since its lines are thinner than the
+   stems of their letters. */
+.with-icon,
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+}
+
+.icon {
+  flex: none;
+}
+
+.with-icon .icon {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+.icon-button {
+  min-width: var(--control-height);
+  padding: 0.3em;
+}
+
+.icon-button .icon {
+  width: 1.5em;
+  height: 1.5em;
+}
+
 /* A list whose role is explicit has no markers, and so no room for them,
    nor margins of its own, since the layout spaces its rows. It keeps
    role="list", since Safari drops the semantics of a list without

@@ -5,6 +5,7 @@
     "e2e": "playwright test -c test/e2e"
   },
   "devDependencies": {
+    "@phosphor-icons/core": "2.1.1",
     "@playwright/test": "^1.64.0",
     "shadow-cljs": "3.5.7",
     "snabbdom": "^3.6.4"
