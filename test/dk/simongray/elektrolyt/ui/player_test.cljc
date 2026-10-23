@@ -39,9 +39,9 @@
     (is (= [(lists-ui/episode-href lib id "Episode 7") (lists-ui/show-href lib (first id) "A Show")]
            (map (comp :href second) (elements :a (elements :div.player-title x))))
         "the episode's title and the show's name, links to their pages")
-    (is (= ["Previous chapter" "Back 15 seconds" "Pause" "Forward 30 seconds" "Next chapter" "Controls" "Mute"]
+    (is (= ["Previous chapter" "Back 15 seconds" "Pause" "Forward 30 seconds" "Next chapter" "Mute"]
            (map text-of (buttons x)))
-        "the transport in the order of a CD player's")
+        "the transport in the order of a CD player's, and the speaker, every one in view")
     (testing "the seek bar, which a screen reader reads in words"
       (is (= {:min 0 :max 3600 :step 1 :value 75 :aria-valuetext "1 minute, 15 seconds"}
              (select-keys (attributes-of "player-position" x) [:min :max :step :value :aria-valuetext])))
@@ -60,17 +60,6 @@
   (is (= [:p.visually-hidden {:role "status"} "Loading…"]
          (first (elements :p.visually-hidden (player-ui/region (state {:buffering? true})))))
       "which only a screen reader reads, so that the player doesn't move as it changes"))
-
-(deftest the-controls-on-a-phone
-  (let [button #(some (fn [b] (when (= "Controls" (text-of b)) (second b))) (buttons %))
-        shown  #(:class (attributes-of "player-controls" %))]
-    (is (= "false" (:aria-expanded (button (player-ui/region (state {}))))))
-    (is (= ["player-controls" "collapsed"] (shown (player-ui/region (state {})))))
-    (is (= "true" (:aria-expanded (button (player-ui/region (state {:expanded? true}))))))
-    (is (= ["player-controls"] (shown (player-ui/region (state {:expanded? true})))))
-    (is (= ["group" "Controls"]
-           ((juxt :role :aria-label) (attributes-of "player-controls" (player-ui/region (state {})))))
-        "a group named as the button")))
 
 (deftest the-volume
   (let [mute   #(some (fn [b] (when (#{"Mute" "Unmute"} (text-of b)) [(text-of b) (:on (second b))]))

@@ -159,8 +159,11 @@
 ;; the focus moving, as Video.js hides its volume. It stays hidden until
 ;; both have left the element, with the focus on its button, since the
 ;; focus mustn't stay in a part that's hidden. The mark of it is an
-;; attribute that the views never set, so that a render keeps it.
+;; attribute that the views never set, so that a render keeps it. The
+;; platform's own popover for hover, with interestfor, would do this, but
+;; only Chrome and Edge have it so far.
 ;; https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
+;; https://caniuse.com/wf-interest-invokers
 (defn dismiss-on-escape!
   "Hide what the element of the keyboard `event` shows on hover and focus,
   for Escape, with the focus on its button."

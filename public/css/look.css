@@ -129,6 +129,8 @@ time,
 .player-next,
 .shell {
   --bar: oklch(from var(--bar-seed) 33% min(c, 0.1) calc(h + 180));
+  /* the deck of the player's controls below the episode, a little deeper */
+  --bar-deck: oklch(from var(--bar-seed) 28% min(c, 0.1) calc(h + 180));
   --on-bar: oklch(from var(--bar-seed) 97% min(c, 0.012) calc(h + 180));
   --on-bar-2: oklch(from var(--bar-seed) 84% min(c, 0.035) calc(h + 180));
   --bar-rule: oklch(from var(--bar-seed) 68% min(c, 0.05) calc(h + 180));
@@ -151,9 +153,14 @@ time,
 
 /* Inside the bar, the content's tokens take the bar's values, so that
    every rule below applies there unchanged. The bar is a colour printed
-   on the paper, so the paper's grain lies over it. */
+   on the paper, so the paper's grain lies over it. Below the episode's
+   row the controls lie on a deck of their own, which the artwork and
+   what's next stand on, so that they don't float. The bar stays the
+   background's colour, which the browser's own bars take (page.cljs). */
 #player {
-  background: var(--grain) 0 0 / var(--grain-size), var(--bar);
+  background: var(--grain) 0 0 / var(--grain-size),
+              linear-gradient(transparent var(--player-row), var(--bar-deck) 0),
+              var(--bar);
   color-scheme: dark;
   color: var(--on-bar);
   --ink: var(--on-bar);
@@ -485,6 +492,19 @@ img {
   background: var(--grain) 0 0 / var(--grain-size), var(--rule-soft);
 }
 
+/* Artwork that links where the title after it does is a little brighter
+   under the pointer, as a button's soft fill lightens it, and the title
+   is underlined as it is under the pointer itself. A keyboard and a
+   screen reader skip the artwork for the title (artwork.cljc). */
+.artwork-link:hover img {
+  filter: brightness(1.12);
+}
+
+.artwork-link:hover + :is(h2, h3) a,
+.artwork-link:hover + .player-title p:first-child a {
+  text-decoration: underline;
+}
+
 /* A break between the parts of a text, e.g. of a show's notes */
 hr {
   border: 0;
@@ -585,28 +605,34 @@ hgroup > p {
 }
 
 /* The player's buttons are their icons, with neither an outline nor a
-   fill, but for the bar's soft fill under the pointer */
+   fill, but for the bar's soft fill under the pointer, as the speed has */
 #player .icon-button {
   border-color: transparent;
   background: none;
 }
 
-#player .icon-button:hover {
+#player .icon-button:hover,
+#player-speed:hover {
   background: var(--grain) 0 0 / var(--grain-size), var(--accent-soft);
 }
 
-/* the volume's panel a piece of the bar, lifted off the page and the bar
-   by the bar's own shadow */
+/* the volume's panel a piece of the deck that it rises from, lifted off
+   the page and the bar by the bar's own shadow */
 .player-volume-slider {
   border-radius: var(--radius);
-  background: var(--grain) 0 0 / var(--grain-size), var(--bar);
+  background: var(--grain) 0 0 / var(--grain-size), var(--bar-deck);
   box-shadow: 0 0 5px oklch(0% 0 0 / 0.3);
 }
 
 /* the episode's title and its show's name, links to their pages, as
-   plain as the text beside them */
+   plain as the text beside them but for an underline under the pointer,
+   as a list's titles have */
 .player-title a {
   text-decoration: none;
+}
+
+.player-title a:hover {
+  text-decoration: underline;
 }
 
 .player-title p:first-child a {
@@ -622,36 +648,40 @@ hgroup > p {
   font-size: var(--step--1);
 }
 
-/* "Next" in small caps, as the navigation's labels are */
+/* "Next" in small caps, as the navigation's labels are, a little smaller,
+   to fit the mat above the artwork */
 .player-next-label {
+  font-size: 0.875em;
   font-variant-caps: all-small-caps;
+  line-height: 1;
   letter-spacing: var(--caps-tracking);
 }
 
-/* On a wide screen, the bar that the player will take from the next
-   episode's artwork, as a mat that frames it, with the grain of the bar
-   over it */
-@media (min-width: 60em) {
-  .player-next {
-    background: var(--grain) 0 0 / var(--grain-size), var(--bar);
-    text-decoration: none;
-  }
+/* what's next on the bar that the player will take from its artwork, as
+   a mat that frames it, with the grain of the bar over it */
+.player-next {
+  background: var(--grain) 0 0 / var(--grain-size), var(--bar);
+  text-decoration: none;
+}
 
-  /* a little smaller, to fit the mat above the artwork */
-  .player-next-label {
-    font-size: 0.875em;
-    line-height: 1;
-  }
+.player-next:hover {
+  background: var(--grain) 0 0 / var(--grain-size),
+              linear-gradient(var(--accent-soft), var(--accent-soft)),
+              var(--bar);
+}
 
-  .player-next:hover {
-    background: var(--grain) 0 0 / var(--grain-size),
-                linear-gradient(var(--accent-soft), var(--accent-soft)),
-                var(--bar);
-  }
-
-  .player-next-artwork {
-    border-radius: var(--artwork-radius);
-  }
+/* The speed as bare text, e.g. 1.5×, with only the caret of its menu, as
+   plain as the icons beside it, and its target as big as theirs. It's as
+   wide as the speed it shows, where the browser sizes a field by its
+   content, so that the caret follows the text, and else as wide as the
+   longest. */
+#player-speed {
+  min-width: var(--player-target);
+  min-height: var(--player-target);
+  padding-inline: 0 1em;
+  border-color: transparent;
+  appearance: none;
+  field-sizing: content;
 }
 
 /* Type reversed out of the bar, like the text in the coloured panels of

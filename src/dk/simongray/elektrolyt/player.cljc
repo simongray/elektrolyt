@@ -8,7 +8,6 @@
   - :media, the state of the audio element, as play-nice's media/watch!
     gives it, to the whole second
   - :seeking, the seconds that the seek bar is dragged to, while it is
-  - :expanded?, whether the controls show on a phone
   - :volume and :volume-locked?, the level of the volume slider, and
     whether the device locks the volume, as an iPhone does
   - :answer, the browser's last refusal to play, e.g. {:refused

@@ -237,10 +237,6 @@
   (fn [_ store muted?]
     (audio/act! store [:mute muted?])))
 
-(nxr/register-effect! :player/expand
-  (fn [_ store expanded?]
-    (swap! store assoc-in [:player :expanded?] expanded?)))
-
 ;; The library
 
 (nxr/register-effect! :library/subscribe

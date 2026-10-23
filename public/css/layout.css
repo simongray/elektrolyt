@@ -622,33 +622,44 @@ search p {
 
 
 /* The player: a grid of rows of a fixed height, so that its artwork, at
-   its edges, is square and as tall as they are. On a phone that's one row
-   of the episode and Controls, above the seek bar and the transport, and
-   Controls shows the other controls below them. Wider than that, it's two
-   rows, with the transport beside the episode and the seek bar below
-   them, and Controls shows the rest below both, until there's room for
-   them beside the transport. The player
-   is a row of the shell's grid, outside the main content that scrolls, so
-   it never covers what has the focus (WCAG 2.2, SC 2.4.11). */
+   its edges, is square and as tall as they are. On a phone or a narrow
+   window that's a row of the episode, with what's next at the right edge
+   as the artwork is at the left, then the seek row, with the speed below
+   the artwork and the speaker below what's next, and the transport below
+   them. Where the title has room beside the transport, it's two rows,
+   with the transport beside the episode and the seek row below them.
+   Every control is in view at every width, since controls behind a
+   button are found far less often, as NN/g found of hidden navigation.
+   The player is a row of the shell's grid, outside the main content that
+   scrolls, so it never covers what has the focus (WCAG 2.2, SC 2.4.11).
+   https://www.nngroup.com/videos/hamburger-menus/
+
+   The spacing has one rule: text and icons are the player's space from
+   every edge, of the player, the artwork, what's next and the deck
+   (look.css), and from each other, but for the times, which stay close
+   to their bar. The episode's row is as tall as a row of icons with that
+   space above and below, which leaves the title as much. A button stands
+   at the inset from an edge, since its icon has room of its own inside
+   its target. */
 #player {
-  --player-height: 4rem;
-  /* the room between the player's parts, the same at its right edge as
-     beside its artwork */
   --player-space: var(--space-3);
   --player-icon: 32px;
   --player-target: 44px;
+  --player-inset: calc(var(--player-space) - (var(--player-target) - var(--player-icon)) / 2);
+  --player-row: calc(var(--player-icon) + 2 * var(--player-space));
+  /* the height of the seek bar, which the browsers draw differently */
+  --player-bar: 1.25rem;
+  /* the artwork's size, as tall as the rows beside it */
+  --player-height: var(--player-row);
   display: grid;
-  grid-template-columns: var(--player-height) minmax(0, 1fr) auto;
-  grid-template-rows: var(--player-height);
+  grid-template-columns: var(--player-height) minmax(0, 1fr) var(--player-height);
+  grid-template-rows: var(--player-row) auto auto;
   grid-template-areas:
-    "art       title     more"
-    "seek      seek      seek"
-    "transport transport transport"
-    "extras    extras    extras"
-    "upnext    upnext    upnext";
+    "art       title     upnext"
+    "seek-row  seek-row  seek-row"
+    "transport transport transport";
   align-items: center;
   column-gap: var(--player-space);
-  padding-right: var(--player-space);
 }
 
 /* The player's buttons are icons alone, whose lines are as heavy as the
@@ -681,33 +692,6 @@ search p {
   min-width: 0;
 }
 
-/* at the right edge, its icon rather than its target as far from it as the
-   time left */
-.player-more {
-  grid-area: more;
-  margin-inline-end: calc((var(--player-icon) - var(--player-target)) / 2);
-}
-
-/* the rows below the artwork start as far from the player's left edge as
-   they end from its right */
-.player-seek,
-.player-transport,
-.player-controls {
-  padding-block-start: var(--space-2);
-  padding-inline-start: var(--player-space);
-}
-
-/* The buttons of the transport side by side, their targets touching, since
-   their icons have room around them. The icons are as far from the
-   player's bottom edge as Controls' icon is from its right, since nothing
-   is below them until Controls opens. */
-.player-transport {
-  display: flex;
-  grid-area: transport;
-  justify-content: center;
-  padding-block-end: calc(var(--player-space) + (var(--player-icon) - var(--player-target)) / 2);
-}
-
 /* A line each for the title and the show, cut short, so that the player
    stays low on a phone; the title links to the episode's page, which has
    all of it */
@@ -718,13 +702,83 @@ search p {
   white-space: nowrap;
 }
 
-.player-controls {
+/* In three rows, the seek row takes the player's columns, with the speed
+   below the artwork and the speaker below what's next, and the times
+   above the ends of the seek bar, so that the bar keeps its length
+   between them. Its parts stand on its foot, the bar's middle in line
+   with the speed's and the speaker's. */
+.player-seek-row {
+  display: grid;
+  grid-area: seek-row;
+  grid-template-columns: subgrid;
+  align-items: end;
+  padding-block-start: var(--player-space);
+}
+
+.player-speed {
+  position: relative;
+  grid-column: 1;
+  justify-self: center;
+}
+
+/* the caret of the speed's menu at its right edge, which a press goes
+   through to the menu */
+#player .player-speed .icon {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 0.75em;
+  height: 0.75em;
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+.player-volume {
+  grid-column: 3;
+  justify-self: center;
+}
+
+/* The times above the bar, set solid and clear of its thumb, and below it
+   half of what a target is taller than it, so that its middle is a
+   target's */
+.player-seek {
+  display: grid;
+  grid-column: 2;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "now .    left"
+    "bar bar  bar";
+  row-gap: var(--space-2);
+  padding-block-end: calc((var(--player-target) - var(--player-bar)) / 2);
+}
+
+.player-seek input {
+  grid-area: bar;
+  min-width: 0;
+  block-size: var(--player-bar);
+  margin: 0;
+}
+
+.player-seek time {
+  line-height: 1;
+}
+
+.player-seek time:first-of-type {
+  grid-area: now;
+}
+
+.player-seek time:last-of-type {
+  grid-area: left;
+}
+
+/* the buttons of the transport side by side, their targets touching, since
+   their icons have room around them, and their icons the player's space
+   from its foot */
+.player-transport {
   display: flex;
-  grid-area: extras;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5em;
-  padding-block-end: var(--space-2);
+  grid-area: transport;
+  justify-content: center;
+  padding-block-end: var(--player-inset);
 }
 
 /* The volume's slider rises from the speaker on a panel that lies under
@@ -763,7 +817,12 @@ search p {
    the keyboard's focus is on either, and while the slider is dragged or
    has the focus, so that a hand that drifts doesn't lose it. It stays
    0.3 s after the mouse leaves, and Escape hides it at once (page.cljs).
-   A touch screen has no hover, so there the speaker only mutes. */
+   A touch screen has no hover, so there the speaker only mutes. Players
+   whose slider showed on hover alone lost the keyboard, and those that
+   hid it at once lost the listener mid-drag.
+   https://bugzilla.mozilla.org/show_bug.cgi?id=486899
+   https://issues.fluidproject.org/browse/VP-271/
+   https://github.com/owncast/owncast/issues/3497 */
 @media (hover: hover) {
   .player-volume:not([data-dismissed]):hover .player-volume-slider {
     visibility: visible;
@@ -780,61 +839,118 @@ search p {
   transition: none;
 }
 
-/* what's next, a line of text below the controls, and shown with them */
+/* What's next, a square at the player's right edge, as tall as the
+   episode's row, as the artwork is at its left: "Next" and the artwork
+   below it in the middle of the square together, with a mat as wide on
+   either side of the artwork. The label's box is trimmed to its letters,
+   so that it's they that are centred, and not the room above and below
+   them in the line. */
 .player-next {
+  --next-mat: 0.875rem;
+  display: flex;
   grid-area: upnext;
-  padding: 0 0 var(--space-2) var(--player-space);
-  overflow-wrap: anywhere;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  align-self: stretch;
+  inline-size: var(--player-height);
+  overflow: hidden;
 }
 
-/* behind Controls until a wide screen has room for them */
-@media (width < 60em) {
-  .player-controls.collapsed,
-  #player:has(.player-controls.collapsed) .player-next,
-  .player-next-artwork {
-    display: none;
+.player-next-label {
+  text-box: trim-both ex alphabetic;
+}
+
+.player-next-artwork {
+  display: block;
+  width: calc(var(--player-height) - 2 * var(--next-mat));
+  height: auto;
+  aspect-ratio: 1;
+}
+
+/* the colon after "Next", and the episode's title, for a screen reader */
+.player-next-colon,
+.player-next-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* but the title in the artwork's place, for an episode without one */
+.player-next:not(:has(.player-next-artwork)) .player-next-title {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  white-space: normal;
+  text-align: center;
+}
+
+/* with nothing next, the title takes its place */
+@media (width < 50em) {
+  #player:not(:has(.player-next)) .player-title {
+    grid-column: title-start / upnext-end;
+    padding-inline-end: var(--player-space);
   }
 }
 
-.player-seek {
-  display: flex;
-  grid-area: seek;
-  align-items: center;
-  gap: 0.5em;
-}
-
-.player-seek input {
-  flex: 1;
-  min-width: 0;
-}
-
-@media (min-width: 37.5em) {
-  /* The transport's buttons touch, so the grid has no gaps, and the
-     title, the seek bar and Controls keep their distance themselves. The
-     chapters' columns are empty, and so take no room, for an episode
-     without chapters. */
+/* From 50em, the title has 20em beside the transport and what's next */
+@media (min-width: 50em) {
+  /* The transport's buttons touch, so the grid has no gaps, and the title
+     and the seek row keep their distance themselves. The chapters'
+     columns are empty, and so take no room, for an episode without
+     chapters, and so is the column of what's next, without one. The
+     episode's row is a row like the phone's, and the seek row below it is
+     only as much taller than a target as keeps the player low. */
   #player {
-    --player-height: 6rem;
+    --player-height: 7rem;
     grid-template-columns: var(--player-height) minmax(0, 1fr) repeat(5, auto) auto;
-    grid-template-rows: calc(var(--player-height) - 2.5rem) 2.5rem;
+    grid-template-rows: var(--player-row) calc(var(--player-height) - var(--player-row));
     grid-template-areas:
-      "art    title  previous back   play   forward next   more"
-      "art    seek   seek     seek   seek   seek    seek   seek"
-      "extras extras extras   extras extras extras  extras extras"
-      "upnext upnext upnext   upnext upnext upnext  upnext upnext";
+      "art title    previous back     play     forward  next     upnext"
+      "art seek-row seek-row seek-row seek-row seek-row seek-row upnext";
     column-gap: 0;
+    padding-right: var(--player-inset);
+  }
+
+  /* what's next flush with the right edge, as the artwork is with the
+     left, as tall as the player */
+  #player:has(.player-next) {
+    padding-right: 0;
+  }
+
+  .player-next {
+    --next-mat: 1.375rem;
+    gap: var(--space-2);
+    margin-inline-start: var(--player-inset);
   }
 
   .player-title {
     padding-inline: var(--player-space);
   }
 
-  .player-more {
-    margin-inline-start: var(--player-space);
+  /* the speed, the seek bar with its times beside it, and the speaker in
+     a line below the episode and the transport */
+  .player-seek-row {
+    display: flex;
+    gap: var(--space-2);
+    padding-block-start: 0;
+    padding-inline-start: var(--player-space);
   }
 
   .player-seek {
-    padding-block-start: 0;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  .player-seek input {
+    flex: 1;
   }
 
   /* the transport in the first row, beside the episode */
@@ -860,82 +976,6 @@ search p {
 
   .player-next-chapter {
     grid-area: next;
-  }
-}
-
-/* From 60em, the title still has 20em beside the rest of the controls, so
-   they leave Controls for the first row, after the transport, and what's
-   next is a square at the player's right edge, as tall as the player, as
-   its artwork is at its left: "Next" above the next episode's artwork.
-   Without one, the column is empty and takes no room. */
-@media (min-width: 60em) {
-  #player {
-    grid-template-columns: var(--player-height) minmax(0, 1fr) repeat(5, auto) auto auto;
-    grid-template-areas:
-      "art    title  previous back   play   forward next   extras upnext"
-      "art    seek   seek     seek   seek   seek    seek   seek   upnext";
-    padding-right: 0;
-  }
-
-  .player-more {
-    display: none;
-  }
-
-  .player-controls {
-    padding: 0 var(--player-space);
-  }
-
-  .player-seek {
-    padding-inline-end: var(--player-space);
-  }
-
-  /* "Next" and the artwork below it in the middle of the square together,
-     with a mat as wide on either side of the artwork. The label's box is
-     trimmed to its letters, so that it's they that are centred, and not
-     the room above and below them in the line. */
-  .player-next {
-    --next-mat: 1.375rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    align-self: stretch;
-    inline-size: var(--player-height);
-    padding: 0;
-    overflow: hidden;
-  }
-
-  .player-next-label {
-    text-box: trim-both ex alphabetic;
-  }
-
-  .player-next-artwork {
-    display: block;
-    width: calc(var(--player-height) - 2 * var(--next-mat));
-    height: auto;
-    aspect-ratio: 1;
-  }
-
-  /* the colon after "Next", and the episode's title, for a screen reader */
-  .player-next-colon,
-  .player-next-title {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  /* but the title in the artwork's place, for an episode without one */
-  .player-next:not(:has(.player-next-artwork)) .player-next-title {
-    position: static;
-    width: auto;
-    height: auto;
-    clip-path: none;
-    white-space: normal;
-    text-align: center;
   }
 }
 

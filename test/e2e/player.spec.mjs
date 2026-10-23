@@ -39,8 +39,8 @@ test('the keyboard reaches the volume from the speaker, and Escape hides it', as
 
   await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
   await expect(slider).toBeHidden();
-  // from the speed before it
-  await player.getByRole('combobox', { name: 'Speed' }).focus();
+  // from the seek bar before it
+  await player.getByRole('slider', { name: 'Position' }).focus();
   await page.keyboard.press('Tab');
   await expect(speaker).toBeFocused();
   await expect(slider).toBeVisible();

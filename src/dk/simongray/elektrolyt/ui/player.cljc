@@ -1,12 +1,13 @@
 (ns dk.simongray.elektrolyt.ui.player
   "The views of the player, which stays as the pages change.
 
-  On a phone it's a row of the episode and Controls, which opens the
-  other controls, above the seek bar and the transport. Wider than that,
-  the transport is beside the episode, with the seek bar below them, and
-  on a wide screen the other controls are beside the transport too. Its
-  buttons are icons alone. The Episode page is the player's full view,
-  with the notes, the chapters and the transcript."
+  On a phone or a narrow window it's a row of the episode and what's
+  next, above the seek bar between the speed and the speaker, and the
+  transport below them. Where the title has room beside it, the transport
+  is beside the episode, with the seek row below them. Every control is
+  in view at every width, and its buttons are icons alone. The Episode
+  page is the player's full view, with the notes, the chapters and the
+  transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.elektrolyt.colors :as colors]
             [dk.simongray.elektrolyt.player :as player]
@@ -19,7 +20,7 @@
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
-;; at the size of the player on a desktop, whose height is 6rem (see
+;; at the size of the player on a desktop, whose height is 7rem (see
 ;; layout.css)
 (defn artwork
   "The artwork of the `playback`, or the image of its chapter at `seconds`,
@@ -30,7 +31,7 @@
   (let [image (or (some-> (:img (player/chapter-at playback seconds)) player/proxied)
                   artwork)]
     (when image
-      (artwork/linked href (artwork/img {:artwork image} 96 (merge {:class "player-artwork"} attrs))))))
+      (artwork/linked href (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs))))))
 
 (defn now-playing
   "The title and the show of the `playback`, with its title of the chapter
@@ -75,8 +76,9 @@
 
 ;; Phosphor has no skip by a number of seconds, and the listener chooses
 ;; theirs, so the number is text inside the arrow, in the font of the page,
-;; as Apple Podcasts draws it. Its size leaves a stroke's width of air
-;; between it and the ring.
+;; as Apple's own symbols for it draw it, e.g. gobackward.15. Its size
+;; leaves a stroke's width of air between it and the ring.
+;; https://developer.apple.com/sf-symbols/
 (defn skip-icon
   "The icon of a skip by `seconds` in the `direction`, :back or :forward,
   with the number inside the arrow."
@@ -125,15 +127,18 @@
         "Next chapter"])]))
 
 ;; Its options, e.g. 1.5×, say what it is, so its label is for a screen
-;; reader
+;; reader. It's bare text with a caret of our own, since the browser's
+;; arrow, beside room for its longest option, is too wide below the
+;; artwork on a phone (layout.css).
 (defn speed
   "The choice of the speed of the `media` state, which sets the listener's
   preference."
   [{:keys [playback-rate] :as media}]
-  (list
+  [:div.player-speed
    [:label.visually-hidden {:for "player-speed"} "Speed"]
    (controls-ui/select "player-speed" player/speed-options (or playback-rate 1)
-                       [:player/rate [:event/target-number]])))
+                       [:player/rate [:event/target-number]])
+   [controls-ui/icon {:icon icons/caret-down}]])
 
 (defn volume-icon
   "The icon of the sound at the `level` of the volume slider, struck out
@@ -145,13 +150,15 @@
     :else                    icons/speaker-high))
 
 ;; The speaker mutes on every device, and its name says what a press does,
-;; as the browsers' own controls have it. Where a mouse can rest on it, the
-;; slider rises from it, as Video.js draws its volume when it's not inline:
-;; on hover, and on the keyboard's focus, so that Tab reaches the slider
-;; (layout.css). An iPhone plays at the system's volume, which a page can
-;; neither set nor read, so there's no slider there, and on a touch screen,
-;; whose buttons set the level, none shows. While muted, the slider stands
-;; at silence, at the bottom, and moving it unmutes.
+;; Mute or Unmute, with no aria-pressed, as the APG's button pattern has
+;; it. Where a mouse can rest on it, the slider rises from it, as Video.js
+;; draws its volume when it's not inline: on hover, and on the keyboard's
+;; focus, so that Tab reaches the slider (layout.css). An iPhone plays at
+;; the system's volume, which a page can neither set nor read, so there's
+;; no slider there, and on a touch screen, whose buttons set the level,
+;; none shows. While muted, the slider stands at silence, at the bottom,
+;; and moving it unmutes.
+;; https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ;; https://docs.videojs.com/control-bar_volume-panel.js.html
 (defn volume-control
   "The mute button of the `media` state, with the slider at its `level`
@@ -179,11 +186,10 @@
                                            muted (conj [:player/mute false]))}}]])]))
 
 ;; Pocket Casts, Apple Podcasts and Spotify all reach the queue from the
-;; player, which here is a page of the app. On a wide screen it's a square
-;; at the player's right edge, as the artwork is at its left: "Next" above
-;; the episode's artwork, whose title only a screen reader reads, in the
-;; colour that the player will take from that artwork. Narrower, it's a
-;; line of text behind Controls (layout.css).
+;; player, which here is a page of the app. At every width it's a square at
+;; the player's right edge, as the artwork is at its left (layout.css):
+;; "Next" above the episode's artwork, whose title only a screen reader
+;; reads, in the colour that the player will take from that artwork.
 (defn next-up
   "The episode that plays after the one of the player of the `state`, as a
   link to the queue with its artwork, or nil."
@@ -194,7 +200,8 @@
                         seed (assoc :style {:--bar-seed seed}))
        [:span.player-next-label "Next" [:span.player-next-colon ":"]]
        [:span.player-next-title " " title]
-       (artwork/img episode 64 (merge {:class "player-next-artwork"}
+       ;; at its size on a desktop, inside the mat (layout.css)
+       (artwork/img episode 68 (merge {:class "player-next-artwork"}
                                       (colors/placeholder state episode)))])))
 
 ;; Only a screen reader reads it, as it does the page's announcer: a
@@ -206,15 +213,12 @@
   [player]
   [:p.visually-hidden {:role "status"} (player/status-text player)])
 
-;; WAI-ARIA APG, disclosure pattern: a button with aria-expanded that shows
-;; and hides the controls below it, which leaves the history and the focus
-;; as they are
 (defn content
   "The content of the player of the `state`: the episode that plays, in
   this tab or another, and its controls, each a part of the player's grid
   in layout.css."
   [{:keys [player library] :as state}]
-  (let [{:keys [seeking expanded? volume volume-locked?]} player
+  (let [{:keys [seeking volume volume-locked?]} player
         playback       (player/shown-playback state)
         media          (player/shown-media player)
         [back forward] (player/skips (:profile library))
@@ -232,21 +236,9 @@
               (colors/placeholder state (colors/playing state)))
      (now-playing playback (:current-time media) href show-href)
      (transport player playback back forward)
-     ;; as a string, since Replicant leaves out an attribute of false
-     [controls-ui/icon-button {:icon          icons/sliders-horizontal
-                               :class         "player-more"
-                               :aria-expanded (str (boolean expanded?))
-                               :aria-controls "player-controls"
-                               :on            {:click [[:player/expand (not expanded?)]]}}
-      "Controls"]
-     (seek-bar (player/with-duration media playback) seeking)
-     ;; a group named as the button that shows it, which a screen reader
-     ;; names as it enters the controls
-     [:div {:id         "player-controls"
-            :role       "group"
-            :aria-label "Controls"
-            :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
+     [:div.player-seek-row
       (speed media)
+      (seek-bar (player/with-duration media playback) seeking)
       (volume-control media (or volume 1) volume-locked?)]
      (next-up state)
      (status-line player))))

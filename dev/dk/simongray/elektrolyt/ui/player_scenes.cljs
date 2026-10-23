@@ -50,17 +50,12 @@
   (ui/page {:route {:name :route/queue} :library (library/make "scenes")}))
 
 (defscene an-episode-that-plays
-  "The episode, its chapter and its controls, all in view wider than a
-  phone, and behind Controls on one."
+  "The episode, its chapter and its controls, all in view at every width."
   (ui/page (playing {})))
 
-(defscene the-controls-on-a-phone
-  "The controls of the player once the listener opens them on a phone."
-  (ui/page (playing {:expanded? true})))
-
 (defscene paused-with-the-volume-locked
-  "A paused episode on an iPhone, whose volume slider stays, disabled, since
-  only the device's buttons set the volume."
+  "A paused episode on an iPhone, whose speaker only mutes, since only the
+  device's buttons set the volume."
   (ui/page (playing {:media (assoc media :paused true) :volume-locked? true})))
 
 (defscene while-it-waits-for-data
