@@ -2,12 +2,12 @@
   "The views of the player, which stays as the pages change.
 
   On a phone or a narrow window it's a row of the episode and what's
-  next, above the seek bar between the speed and the speaker, and the
-  transport below them. Where the title has room beside it, the transport
-  is beside the episode, with the seek row below them. Every control is
-  in view at every width, and its buttons are icons alone. The Episode
-  page is the player's full view, with the notes, the chapters and the
-  transcript."
+  next, above the seek bar between the chapters' buttons, and the
+  transport with the speed and the speaker below them. Where the title has
+  room beside it, the transport is beside the episode, with the seek row
+  below them. Every control is in view at every width, and its buttons
+  are icons alone. The Episode page is the player's full view, with the
+  notes, the chapters and the transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.elektrolyt.colors :as colors]
             [dk.simongray.elektrolyt.player :as player]
@@ -57,21 +57,67 @@
     [controls-ui/icon-button {:icon icons/play :class "player-play" :on {:click [[:player/resume]]}}
      "Play"]))
 
+(defn fraction
+  "The `seconds` as a fraction of the `duration`, as a string for a CSS
+  property, since Replicant gives a number px, or nil without a
+  duration."
+  [seconds duration]
+  (when (and (number? duration) (pos? duration))
+    (str (double (/ (or seconds 0) duration)))))
+
+;; Notches in the bar's track, where each chapter begins. A mark goes to
+;; its chapter's start, and the browser's own tooltip names the chapter
+;; under the pointer. A mark under the thumb shrinks away, so that it
+;; neither crosses the thumb nor keeps it from being dragged (layout.css).
+;; The marks are for a pointer alone, since the chapters' buttons and the
+;; Episode page's list of chapters do the same for a keyboard and a screen
+;; reader, as WCAG allows of a small target with an equivalent. On a touch
+;; screen they only show where the chapters are, as YouTube's do on a
+;; phone.
+;; https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
+;; https://mobilesyrup.com/2020/05/28/youtube-video-chapters/
+(defn chapter-marks
+  "Marks on the seek bar of the `media` state where the `chapters` after
+  the first begin, each a press to its start, or nil without a
+  duration."
+  [{:keys [duration]} chapters]
+  (when (fraction 0 duration)
+    [:div.player-chapter-marks {:aria-hidden "true"}
+     (for [{:keys [start-time title]} chapters
+           :when (< 0 start-time duration)]
+       [:span.player-chapter-mark
+        {:replicant/key start-time
+         :title         title
+         :style         {:--at (fraction start-time duration)}
+         :on            {:click [[:player/press {:action :seekto :seek-time start-time}]]}}])]))
+
 ;; A range input, rather than a slider of our own, since a screen reader on
-;; a phone adjusts it with a swipe, which it always follows
+;; a phone adjusts it with a swipe, which it always follows. What it reads
+;; of the position names the chapter too. The bar draws how much has
+;; played itself (look.css), and the times are as wide as the duration
+;; for the whole episode, so that the bar beside them never moves.
 (defn seek-bar
-  "The seek bar of the `media` state, at the `seeking` seconds while it's
-  dragged, with the time so far and the time left."
-  [media seeking]
-  (let [shown (cond-> media seeking (assoc :current-time seeking))]
-    [:div#player-seek.player-seek
+  "The seek bar of the `media` state of the `playback`, at the `seeking`
+  seconds while it's dragged, with the time so far and the time left, and
+  the marks of its chapters."
+  [media seeking playback]
+  (let [{:keys [current-time duration] :as shown} (cond-> media seeking (assoc :current-time seeking))
+        attrs   (controls/range-attributes shown)
+        chapter (:title (player/chapter-at playback current-time))
+        played  (fraction current-time duration)
+        width   (when played
+                  (str (inc (count (time-ui/clock-text duration))) "ch"))]
+    [:div.player-seek (when width {:style {:--clock width}})
      [:label.visually-hidden {:for "player-position"} "Position"]
-     (time-ui/clock (:current-time shown))
-     [:input (merge {:type "range"
-                     :id   "player-position"
-                     :on   {:input  [[:player/drag [:event/range-seek]]]
-                            :change [[:player/press [:event/range-seek]]]}}
-                    (controls/range-attributes shown))]
+     (time-ui/clock current-time)
+     [:div.player-bar (when played {:style {:--played played}})
+      [:input (cond-> (merge {:type "range"
+                              :id   "player-position"
+                              :on   {:input  [[:player/drag [:event/range-seek]]]
+                                     :change [[:player/press [:event/range-seek]]]}}
+                             attrs)
+                chapter (update :aria-valuetext str ", " chapter))]
+      (chapter-marks shown (:chapters (player/chapter-doc playback)))]
      (update (time-ui/clock (player/remaining shown)) 2 #(str "−" %))]))
 
 ;; Phosphor has no skip by a number of seconds, and the listener chooses
@@ -96,35 +142,48 @@
              :fill        "currentColor"}
       text]]))
 
-;; In the order of a CD player's buttons, in view at every width: the
-;; previous chapter, back, Play, forward and the next chapter
+;; Play between back and forward, as every podcast player has it, where a
+;; thumb reaches it best on a phone, with the speed before them and the
+;; speaker after, as Apple Podcasts on a Mac has them. The row comes first
+;; after the episode, as the controls used most.
+;; https://support.apple.com/guide/podcasts/pod970198c2
+;; https://www.uxmatters.com/mt/archives/2013/02/how-do-users-really-hold-mobile-devices.php
 (defn transport
-  "The button that plays or pauses what the `player` shows, between those
-  that skip back and forward by the seconds that the listener prefers,
-  `back` and `forward`, and those that go to the previous and the next
-  chapter of the `playback`, when it has chapters."
-  [player playback back forward]
-  (let [chapters? (seq (:chapters (player/chapter-doc playback)))]
-    [:div#player-transport.player-transport
-     (when chapters?
-       [controls-ui/icon-button {:icon  icons/skip-back
-                                 :class "player-previous-chapter"
-                                 :on    {:click [[:player/chapter :previous]]}}
-        "Previous chapter"])
-     [controls-ui/icon-button {:icon  (skip-icon :back back)
-                               :class "player-back"
-                               :on    {:click [[:player/press {:action :seekbackward}]]}}
-      (str "Back " back " seconds")]
-     (play-button player)
-     [controls-ui/icon-button {:icon  (skip-icon :forward forward)
-                               :class "player-forward"
-                               :on    {:click [[:player/press {:action :seekforward}]]}}
-      (str "Forward " forward " seconds")]
-     (when chapters?
-       [controls-ui/icon-button {:icon  icons/skip-forward
-                                 :class "player-next-chapter"
-                                 :on    {:click [[:player/chapter :next]]}}
-        "Next chapter"])]))
+  "The row of the button that plays or pauses what the `player` shows,
+  between those that skip back and forward by the seconds that the
+  listener prefers, `back` and `forward`, with the `speed` before them and
+  the `volume` after."
+  [player back forward speed volume]
+  [:div.player-transport
+   speed
+   [controls-ui/icon-button {:icon  (skip-icon :back back)
+                             :class "player-back"
+                             :on    {:click [[:player/press {:action :seekbackward}]]}}
+    (str "Back " back " seconds")]
+   (play-button player)
+   [controls-ui/icon-button {:icon  (skip-icon :forward forward)
+                             :class "player-forward"
+                             :on    {:click [[:player/press {:action :seekforward}]]}}
+    (str "Forward " forward " seconds")]
+   volume])
+
+;; At the ends of the seek bar, since a chapter is a place on it, rather
+;; than at the transport's ends, where a music player skips a track and a
+;; listener might take them for the next episode. Pocket Casts keeps them
+;; by the chapter too.
+;; https://support.pocketcasts.com/knowledge-base/chapters/
+;; https://forum.antennapod.org/t/player-screen-ux-ui-work/6177?page=2
+(defn chapter-button
+  "The button that goes to the chapter of the `playback` in the
+  `direction`, :previous or :next, or nil for a playback without
+  chapters."
+  [playback direction]
+  (when (seq (:chapters (player/chapter-doc playback)))
+    (let [[icon class words] (case direction
+                               :previous [icons/skip-back "player-previous-chapter" "Previous chapter"]
+                               :next     [icons/skip-forward "player-next-chapter" "Next chapter"])]
+      [controls-ui/icon-button {:icon icon :class class :on {:click [[:player/chapter direction]]}}
+       words])))
 
 ;; Its options, e.g. 1.5×, say what it is, so its label is for a screen
 ;; reader. It's bare text with a caret of our own, since the browser's
@@ -235,11 +294,13 @@
      (artwork playback (:current-time media) href
               (colors/placeholder state (colors/playing state)))
      (now-playing playback (:current-time media) href show-href)
-     (transport player playback back forward)
+     (transport player back forward
+                (speed media)
+                (volume-control media (or volume 1) volume-locked?))
      [:div.player-seek-row
-      (speed media)
-      (seek-bar (player/with-duration media playback) seeking)
-      (volume-control media (or volume 1) volume-locked?)]
+      (chapter-button playback :previous)
+      (seek-bar (player/with-duration media playback) seeking playback)
+      (chapter-button playback :next)]
      (next-up state)
      (status-line player))))
 

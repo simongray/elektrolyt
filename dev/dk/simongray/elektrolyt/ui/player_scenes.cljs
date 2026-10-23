@@ -1,7 +1,7 @@
 (ns dk.simongray.elektrolyt.ui.player-scenes
   "Scenes of the player: nothing playing, an episode that plays with its
-  chapters, its controls on a phone, an episode that plays in another tab,
-  the ways it can fail to play, and its colours."
+  chapters, one whose volume the device locks, an episode that plays in
+  another tab, the ways it can fail to play, and its colours."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.scenes :refer [artwork feed url]]
             [dk.simongray.elektrolyt.ui :as ui]

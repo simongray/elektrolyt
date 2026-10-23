@@ -624,6 +624,62 @@ hgroup > p {
   box-shadow: 0 0 5px oklch(0% 0 0 / 0.3);
 }
 
+/* The seek bar drawn by the app rather than the browser, so that it's the
+   same in every browser, with no change under the pointer, and a thumb
+   whose size the chapters' marks know (layout.css): a track of the bar's
+   rule, played up to the thumb in the bar's fill, and the thumb in the
+   fill too. A browser's own pseudo-elements, which another browser
+   doesn't know, each need a rule of their own. */
+#player-position {
+  --played-to: calc(var(--player-thumb) / 2 + (100% - var(--player-thumb)) * var(--played, 0));
+  appearance: none;
+  background: none;
+  cursor: pointer;
+}
+
+#player-position::-webkit-slider-runnable-track {
+  block-size: var(--player-track);
+  border-radius: var(--player-track);
+  background: linear-gradient(to right, var(--bar-fill) var(--played-to), var(--bar-rule) 0);
+}
+
+#player-position::-moz-range-track {
+  block-size: var(--player-track);
+  border-radius: var(--player-track);
+  background: linear-gradient(to right, var(--bar-fill) var(--played-to), var(--bar-rule) 0);
+}
+
+#player-position::-webkit-slider-thumb {
+  inline-size: var(--player-thumb);
+  block-size: var(--player-thumb);
+  margin-block-start: calc((var(--player-track) - var(--player-thumb)) / 2);
+  border: 0;
+  border-radius: 50%;
+  background: var(--bar-fill);
+  appearance: none;
+}
+
+#player-position::-moz-range-thumb {
+  inline-size: var(--player-thumb);
+  block-size: var(--player-thumb);
+  border: 0;
+  border-radius: 50%;
+  background: var(--bar-fill);
+}
+
+/* a chapter's mark a notch in the track, in the deck's colour, whether
+   the track is played there or not */
+.player-chapter-mark::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  inline-size: 3px;
+  block-size: var(--player-track);
+  translate: -50% -50%;
+  background: var(--bar-deck);
+}
+
 /* the episode's title and its show's name, links to their pages, as
    plain as the text beside them but for an underline under the pointer,
    as a list's titles have */
@@ -646,6 +702,12 @@ hgroup > p {
 .player-next {
   color: var(--on-bar-2);
   font-size: var(--step--1);
+}
+
+/* the times in figures of one width, so that they don't shift as they
+   count */
+.player-seek time {
+  font-variant-numeric: tabular-nums;
 }
 
 /* "Next" in small caps, as the navigation's labels are, a little smaller,
@@ -678,7 +740,7 @@ hgroup > p {
 #player-speed {
   min-width: var(--player-target);
   min-height: var(--player-target);
-  padding-inline: 0 1em;
+  padding-inline: var(--space-2) calc(var(--space-2) + 1em);
   border-color: transparent;
   appearance: none;
   field-sizing: content;

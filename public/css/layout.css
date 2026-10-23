@@ -624,10 +624,11 @@ search p {
 /* The player: a grid of rows of a fixed height, so that its artwork, at
    its edges, is square and as tall as they are. On a phone or a narrow
    window that's a row of the episode, with what's next at the right edge
-   as the artwork is at the left, then the seek row, with the speed below
-   the artwork and the speaker below what's next, and the transport below
-   them. Where the title has room beside the transport, it's two rows,
-   with the transport beside the episode and the seek row below them.
+   as the artwork is at the left, then the seek row, with the chapters'
+   buttons at its ends, and the transport, with the speed and the speaker
+   at its ends, each below the artwork and what's next. Where the title
+   has room beside the transport, it's two rows, with the transport beside
+   the episode and the seek row below them.
    Every control is in view at every width, since controls behind a
    button are found far less often, as NN/g found of hidden navigation.
    The player is a row of the shell's grid, outside the main content that
@@ -647,8 +648,10 @@ search p {
   --player-target: 44px;
   --player-inset: calc(var(--player-space) - (var(--player-target) - var(--player-icon)) / 2);
   --player-row: calc(var(--player-icon) + 2 * var(--player-space));
-  /* the height of the seek bar, which the browsers draw differently */
+  /* the seek bar: its input, its thumb and its track (look.css) */
   --player-bar: 1.25rem;
+  --player-thumb: 16px;
+  --player-track: 4px;
   /* the artwork's size, as tall as the rows beside it */
   --player-height: var(--player-row);
   display: grid;
@@ -702,40 +705,45 @@ search p {
   white-space: nowrap;
 }
 
-/* In three rows, the seek row takes the player's columns, with the speed
-   below the artwork and the speaker below what's next, and the times
-   above the ends of the seek bar, so that the bar keeps its length
-   between them. Its parts stand on its foot, the bar's middle in line
-   with the speed's and the speaker's. */
+/* The seek row: the chapters' buttons at the ends of the seek bar, as far
+   from it at every width, and in three rows, the times above the ends of
+   the bar, so that it keeps its length between them. Its parts stand on
+   its foot, the bar's middle in line with the buttons'. Without
+   chapters, the bar takes their places too, its times the player's space
+   from the edges. */
 .player-seek-row {
   display: grid;
   grid-area: seek-row;
-  grid-template-columns: subgrid;
+  grid-template-columns: var(--player-target) minmax(0, 1fr) var(--player-target);
   align-items: end;
+  column-gap: var(--space-2);
   padding-block-start: var(--player-space);
+  padding-inline: var(--player-inset);
 }
 
-.player-speed {
-  position: relative;
+.player-previous-chapter {
   grid-column: 1;
-  justify-self: center;
 }
 
-/* the caret of the speed's menu at its right edge, which a press goes
-   through to the menu */
+.player-next-chapter {
+  grid-column: 3;
+}
+
+.player-seek-row:not(:has(.player-previous-chapter)) .player-seek {
+  grid-column: 1 / -1;
+  padding-inline: calc(var(--player-space) - var(--player-inset));
+}
+
+/* the caret of the speed's menu just after its text, inside its room on
+   the right, which a press goes through to the menu */
 #player .player-speed .icon {
   position: absolute;
   top: 50%;
-  right: 0;
+  right: var(--space-2);
   width: 0.75em;
   height: 0.75em;
   translate: 0 -50%;
   pointer-events: none;
-}
-
-.player-volume {
-  grid-column: 3;
-  justify-self: center;
 }
 
 /* The times above the bar, set solid and clear of its thumb, and below it
@@ -752,11 +760,48 @@ search p {
   padding-block-end: calc((var(--player-target) - var(--player-bar)) / 2);
 }
 
-.player-seek input {
+.player-bar {
+  position: relative;
   grid-area: bar;
   min-width: 0;
+}
+
+.player-bar input {
+  display: block;
+  inline-size: 100%;
   block-size: var(--player-bar);
   margin: 0;
+}
+
+/* The chapters' marks on the bar, where each begins on its track, which
+   runs from half a thumb in from the input's ends. A mark's press is as
+   tall as the bar. Within a thumb of the position played it shrinks to
+   nothing, so that it neither crosses the thumb nor keeps it from being
+   dragged: its width follows its distance from the thumb, |at - played|
+   of the track, less a thumb, and grows to its full width within 4 px of
+   that. A mark is a press only for a pointer that can aim at it
+   (ui/player.cljc). */
+.player-chapter-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.player-chapter-mark {
+  --from-thumb: calc(max(var(--at) - var(--played), var(--played) - var(--at)) * (100% - var(--player-thumb)) - var(--player-thumb));
+  position: absolute;
+  inset-block: 0;
+  left: calc(var(--player-thumb) / 2 + (100% - var(--player-thumb)) * var(--at));
+  inline-size: clamp(0px, var(--from-thumb) * 4, var(--space-3));
+  overflow: hidden;
+  translate: -50% 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-chapter-mark {
+    pointer-events: auto;
+    cursor: pointer;
+  }
 }
 
 .player-seek time {
@@ -771,14 +816,41 @@ search p {
   grid-area: left;
 }
 
-/* the buttons of the transport side by side, their targets touching, since
-   their icons have room around them, and their icons the player's space
-   from its foot */
+/* The buttons of the transport side by side in the middle, their targets
+   touching, since their icons have room around them, with the speed below
+   the artwork and the speaker below what's next, and their icons the
+   player's space from its foot */
 .player-transport {
-  display: flex;
+  display: grid;
   grid-area: transport;
-  justify-content: center;
+  grid-template-columns:
+    minmax(var(--player-height), max-content) 1fr repeat(3, auto) 1fr
+    minmax(var(--player-height), max-content);
+  grid-template-areas: "speed . back play forward . volume";
+  align-items: center;
+  justify-items: center;
   padding-block-end: var(--player-inset);
+}
+
+.player-speed {
+  position: relative;
+  grid-area: speed;
+}
+
+.player-back {
+  grid-area: back;
+}
+
+.player-play {
+  grid-area: play;
+}
+
+.player-forward {
+  grid-area: forward;
+}
+
+.player-volume {
+  grid-area: volume;
 }
 
 /* The volume's slider rises from the speaker on a panel that lies under
@@ -891,28 +963,27 @@ search p {
 }
 
 /* with nothing next, the title takes its place */
-@media (width < 50em) {
+@media (width < 53em) {
   #player:not(:has(.player-next)) .player-title {
     grid-column: title-start / upnext-end;
     padding-inline-end: var(--player-space);
   }
 }
 
-/* From 50em, the title has 20em beside the transport and what's next */
-@media (min-width: 50em) {
-  /* The transport's buttons touch, so the grid has no gaps, and the title
-     and the seek row keep their distance themselves. The chapters'
-     columns are empty, and so take no room, for an episode without
-     chapters, and so is the column of what's next, without one. The
-     episode's row is a row like the phone's, and the seek row below it is
-     only as much taller than a target as keeps the player low. */
+/* From 53em, the title has 20em beside the transport and what's next */
+@media (min-width: 53em) {
+  /* The title and the seek row keep their distance themselves, so the
+     grid has no gaps. The column of what's next is empty, and so takes no
+     room, without one. The episode's row is a row like the phone's, and
+     the seek row below it is only as much taller than a target as keeps
+     the player low. */
   #player {
     --player-height: 7rem;
-    grid-template-columns: var(--player-height) minmax(0, 1fr) repeat(5, auto) auto;
+    grid-template-columns: var(--player-height) minmax(0, 1fr) auto auto;
     grid-template-rows: var(--player-row) calc(var(--player-height) - var(--player-row));
     grid-template-areas:
-      "art title    previous back     play     forward  next     upnext"
-      "art seek-row seek-row seek-row seek-row seek-row seek-row upnext";
+      "art title    transport upnext"
+      "art seek-row seek-row  upnext";
     column-gap: 0;
     padding-right: var(--player-inset);
   }
@@ -933,49 +1004,41 @@ search p {
     padding-inline: var(--player-space);
   }
 
-  /* the speed, the seek bar with its times beside it, and the speaker in
-     a line below the episode and the transport */
+  /* the seek row with its times beside the bar, in a line below the
+     episode and the transport, as tall as a button without chapters too,
+     so that the bar stays in its place, and inset on the right by the
+     player or what's next */
   .player-seek-row {
-    display: flex;
-    gap: var(--space-2);
+    min-block-size: var(--player-target);
     padding-block-start: 0;
-    padding-inline-start: var(--player-space);
+    padding-inline-end: 0;
   }
 
   .player-seek {
     display: flex;
-    flex: 1;
     align-items: center;
     gap: 0.5em;
   }
 
-  .player-seek input {
+  .player-bar {
     flex: 1;
+  }
+
+  /* the times as wide as the duration for the whole episode, each against
+     the bar, so that the bar never moves as they change (ui/player.cljc) */
+  .player-seek time {
+    flex: none;
+    inline-size: var(--clock, auto);
+  }
+
+  .player-seek time:first-of-type {
+    text-align: end;
   }
 
   /* the transport in the first row, beside the episode */
   .player-transport {
-    display: contents;
-  }
-
-  .player-previous-chapter {
-    grid-area: previous;
-  }
-
-  .player-back {
-    grid-area: back;
-  }
-
-  .player-play {
-    grid-area: play;
-  }
-
-  .player-forward {
-    grid-area: forward;
-  }
-
-  .player-next-chapter {
-    grid-area: next;
+    display: flex;
+    padding-block-end: 0;
   }
 }
 
