@@ -6,6 +6,7 @@
   dk.simongray.elektrolyt.search describes it."
   (:require [clojure.string :as str]
             [dk.simongray.elektrolyt.colors :as colors]
+            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.text :as text]
@@ -28,20 +29,28 @@
 ;; NN/g, scoped search: say where a search looks, near the box, with a way
 ;; to change it, which is the Search group of the Settings page
 ;; https://www.nngroup.com/articles/scoped-search/
+;;
+;; drpodcast.nu isn't among the directories there, since the DR group turns
+;; it on and off with DR's episodes, so it has a line of its own
 (defn search-form
   "The form that searches for words or a link, which shows the query `q`,
   and the directories `sources` that it asks."
   [q sources]
-  [:search
-   [:form {:action (routes/href :route/search)
-           :on     {:submit [[:event/prevent-default]
-                             [:search/submit [:form/field "q"]]]}}
-    [:label {:for "search-query"} "Search for podcasts, or paste a link"]
-    [:input#search-query {:type "search" :name "q" :value (or q "")}]
-    [:button.primary {:type "submit"} "Search"]]
-   [:p "Searches " (text/listing (map search/source-name sources)) ". "
-    [:a {:href (settings-ui/group-href :search)}
-     "Change" [:span.visually-hidden " the directories"]]]])
+  (let [dr? (some #{drpodcast/source} sources)]
+    [:search
+     [:form {:action (routes/href :route/search)
+             :on     {:submit [[:event/prevent-default]
+                               [:search/submit [:form/field "q"]]]}}
+      [:label {:for "search-query"} "Search for podcasts, or paste a link"]
+      [:input#search-query {:type "search" :name "q" :value (or q "")}]
+      [:button.primary {:type "submit"} "Search"]]
+     [:p "Searches " (text/listing (map search/source-name (remove #{drpodcast/source} sources))) ". "
+      [:a {:href (settings-ui/group-href :search)}
+       "Change" [:span.visually-hidden " the directories"]]]
+     (when dr?
+       [:p "Also searches drpodcast.nu for DR's programmes. "
+        [:a {:href (settings-ui/group-href :dr)}
+         "Change" [:span.visually-hidden " the search of drpodcast.nu"]]])]))
 
 (defn link-text
   "What the search of the link `q` found: its `n` feeds."

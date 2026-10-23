@@ -100,7 +100,13 @@
   (let [x (search/search-form nil [:apple :fyyd])]
     (is (re-find #"Searches Apple Podcasts and fyyd\. Change the directories" (text-of x)))
     (is (= "/settings#search" (get-in (first (elements :a x)) [1 :href]))
-        "a link to the Search group of the settings")))
+        "a link to the Search group of the settings"))
+  (let [x (search/search-form nil [:apple :fyyd :drpodcast])]
+    (is (re-find #"Searches Apple Podcasts and fyyd\. Change the directories" (text-of x))
+        "with drpodcast.nu apart from the directories")
+    (is (re-find #"Also searches drpodcast.nu for DR's programmes\. Change" (text-of x)))
+    (is (= ["/settings#search" "/settings#dr"] (map #(get-in % [1 :href]) (elements :a x)))
+        "since the DR group of the settings turns it on and off")))
 
 (deftest a-link-to-the-page-of-a-show
   (let [[_ {:keys [href on]} title] (search/show-link {:url   "https://feeds.podcastindex.org/pc20.xml"

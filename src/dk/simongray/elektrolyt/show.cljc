@@ -28,6 +28,7 @@
   the guid of the show."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.show :as show]
+            [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.feed.schedule :as schedule]
@@ -58,7 +59,8 @@
    :published     (resolve/published item)
    :duration      (resolve/duration item)
    :artwork       (resolve/artwork item)
-   :artwork-sizes (resolve/artwork-sizes item)})
+   :artwork-sizes (resolve/artwork-sizes item)
+   :supplement    (feed/supplement item)})
 
 (def facts
   "The properties of a show view that its page shows besides the title,

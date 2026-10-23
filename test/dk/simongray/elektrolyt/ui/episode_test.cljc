@@ -135,7 +135,18 @@
     (is (= "Episode 2, 1h, Explicit"
            (spoken (second (elements :p (intro {:numbering {:type "full" :episode 2} :published nil
                                                 :explicit? true})))))
-        "after the show, which is the heading's subtitle")))
+        "after the show, which is the heading's subtitle")
+    (is (= "Episode 2, 1h, From drpodcast.nu"
+           (spoken (second (elements :p (intro {:numbering  {:type "full" :episode 2} :published nil
+                                                :supplement "https://drpodcast.nu/genstart/feed.xml"})))))
+        "and the feed it came from when that isn't its show's own")))
+
+(deftest the-source-of-an-episode
+  (let [rows (into {} (episode-ui/details-rows {:supplement "https://drpodcast.nu/genstart/feed.xml"}))]
+    (is (= "drpodcast.nu, which republishes DR's radio" (text-of (into [:p] (get rows "Source"))))
+        "in the Details, as a link to its site"))
+  (is (nil? (seq (keep identity (get (into {} (episode-ui/details-rows {})) "Source"))))
+      "and none for an episode of the show's own feed"))
 
 (deftest the-links-that-support-the-show
   (let [rows (into {} (episode-ui/details-rows {:funding [{:url "https://pay.example/1" :content "Give"}

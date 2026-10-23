@@ -4,7 +4,9 @@
 //
 // The directories' answers come from the routes below rather than the web:
 // Apple at once, and fyyd a moment later. The test's server signs no
-// requests to the Podcast Index, so a search leaves it out.
+// requests to the Podcast Index, so a search leaves it out. drpodcast.nu
+// comes last, after those of the Settings, and has no series for the
+// words.
 
 import { test, expect, navLink } from './fixtures.mjs';
 
@@ -45,6 +47,9 @@ async function directories(context, delay) {
       await new Promise(resolve => setTimeout(resolve, delay));
       return route.fulfill({ json: fyyd(['RPPR Actual Play']) });
     }
+    if (url.host === 'drpodcast.nu') {
+      return route.fulfill({ json: {} });
+    }
     return route.fallback();
   });
 }
@@ -64,9 +69,10 @@ test('each directory answers in a list of its own, which stays where it appeared
   expect(await first.boundingBox(), "Apple's list didn't move as fyyd answered").toEqual(before);
   await expect(appleList.getByRole('heading', { level: 3 })).toHaveText(['Delta Green Stories', 'Agents of the Program']);
 
-  await expect(main.getByRole('status').first()).toHaveText('Found 2 shows in Apple Podcasts and 1 in fyyd.');
+  await expect(main.getByRole('status').first())
+    .toHaveText('Found 2 shows in Apple Podcasts, 1 in fyyd and 0 in drpodcast.nu.');
   const jump = page.getByRole('navigation', { name: 'Directories' });
-  await expect(jump.getByRole('link')).toHaveText(['Apple Podcasts 2 shows', 'fyyd 1 show']);
+  await expect(jump.getByRole('link')).toHaveText(['Apple Podcasts 2 shows', 'fyyd 1 show', 'drpodcast.nu 0 shows']);
   const fyydLink = jump.getByRole('link', { name: /fyyd/ });
   await fyydLink.click();
   await expect(fyydList.getByRole('heading', { name: 'fyyd', level: 2 })).toBeFocused();
@@ -87,7 +93,7 @@ test('a jump brings the whole of a list into view, where the row is too narrow f
   await main.getByLabel('Search for podcasts, or paste a link').fill('delta green');
   await main.getByRole('button', { name: 'Search', exact: true }).click();
 
-  const last = main.locator('section', { has: page.getByRole('heading', { name: 'gpodder.net', level: 2 }) });
+  const last = main.locator('section', { has: page.getByRole('heading', { name: 'drpodcast.nu', level: 2 }) });
   await expect(last.getByRole('heading', { level: 2 })).toBeVisible();
   const row = main.locator('.search-lists');
   const rowBox = await row.boundingBox();
@@ -95,7 +101,7 @@ test('a jump brings the whole of a list into view, where the row is too narrow f
   expect(before.x + before.width, 'cut off at the right at first').toBeGreaterThan(rowBox.x + rowBox.width);
 
   const jump = page.getByRole('navigation', { name: 'Directories' });
-  await jump.getByRole('link', { name: /gpodder/ }).click();
+  await jump.getByRole('link', { name: /drpodcast/ }).click();
   await expect(last.getByRole('heading', { level: 2 })).toBeFocused();
   const shown = await last.boundingBox();
   expect(shown.x).toBeGreaterThanOrEqual(rowBox.x - 1);
@@ -127,5 +133,5 @@ test('the directories of a search are the ones turned on in Settings, in their o
   await expect(main).toContainText('Searches fyyd.');
   await main.getByLabel('Search for podcasts, or paste a link').fill('delta green');
   await main.getByRole('button', { name: 'Search', exact: true }).click();
-  await expect(main.getByRole('heading', { level: 2 })).toHaveText(['fyyd']);
+  await expect(main.getByRole('heading', { level: 2 })).toHaveText(['fyyd', 'drpodcast.nu']);
 });

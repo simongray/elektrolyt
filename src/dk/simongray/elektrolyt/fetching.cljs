@@ -12,11 +12,20 @@
   answers that it's busy. A fetched feed comes back in the codec of the
   library, since EDN reads slower than the feed parses.
 
+  With :alternative-feeds? among the options of a request, a feed of DR's
+  own comes supplemented by its sibling on drpodcast.nu, as
+  dk.simongray.elektrolyt.drpodcast has it. The supplemented feed has
+  only DR's validators, i.e. none, so the library goes on checking it by
+  its start, which is supplemented too.
+
   The worker, its messages and the Web Lock reach outside the store, as
   dk.simongray.elektrolyt.runtime does in the page."
   (:require [cljs.reader :as reader]
             [dk.simongray.podcast :as podcast]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.feed :as feed]
+            [dk.simongray.podcast.feed.discovery :as discovery]
+            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.library :as app-library]))
 
 (def refresh-lock
@@ -41,6 +50,85 @@
   [message]
   (js/postMessage (pr-str message)))
 
+(defonce ^{:doc "A promise of drpodcast.nu's slugs by production number, as
+  slugs! fetches them once for the life of the worker, or nil before."}
+  known-slugs
+  (atom nil))
+
+(defn slugs!
+  "A promise of drpodcast.nu's slugs by production number, as
+  drpodcast/slugs has them, fetched at the first ask, and at the next once
+  a fetch failed."
+  []
+  (or @known-slugs
+      (reset! known-slugs
+              (-> (app-library/send {:url drpodcast/slugs-url :as :json})
+                  (.then #(drpodcast/slugs (:body %)))
+                  (.catch (fn [_]
+                            (reset! known-slugs nil)
+                            {}))))))
+
+(defn supplement
+  "The `answer` of a fetch of DR's own feed with its :feed supplemented by
+  the parsed feed `theirs`, when that is of the same show."
+  [{ours :feed :as answer} theirs]
+  (cond-> answer
+    (drpodcast/same-show? ours theirs) (update :feed feed/supplemented theirs)))
+
+;; drpodcast.nu publishes nearly every series under DR's own slug, so the
+;; guess goes out beside DR's feed, and slugs.json only names the others
+(defn supplementing
+  "A fetch like `fetch`, a function of a URL and options that gives a
+  promise of an answer with the :feed, which supplements a feed of DR's own
+  with its sibling on drpodcast.nu. The sibling's fetch takes the options
+  of a request that don't concern DR's feed, and `sibling-opts`."
+  [fetch sibling-opts]
+  (fn [url opts]
+    (if-let [slug (drpodcast/official-slug url)]
+      (let [theirs    (fn [slug]
+                        (-> (fetch (drpodcast/feed-url slug)
+                                   (merge (select-keys opts [:send :timeout-seconds :max-bytes
+                                                             :allow-pred :signal :lenient-parser])
+                                          sibling-opts))
+                            (.then #(:feed %))
+                            (.catch (constantly nil))))
+            guessed   (theirs slug)
+            elsewhere (fn [ours]
+                        (.then (slugs!)
+                               (fn [by-number]
+                                 (let [other (get by-number (drpodcast/production-number ours))]
+                                   (when (and other (not= slug other))
+                                     (theirs other))))))]
+        (.then (fetch url opts)
+               (fn [{ours :feed :as answer}]
+                 (if-not ours
+                   answer
+                   (let [answer (update answer :feed drpodcast/marked)]
+                     (.then guessed
+                            (fn [found]
+                              (if (drpodcast/same-show? ours found)
+                                (supplement answer found)
+                                (.then (elsewhere ours) #(supplement answer %))))))))))
+      (fetch url opts))))
+
+;; The start of DR's feed has its newest episodes, which DR may date days
+;; after drpodcast.nu does, so the sibling's start goes further back for
+;; them to pair
+(def sibling-start
+  "The options of the fetch of the start of a sibling on drpodcast.nu,
+  beside the start of DR's own feed: its 20 newest items, which fit the 64
+  KB that a fetch of a start asks for at least."
+  {:items 20})
+
+(defn fetches
+  "The options of library/fetch-due! that fetch with the `opts` of a
+  request, which supplement DR's own feeds where they have
+  :alternative-feeds?."
+  [opts]
+  (when (:alternative-feeds? opts)
+    {:fetch      (supplementing podcast/fetch! {})
+     :fetch-head (supplementing discovery/fetch-head! sibling-start)}))
+
 (defn found!
   "A promise of what the request `id` found of what is `due`, as
   library/fetch-due! gives it with the `opts`, and the config and the
@@ -49,7 +137,9 @@
   (let [progress (fn [{:keys [done total]}]
                    (post! {:id id :progress {:done done :total total}}))]
     (library/fetch-due! due app-library/store
-                        (merge app-library/config app-library/options opts
+                        (merge app-library/config app-library/options
+                               (dissoc opts :alternative-feeds?)
+                               (fetches opts)
                                {:on-feed-fn progress}))))
 
 (defn fetched!
@@ -57,8 +147,10 @@
   podcast/fetch! gives it but without the :body, in the codec of the
   library."
   [url opts]
-  (.then (podcast/fetch! url (merge (select-keys app-library/options [:send]) opts))
-         #((:encode (:codec app-library/options)) (dissoc % :body))))
+  (let [fetch (:fetch (fetches opts) podcast/fetch!)]
+    (.then (fetch url (merge (select-keys app-library/options [:send])
+                             (dissoc opts :alternative-feeds?)))
+           #((:encode (:codec app-library/options)) (dissoc % :body)))))
 
 (defn answer!
   "Answer the `request` of the page: what a refresh found, or :busy? while

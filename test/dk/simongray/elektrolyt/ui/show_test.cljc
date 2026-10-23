@@ -83,6 +83,11 @@
     (is (= "https://example.org/episode.jpg" (src {:title "One" :artwork "https://example.org/episode.jpg"})))
     (is (= "https://example.org/show.jpg" (src {:title "One"})) "or the show's, where it has none")))
 
+(deftest an-episode-from-another-feed
+  (let [facts #(first (elements :p (show/episode-row {} "/e" % nil {})))]
+    (is (= "From drpodcast.nu" (spoken (facts {:title "One" :supplement "https://drpodcast.nu/genstart/feed.xml"}))))
+    (is (nil? (facts {:title "One"})) "and no line for one of the show's own without facts")))
+
 (deftest how-often-a-show-publishes
   (let [day (* 24 3600 1000)]
     (is (= ["More than once a day" "About every day" "About every 3 days" "About every week"

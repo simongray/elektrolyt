@@ -8,6 +8,7 @@
   (:require [dk.simongray.play-nice.media.fragment :as fragment]
             [dk.simongray.podcast.format.transcript :as transcript]
             [dk.simongray.elektrolyt.colors :as colors]
+            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.links :as links]
             [dk.simongray.elektrolyt.picks :as picks]
@@ -131,7 +132,8 @@
   the `state`: its `heading` with its show, its artwork and facts, whether
   its entry in the profile is played, the button that plays it, from the
   start time of the link, and the buttons that queue it."
-  [state heading {:keys [id show language numbering published duration explicit? ai-content?]
+  [state heading {:keys [id show language numbering published duration explicit? ai-content?
+                         supplement]
                   :as   page}]
   (let [entry (player/entry (:library state) id)]
     [:header.episode-intro
@@ -145,20 +147,33 @@
                 (some-> duration time-ui/duration)
                 (when explicit? "Explicit")
                 (when ai-content? "Made with AI")
+                (facts-ui/source supplement)
                 (when (:played? entry) "Played")]))
       [:div.episode-actions
        (play-button page (:player state) entry (start-time state))
        (queue-buttons page (queue/place state id))]]]))
 
+(defn source
+  "The site of the feed `supplement` that an episode came from, as a link
+  for its row of the Details, and what drpodcast.nu is, or nil when the
+  episode is its show's own."
+  [supplement]
+  (when-let [host (facts-ui/source-host supplement)]
+    (list (details/web-link (str "https://" host "/") host)
+          (when (= drpodcast/source-name host)
+            ", which republishes DR's radio"))))
+
 ;; The Details of an episode hold what's its own rather than its show's,
 ;; since the show's are on the show's page
 (defn details-rows
   "The rows of the Details of the episode `page`, with the links that
-  support its show."
-  [{:keys [link content-links funding locations license enclosure]}]
+  support its show, and the site of the feed it came from when that isn't
+  its show's own."
+  [{:keys [link content-links funding locations license enclosure supplement]}]
   (let [length (:length enclosure)]
     (concat
      [["Web page" [(details/web-link link nil)]]
+      ["Source" [(source supplement)]]
       ["Also on" (map #(details/web-link (:href %) (:text %)) content-links)]
       ["Support" (details/support funding)]]
      (details/location-rows locations)

@@ -10,6 +10,7 @@
   (:require [dk.simongray.elektrolyt.inbox :as inbox]
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.text :as text]
+            [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.queue :as queue-ui]
             [dk.simongray.elektrolyt.ui.rows :as rows]
@@ -26,10 +27,12 @@
   "inbox-undo")
 
 (defn facts
-  "The facts of the `episode` of the inbox: its show, when it came out, and
-  how long it is, or has left once it has started."
-  [{:keys [show published] :as episode}]
-  [show (some-> published time-ui/date) (queue-ui/time-left episode)])
+  "The facts of the `episode` of the inbox: its show, when it came out, how
+  long it is, or has left once it has started, and the feed it came from
+  when that isn't its show's own."
+  [{:keys [show published supplement] :as episode}]
+  [show (some-> published time-ui/date) (queue-ui/time-left episode)
+   (facts-ui/source supplement)])
 
 (defn row
   "The `episode` of the inbox, its artwork, title and facts, in the

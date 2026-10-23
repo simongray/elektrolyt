@@ -10,13 +10,20 @@
   can't answer 304 is checked by its start first, its :head-check?, so
   that only a feed with something new is fetched whole and parsed.
 
+  A feed of DR's own that was fetched before the listener turned the
+  episodes of drpodcast.nu on or off is fetched whole at once, before the
+  feeds that are due, and once a page, so that one whose fetch fails
+  waits for its schedule.
+
   One refresh runs at a time across the tabs, so a tab whose worker finds
   another refreshing reads what that one writes. A hidden tab doesn't
   refresh, so with every tab hidden, nothing does."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.fetching :as fetching]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.runtime :as runtime]
+            [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.shows :as shows]))
 
 (def max-wait-ms
@@ -24,12 +31,30 @@
   library again, e.g. after the computer slept."
   (* 60 60 1000))
 
+(defonce ^{:doc "The stale feeds that this page refreshed, each a pair of
+  its key and whether DR's own feeds took the episodes of drpodcast.nu
+  then."}
+  refreshed-stale
+  (atom #{}))
+
+(defn stale
+  "The keys of the feeds of the library of the `state` that a fetch would
+  give otherwise now, as drpodcast/stale has them, which this page hasn't
+  refreshed yet."
+  [{:keys [library] :as state}]
+  (when library
+    (let [on? (settings/alternative-feeds? state)]
+      (remove #(contains? @refreshed-stale [% on?]) (drpodcast/stale library on?)))))
+
 (defn next-one
   "When the library of the `state` should refresh next, after the last
   refresh, which waits a while after one that found the device offline, or
-  nil when it has nothing to fetch or the state no library."
-  [{:keys [library refresh-status]}]
-  (some-> library (library/next-refresh {:after (:result refresh-status)})))
+  nil when it has nothing to fetch or the state no library. With stale
+  feeds, it's now."
+  [{:keys [library refresh-status] :as state}]
+  (if (seq (stale state))
+    (js/Date.)
+    (some-> library (library/next-refresh {:after (:result refresh-status)}))))
 
 (defn due?
   "Whether the library of the `state` has feeds that are due now."
@@ -63,21 +88,29 @@
 ;; listener asked for starts, and one with what it found, rather than one
 ;; for each feed, which would be too chatty
 (defn refresh!
-  "Refresh the library of the `store` in the worker: the feeds that are
-  due, or, when the listener `asked?`, every feed of a subscription, and
-  wait for the next. Nothing starts while a refresh is under way."
+  "Refresh the library of the `store` in the worker: the stale feeds, or
+  else the feeds that are due, or, when the listener `asked?`, every feed
+  of a subscription, and wait for the next. Stale feeds are fetched whole,
+  since their start can show nothing new. Nothing starts while a refresh
+  is under way."
   [store asked?]
-  (let [{:keys [library refresh-status]} @store
-        online? (.-onLine js/navigator)]
+  (let [{:keys [library refresh-status] :as state} @store
+        online? (.-onLine js/navigator)
+        on?     (settings/alternative-feeds? state)
+        whole   (vec (stale state))
+        guids   (cond
+                  asked?      (vec (keys (library/subscriptions library)))
+                  (seq whole) whole)]
     (when (and library @app-library/known (not (:running? refresh-status)))
       (runtime/cancel! ::next)
+      (swap! refreshed-stale into (map #(vector % on?)) whole)
       (swap! store #(cond-> (assoc % :refresh-status {:running? true :done 0})
                       asked? (assoc :announcement "Checking for new episodes…")))
-      (-> (fetching/fetch-due! (library/due library
-                                            (cond-> {:online? online?}
-                                              asked? (assoc :feed-guids
-                                                            (vec (keys (library/subscriptions library))))))
-                               {:head-check? true :online? online?}
+      (-> (fetching/fetch-due! (library/due library (cond-> {:online? online?}
+                                                      guids (assoc :feed-guids guids)))
+                               {:head-check?        (empty? whole)
+                                :online?            online?
+                                :alternative-feeds? on?}
                                #(swap! store update :refresh-status merge %))
           (.then (fn [{:keys [found busy?]}]
                    (if busy?
