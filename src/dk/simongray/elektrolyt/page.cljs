@@ -75,10 +75,27 @@
 ;; or a screen reader loses its place, e.g. an Undo that another tab left
 ;; nothing to undo
 ;; https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html
+;; HTML, the icon link type: the page's icon, which the browser shows in
+;; its tab, and without which it shows its own
+;; https://html.spec.whatwg.org/multipage/links.html#rel-icon
+(defn favicon!
+  "Give the page the icon at `href`, or none for nil, changing the page only
+  when the icon changes, since the page renders every second while it
+  plays."
+  [href]
+  (let [link (js/document.querySelector "link[rel=icon]")]
+    (cond
+      (nil? href)                            (some-> link .remove)
+      (nil? link)                            (.append js/document.head
+                                                      (doto (js/document.createElement "link")
+                                                        (.setAttribute "rel" "icon")
+                                                        (.setAttribute "href" href)))
+      (not= href (.getAttribute link "href")) (.setAttribute link "href" href))))
+
 (defn render!
   "Render the page for `state` into the element of the app, and give the
-  window the page's title and the listener's colours. When the render
-  takes away the element with the focus, the element that its
+  window the page's title and icon and the listener's colours. When the
+  render takes away the element with the focus, the element that its
   data-refocus selector names takes the focus, if it names one."
   [state]
   (let [^js focused js/document.activeElement]
@@ -88,6 +105,7 @@
                              (some-> focused .-dataset .-refocus))]
       (some-> (js/document.querySelector selector) .focus)))
   (set! js/document.title (ui/document-title state))
+  (favicon! (ui/favicon state))
   (themed! state)
   (theme-colored!))
 

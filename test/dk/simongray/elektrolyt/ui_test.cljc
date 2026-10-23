@@ -130,3 +130,8 @@
   (is (every? #(some #{ui/no-library} (elements :p (ui/main-content {:route {:name %}})))
               ui/library-pages)
       "each page that needs it says that it couldn't be read"))
+
+(deftest the-icon-of-the-page
+  (is (= "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=64" (ui/favicon (player-test/state {})))
+      "a small thumbnail of the artwork of what the player shows")
+  (is (nil? (ui/favicon {:route {:name :route/home}})) "and none while it shows nothing"))

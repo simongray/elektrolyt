@@ -8,8 +8,10 @@
   has. It holds the listener's library from podcast-clj as :library, once
   it's restored, and the last thing to tell a screen reader as
   :announcement."
-  (:require [dk.simongray.elektrolyt.colors :as colors]
+  (:require [dk.simongray.elektrolyt.artwork :as sized]
+            [dk.simongray.elektrolyt.colors :as colors]
             [dk.simongray.elektrolyt.links :as links]
+            [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]
@@ -100,6 +102,16 @@
   (if (= :route/home (get-in state [:route :name]))
     app-name
     (str (page-title state) " – " app-name)))
+
+;; The tab shows the artwork of what plays, playing or paused, as a small
+;; picture of it, from the smallest thumbnail that fills a tab's 16 CSS
+;; pixels at twice the density
+(defn favicon
+  "The URL of the icon of the page of the `state`: the artwork of what the
+  player shows, or nil while it shows nothing."
+  [state]
+  (when-let [artwork (:artwork (player/shown-playback state))]
+    (sized/smallest {:artwork artwork} 32)))
 
 (defn canonical-path
   "The path that the Show page or the Episode page of the `state` should

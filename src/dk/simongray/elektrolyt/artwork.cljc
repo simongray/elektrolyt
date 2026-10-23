@@ -55,3 +55,15 @@
   [{:keys [artwork artwork-sizes] :as x}]
   (or (not-empty artwork-sizes)
       (thumbnails artwork)))
+
+(defn smallest
+  "The href of the smallest size of the artwork of `x` that is at least
+  `width` pixels wide, or else its :artwork itself, e.g. a data URL, or
+  nil without artwork."
+  [x width]
+  (or (->> (sizes x)
+           (filter #(<= width (:width %)))
+           (sort-by :width)
+           first
+           :href)
+      (:artwork x)))
