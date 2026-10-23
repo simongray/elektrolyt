@@ -121,6 +121,14 @@
   (fn [_ _ id]
     (page/open-dialog! id)))
 
+(nxr/register-effect! :hover/dismiss-on-escape
+  (fn [{:keys [dispatch-data]} _]
+    (page/dismiss-on-escape! (:replicant/dom-event dispatch-data))))
+
+(nxr/register-effect! :hover/restore-on-leave
+  (fn [{:keys [dispatch-data]} _]
+    (page/restore-on-leave! (:replicant/dom-event dispatch-data))))
+
 ;; Searches and shows
 
 (nxr/register-effect! :search/run

@@ -727,6 +727,59 @@ search p {
   padding-block-end: var(--space-2);
 }
 
+/* The volume's slider rises from the speaker on a panel that lies under
+   it, as wide as its target, so that the speaker is the panel's foot. The
+   slider is upright, loud at the top and silent at the bottom, in a
+   column whose items are centred, since Firefox doesn't centre an upright
+   slider by its auto margins.
+   https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Writing_modes/Vertical_controls */
+.player-volume {
+  position: relative;
+  z-index: 0;
+}
+
+.player-volume-slider {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  inline-size: var(--player-target);
+  padding: var(--space-3) 0 calc(var(--player-target) + var(--space-2));
+  visibility: hidden;
+  transition: visibility 0s 0.3s;
+}
+
+.player-volume-slider input {
+  inline-size: 8rem;
+  margin: 0;
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+
+/* The panel shows while a mouse rests on the speaker or the panel, while
+   the keyboard's focus is on either, and while the slider is dragged or
+   has the focus, so that a hand that drifts doesn't lose it. It stays
+   0.3 s after the mouse leaves, and Escape hides it at once (page.cljs).
+   A touch screen has no hover, so there the speaker only mutes. */
+@media (hover: hover) {
+  .player-volume:not([data-dismissed]):hover .player-volume-slider {
+    visibility: visible;
+    transition-delay: 0s;
+  }
+}
+
+.player-volume:not([data-dismissed]):has(:focus-visible, input:focus, input:active) .player-volume-slider {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.player-volume[data-dismissed] .player-volume-slider {
+  transition: none;
+}
+
 /* what's next, a line of text below the controls, and shown with them */
 .player-next {
   grid-area: upnext;
@@ -830,10 +883,6 @@ search p {
 
   .player-controls {
     padding: 0 var(--player-space);
-  }
-
-  .player-controls input[type="range"] {
-    width: 6em;
   }
 
   .player-seek {

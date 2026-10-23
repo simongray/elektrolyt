@@ -135,31 +135,48 @@
    (controls-ui/select "player-speed" player/speed-options (or playback-rate 1)
                        [:player/rate [:event/target-number]])))
 
-;; An iPhone plays at the system's volume, which a page can neither set nor
-;; read, so there the slider stays, disabled, for a layout that doesn't
-;; shift, and says so to a screen reader rather than a false 100%. The
-;; mute button's icon shows the sound as it is, struck out while muted, and
-;; its name says what a press does, as the browsers' own controls have it.
-(defn volume-controls
-  "The mute button and the volume slider at the `level` of the `media`
-  state, which is disabled where the device `locked?` the volume."
+(defn volume-icon
+  "The icon of the sound at the `level` of the volume slider, struck out
+  while it's `muted` or silent."
+  [level muted]
+  (cond
+    (or muted (zero? level)) icons/speaker-slash
+    (< level 0.5)            icons/speaker-low
+    :else                    icons/speaker-high))
+
+;; The speaker mutes on every device, and its name says what a press does,
+;; as the browsers' own controls have it. Where a mouse can rest on it, the
+;; slider rises from it, as Video.js draws its volume when it's not inline:
+;; on hover, and on the keyboard's focus, so that Tab reaches the slider
+;; (layout.css). An iPhone plays at the system's volume, which a page can
+;; neither set nor read, so there's no slider there, and on a touch screen,
+;; whose buttons set the level, none shows. While muted, the slider stands
+;; at silence, at the bottom, and moving it unmutes.
+;; https://docs.videojs.com/control-bar_volume-panel.js.html
+(defn volume-control
+  "The mute button of the `media` state, with the slider at its `level`
+  that rises from it, unless the device `locked?` the volume."
   [{:keys [muted] :as media} level locked?]
-  (list
-   [controls-ui/icon-button {:icon (if muted icons/speaker-slash icons/speaker-high)
-                             :on   {:click [[:player/mute (not muted)]]}}
-    (if muted "Unmute" "Mute")]
-   [:label.visually-hidden {:for "player-volume"} "Volume"]
-   [:input {:type           "range"
-            :id             "player-volume"
-            :min            0
-            :max            1
-            :step           0.05
-            :value          (if locked? 1 level)
-            :disabled       (boolean locked?)
-            :aria-valuetext (if locked?
-                              "Set with the device's buttons"
-                              (str (Math/round (* 100 level)) "%"))
-            :on             {:input [[:player/volume [:event/target-number]]]}}]))
+  (let [shown (if muted 0 level)]
+    [:div (cond-> {:class "player-volume"}
+            (not locked?) (assoc :on {:keydown      [[:hover/dismiss-on-escape]]
+                                      :pointerleave [[:hover/restore-on-leave]]
+                                      :focusout     [[:hover/restore-on-leave]]}))
+     [controls-ui/icon-button {:icon (volume-icon (if locked? 1 level) muted)
+                               :on   {:click [[:player/mute (not muted)]]}}
+      (if muted "Unmute" "Mute")]
+     (when-not locked?
+       [:div.player-volume-slider
+        [:label.visually-hidden {:for "player-volume"} "Volume"]
+        [:input {:type           "range"
+                 :id             "player-volume"
+                 :min            0
+                 :max            1
+                 :step           0.05
+                 :value          shown
+                 :aria-valuetext (str (Math/round (* 100 shown)) "%")
+                 :on             {:input (cond-> [[:player/volume [:event/target-number]]]
+                                           muted (conj [:player/mute false]))}}]])]))
 
 ;; Pocket Casts, Apple Podcasts and Spotify all reach the queue from the
 ;; player, which here is a page of the app. On a wide screen it's a square
@@ -230,7 +247,7 @@
             :aria-label "Controls"
             :class      (cond-> ["player-controls"] (not expanded?) (conj "collapsed"))}
       (speed media)
-      (volume-controls media (or volume 1) volume-locked?)]
+      (volume-control media (or volume 1) volume-locked?)]
      (next-up state)
      (status-line player))))
 

@@ -153,3 +153,29 @@
   (when-let [dialog (js/document.getElementById id)]
     (set! (.-returnValue dialog) "")
     (.showModal dialog)))
+
+;; WCAG 2.2, SC 1.4.13 Content on Hover or Focus: what an element shows on
+;; hover and on focus (layout.css) hides on Escape, without the pointer or
+;; the focus moving, as Video.js hides its volume. It stays hidden until
+;; both have left the element, with the focus on its button, since the
+;; focus mustn't stay in a part that's hidden. The mark of it is an
+;; attribute that the views never set, so that a render keeps it.
+;; https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
+(defn dismiss-on-escape!
+  "Hide what the element of the keyboard `event` shows on hover and focus,
+  for Escape, with the focus on its button."
+  [^js event]
+  (when (= "Escape" (.-key event))
+    (let [element (.-currentTarget event)]
+      (.setAttribute element "data-dismissed" "")
+      (some-> (.querySelector element "button") .focus))))
+
+(defn restore-on-leave!
+  "Let the element of the pointer or focus `event` show on hover and focus
+  again, once neither the pointer nor the focus is inside it."
+  [^js event]
+  (let [element  (.-currentTarget event)
+        hovered? (and (not= "pointerleave" (.-type event)) (.matches element ":hover"))
+        focused  (if (= "focusout" (.-type event)) (.-relatedTarget event) js/document.activeElement)]
+    (when-not (or hovered? (.contains element focused))
+      (.removeAttribute element "data-dismissed"))))

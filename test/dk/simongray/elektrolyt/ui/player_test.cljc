@@ -73,10 +73,25 @@
         "a group named as the button")))
 
 (deftest the-volume
-  (is (= {:disabled false :aria-valuetext "50%"}
-         (select-keys (attributes-of "player-volume" (player-ui/region (state {:volume 0.5})))
-                      [:disabled :aria-valuetext])))
-  (is (= {:disabled true :value 1 :aria-valuetext "Set with the device's buttons"}
-         (select-keys (attributes-of "player-volume" (player-ui/region (state {:volume 0.5 :volume-locked? true})))
-                      [:disabled :value :aria-valuetext]))
-      "disabled where the device locks it, rather than a false level"))
+  (let [mute   #(some (fn [b] (when (#{"Mute" "Unmute"} (text-of b)) [(text-of b) (:on (second b))]))
+                      (buttons %))
+        slider #(select-keys (attributes-of "player-volume" %) [:value :aria-valuetext :on])]
+    (let [x (player-ui/region (state {:volume 0.5}))]
+      (is (= ["Mute" {:click [[:player/mute true]]}] (mute x)) "a speaker that mutes")
+      (is (= {:value 0.5 :aria-valuetext "50%" :on {:input [[:player/volume [:event/target-number]]]}}
+             (slider x))
+          "and the slider that rises from it, whose level a screen reader reads"))
+    (let [x (player-ui/region (state {:volume 0.5
+                                      :media  {:paused false :current-time 75 :duration 3600 :muted true}}))]
+      (is (= ["Unmute" {:click [[:player/mute false]]}] (mute x)))
+      (is (= {:value 0 :aria-valuetext "0%" :on {:input [[:player/volume [:event/target-number]]
+                                                         [:player/mute false]]}}
+             (slider x))
+          "at silence while muted, which moving it ends"))
+    (let [x (player-ui/region (state {:volume 0.5 :volume-locked? true}))]
+      (is (= "Mute" (first (mute x))))
+      (is (empty? (slider x))
+          "a mute button alone where the device locks the volume, rather than a slider at a false level")))
+  (is (= [icons/speaker-slash icons/speaker-slash icons/speaker-low icons/speaker-high]
+         (map #(apply player-ui/volume-icon %) [[1 true] [0 false] [0.3 false] [0.8 false]]))
+      "the icon shows the level, struck out while muted or silent"))

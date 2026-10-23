@@ -595,6 +595,14 @@ hgroup > p {
   background: var(--grain) 0 0 / var(--grain-size), var(--accent-soft);
 }
 
+/* the volume's panel a piece of the bar, lifted off the page and the bar
+   by the bar's own shadow */
+.player-volume-slider {
+  border-radius: var(--radius);
+  background: var(--grain) 0 0 / var(--grain-size), var(--bar);
+  box-shadow: 0 0 5px oklch(0% 0 0 / 0.3);
+}
+
 /* the episode's title and its show's name, links to their pages, as
    plain as the text beside them */
 .player-title a {
