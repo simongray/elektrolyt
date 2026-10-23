@@ -4,7 +4,9 @@
   The state holds the feed URLs that are being subscribed to in
   :subscribing, and the errors of those that failed by URL in
   :subscribe-errors."
-  (:require [dk.simongray.elektrolyt.search :as search]))
+  (:require [dk.simongray.elektrolyt.search :as search]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.icons :as icons]))
 
 (defn status
   "Where the subscription to the feed at `url` stands in the `state`, with
@@ -21,7 +23,11 @@
 ;; starts with the visible label, e.g. "Subscribe to Podcasting 2.0". The
 ;; button is aria-disabled rather than disabled, so that it keeps the focus
 ;; as it changes. Subscribe is filled, as the main action of a show that
-;; the listener doesn't have, as Play is of an episode.
+;; the listener doesn't have, as Play is of an episode. Its icon is a plus,
+;; as Pocket Casts' is, which becomes a check once subscribed, and a minus
+;; where it unsubscribes. Where it turns into Unsubscribe at once, a double
+;; click subscribes once (controls/single-click).
+;; https://support.pocketcasts.com/article/subscribing-to-podcasts/
 (defn button
   "The button that subscribes to the show `title` at `url`, at the
   subscription `status`, or unsubscribes from it once it's subscribed,
@@ -30,12 +36,14 @@
    (button status url title false))
   ([status url title unsubscribe?]
    (if (and unsubscribe? (= :subscribed status))
-     [:button {:type "button" :on {:click [[:library/unsubscribe url title]]}}
+     [controls/button {:icon icons/minus
+                       :on   {:click (controls/single-click [[:library/unsubscribe url title]])}}
       "Unsubscribe" [:span.visually-hidden " from " title]]
-     [:button (cond-> {:type "button"}
-                (not= :subscribed status) (assoc :class "primary")
-                (not= :ready status) (assoc :aria-disabled "true")
-                (= :ready status)    (assoc :on {:click [[:library/subscribe url title]]}))
+     [controls/button (cond-> {:icon (if (= :subscribed status) icons/check icons/plus)}
+                        (not= :subscribed status) (assoc :class "primary")
+                        (not= :ready status) (assoc :aria-disabled "true")
+                        (= :ready status)    (assoc :on {:click (controls/single-click
+                                                                 [[:library/subscribe url title]])}))
       (case status
         :subscribed  "Subscribed"
         :subscribing "Subscribing…"

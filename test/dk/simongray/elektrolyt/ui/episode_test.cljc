@@ -4,7 +4,9 @@
             [dk.simongray.elektrolyt.episode-test :as episode-test]
             [dk.simongray.elektrolyt.links :as links]
             [dk.simongray.elektrolyt.ui :as ui]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.episode :as episode-ui]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui-test :refer [elements lang-of nodes spoken text-of]]))
 
 (defn episode-page
@@ -63,16 +65,19 @@
         playing #(hash-map :id %1 :media {:paused (not %2)})
         button  #(episode-ui/play-button page %1 %2 %3)]
     (is (= "Play" (text-of (button nil nil nil))))
+    (is (= [controls/button icons/play] ((juxt first (comp :icon second)) (button nil nil nil)))
+        "with the player's icon before its words")
     (is (= "Play from 1:13" (text-of (button nil nil 73))) "from the time of the link")
     (is (= [[:player/play (episode/playable page) 73]]
            (get-in (button nil nil 73) [1 :on :click])))
-    (is (= "Resume, 50m left" (text-of (button nil {:position 600} nil)))
+    (is (= "Resume" (text-of (button nil {:position 600} nil)))
         "where the listener left it")
     (is (= "Play" (text-of (button nil {:position 600 :played? true} nil))) "unless it's played")
-    (is (= "Resume, 50m left" (text-of (button (playing (:id page) false) {:position 600} nil)))
+    (is (= "Resume" (text-of (button (playing (:id page) false) {:position 600} nil)))
         "while it's paused")
     (is (= [[:player/pause]] (get-in (button (playing (:id page) true) nil nil) [1 :on :click]))
         "and Pause while it plays, with no aria-pressed")
+    (is (= ["Pause" icons/pause] ((juxt text-of (comp :icon second)) (button (playing (:id page) true) nil nil))))
     (is (= "Play" (text-of (button (playing ["other" "x"] true) nil nil))) "while another one plays")
     (let [there {:id        ["other" "x"]
                  :media     {:paused true}
@@ -82,6 +87,13 @@
           "and Pause while another tab plays it, as the player says")
       (is (= "Play" (text-of (button (assoc-in there [:elsewhere :paused] true) nil nil)))
           "but not once that tab paused it"))))
+
+(deftest the-time-it-has-left
+  (is (= "1h" (text-of (episode-ui/time-left 3600 nil))) "its length at first")
+  (is (= "50m left" (text-of (episode-ui/time-left 3600 {:position 600})))
+      "and what's left of it once it's started, as a fact rather than in Resume")
+  (is (= "1h" (text-of (episode-ui/time-left 3600 {:position 600 :played? true}))) "but not once it's played")
+  (is (nil? (episode-ui/time-left nil {:position 600})) "and nothing without a length"))
 
 (deftest the-buttons-that-queue-it
   (let [page    (episode-ui/route-page (episode-page nil))

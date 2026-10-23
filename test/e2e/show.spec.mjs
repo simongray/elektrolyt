@@ -24,6 +24,18 @@ test('unsubscribing keeps the page by the URL of its feed', async ({ page }) => 
   await expect(page).not.toHaveURL(feedInAddress);
 });
 
+// Once the page has the whole feed, which its count of episodes says,
+// Subscribe turns into Unsubscribe at once, under the second click
+test('a double click on Subscribe subscribes once', async ({ page }) => {
+  const main = page.getByRole('main');
+
+  await page.goto(showPath);
+  await expect(main.getByText(`${episodes.length} episodes.`, { exact: true })).toBeVisible();
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).dblclick();
+  await expect(announcement(page)).toHaveText(`Subscribed to ${showTitle}`);
+  await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
+});
+
 // HTML, section 10.2.4: a worker whose script fails to load fires error at
 // its Worker in the page, and never runs
 // https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model

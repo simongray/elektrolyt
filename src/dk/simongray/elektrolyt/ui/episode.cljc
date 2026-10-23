@@ -19,6 +19,7 @@
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [dk.simongray.elektrolyt.ui.details :as details]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.picks :as picks-ui]
             [dk.simongray.elektrolyt.ui.show :as show-ui]
             [dk.simongray.elektrolyt.ui.time :as time-ui]
@@ -53,35 +54,48 @@
            (str "?t=")
            (fragment/link-time)))
 
+(defn started?
+  "Whether the `entry` of an episode in the profile has started it, and not
+  played it to the end."
+  [{:keys [position played?]}]
+  (and (number? position) (pos? position) (not played?)))
+
+;; The time that an episode has left is among its facts, as in the rows of
+;; the queue and the inbox, rather than in Resume, which it made wide
+(defn time-left
+  "How long an episode of `duration` seconds lasts, or how long it has left
+  once its `entry` in the profile has started it, e.g. 50m left, or nil
+  when the duration is unknown."
+  [duration {:keys [position] :as entry}]
+  (when (number? duration)
+    (if (started? entry)
+      (conj (time-ui/duration (max 0 (- duration position))) " left")
+      (time-ui/duration duration))))
+
 ;; WAI-ARIA APG, button pattern: a button whose label changes with its
 ;; state, from Play to Pause, has no aria-pressed, which would say the
 ;; opposite. https://www.w3.org/WAI/ARIA/apg/patterns/button/
 (defn play-label
-  "What the button of the episode `page` says when it would play it, by the
-  `entry` of the episode in the profile and the start time `t` of the link,
-  e.g. \"Play from 1:13\", \"Resume, 12 min left\" or \"Play\"."
-  [{:keys [duration] :as page} {:keys [position played?] :as entry} t]
+  "What the button of an episode says when it would play it, by the `entry`
+  of the episode in the profile and the start time `t` of the link, e.g.
+  \"Play from 1:13\", \"Resume\" or \"Play\"."
+  [entry t]
   (cond
-    t
-    (str "Play from " (time-ui/clock-text t))
-
-    (and (number? position) (pos? position) (not played?))
-    (if (number? duration)
-      (str "Resume, " (time-ui/duration-text (max 0 (- duration position))) " left")
-      "Resume")
-
-    :else
-    "Play"))
+    t                (str "Play from " (time-ui/clock-text t))
+    (started? entry) "Resume"
+    :else            "Play"))
 
 (defn play-button
   "The button that plays the episode `page`, from `t` seconds or from where
   its `entry` in the profile left it, or pauses it while the `player`
-  plays it, in this tab or another."
+  plays it, in this tab or another, with the player's icons of the two."
   [page player entry t]
   (if (player/playing player (:id page))
-    [:button.primary {:type "button" :on {:click [[:player/pause]]}} "Pause"]
-    [:button.primary {:type "button" :on {:click [[:player/play (episode/playable page) t]]}}
-     (play-label page entry t)]))
+    [controls-ui/button {:icon icons/pause :class "primary" :on {:click [[:player/pause]]}} "Pause"]
+    [controls-ui/button {:icon  icons/play
+                         :class "primary"
+                         :on    {:click [[:player/play (episode/playable page) t]]}}
+     (play-label entry t)]))
 
 ;; The two places of Apple, Pocket Casts, Castro and Overcast: right after
 ;; the episode that plays, or at the end. Play next moves an episode that's
@@ -143,7 +157,7 @@
       (facts-ui/line
        (concat (numbering-facts numbering)
                [(some-> published time-ui/date)
-                (some-> duration time-ui/duration)
+                (time-left duration entry)
                 (when explicit? "Explicit")
                 (when ai-content? "Made with AI")
                 (facts-ui/labelled-source supplement)

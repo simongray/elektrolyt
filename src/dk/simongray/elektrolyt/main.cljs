@@ -28,6 +28,7 @@
             [dk.simongray.elektrolyt.searches :as searches]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]
+            [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [nexus.registry :as nxr]
             [reitit.frontend.easy :as rfe]
             [reitit.frontend.history :as rfh]
@@ -75,6 +76,10 @@
   (fn [{:replicant/keys [dom-event]}]
     (some-> dom-event controls/range-seek)))
 
+(nxr/register-placeholder! :event/click-count
+  (fn [{:replicant/keys [dom-event]}]
+    (some-> dom-event .-detail)))
+
 ;; The actions that expand into others
 
 (nxr/register-expansion! :route/navigated routes/navigated)
@@ -82,6 +87,8 @@
 (nxr/register-expansion! :search/submit search/submitted)
 
 (nxr/register-expansion! :show/more show/more-shown)
+
+(nxr/register-expansion! :event/single-click controls-ui/unless-repeated)
 
 ;; The store and the page
 

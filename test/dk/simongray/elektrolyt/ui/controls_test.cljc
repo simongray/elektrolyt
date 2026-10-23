@@ -17,3 +17,12 @@
         "of every part of them, on an icon that a view drew too")
     (is (empty? (tooltips [controls/button {:icon icons/play} "Play"]))
         "and none on a button whose words show")))
+
+(deftest a-single-click
+  (let [actions        [[:library/subscribe "https://example.org/feed.xml" "A Show"]]
+        [[k n wrapped]] (controls/single-click actions)
+        expanded       #(controls/unless-repeated {} % wrapped)]
+    (is (= [:event/single-click [:event/click-count] actions] [k n wrapped]))
+    (is (= actions (expanded 1)) "a click")
+    (is (= actions (expanded 0)) "a click by the keyboard")
+    (is (nil? (expanded 2)) "but not the second click of a double click")))

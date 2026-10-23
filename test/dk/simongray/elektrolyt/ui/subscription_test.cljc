@@ -1,24 +1,30 @@
 (ns dk.simongray.elektrolyt.ui.subscription-test
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]))
 
 (deftest a-subscription-button
-  (let [[_ attrs label] (subscription/button :ready "https://example.org/feed.xml" "A Show")]
-    (is (= "Subscribe" label))
+  (let [[tag attrs label] (subscription/button :ready "https://example.org/feed.xml" "A Show")]
+    (is (= controls/button tag) "with an icon before its words")
+    (is (= ["Subscribe" icons/plus] [label (:icon attrs)]))
     (is (= "primary" (:class attrs)) "filled, as the main action")
     (is (nil? (:aria-disabled attrs)))
-    (is (= [[:library/subscribe "https://example.org/feed.xml" "A Show"]] (get-in attrs [:on :click]))))
+    (is (= (controls/single-click [[:library/subscribe "https://example.org/feed.xml" "A Show"]])
+           (get-in attrs [:on :click]))
+        "once for a double click"))
   (let [[_ attrs label] (subscription/button :subscribing "https://example.org/feed.xml" "A Show")]
-    (is (= "Subscribing…" label))
+    (is (= ["Subscribing…" icons/plus] [label (:icon attrs)]))
     (is (= "true" (:aria-disabled attrs)))
     (is (nil? (:on attrs)) "nothing happens until it's done"))
   (let [[_ attrs label] (subscription/button :subscribed "https://example.org/feed.xml" "A Show")]
-    (is (= "Subscribed" label) "where a page offers no way out")
+    (is (= ["Subscribed" icons/check] [label (:icon attrs)]) "where a page offers no way out")
     (is (= "true" (:aria-disabled attrs))))
   (let [[_ attrs label] (subscription/button :subscribed "https://example.org/feed.xml" "A Show" true)]
-    (is (= "Unsubscribe" label) "and where it does")
-    (is (= [[:library/unsubscribe "https://example.org/feed.xml" "A Show"]] (get-in attrs [:on :click])))
+    (is (= ["Unsubscribe" icons/minus] [label (:icon attrs)]) "and where it does")
+    (is (= (controls/single-click [[:library/unsubscribe "https://example.org/feed.xml" "A Show"]])
+           (get-in attrs [:on :click])))
     (is (nil? (:class attrs)) "which isn't filled")))
 
 (deftest the-state-of-a-subscription

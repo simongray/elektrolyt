@@ -74,6 +74,27 @@
    (icon-of (:icon attrs) (apply str children))
    [:span.visually-hidden children]])
 
+;; GOV.UK's buttons can ignore the second click of a double click, so that
+;; it doesn't send a form twice. Here it would undo the first, on a button
+;; that turns into its opposite under the pointer, e.g. Subscribe into
+;; Unsubscribe. The detail of a click counts the clicks in a row, and is 0
+;; for one by the keyboard.
+;; https://design-system.service.gov.uk/components/button/#stop-users-from-accidentally-sending-information-more-than-once
+;; https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail
+(defn single-click
+  "The click handler of the `actions` that leaves out the second click of a
+  double click, and any after it."
+  [actions]
+  [[:event/single-click [:event/click-count] actions]])
+
+(defn unless-repeated
+  "The `actions` of a click, or none for one whose `click-count` says it
+  follows another, as the expansion of :event/single-click in the
+  `_state`."
+  [_state click-count actions]
+  (when (<= (or click-count 0) 1)
+    actions))
+
 ;; WAI-ARIA APG, disclosure: a button in the heading that says whether
 ;; what it shows is expanded, its words the heading's, with a caret after
 ;; them (see look.css). The heading can take the focus, as a link to the
