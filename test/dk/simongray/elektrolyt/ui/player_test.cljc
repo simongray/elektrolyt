@@ -39,6 +39,10 @@
     (is (= [(lists-ui/episode-href lib id "Episode 7") (lists-ui/show-href lib (first id) "A Show")]
            (map (comp :href second) (elements :a (elements :div.player-title x))))
         "the episode's title and the show's name, links to their pages")
+    (is (= ["Episode 7" "A Show" "News"]
+           (keep (comp :title second) (concat (elements :a (elements :div.player-title x))
+                                              (elements :span (elements :div.player-title x)))))
+        "each with its whole text as its tooltip, where the line cuts it short")
     (is (= ["Back 15 seconds" "Pause" "Forward 30 seconds" "Mute" "Previous chapter" "Next chapter"]
            (map text-of (buttons x)))
         "Play between back and forward and the speaker after them, then the chapters' buttons, every one in view")
@@ -53,7 +57,8 @@
       (is (= {:--clock "8ch"} (:style (second (first (elements :div.player-seek x)))))
           "with times as wide as the duration, 1:00:00, and its minus"))
     (is (= "1.5" (some #(when (:selected (second %)) (:value (second %))) (elements :option x)))
-        "the speed that it plays at")))
+        "the speed that it plays at")
+    (is (= "Speed" (:title (attributes-of "player-speed" x))) "named by its title, its tooltip")))
 
 (deftest the-marks-of-chapters
   (let [chapters [{:start-time 0 :title "Intro"} {:start-time 60 :title "News"} {:start-time 3600 :title "After"}]

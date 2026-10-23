@@ -47,11 +47,12 @@
 ;; same page are one link, rather than two that a keyboard and a screen
 ;; reader meet in turn. The title is that link, so the artwork's link is
 ;; for a pointer alone, out of the order of the keyboard and hidden from
-;; a screen reader.
+;; a screen reader. Its tooltip is that title, which a screen reader
+;; doesn't read either.
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H2
 (defn linked
-  "The artwork `img` as a link to `href`, where the title beside it links
-  too, or nil without the img."
-  [href img]
+  "The artwork `img` as a link to `href`, where the `title` beside it links
+  too, which is its tooltip, or nil without the img."
+  [href title img]
   (when img
-    [:a.artwork-link {:href href :tabindex -1 :aria-hidden "true"} img]))
+    [:a.artwork-link {:href href :title title :tabindex -1 :aria-hidden "true"} img]))

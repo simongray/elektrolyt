@@ -125,15 +125,17 @@ hgroup > p {
 /* The shell fills the viewport and only the main content scrolls, so that
    the player and the navigation stay in view. The dynamic viewport height
    follows a phone's browser toolbars as they come and go. From Chrome 130,
-   the keyboard also reaches a scroller with no links in it:
+   the keyboard also reaches a scroller with no links in it. On a phone
+   the tab bar is at the top, and the player at the foot, where a thumb
+   reaches its transport (ui/player.cljc).
    https://developer.chrome.com/blog/keyboard-focusable-scrollers */
 .shell {
   display: grid;
   grid-template-areas:
+    "nav"
     "main"
-    "player"
-    "nav";
-  grid-template-rows: minmax(0, 1fr) auto auto;
+    "player";
+  grid-template-rows: auto minmax(0, 1fr) auto;
   /* not as wide as the longest line, e.g. the player's title, which it
      cuts short instead */
   grid-template-columns: minmax(0, 1fr);
@@ -186,9 +188,9 @@ hgroup > p {
   height: 24px;
 }
 
-/* A tab shows its page's icon alone, and its title only to a screen
-   reader */
-@media (width < 37.5em) {
+/* A tab, and a link of the rail until it has room for its titles, shows
+   its page's icon alone, and its title only to a screen reader */
+@media (width < 50em) {
   .shell > nav .title {
     position: absolute;
     width: 1px;
@@ -218,7 +220,7 @@ hgroup > p {
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: var(--space-5) 0 var(--space-3) var(--space-3);
+    padding: var(--space-5) var(--space-2) var(--space-3);
   }
 
   .shell > nav ul {
@@ -228,6 +230,25 @@ hgroup > p {
 
   .shell > nav li {
     flex: none;
+  }
+
+  /* a link of icons alone, with room around its icon */
+  .shell > nav a {
+    padding-inline: var(--space-3);
+  }
+
+  /* as far from the rail's edge as from the top of the page */
+  .shell > main {
+    padding-inline: var(--space-5);
+  }
+}
+
+/* From 50em, where the player has room for the transport beside its
+   title too, the rail shows its titles, so that it's as wide as they are
+   only where the main content can spare the room */
+@media (min-width: 50em) {
+  .shell > nav {
+    padding-inline: var(--space-3) 0;
   }
 
   /* against the edge of the rail, as a book's contents are, with each
@@ -247,11 +268,6 @@ hgroup > p {
     height: 22px;
     margin-inline-start: 0.5em;
     vertical-align: calc(0.28em - 11px);
-  }
-
-  /* as far from the rail's edge as from the top of the page */
-  .shell > main {
-    padding-inline: var(--space-5);
   }
 }
 
@@ -963,15 +979,16 @@ search p {
 }
 
 /* with nothing next, the title takes its place */
-@media (width < 53em) {
+@media (width < 50em) {
   #player:not(:has(.player-next)) .player-title {
     grid-column: title-start / upnext-end;
     padding-inline-end: var(--player-space);
   }
 }
 
-/* From 53em, the title has 20em beside the transport and what's next */
-@media (min-width: 53em) {
+/* From 50em, the title has 18em beside the transport and what's next,
+   and the rail beside the main content shows its titles too */
+@media (min-width: 50em) {
   /* The title and the seek row keep their distance themselves, so the
      grid has no gaps. The column of what's next is empty, and so takes no
      room, without one. The episode's row is a row like the phone's, and

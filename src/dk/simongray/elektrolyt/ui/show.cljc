@@ -220,13 +220,14 @@
   [state cards]
   [:ul.linked-shows {:role "list"}
    (for [{show-guid :guid :keys [title url] :as card} cards]
-     (let [href (routes/show-href show-guid title url)]
+     (let [href  (routes/show-href show-guid title url)
+           label (or title "Untitled show")]
        [:li {:replicant/key show-guid}
         [:article.linked-show
-         (or (artwork/linked href (artwork/img card 96 (merge {:loading "lazy"}
-                                                              (colors/placeholder state card))))
+         (or (artwork/linked href label (artwork/img card 96 (merge {:loading "lazy"}
+                                                                    (colors/placeholder state card))))
              [:div.no-artwork])
-         [:h3 [:a {:href href} (or title "Untitled show")]]]]))])
+         [:h3 [:a {:href href} label]]]]))])
 
 ;; Pocket Casts puts a show's podroll first among its recommendations, as
 ;; "Recommended shows by the creator", and Apple Podcasts ends a show's

@@ -41,7 +41,7 @@
   the `facts` in a line."
   [href img tag title lang facts]
   (list
-   (artwork/linked href img)
+   (artwork/linked href title img)
    [tag [:a (cond-> {:href href} lang (assoc :lang lang)) title]]
    (facts-ui/line facts)))
 

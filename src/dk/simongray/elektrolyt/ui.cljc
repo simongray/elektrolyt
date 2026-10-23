@@ -128,10 +128,12 @@
 (defn page-link
   "A link to the route named `route-name` with the `label`, which is marked
   as the current page when the `state` is on that route, or as current
-  when it's on a page that is a part of the route's page."
+  when it's on a page that is a part of the route's page, and whose
+  tooltip is the page's title, for where it shows its icon alone."
   [state route-name label]
   (let [current (get-in state [:route :name])]
     [:a {:href         (routes/href route-name)
+         :title        (titles route-name)
          :aria-current (cond
                          (= route-name current)           "page"
                          (= route-name (part-of current)) "true")}

@@ -52,7 +52,7 @@
   (let [href (routes/show-href feed-guid title)]
     [:li {:replicant/key feed-guid}
      [:article.library-show
-      (artwork/linked href (artwork/img show 160 (colors/placeholder state show)))
+      (artwork/linked href title (artwork/img show 160 (colors/placeholder state show)))
       [:h3 [:a {:href href} title]]
       (when-let [text (shows/counts-text counts)]
         [:p text])

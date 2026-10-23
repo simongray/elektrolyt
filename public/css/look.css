@@ -179,8 +179,8 @@ time,
    the paper's grain, in a tone of the label's colour of the page that
    it's on, or else of the colour of the show that the page is about, as
    its links are. Wider than a phone it's a rail beside the text, and the
-   two papers meet with no line between them. On a phone it's a tab bar
-   below the player. */
+   two papers meet with no line between them. On a phone it's a tab bar at
+   the top. */
 .shell > nav {
   background: var(--grain) 0 0 / var(--grain-size),
               color-mix(in oklab, var(--label, var(--seed-accent)) 7%, var(--paper));
@@ -250,16 +250,30 @@ time,
   text-underline-offset: 0.45em;
 }
 
-/* On a phone, where a tab shows its icon alone, the line is under the
-   icon instead, as wide as it. A border rather than a background, which
+/* Where a tab or the rail shows icons alone, the line is by the icon
+   instead, 3 px off it: under a tab's, as wide as it, and at the start of
+   the rail's, as tall as it. A border rather than a background, which
    forced colours would paint over. */
-@media (width < 37.5em) {
+@media (width < 50em) {
   .shell > nav a[aria-current]::after {
     content: "";
     position: absolute;
+  }
+}
+
+@media (width < 37.5em) {
+  .shell > nav a[aria-current]::after {
     inset-inline: calc(50% - 12px);
     inset-block-end: 5px;
     border-top: 2px solid;
+  }
+}
+
+@media (37.5em <= width < 50em) {
+  .shell > nav a[aria-current]::after {
+    inset-inline-start: calc(50% - 17px);
+    inset-block: calc(50% - 12px);
+    border-inline-start: 2px solid;
   }
 }
 
@@ -283,9 +297,9 @@ time,
   max-inline-size: var(--measure);
 }
 
-/* the rail's titles, larger than the tab bar's, which only a screen
-   reader reads */
-@media (min-width: 37.5em) {
+/* the rail's titles, where it shows them, larger than those which only a
+   screen reader reads */
+@media (min-width: 50em) {
   .shell > nav a {
     font-size: var(--step-1);
   }
@@ -592,7 +606,7 @@ hgroup > p {
 
 /* The player, on its bar: the title strong and the show lighter. The bar
    has a faint shadow above it, which sets it apart from the paper, only
-   upward, so that none falls on a phone's tab bar below it. */
+   upward, since the window's edge is below it. */
 #player {
   position: relative;
   z-index: 1;
@@ -744,6 +758,7 @@ hgroup > p {
   border-color: transparent;
   appearance: none;
   field-sizing: content;
+  cursor: pointer;
 }
 
 /* Type reversed out of the bar, like the text in the coloured panels of

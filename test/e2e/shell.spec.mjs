@@ -25,6 +25,17 @@ test('the rail keeps its width from page to page, so the content stays put', asy
   }
 });
 
+test('in a narrow window, the rail shows icons alone, and their titles name them', async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 700 });
+  await page.goto('/queue');
+  const library = navLink(page, 'Library');
+  await expect(library.locator('svg')).toBeVisible();
+  expect((await library.locator('.title').boundingBox()).width, 'the title, for a screen reader')
+    .toBeLessThanOrEqual(1);
+  const [, rail] = await shell(page);
+  expect(rail, 'a rail as narrow as its icons').toBeLessThan(80);
+});
+
 test('on a phone, a tab shows its icon alone, and its title names it', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 700 });
   await page.goto('/queue');

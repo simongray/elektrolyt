@@ -16,30 +16,39 @@
 ;; skips, since the control that holds it has a name of its own. In forced
 ;; colours, browsers keep an svg's currentColor in step with the text,
 ;; where an icon painted as a masked background would take the colour of
-;; the background and vanish.
+;; the background and vanish. Its tooltip is SVG's own title, which a
+;; screen reader skips with the icon. A title attribute on the control
+;; would be read after its name again in Chrome, where the icon has text
+;; in it, e.g. a skip's seconds.
 ;; https://www.sarasoueidan.com/blog/accessible-icon-buttons/
 ;; https://www.w3.org/TR/css-color-adjust-1/#forced-color-adjust-prop
+;; https://www.w3.org/TR/SVG2/struct.html#TitleElement
 (defalias icon
   "The svg of the path that the `attrs` have as :icon, e.g. icons/play,
-  with the rest of the `attrs`, and the `children` drawn over the path,
-  e.g. the seconds in the arrow of a skip."
+  with its :title, if any, as its tooltip, the rest of the `attrs`, and
+  the `children` drawn over the path, e.g. the seconds in the arrow of a
+  skip."
   [attrs children]
   (into [:svg.icon (merge {:viewBox     "0 0 256 256"
                            :width       "1em"
                            :height      "1em"
                            :fill        "currentColor"
                            :aria-hidden "true"}
-                          (dissoc attrs :icon))
+                          (dissoc attrs :icon :title))
+         (when-let [title (:title attrs)]
+           [:title title])
          [:path {:d (:icon attrs)}]]
         children))
 
 (defn icon-of
   "The icon of `x`, a path of ui.icons, or `x` itself, an icon that a view
-  drew, e.g. a skip with the seconds in its arrow."
-  [x]
-  (if (string? x)
-    [icon {:icon x}]
-    x))
+  drew, e.g. a skip with the seconds in its arrow, with the `title`, if
+  any, as its tooltip."
+  ([x]
+   (icon-of x nil))
+  ([x title]
+   (cond-> (if (string? x) [icon {:icon x}] x)
+     title (assoc-in [1 :title] title))))
 
 (defalias button
   "A button with the `children`, its words, after the icon that the
@@ -52,16 +61,17 @@
 
 ;; Its words are visually hidden text rather than an aria-label, which
 ;; the browsers' translations still skip. NN/g finds that few icons are
-;; understood without words, so this button is for those few, e.g. Play.
+;; understood without words, so this button is for those few, e.g. Play,
+;; and its icon's tooltip shows its words under the pointer.
 ;; https://adrianroselli.com/2019/11/aria-label-does-not-translate.html
 ;; https://www.nngroup.com/articles/icon-usability/
 (defalias icon-button
   "A button that shows only the icon that the `attrs` have as :icon, as
   icon-of takes it, with the rest of the `attrs`, and is named by the
-  `children`, its words, which only a screen reader reads."
+  `children`, its words, which only a screen reader and a tooltip show."
   [attrs children]
   [:button.icon-button (merge {:type "button"} (dissoc attrs :icon))
-   (icon-of (:icon attrs))
+   (icon-of (:icon attrs) (apply str children))
    [:span.visually-hidden children]])
 
 ;; WAI-ARIA APG, disclosure: a button in the heading that says whether
@@ -121,10 +131,12 @@
 (defn select
   "A select with the `id` of the `options`, pairs of a value and its text,
   with `chosen` selected, whose change dispatches the `action`, which
-  holds the placeholder of the new value."
-  [id options chosen action]
-  [:select {:id id :on {:change [action]}}
-   (for [[v text] options]
-     [:option {:value    (option-value v)
-               :selected (= (option-value v) (option-value chosen))}
-      text])])
+  holds the placeholder of the new value, with the `attrs` merged in."
+  ([id options chosen action]
+   (select id options chosen action nil))
+  ([id options chosen action attrs]
+   [:select (merge {:id id :on {:change [action]}} attrs)
+    (for [[v text] options]
+      [:option {:value    (option-value v)
+                :selected (= (option-value v) (option-value chosen))}
+       text])]))

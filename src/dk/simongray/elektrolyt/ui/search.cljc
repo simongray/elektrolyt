@@ -132,7 +132,7 @@
   [state subscribed level {:keys [url guid title author] :as result} shared-title?]
   (let [title (or title url)]
     [:article
-     (artwork/linked (routes/show-href guid title url)
+     (artwork/linked (routes/show-href guid title url) title
                      (artwork/img result 64 (merge {:loading "lazy"} (colors/placeholder state result))))
      [level (show-link (assoc result :title title))]
      (when author

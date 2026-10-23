@@ -27,21 +27,26 @@
   which takes its place, at an edge of the player, with the `attrs` merged
   in, e.g. its colour while it loads, as a link to `href`, the page of its
   episode, as its title is."
-  [{:keys [artwork] :as playback} seconds href attrs]
+  [{:keys [artwork title] :as playback} seconds href attrs]
   (let [image (or (some-> (:img (player/chapter-at playback seconds)) player/proxied)
                   artwork)]
     (when image
-      (artwork/linked href (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs))))))
+      (artwork/linked href title (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs))))))
 
+;; Each line is cut short where it doesn't fit (layout.css), so each part
+;; has its whole text as its tooltip, which a screen reader doesn't read
+;; again, since a link's is its name and a span's isn't read at all (as
+;; Chrome's accessibility tree has them)
 (defn now-playing
   "The title and the show of the `playback`, with its title of the chapter
   at `seconds`, whose title links to `href`, the page of its episode, and
   whose show to `show-href`, the page of its show."
   [{:keys [title show] :as playback} seconds href show-href]
-  [:div.player-title
-   [:p [:a {:href href} title]]
-   (facts-ui/line [(when show [:a {:href show-href} show])
-                   (:title (player/chapter-at playback seconds))])])
+  (let [chapter (:title (player/chapter-at playback seconds))]
+    [:div.player-title
+     [:p [:a {:href href :title title} title]]
+     (facts-ui/line [(when show [:a {:href show-href :title show} show])
+                     (when chapter [:span {:title chapter} chapter])])]))
 
 ;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
 ;; Pause, has no aria-pressed. Play, Pause, Next and Previous are the IEC's
@@ -185,18 +190,20 @@
       [controls-ui/icon-button {:icon icon :class class :on {:click [[:player/chapter direction]]}}
        words])))
 
-;; Its options, e.g. 1.5×, say what it is, so its label is for a screen
-;; reader. It's bare text with a caret of our own, since the browser's
-;; arrow, beside room for its longest option, is too wide below the
-;; artwork on a phone (layout.css).
+;; Its options, e.g. 1.5×, say what it is, so it's named by its title
+;; alone, which is its tooltip too: a title beside a label would be read
+;; after it again in Chrome, as the label's name repeated. It's bare text
+;; with a caret of our own, since the browser's arrow, beside room for its
+;; longest option, is too wide below the artwork on a phone (layout.css).
+;; https://www.w3.org/WAI/WCAG22/Techniques/html/H65
 (defn speed
   "The choice of the speed of the `media` state, which sets the listener's
   preference."
   [{:keys [playback-rate] :as media}]
   [:div.player-speed
-   [:label.visually-hidden {:for "player-speed"} "Speed"]
    (controls-ui/select "player-speed" player/speed-options (or playback-rate 1)
-                       [:player/rate [:event/target-number]])
+                       [:player/rate [:event/target-number]]
+                       {:title "Speed"})
    [controls-ui/icon {:icon icons/caret-down}]])
 
 (defn volume-icon

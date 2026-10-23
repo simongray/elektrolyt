@@ -105,7 +105,8 @@
 
 (deftest each-link-of-the-navigation-has-its-pages-title-and-icon
   (let [links (elements :a (ui/main-nav {:route {:name :route/queue}}))]
-    (is (= ["Home" "Queue" "Library" "Search" "Settings"] (map text-of links)))
+    (is (= ["Home" "Queue" "Library" "Search" "Settings"] (map text-of links) (map (comp :title second) links))
+        "which is its tooltip too, for where it shows its icon alone")
     (is (= (map ui/nav-icons ui/destinations)
            (map #(:icon (second (first (elements controls/icon %)))) links))
         "after the title, which a phone shows only to a screen reader")))
