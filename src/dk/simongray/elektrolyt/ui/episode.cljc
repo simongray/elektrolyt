@@ -8,7 +8,6 @@
   (:require [dk.simongray.play-nice.media.fragment :as fragment]
             [dk.simongray.podcast.format.transcript :as transcript]
             [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.links :as links]
             [dk.simongray.elektrolyt.picks :as picks]
@@ -147,7 +146,7 @@
                 (some-> duration time-ui/duration)
                 (when explicit? "Explicit")
                 (when ai-content? "Made with AI")
-                (facts-ui/source supplement)
+                (facts-ui/labelled-source supplement)
                 (when (:played? entry) "Played")]))
       [:div.episode-actions
        (play-button page (:player state) entry (start-time state))
@@ -155,13 +154,10 @@
 
 (defn source
   "The site of the feed `supplement` that an episode came from, as a link
-  for its row of the Details, and what drpodcast.nu is, or nil when the
-  episode is its show's own."
+  for its row of the Details, or nil when the episode is its show's own."
   [supplement]
   (when-let [host (facts-ui/source-host supplement)]
-    (list (details/web-link (str "https://" host "/") host)
-          (when (= drpodcast/source-name host)
-            ", which republishes DR's radio"))))
+    (details/web-link (str "https://" host "/") host)))
 
 ;; The Details of an episode hold what's its own rather than its show's,
 ;; since the show's are on the show's page

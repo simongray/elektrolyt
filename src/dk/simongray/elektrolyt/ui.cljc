@@ -243,7 +243,7 @@
          :route/episode  (episode-ui/content state heading)
          nil))
      (announcer (:announcement state))
-     [:p.visually-hidden {:id links/note-id} "Opens in a new tab"]]))
+     [:p.visually-hidden {:id links/note-id} links/note]]))
 
 (defn shell-attrs
   "The attributes of the shell of the page of the `state`: the palette of

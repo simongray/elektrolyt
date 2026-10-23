@@ -50,9 +50,10 @@ test('the Details come after the episodes on a phone, and beside them on a wider
   const details = page.getByRole('complementary', { name: 'Details' });
 
   await expect(details.locator('dt')).toHaveText(['Language', 'Latest episode', 'Schedule']);
-  // the website and the feed are links of the line under the title
+  // the website and the feed are links of the line under the title, whose
+  // text shows without the tooltip of the icon after it
   const byline = page.getByRole('main').locator('hgroup p');
-  await expect(byline.getByRole('link')).toHaveText(['Website', 'Feed']);
+  await expect(byline.getByRole('link')).toHaveText(['Website', 'Feed'], { useInnerText: true });
   await expect(details.locator('dt').first()).not.toBeInViewport();
 
   await page.setViewportSize({ width: 1280, height: 800 });

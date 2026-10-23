@@ -24,10 +24,13 @@
 
 (defn web-link
   "A link to the web URL `s` that shows `text`, or else the host of the URL,
-  which opens in a new tab, or nil for a URL that isn't one of the web."
-  [s text]
-  (when-let [host (host-text s)]
-    (links/new-tab [:a {:href s} (or (some-> text str/trim not-empty) host)])))
+  which opens in a new tab, with the `icon` or else links/new-tab-icon
+  after it, or nil for a URL that isn't one of the web."
+  ([s text]
+   (web-link s text links/new-tab-icon))
+  ([s text icon]
+   (when-let [host (host-text s)]
+     (links/new-tab [:a {:href s} (or (some-> text str/trim not-empty) host)] icon))))
 ;; podcast namespace, funding: the creator expects its text "to be
 ;; displayed in the app next to the link", which here is the link itself,
 ;; in the Details, among the show's other links

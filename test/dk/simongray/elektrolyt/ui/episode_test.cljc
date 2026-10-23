@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.episode-test :as episode-test]
+            [dk.simongray.elektrolyt.links :as links]
             [dk.simongray.elektrolyt.ui :as ui]
             [dk.simongray.elektrolyt.ui.episode :as episode-ui]
             [dk.simongray.elektrolyt.ui-test :refer [elements lang-of nodes spoken text-of]]))
@@ -36,11 +37,9 @@
                                          {:start-time 90 :url "https://example.org/untitled"}
                                          {:start-time 120 :title "Plain"}])
                    (elements :li))]
-    (is (= [[:a {:href "https://example.org/intro" :lang "de" :target "_blank" :aria-describedby "new-tab-note"}
-             "Intro"]
+    (is (= [(links/new-tab [:a {:href "https://example.org/intro" :lang "de"} "Intro"])
             [:span {:lang "de"} "Sneaky"]
-            [:a {:href "https://example.org/untitled" :lang "de" :target "_blank" :aria-describedby "new-tab-note"}
-             "https://example.org/untitled"]
+            (links/new-tab [:a {:href "https://example.org/untitled" :lang "de"} "https://example.org/untitled"])
             [:span {:lang "de"} "Plain"]]
            (map last items))
         "a link to the web alone, in a new tab, the URL of a chapter without a title, and the feed's language")
@@ -143,7 +142,7 @@
 
 (deftest the-source-of-an-episode
   (let [rows (into {} (episode-ui/details-rows {:supplement "https://drpodcast.nu/genstart/feed.xml"}))]
-    (is (= "drpodcast.nu, which republishes DR's radio" (text-of (into [:p] (get rows "Source"))))
+    (is (= "drpodcast.nu" (text-of (into [:p] (get rows "Source"))))
         "in the Details, as a link to its site"))
   (is (nil? (seq (keep identity (get (into {} (episode-ui/details-rows {})) "Source"))))
       "and none for an episode of the show's own feed"))

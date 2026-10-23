@@ -97,6 +97,51 @@ button.disclosure {
   height: 1.5em;
 }
 
+/* An icon among words, e.g. the puzzle piece of an episode from
+   drpodcast.nu, as tall as the words, with its middle on the capitals'
+   middle. Phosphor centres most drawings in their box, so one as tall as
+   the arrow of a link runs from the baseline to the top of the capitals.
+   https://www.w3.org/TR/css-values-4/#cap */
+.icon.in-text {
+  width: 1em;
+  height: 1em;
+  vertical-align: calc(0.5cap - 1em / 2);
+}
+
+/* where an episode came from, on its own page: the mark on the line of
+   the words after it */
+.source {
+  white-space: nowrap;
+}
+
+.source > .icon {
+  margin-inline-end: 0.25em;
+}
+
+/* the middle dot between two facts, with more room on either side than
+   the spaces between the words of a fact, so that the facts stand apart */
+.separator {
+  word-spacing: 0.25em;
+}
+
+/* A link to the web keeps the icon after its text on the line of its last
+   word. A browser may break a line on either side of an svg, even after a
+   no-break space, unless the box that holds both the svg and the letter
+   before it doesn't wrap, so the link doesn't, and its text inside does.
+   https://www.w3.org/TR/css-text-3/#line-break-details
+   https://medienbaecker.com/articles/inline-links-with-sticky-icons */
+a[target="_blank"] {
+  white-space: nowrap;
+}
+
+a[target="_blank"] > span {
+  white-space: normal;
+}
+
+a[target="_blank"] > .icon {
+  margin-inline-start: 0.15em;
+}
+
 /* A list whose role is explicit has no markers, and so no room for them,
    nor margins of its own, since the layout spaces its rows. It keeps
    role="list", since Safari drops the semantics of a list without

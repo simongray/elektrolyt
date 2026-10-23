@@ -18,6 +18,7 @@
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.details :as details]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.picks :as picks-ui]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
@@ -94,9 +95,9 @@
       ["Copyright" [copyright]]])))
 
 ;; Fewer rows in the Details: a word links to the show's website, and one
-;; to its feed, for another app to subscribe to. The author stays text,
-;; since it's often the show's own name, which links to the show from its
-;; episodes.
+;; to its feed, for another app to subscribe to, with the feed icon in
+;; place of the arrow of a new tab. The author stays text, since it's often
+;; the show's own name, which links to the show from its episodes.
 (defn byline
   "The line under the title of the show `page`, whose feed is at `url`: its
   author, its facts, and links to its website and its feed."
@@ -105,7 +106,7 @@
    (concat [author]
            (facts page)
            [(details/web-link link "Website")
-            (some-> url (details/web-link "Feed"))])))
+            (some-> url (details/web-link "Feed" icons/rss))])))
 
 (defn episode-row
   "An episode in the list of episodes in the `state`, the `row` of its

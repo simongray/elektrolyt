@@ -1,7 +1,10 @@
 (ns dk.simongray.elektrolyt.ui.show-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.elektrolyt.inbox-test :as inbox-test]
+            [dk.simongray.elektrolyt.links :as links]
             [dk.simongray.elektrolyt.ui :as ui]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.show :as show]
             [dk.simongray.elektrolyt.ui-test :refer [elements lang-of spoken text-of]]))
 
@@ -131,6 +134,9 @@
     (is (= ["https://podcastindex.org/" "https://feeds.podcastindex.org/pc20.xml"]
            (map #(:href (second %)) (elements :a line)))
         "its author as text, and links to its website and its feed")
+    (is (= [links/new-tab-icon icons/rss]
+           (map #(:icon (second (first (elements controls/icon %)))) (elements :a line)))
+        "the feed's with the feed icon in place of the arrow of a new tab")
     (is (= "Explicit" (spoken (show/byline (dissoc page :author :link) nil)))
         "each where the show has it")))
 
