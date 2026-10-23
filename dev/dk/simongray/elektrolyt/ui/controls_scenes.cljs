@@ -19,7 +19,7 @@
   (list
    [:div {:style row}
     [controls/button {:icon icons/play :class "primary"} "Play"]
-    [controls/button {:icon icons/queue} "Add to queue"]
+    [controls/button {:icon icons/rows-plus-bottom} "Play last"]
     [controls/button {:icon icons/x} "Dismiss all"]
     [controls/button {:icon icons/upload-simple} "Import"]]
    [:div {:style row}

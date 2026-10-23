@@ -7,14 +7,14 @@ import { test, expect, announcement, episodePath, episodes, navLink, showTitle }
 const [first, second] = episodes;
 
 /**
- * Queue the first episode with Add to queue and the second with Play next,
+ * Queue the first episode with Play last and the second with Play next,
  * which puts it after the first, and open the Queue page. The `page` goes
  * from one to the next by links, without a reload.
  */
 async function queueTwo(page) {
   const main = page.getByRole('main');
   await page.goto(episodePath(first));
-  await main.getByRole('button', { name: 'Add to queue' }).click();
+  await main.getByRole('button', { name: 'Play last' }).click();
   await expect(announcement(page)).toHaveText(`Added ${first.title} to the queue`);
   await main.getByRole('link', { name: showTitle }).click();
   await main.getByRole('link', { name: second.title }).click();

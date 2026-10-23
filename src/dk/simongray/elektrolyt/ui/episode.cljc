@@ -98,10 +98,12 @@
      (play-label entry t)]))
 
 ;; The two places of Apple, Pocket Casts, Castro and Overcast: right after
-;; the episode that plays, or at the end. Play next moves an episode that's
-;; queued already. Their icons add a row at the top of a stack or at its
-;; bottom, and Remove has the minus of Unsubscribe, which a double click
-;; on Add doesn't reach (controls/single-click).
+;; the episode that plays, or at the end, which Apple's Podcasts named Play
+;; Next and Play Last. Play next moves an episode that's queued already.
+;; Their icons add a row at the top of a stack or at its bottom, and Remove
+;; has the minus of Unsubscribe, which a double click on Play last doesn't
+;; reach (controls/single-click).
+;; https://support.apple.com/en-ca/guide/podcasts/use-up-next-poddfb50a470/1.1.0/mac/13.0
 (defn queue-buttons
   "The buttons that queue the episode `page`, by where it is in the queue,
   `queued`: nil, :queued, or :current, which needs none."
@@ -117,7 +119,7 @@
           "Remove from queue"]
          [controls-ui/button {:icon icons/rows-plus-bottom
                               :on   {:click (controls-ui/single-click [[:queue/add playable title false]])}}
-          "Add to queue"])))))
+          "Play last"])))))
 
 (defn number-text
   "The number `n` of a season or an episode, without a fraction when it

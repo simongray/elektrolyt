@@ -98,7 +98,7 @@
 (deftest the-buttons-that-queue-it
   (let [page    (episode-ui/route-page (episode-page nil))
         texts   #(map text-of (episode-ui/queue-buttons page %))]
-    (is (= ["Play next" "Add to queue"] (texts nil)))
+    (is (= ["Play next" "Play last"] (texts nil)))
     (is (= ["Play next" "Remove from queue"] (texts :queued)))
     (is (empty? (texts :current)) "none for the episode that plays")
     (is (= [[:queue/add (episode/playable page) (:title page) true]]

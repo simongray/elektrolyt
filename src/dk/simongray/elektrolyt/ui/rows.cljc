@@ -6,7 +6,8 @@
 
   The views give the actions, so the rows can be anything that has an
   order, e.g. the queue of the profile or a preference."
-  (:require [dk.simongray.podcast.feed.guid :as guid]))
+  (:require [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.elektrolyt.ui.controls :as controls]))
 
 (defn control-id
   "The id of the button `kind`, e.g. :remove, of the row `id` of the list
@@ -25,11 +26,14 @@
 ;; 3", so that the name begins with what a voice user says (WCAG 2.2, SC
 ;; 2.5.3 Label in Name)
 (defn button
-  "A button of the row titled `title` that says `label`, with the `attrs`
+  "A button of the row titled `title` that says `label`, after the icon
+  that the `attrs` have as :icon, if any, with the rest of the `attrs`
   merged in."
-  [label title attrs]
-  [:button (merge {:type "button"} attrs)
-   label [:span.visually-hidden " " title]])
+  [label title {:keys [icon] :as attrs}]
+  (if icon
+    [controls/button attrs label [:span.visually-hidden " " title]]
+    [:button (merge {:type "button"} attrs)
+     label [:span.visually-hidden " " title]]))
 
 ;; The APG's rearrangeable list: move up and move down, with aria-disabled
 ;; at either end, which keeps the focus on the button, and the focus on

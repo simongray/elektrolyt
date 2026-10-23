@@ -112,7 +112,7 @@
      (when (pos? new-ones)
        [:p "Your " [:a {:href (routes/href :route/inbox)} "Inbox"]
         " has " (text/counted new-ones "episode") " to choose from."])
-     [:p "Add episodes from their pages with Play next or Add to queue, "
+     [:p "Add episodes from their pages with Play next or Play last, "
       "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."])))
 
 (defn up-next

@@ -27,7 +27,7 @@ async function subscribe(page) {
 /** Queue the `episode` from its page in the `page`. */
 async function queue(page, episode) {
   await page.goto(episodePath(episode));
-  await page.getByRole('main').getByRole('button', { name: 'Add to queue' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Play last' }).click();
   await expect(announcement(page)).toHaveText(`Added ${episode.title} to the queue`);
 }
 
@@ -51,7 +51,7 @@ test('two tabs keep what each other queued', async ({ page, context }) => {
 
   // each queues an episode that the other hasn't seen it queue
   await queue(page, first);
-  await other.getByRole('main').getByRole('button', { name: 'Add to queue' }).click();
+  await other.getByRole('main').getByRole('button', { name: 'Play last' }).click();
   await expect(announcement(other)).toHaveText(`Added ${second.title} to the queue`);
 
   await navLink(page, 'Queue').click();
@@ -114,7 +114,7 @@ test('a refresh in one tab reaches the other', async ({ page, context, show }) =
 
 /** The button that queues the episode of the Episode page in the `page`. */
 function addToQueue(page) {
-  return page.getByRole('main').getByRole('button', { name: 'Add to queue' });
+  return page.getByRole('main').getByRole('button', { name: 'Play last' });
 }
 
 /** The headings of the episodes of the queue on the Queue page of the `page`. */

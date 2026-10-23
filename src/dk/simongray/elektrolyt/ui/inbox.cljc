@@ -10,7 +10,9 @@
   (:require [dk.simongray.elektrolyt.inbox :as inbox]
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.text :as text]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.queue :as queue-ui]
             [dk.simongray.elektrolyt.ui.rows :as rows]
@@ -46,6 +48,10 @@
 ;; SC 2.5.1 Pointer Gestures).
 ;; https://sixcolors.com/post/2016/08/castro-2-inbox-triage-for-podcast-episodes/
 ;; https://inclusive-components.design/a-todo-list/
+;;
+;; Their icons are those of the episode's page, and Dismiss has the x that
+;; closes. The next row moves up under the pointer once one has gone, so a
+;; double click acts once (controls/single-click).
 (defn actions
   "The buttons of the `episode` of the inbox, where `focus` gives the
   action that moves the focus after one of them, by the kind of its
@@ -54,17 +60,21 @@
   [:div.inbox-actions
    (rows/button "Play" title
                 {:id    (control-id id :play)
+                 :icon  icons/play
                  :class "primary"
-                 :on    {:click [[:player/play {:id id} nil] (focus :play)]}})
-   (rows/button "Add to queue" title
-                {:id (control-id id :queue)
-                 :on {:click [[:queue/add {:id id} title false] (focus :queue)]}})
+                 :on    {:click (controls/single-click [[:player/play {:id id} nil] (focus :play)])}})
+   (rows/button "Play last" title
+                {:id   (control-id id :queue)
+                 :icon icons/rows-plus-bottom
+                 :on   {:click (controls/single-click [[:queue/add {:id id} title false] (focus :queue)])}})
    (rows/button "Play next" title
-                {:id (control-id id :next)
-                 :on {:click [[:queue/add {:id id} title true] (focus :next)]}})
+                {:id   (control-id id :next)
+                 :icon icons/rows-plus-top
+                 :on   {:click (controls/single-click [[:queue/add {:id id} title true] (focus :next)])}})
    (rows/button "Dismiss" title
-                {:id (control-id id :dismiss)
-                 :on {:click [[:inbox/dismiss id] (focus :dismiss)]}})])
+                {:id   (control-id id :dismiss)
+                 :icon icons/x
+                 :on   {:click (controls/single-click [[:inbox/dismiss id] (focus :dismiss)])}})])
 
 (defn focus-after
   "A function of the kind of a button of the row before `neighbour`, the

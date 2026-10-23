@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.elektrolyt.inbox :as inbox]
             [dk.simongray.elektrolyt.inbox-test :refer [changed id state]]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.inbox :as inbox-ui]
             [dk.simongray.elektrolyt.ui.queue :as queue-ui]
             [dk.simongray.elektrolyt.ui.queue-test :refer [button-of]]
@@ -9,9 +10,10 @@
 
 (defn clicked
   "The actions of a click on the button of the Hiccup `x` whose text is
-  `text`."
+  `text`, inside the controls/single-click that wraps them, if any."
   [x text]
-  (get-in (button-of x text) [:on :click]))
+  (let [[[k _ actions] :as click] (get-in (button-of x text) [:on :click])]
+    (if (= :event/single-click k) actions click)))
 
 (deftest the-inbox-page
   (let [x (inbox-ui/content (state 1 2 3))]
@@ -23,12 +25,17 @@
       (is (= [[:player/play {:id (id 2)} nil] [:page/focus (inbox-ui/control-id (id 1) :play)]]
              (clicked x "Play Episode 2")))
       (is (= [[:queue/add {:id (id 2)} "Episode 2" false] [:page/focus (inbox-ui/control-id (id 1) :queue)]]
-             (clicked x "Add to queue Episode 2")))
+             (clicked x "Play last Episode 2")))
       (is (= [[:queue/add {:id (id 3)} "Episode 3" true] [:page/focus (inbox-ui/control-id (id 2) :next)]]
              (clicked x "Play next Episode 3")))
       (is (= [[:inbox/dismiss (id 1)] [:page/focus (inbox-ui/control-id (id 2) :dismiss)]]
              (clicked x "Dismiss Episode 1"))
           "or the row before, at the end"))
+    (testing "with icons, which act once for a double click, since the next row moves up under the pointer"
+      (is (= [icons/play icons/rows-plus-bottom icons/rows-plus-top icons/x]
+             (map #(:icon (button-of x (str % " Episode 2"))) ["Play" "Play last" "Play next" "Dismiss"])))
+      (is (every? #(= :event/single-click (ffirst (get-in (button-of x (str % " Episode 2")) [:on :click])))
+                  ["Play" "Play last" "Play next" "Dismiss"])))
     (is (= [[:inbox/queue-all] [:page/focus-heading]] (clicked x "Add all to queue")))
     (is (= [[:inbox/dismiss-all] [:page/focus inbox-ui/undo-id]] (clicked x "Dismiss all")))))
 

@@ -44,7 +44,7 @@ test('a new episode arrives in the inbox, and leaves it once dismissed or queued
   await expect(announcement(page)).toHaveText(`Put ${fourth.title} back in the inbox`);
   await expect(main.getByRole('button', { name: `Dismiss ${fourth.title}` })).toBeFocused();
 
-  await main.getByRole('button', { name: `Add to queue ${fourth.title}` }).click();
+  await main.getByRole('button', { name: `Play last ${fourth.title}` }).click();
   await expect(announcement(page)).toHaveText(`Added ${fourth.title} to the queue`);
   await expect(main).toContainText('No new episodes');
   await navLink(page, 'Queue').click();
