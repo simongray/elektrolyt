@@ -16,6 +16,7 @@
   (:require [clojure.string :as str]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.wary-fetch.url :as url]))
 
 (def slugs-url
@@ -55,7 +56,7 @@
   "The version of the supplement of DR's own feeds, which each feed that
   it supplemented is marked with, so that one that an earlier version
   supplemented is fetched again."
-  2)
+  3)
 
 (defn marked
   "The parsed `feed` of DR's own, marked as fetched with the episodes of
@@ -81,6 +82,24 @@
         :let  [{:keys [url feed]} (get-in library [:feeds k])]
         :when (and feed (not (fetched-as? feed url on?)))]
     k))
+
+;; DR's feed of a series that it keeps in DR Lyd may hold a promo of less
+;; than a minute, e.g. "Hør flere afsnit af denne i DR Lyd", which points
+;; to the app rather than being an episode
+(defn promo?
+  "Whether the `item` of DR's own feed is a promo of DR Lyd: a title that
+  ends in \"i DR Lyd\", and less than a minute long."
+  [item]
+  (let [title   (some-> (resolve/title item) str/trim str/lower-case)
+        seconds (resolve/duration item)]
+    (boolean (and title (str/ends-with? title "i dr lyd")
+                  seconds (< seconds 60)))))
+
+(defn without-promos
+  "The parsed `feed` of DR's own without its promos of DR Lyd, as promo?
+  tells them."
+  [feed]
+  (update feed :rss/items #(into [] (remove promo?) %)))
 
 (defn production-number
   "The production number of the series of the parsed `feed`, which ends the

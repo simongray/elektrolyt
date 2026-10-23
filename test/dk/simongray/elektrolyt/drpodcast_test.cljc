@@ -44,6 +44,18 @@
           "the subscriptions to DR's own feeds that a fetch gives otherwise, with a feed held")
       (is (= ["b"] (drpodcast/stale lib false))))))
 
+(deftest dr's-promos
+  (let [item #(hash-map :rss/title %1 :itunes/duration %2)]
+    (is (drpodcast/promo? (item "Hør flere afsnit af denne  i DR Lyd" 24)))
+    (is (drpodcast/promo? (item " Hør hele serien i DR Lyd " 26)))
+    (is (not (drpodcast/promo? (item "17.10.26 - Klar i DR Lyd" 642)))
+        "but not a preview, which pairs with its whole episode")
+    (is (not (drpodcast/promo? (item "Teaser" 20))))
+    (is (not (drpodcast/promo? (item "Hør hele serien i DR Lyd" nil))) "nor one of unknown length")
+    (is (= ["Teaser"] (map :rss/title (:rss/items (drpodcast/without-promos
+                                                   {:rss/items [(item "Hør alle episoder i DR Lyd" 25)
+                                                                (item "Teaser" 20)]})))))))
+
 (def slugs
   "slugs.json as wary-fetch reads it."
   {:urn:dr:radio:series:5fa2684c330eac2f135b9254

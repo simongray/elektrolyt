@@ -70,10 +70,12 @@
 
 (defn supplement
   "The `answer` of a fetch of DR's own feed with its :feed supplemented by
-  the parsed feed `theirs`, when that is of the same show."
+  the parsed feed `theirs`, without DR's promos of DR Lyd, when that is of
+  the same show."
   [{ours :feed :as answer} theirs]
   (cond-> answer
-    (drpodcast/same-show? ours theirs) (update :feed feed/supplemented theirs)))
+    (drpodcast/same-show? ours theirs)
+    (update :feed #(feed/supplemented (drpodcast/without-promos %) theirs))))
 
 ;; drpodcast.nu publishes nearly every series under DR's own slug, so the
 ;; guess goes out beside DR's feed, and slugs.json only names the others
