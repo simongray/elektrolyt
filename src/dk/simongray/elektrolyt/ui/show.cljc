@@ -109,15 +109,17 @@
 
 (defn episode-row
   "An episode in the list of episodes in the `state`, the `row` of its
-  :title, its date of :published and its :duration in seconds, as a row
-  of a list: its artwork, or else the `show`'s, and its title in the
-  language `lang`, both a link to the `href` of its page."
-  [state href {:keys [title published duration] :as row} lang show]
+  :title, its date of :published, its :duration in seconds and the
+  :supplement it came from, as a row of a list: its artwork, or else the
+  `show`'s, and its title in the language `lang`, both a link to the
+  `href` of its page."
+  [state href {:keys [title published duration supplement] :as row} lang show]
   [:article.show-episode
    (lists-ui/linked-row href (lists-ui/thumbnail state (if (:artwork row) row show))
                         :h3 title lang
                         [(some-> published time-ui/date)
-                         (some-> duration time-ui/duration)])])
+                         (some-> duration time-ui/duration)
+                         (facts-ui/source supplement)])])
 
 (defn status-text
   "What the status line of the episodes says, at the `status` of the load of

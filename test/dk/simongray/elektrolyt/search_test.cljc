@@ -1,5 +1,6 @@
 (ns dk.simongray.elektrolyt.search-test
   (:require [clojure.test :refer [deftest is]]
+            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.search :as search]))
@@ -73,11 +74,16 @@
       "or a search of a link"))
 
 (deftest the-directories-of-a-search
-  (is (= [:podcastindex :apple :fyyd] (search/sources {:server {:podcastindex? true}}))
+  (is (= [:podcastindex :apple :fyyd :drpodcast] (search/sources {:server {:podcastindex? true}}))
       "the defaults, before the library is restored")
-  (is (= [:apple :fyyd] (search/sources {})) "without the Podcast Index, where the server doesn't sign for it")
+  (is (= [:apple :fyyd :drpodcast] (search/sources {})) "without the Podcast Index, where the server doesn't sign for it")
   (let [lib (library/update-profile (library/make "test") profile/prefer {:search-sources [:fyyd :gpodder]})]
-    (is (= [:fyyd :gpodder] (search/sources {:library lib})) "the listener's own, in their order")))
+    (is (= [:fyyd :gpodder :drpodcast] (search/sources {:library lib})) "the listener's own, in their order")
+    (is (= [:fyyd :gpodder]
+           (search/sources {:library (library/update-profile lib profile/prefer {::app/alternative-feeds? false})}))
+        "and drpodcast.nu only while DR's feeds take its episodes"))
+  (is (= "drpodcast.nu" (search/source-name :drpodcast)))
+  (is (= "fyyd" (search/source-name :fyyd))))
 
 (deftest the-podcasts-at-a-link
   (is (= ["https://example.org/podcast.xml"]

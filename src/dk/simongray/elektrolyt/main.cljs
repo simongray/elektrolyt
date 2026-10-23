@@ -9,6 +9,7 @@
   in dk.simongray.elektrolyt.audio, and this namespace registers them."
   (:require [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
+            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.artwork-colors :as artwork-colors]
             [dk.simongray.elektrolyt.audio :as audio]
             [dk.simongray.elektrolyt.cache :as app-cache]
@@ -300,7 +301,11 @@
 (nxr/register-effect! :settings/prefer
   (fn [_ store k v]
     (when (or (boolean? v) (keyword? v) (js/Number.isFinite v))
-      (changed! store (settings/preferred {k v})))))
+      (changed! store (settings/preferred {k v}))
+      ;; DR's own feeds are fetched again at once, with or without the
+      ;; episodes of drpodcast.nu
+      (when (= ::app/alternative-feeds? k)
+        (refresh/refresh-if-due! store)))))
 
 (nxr/register-effect! :settings/search-source
   (fn [_ store source on?]

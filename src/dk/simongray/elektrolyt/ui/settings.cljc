@@ -1,8 +1,9 @@
 (ns dk.simongray.elektrolyt.ui.settings
   "The views of the Settings page: the app's colours, how the listener
   plays, what the recommendations leave out, the directories that a
-  search asks, the import and export of their subscriptions, and how this
-  browser keeps the library.
+  search asks, whether DR's podcasts take episodes from drpodcast.nu, the
+  import and export of their subscriptions, and how this browser keeps the
+  library.
 
   Each change applies at once, with no Save button, which NN/g, Microsoft
   and GNOME advise for settings, and which a field-by-field profile makes
@@ -176,6 +177,18 @@
                    [:p {:id (str id "-hint")}
                     "This server doesn't sign the requests to it, so a search here leaves it out."])]))])))
 
+(defn dr
+  "Whether DR's podcasts take more episodes from drpodcast.nu in the
+  `state`, and a search finds the programmes that have no podcast there."
+  [state]
+  (group :dr "DR"
+         (switch "alternative-feeds" "Episodes from drpodcast.nu"
+                 (str "DR's podcasts also get the episodes that drpodcast.nu "
+                      "republishes from DR's radio, which DR's own feeds leave out "
+                      "or have later. A search finds the programmes that DR "
+                      "publishes no podcast of there too.")
+                 (settings/alternative-feeds? state) ::app/alternative-feeds?)))
+
 ;; AntennaPod, Pocket Casts and Castro all import and export OPML, the way
 ;; a listener brings their shows from one app to another
 ;; https://antennapod.org/documentation/
@@ -235,5 +248,6 @@
    (playback state)
    (recommendations state)
    (search-directories state)
+   (dr state)
    (subscriptions state)
    (this-browser state)))

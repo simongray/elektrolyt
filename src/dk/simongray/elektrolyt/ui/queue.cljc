@@ -10,6 +10,7 @@
             [dk.simongray.elektrolyt.queue :as queue]
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.text :as text]
+            [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.picks :as picks-ui]
             [dk.simongray.elektrolyt.ui.rows :as rows]
@@ -46,12 +47,14 @@
                                              [:page/focus next-focus]]}})])
 
 (defn row
-  "The `episode` of the queue, its artwork, title, show and time left, in
-  the `state`, with the `marks` before its show, e.g. \"Now playing\"."
+  "The `episode` of the queue, its artwork, title, show, time left and the
+  feed it came from when that isn't its show's own, in the `state`, with
+  the `marks` before its show, e.g. \"Now playing\"."
   ([state episode]
    (row state episode nil))
-  ([state {:keys [show] :as episode} marks]
-   (lists-ui/row state episode :h3 (concat marks [show (time-left episode)]))))
+  ([state {:keys [show supplement] :as episode} marks]
+   (lists-ui/row state episode :h3 (concat marks [show (time-left episode)
+                                                  (facts-ui/source supplement)]))))
 
 (defn now-playing
   "The section of the episode that the player has, of the `state`."

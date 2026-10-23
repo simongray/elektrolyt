@@ -46,3 +46,65 @@
             (.finally #(do (reset! fetching/web-worker nil)
                            (js-delete js/globalThis "Worker")
                            (done))))))))
+
+(defn item
+  "An item of a parsed feed with the guid `id`, the `title` and the `day`."
+  [id title day]
+  {:rss/guid {:content id} :rss/title title :rss/pub-date (js/Date. (* day 86400000))})
+
+(def ours
+  "DR's own feed of a series that DR renamed, with an episode three days
+  late."
+  {:rss/link  "https://www.dr.dk/lyd/p1/hjernekassen-paa-p1-759510699000"
+   :rss/items [(item "o2" "Two" 5)]})
+
+(def theirs
+  "drpodcast.nu's feed of the series, with an episode that DR hasn't got."
+  {:rss/link  "https://www.dr.dk/lyd/p1/hjernekassen-paa-p1-759510699000"
+   :rss/items [(item "d3" "Three" 3) (item "d2" "Two" 2)]})
+
+(defn answering
+  "A fetch that answers each URL with the feed that `feeds` has for it, or
+  a 404, and adds each request to the atom `asked`."
+  [feeds asked]
+  (fn [url opts]
+    (swap! asked conj [url opts])
+    (js/Promise.resolve (if-let [feed (get feeds url)]
+                          {:status 200 :feed feed}
+                          {:status 404 :error {:id :fetch/unreachable}}))))
+
+(deftest a-feed-of-drs-own
+  (async done
+    (let [dr     "https://api.dr.dk/podcasts/v1/feeds/hjernekassen-pa-p1.xml"
+          asked  (atom [])
+          guids  #(mapv (comp :content :rss/guid) (get-in % [:feed :rss/items]))
+          fetch  (fn [feeds] (fetching/supplementing (answering feeds asked) {:items 20}))]
+      (reset! fetching/known-slugs (js/Promise.resolve {"759510699000" "hjernekassen"}))
+      (-> ((fetch {dr ours "https://drpodcast.nu/hjernekassen-pa-p1/feed.xml" theirs}) dr {:etag "x" :send :send})
+          (.then (fn [answer]
+                   (is (= ["d3" "o2"] (guids answer))
+                       "takes the episodes of its sibling under DR's slug")
+                   (is (= ["https://drpodcast.nu/hjernekassen-pa-p1/feed.xml" {:send :send :items 20}]
+                          (first @asked))
+                       "which it fetches beside DR's, without DR's validators and with its own options")))
+          (.then (fn [_]
+                   (reset! asked [])
+                   ((fetch {dr ours "https://drpodcast.nu/hjernekassen/feed.xml" theirs}) dr {})))
+          (.then (fn [answer]
+                   (is (= ["d3" "o2"] (guids answer)) "or under the slug that slugs.json names")
+                   (is (= 3 (count @asked)))))
+          (.then (fn [_] ((fetch {dr ours}) dr {})))
+          (.then (fn [answer]
+                   (is (= ["o2"] (guids answer)) "and stays as it is without a sibling")
+                   (is (:dk.simongray.elektrolyt.drpodcast/supplemented (:feed answer))
+                       "though marked as fetched with drpodcast.nu's episodes")))
+          (.then (fn [_]
+                   (reset! asked [])
+                   ((fetch {"https://example.com/feed.xml" theirs}) "https://example.com/feed.xml" {})))
+          (.then (fn [answer]
+                   (is (= ["d3" "d2"] (guids answer)))
+                   (is (= 1 (count @asked)) "while any other feed is fetched alone")
+                   (is (nil? (:dk.simongray.elektrolyt.drpodcast/supplemented (:feed answer))) "and unmarked")))
+          (.catch #(is false (str "rejected: " %)))
+          (.finally #(do (reset! fetching/known-slugs nil)
+                         (done)))))))

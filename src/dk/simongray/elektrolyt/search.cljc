@@ -26,6 +26,7 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.settings :as settings]))
 
 (defn link?
@@ -67,10 +68,12 @@
 (defn sources
   "The directories that a search asks in the `state`, in the listener's
   order from settings/searched, with the Podcast Index only where the
-  app's server signs the requests to it."
+  app's server signs the requests to it, and drpodcast.nu last while
+  settings/alternative-feeds? holds."
   [state]
   (let [index? (get-in state [:server :podcastindex?])]
-    (filterv #(or index? (not= :podcastindex %)) (settings/searched state))))
+    (cond-> (filterv #(or index? (not= :podcastindex %)) (settings/searched state))
+      (settings/alternative-feeds? state) (conj drpodcast/source))))
 
 (defn searching
   "A search of the directories `sources`, none of which has answered."
@@ -161,7 +164,9 @@
 (defn source-name
   "The name of the directory `source-id` for the listener."
   [source-id]
-  (get-in directory/sources [source-id :name] (name source-id)))
+  (if (= drpodcast/source source-id)
+    drpodcast/source-name
+    (get-in directory/sources [source-id :name] (name source-id))))
 
 (defn subscribed-urls
   "The set of the feed URLs that the library `lib` is subscribed to, as

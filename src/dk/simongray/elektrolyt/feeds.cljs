@@ -14,6 +14,7 @@
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.elektrolyt.audio :as audio]
             [dk.simongray.elektrolyt.cache :as app-cache]
+            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.fetching :as fetching]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.linked :as linked]
@@ -21,14 +22,18 @@
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.search :as search]
+            [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.subscription :as subscription]
             [reitit.frontend.easy :as rfe]))
 
-(def fetch-opts
-  "The options of the worker's fetch of a whole feed: at most 20 pages of a
-  paged feed, joined."
-  {:max-pages 20})
+(defn whole-opts
+  "The options of the worker's fetch of a whole feed in the `state`: at
+  most 20 pages of a paged feed, joined, and whether DR's own feeds take
+  the episodes of drpodcast.nu."
+  [state]
+  {:max-pages          20
+   :alternative-feeds? (settings/alternative-feeds? state)})
 
 (defn keep-show!
   "Keep the whole feed at `url` that a fetch gave, `fetched`, in the cache."
@@ -107,7 +112,7 @@
       ;; in the worker, since a feed of 20 MB takes a third of a second or
       ;; more to parse; the start of the feed already shows the first
       ;; episodes, parsed here, since it's small
-      (-> (fetching/fetch! url fetch-opts)
+      (-> (fetching/fetch! url (whole-opts state))
           (.then (fn [{:keys [feed error] :as fetched}]
                    (if feed
                      (show-fetched! store url fetched)
@@ -127,7 +132,7 @@
     (when (and whole? (not checked?))
       (swap! store #(-> (assoc-in % [:feeds url :checked?] true)
                         (show/requested [:check url])))
-      (-> (fetching/fetch! url (merge fetch-opts (select-keys validators [:etag :last-modified])))
+      (-> (fetching/fetch! url (merge (whole-opts @store) (select-keys validators [:etag :last-modified])))
           (.then (fn [{:keys [status] :as fetched}]
                    (cond
                      (:feed fetched)
@@ -154,7 +159,11 @@
          (fn [kept]
            (let [whole? (get-in @store [:requests [:open url] :whole?])]
              (if-let [fetched (:value kept)]
-               (let [fresh? (show/fresh? fetched (:at kept) (js/Date.))]
+               ;; a feed of DR's own that the cache kept from before the
+               ;; listener turned drpodcast.nu's episodes on or off is old
+               (let [fresh? (and (show/fresh? fetched (:at kept) (js/Date.))
+                                 (drpodcast/fetched-as? (:feed fetched) url
+                                                        (settings/alternative-feeds? @store)))]
                  (page/canonicalize! (swap! store #(-> (show/answered % [:open url])
                                                        (show/whole url fetched (:at kept) fresh?))))
                  (when whole?
@@ -212,7 +221,7 @@
   (swap! store subscription/subscribing url)
   (-> (if-let [fetched (show/whole-feed @store url)]
         (js/Promise.resolve fetched)
-        (.catch (fetching/fetch! url fetch-opts)
+        (.catch (fetching/fetch! url (whole-opts @store))
                 (fn [e] {:error {:message (ex-message e)}})))
       (.then (fn [fetched]
                (try

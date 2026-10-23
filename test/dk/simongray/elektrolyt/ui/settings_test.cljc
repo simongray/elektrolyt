@@ -29,11 +29,11 @@
 
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
-    (is (= ["Appearance" "Playback" "Recommendations" "Search" "Subscriptions" "This browser"]
+    (is (= ["Appearance" "Playback" "Recommendations" "Search" "DR" "Subscriptions" "This browser"]
            (map text-of (elements :h2 (elements :legend x))))
         "each group a fieldset, its heading in its legend")
     (is (= [["appearance" -1] ["playback" -1] ["recommendations" -1] ["search" -1]
-            ["subscriptions" -1] ["this-browser" -1]]
+            ["dr" -1] ["subscriptions" -1] ["this-browser" -1]]
            (map #((juxt :id :tabindex) (second %)) (elements :h2 x)))
         "which a link to the group names, and which takes the focus")
     (is (= "/settings#search" (settings-ui/group-href :search)))
@@ -62,6 +62,9 @@
       (is (= ["checkbox" "switch" false] ((juxt :type :role :checked) attrs))
           "continuous play, a switch")
       (is (= [[:settings/prefer :continuous? [:event/target-checked]]] (get-in attrs [:on :change]))))
+    (let [[_ attrs] (by-id x :input "alternative-feeds")]
+      (is (= ["switch" true] ((juxt :role :checked) attrs)) "drpodcast.nu's episodes, on at first")
+      (is (= [[:settings/prefer ::app/alternative-feeds? [:event/target-checked]]] (get-in attrs [:on :change]))))
     (is (= 2 (count (filter #(= "status" (:role (second %))) (elements :p.settings-status x))))
         "a status line beside the buttons of each group that has them")))
 

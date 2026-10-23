@@ -34,9 +34,9 @@
 
 (deftest the-apps-own-preferences
   (let [defaults {:appearance :auto :contrast :auto :artwork-colors? true :navigation-palette :pages
-                  :player-size :medium :explicit-picks? false :autoplay? false}
+                  :player-size :medium :explicit-picks? false :autoplay? false :alternative-feeds? true}
         before   {:appearance :dark :contrast :more :artwork-colors? false :navigation-palette :none
-                  :player-size :large :explicit-picks? true :autoplay? true}]
+                  :player-size :large :explicit-picks? true :autoplay? true :alternative-feeds? false}]
     (is (= defaults (own state)) "the defaults, at first")
     (is (= defaults (own {})) "and before the library is restored")
     (is (= before (own (preferred state before)))

@@ -9,6 +9,7 @@
   when it began, :at, its :result, and the :transcript-status and
   :transcript once the listener asks for the transcript."
   (:require [dk.simongray.podcast.app.episode :as episode]
+            [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.format.chapters :as chapters]
@@ -83,6 +84,7 @@
             :link          (resolve/link item)
             :locations     (resolve/locations item)
             :license       (resolve/license item)
+            :supplement    (feed/supplement item)
             :view          view})))
 
 (defn playable

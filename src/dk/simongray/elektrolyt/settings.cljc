@@ -68,7 +68,8 @@
    ::app/navigation-palette :pages
    ::app/player-size        :medium
    ::app/explicit-picks?    false
-   ::app/autoplay?          false})
+   ::app/autoplay?          false
+   ::app/alternative-feeds? true})
 
 (defn preferences
   "The listener's preferences in the library of the `state`, or nil before
@@ -154,6 +155,14 @@
   the `state`, which it doesn't until the listener chooses so."
   [state]
   (preference state ::app/autoplay?))
+
+(defn alternative-feeds?
+  "Whether DR's own feeds take the episodes of their siblings on
+  drpodcast.nu in the `state`, and a search asks drpodcast.nu for the
+  series that DR publishes no podcast of, as they do until the listener
+  turns it off."
+  [state]
+  (preference state ::app/alternative-feeds?))
 
 (defn preferred
   "The change that sets the listener's preferences `prefs`."
