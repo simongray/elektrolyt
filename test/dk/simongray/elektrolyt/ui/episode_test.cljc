@@ -102,7 +102,14 @@
     (is (= ["Play next" "Remove from queue"] (texts :queued)))
     (is (empty? (texts :current)) "none for the episode that plays")
     (is (= [[:queue/add (episode/playable page) (:title page) true]]
-           (get-in (first (episode-ui/queue-buttons page nil)) [1 :on :click])))))
+           (get-in (first (episode-ui/queue-buttons page nil)) [1 :on :click])))
+    (is (= [icons/rows-plus-top icons/rows-plus-bottom icons/minus]
+           (map (comp :icon second) (concat (episode-ui/queue-buttons page nil)
+                                            (rest (episode-ui/queue-buttons page :queued)))))
+        "with icons that add a row at the top or the bottom, or take one away")
+    (is (= (controls/single-click [[:queue/remove (:id page)]])
+           (get-in (second (episode-ui/queue-buttons page :queued)) [1 :on :click]))
+        "Remove once for a double click on Add, which turns into it")))
 
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]

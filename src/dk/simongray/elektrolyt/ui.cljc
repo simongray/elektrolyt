@@ -243,7 +243,8 @@
          :route/episode  (episode-ui/content state heading)
          nil))
      (announcer (:announcement state))
-     [:p.visually-hidden {:id links/note-id} links/note]]))
+     (for [{:keys [id text]} (vals links/notes)]
+       [:p.visually-hidden {:id id} text])]))
 
 (defn shell-attrs
   "The attributes of the shell of the page of the `state`: the palette of

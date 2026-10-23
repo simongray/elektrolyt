@@ -18,6 +18,13 @@
     (is (empty? (tooltips [controls/button {:icon icons/play} "Play"]))
         "and none on a button whose words show")))
 
+(deftest an-icon-among-words
+  (is (= [controls/icon {:icon icons/envelope-simple :class "in-text" :title "Email" :style {:--drawn-to "206"}}]
+         (controls/in-text icons/envelope-simple "Email"))
+      "which sits on the baseline by where its drawing ends")
+  (is (= [controls/icon {:icon icons/house :class "in-text"}] (controls/in-text icons/house))
+      "or by the arrow's, with no tooltip"))
+
 (deftest a-single-click
   (let [actions        [[:library/subscribe "https://example.org/feed.xml" "A Show"]]
         [[k n wrapped]] (controls/single-click actions)

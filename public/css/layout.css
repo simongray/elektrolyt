@@ -98,14 +98,13 @@ button.disclosure {
 }
 
 /* An icon among words, e.g. the puzzle piece of an episode from
-   drpodcast.nu, as tall as the words, with its middle on the capitals'
-   middle. Phosphor centres most drawings in their box, so one as tall as
-   the arrow of a link runs from the baseline to the top of the capitals.
-   https://www.w3.org/TR/css-values-4/#cap */
+   drpodcast.nu, as tall as the words, with the bottom of its drawing on
+   their baseline, by where controls/drawn-to says that the drawing ends
+   in its box of 256 units, or else at 222, as the arrow of a link does */
 .icon.in-text {
   width: 1em;
   height: 1em;
-  vertical-align: calc(0.5cap - 1em / 2);
+  vertical-align: calc((var(--drawn-to, 222) - 256) * 1em / 256);
 }
 
 /* where an episode came from, on its own page: the mark on the line of
@@ -124,21 +123,22 @@ button.disclosure {
   word-spacing: 0.25em;
 }
 
-/* A link to the web keeps the icon after its text on the line of its last
-   word. A browser may break a line on either side of an svg, even after a
-   no-break space, unless the box that holds both the svg and the letter
-   before it doesn't wrap, so the link doesn't, and its text inside does.
+/* A link that leaves the app, e.g. for a new tab, keeps the icon after its
+   text on the line of its last word. A browser may break a line on either
+   side of an svg, even after a no-break space, unless the box that holds
+   both the svg and the letter before it doesn't wrap, so the link doesn't,
+   and its text inside does.
    https://www.w3.org/TR/css-text-3/#line-break-details
    https://medienbaecker.com/articles/inline-links-with-sticky-icons */
-a[target="_blank"] {
+a:has(> .icon.in-text) {
   white-space: nowrap;
 }
 
-a[target="_blank"] > span {
+a:has(> .icon.in-text) > span {
   white-space: normal;
 }
 
-a[target="_blank"] > .icon {
+a > .icon.in-text {
   margin-inline-start: 0.15em;
 }
 

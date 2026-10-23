@@ -99,7 +99,9 @@
 
 ;; The two places of Apple, Pocket Casts, Castro and Overcast: right after
 ;; the episode that plays, or at the end. Play next moves an episode that's
-;; queued already.
+;; queued already. Their icons add a row at the top of a stack or at its
+;; bottom, and Remove has the minus of Unsubscribe, which a double click
+;; on Add doesn't reach (controls/single-click).
 (defn queue-buttons
   "The buttons that queue the episode `page`, by where it is in the queue,
   `queued`: nil, :queued, or :current, which needs none."
@@ -107,12 +109,14 @@
   (let [playable (episode/playable page)]
     (when-not (= :current queued)
       (list
-       [:button {:type "button" :on {:click [[:queue/add playable title true]]}}
+       [controls-ui/button {:icon icons/rows-plus-top :on {:click [[:queue/add playable title true]]}}
         "Play next"]
        (if (= :queued queued)
-         [:button {:type "button" :on {:click [[:queue/remove (:id page)]]}}
+         [controls-ui/button {:icon icons/minus
+                              :on   {:click (controls-ui/single-click [[:queue/remove (:id page)]])}}
           "Remove from queue"]
-         [:button {:type "button" :on {:click [[:queue/add playable title false]]}}
+         [controls-ui/button {:icon icons/rows-plus-bottom
+                              :on   {:click (controls-ui/single-click [[:queue/add playable title false]])}}
           "Add to queue"])))))
 
 (defn number-text

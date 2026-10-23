@@ -20,11 +20,11 @@
 
 (def view-opts
   "The options of app.episode/view for the page: the headings of the show
-  notes below the page's own h2s, their links to the web in a new tab, and
-  neither the notes as text nor links to other apps, which the page
-  doesn't show."
+  notes below the page's own h2s, their links marked for where they leave
+  the app to, e.g. a new tab, and neither the notes as text nor links to
+  other apps, which the page doesn't show."
   {:heading-level 3
-   :link-fn       links/new-tab
+   :link-fn       links/leaving
    :except        #{:text :links}})
 
 (defn item-of

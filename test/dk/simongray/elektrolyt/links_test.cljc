@@ -7,10 +7,13 @@
 (deftest links-that-leave-the-app
   (is (= [:a {:href "https://example.org/" :target "_blank" :aria-describedby "new-tab-note"}
           [:span "x"]
-          [controls/icon {:icon icons/arrow-square-out :class "in-text" :title "Opens in a new tab"}]]
-         (links/new-tab [:a {:href "https://example.org/"} "x"]))
+          (controls/in-text icons/arrow-square-out "Opens in a new tab")]
+         (links/leaving [:a {:href "https://example.org/"} "x"]))
       "in a new tab, which an icon after the text shows, and the note on the page says")
-  (is (= [:a {:href "/shows/g"} "x"] (links/new-tab [:a {:href "/shows/g"} "x"]))
-      "but not those of the app")
-  (is (= [:a {:href "mailto:a@example.org"} "a"] (links/new-tab [:a {:href "mailto:a@example.org"} "a"]))
-      "nor an email address"))
+  (is (= [:a {:href "MAILTO:a@example.org" :aria-describedby "email-note"}
+          [:span "a@example.org"]
+          (controls/in-text icons/envelope-simple "Opens your email app")]
+         (links/leaving [:a {:href "MAILTO:a@example.org"} "a@example.org"]))
+      "or in the email app, which an envelope shows")
+  (is (= [:a {:href "/shows/g"} "x"] (links/leaving [:a {:href "/shows/g"} "x"]))
+      "but not those of the app"))

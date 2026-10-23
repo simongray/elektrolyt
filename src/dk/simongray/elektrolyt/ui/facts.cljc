@@ -34,7 +34,7 @@
   [supplement]
   (when-let [text (source-text supplement)]
     [:span
-     [controls/icon {:icon icons/puzzle-piece :class "in-text" :title text}]
+     (controls/in-text icons/puzzle-piece text)
      [:span.visually-hidden text]]))
 
 (defn labelled-source
@@ -42,7 +42,7 @@
   page: a puzzle piece before source-text, or nil."
   [supplement]
   (when-let [text (source-text supplement)]
-    [:span.source [controls/icon {:icon icons/puzzle-piece :class "in-text"}] text]))
+    [:span.source (controls/in-text icons/puzzle-piece) text]))
 
 ;; The middle dot is decoration, which a screen reader leaves out, so it
 ;; reads a comma in its place rather than run two facts together, e.g.

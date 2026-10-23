@@ -10,7 +10,8 @@
 
   The state keeps the folded sections that the listener opened as :open,
   a map of the place of each, e.g. [:chapters id], to true."
-  (:require [replicant.alias :refer [defalias]]))
+  (:require [dk.simongray.elektrolyt.ui.icons :as icons]
+            [replicant.alias :refer [defalias]]))
 
 ;; An icon in the colour of the text around it, which a screen reader
 ;; skips, since the control that holds it has a name of its own. In forced
@@ -49,6 +50,27 @@
   ([x title]
    (cond-> (if (string? x) [icon {:icon x}] x)
      title (assoc-in [1 :title] title))))
+
+;; Letters sit on the baseline, and so does the drawing of an icon among
+;; them, by where it ends in its box, which differs from icon to icon, e.g.
+;; the envelope's ends above the arrow's (layout.css)
+(def drawn-to
+  "Where the drawing of each icon that sits among words ends, out of the
+  256 units of its box."
+  {icons/arrow-square-out 222
+   icons/envelope-simple  206
+   icons/puzzle-piece     222
+   icons/rss              206})
+
+(defn in-text
+  "The icon of the `path`, a path of ui.icons, among words, with the
+  `title`, if any, as its tooltip, and its drawing on their baseline."
+  ([path]
+   (in-text path nil))
+  ([path title]
+   [icon (cond-> {:icon path :class "in-text"}
+           title           (assoc :title title)
+           (drawn-to path) (assoc :style {:--drawn-to (str (drawn-to path))}))]))
 
 (defalias button
   "A button with the `children`, its words, after the icon that the

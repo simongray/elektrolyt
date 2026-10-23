@@ -45,10 +45,10 @@
 (def view-opts
   "The options of app.show/view for the page, which leaves out what it
   doesn't show, puts the headings of the notes beside the page's own h2s,
-  and opens their links to the web in a new tab."
+  and marks where their links leave the app to, e.g. a new tab."
   {:except        #{:seasons :links :text}
    :heading-level 2
-   :link-fn       links/new-tab})
+   :link-fn       links/leaving})
 
 (defn episode-row
   "The episode `item` as a row of the list of episodes, with its own
