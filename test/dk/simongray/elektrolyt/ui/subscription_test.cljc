@@ -1,6 +1,9 @@
 (ns dk.simongray.elektrolyt.ui.subscription-test
   (:require [clojure.test :refer [deftest is]]
+            [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]))
@@ -32,4 +35,11 @@
     (is (= :waiting (subscription/status {} nil url)) "before the library is restored")
     (is (= :subscribed (subscription/status {} #{(guid/normal-url url)} url)))
     (is (= :subscribing (subscription/status {:subscribing #{url}} #{} url)))
-    (is (= :ready (subscription/status {} #{} url)))))
+    (is (= :ready (subscription/status {} #{} url))))
+  (let [old   "https://example.org/old.xml"
+        lib   (-> (library/make "test")
+                  (library/update-profile profile/subscribe "g" {:url "https://example.org/new.xml"}))
+        state {:library lib}]
+    (is (= :subscribed (subscription/status state (search/subscribed-urls lib) old "g"))
+        "by the show's guid, for a feed that moved since")
+    (is (= :ready (subscription/status state (search/subscribed-urls lib) old "other")))))

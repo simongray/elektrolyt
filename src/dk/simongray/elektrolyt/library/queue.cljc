@@ -123,9 +123,12 @@
 
 (defn offered
   "The undo in `state` with only the :ids that it would put back, or nil
-  when there are none, e.g. once another tab queued them again."
+  when there are none, e.g. once another tab queued them again, or the
+  library no longer has their show."
   [{:keys [library queue-undo]}]
-  (when-let [ids (some-> library :profile (restorable queue-undo) not-empty)]
+  (when-let [ids (some->> (some-> library :profile (restorable queue-undo))
+                          (filterv #(library/loaded? library (first %)))
+                          not-empty)]
     (assoc queue-undo :ids ids)))
 
 ;; Selective undo, as in collaborative editors: the undo reverses this
@@ -151,14 +154,14 @@
   "The change of `state` that puts back what its undo offers, or nil when
   there's nothing to put back."
   [{undo :queue-undo :as state}]
-  (when-let [{:keys [ids]} (offered state)]
+  (when-let [{:keys [ids] :as kept} (offered state)]
     (changes/announced :queue-undo
                        (if (= (count ids) (count (:ids undo)))
                          (:done undo)
                          (str "Put " (count ids) " of " (text/counted (count (:ids undo)) "episode")
                               " back in the queue"))
                        nil
-                       [:queue/restore undo])))
+                       [:queue/restore kept])))
 
 (defn added
   "The change that puts the episode `id` titled `title` at the end of the

@@ -1,20 +1,26 @@
 (ns dk.simongray.elektrolyt.ui.subscription
   "The button that subscribes to a show, and the error of a subscription
   that failed."
-  (:require [dk.simongray.elektrolyt.search :as search]
+  (:require [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]))
 
 (defn status
   "Where the subscription to the feed at `url` stands in `state`, given the
   `subscribed` URLs: :subscribed, :subscribing, :ready, or :waiting until
-  the library is restored."
-  [state subscribed url]
-  (cond
-    (nil? subscribed)                    :waiting
-    (search/subscribed? subscribed url)  :subscribed
-    (contains? (:subscribing state) url) :subscribing
-    :else                                :ready))
+  the library is restored. With the show's `guid`, a subscription by that
+  key counts too, e.g. one whose feed moved since."
+  ([state subscribed url]
+   (status state subscribed url nil))
+  ([state subscribed url guid]
+   (cond
+     (nil? subscribed)                    :waiting
+     (search/subscribed? subscribed url)  :subscribed
+     (and guid (profile/subscribed? (:profile (:library state)) guid))
+     :subscribed
+     (contains? (:subscribing state) url) :subscribing
+     :else                                :ready)))
 
 ;; WCAG 2.2, SC 2.5.3 Label in Name: the accessible name starts with the
 ;; visible label, e.g. "Subscribe to Podcasting 2.0". The button is
@@ -32,8 +38,10 @@
    (button status url title false))
   ([status url title unsubscribe?]
    (if (and unsubscribe? (= :subscribed status))
-     [controls/button {:icon icons/minus
-                       :on   {:click (controls/single-click [[:library/unsubscribe url title]])}}
+     ;; it goes when the show had no page but for its subscription
+     [controls/button {:icon         icons/minus
+                       :data-refocus "main h1"
+                       :on           {:click (controls/single-click [[:library/unsubscribe url title]])}}
       "Unsubscribe" [:span.visually-hidden " from " title]]
      [controls/button (cond-> {:icon (if (= :subscribed status) icons/check icons/plus)}
                         (not= :subscribed status) (assoc :class "primary")

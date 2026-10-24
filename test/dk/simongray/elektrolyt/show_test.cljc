@@ -1,6 +1,7 @@
 (ns dk.simongray.elektrolyt.show-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.show :as show]))
 
 (def url "https://example.org/feed.xml")
@@ -144,6 +145,17 @@
     (is (= "Kept" (:title (show/page {:library lib} k))))
     (is (= [url k true] ((juxt :url :key :whole?) (show/source {:library lib} k))))
     (is (= :done (show/status {:library lib} k)))))
+
+(deftest a-subscription-whose-feed-never-came
+  (let [lib (library/update-profile (library/make "test") profile/subscribe "dead" {:url url :title "Dead"})]
+    (is (nil? (show/library-key lib "dead" nil)) "isn't a show that the library keeps")
+    (is (= {:url url} (show/source {:library lib} "dead"))
+        "but its page fetches the feed at the subscription's URL")
+    (is (= "Dead" (:title (show/subscription-of lib "dead"))))
+    (is (= "dead" (show/subscribed-key lib url)) "and the subscription is found by its URL")
+    (is (nil? (show/subscribed-key lib "https://example.org/other.xml")))
+    (is (nil? (show/subscribed-key (library/update-profile lib profile/unsubscribe "dead") url))
+        "while it lasts")))
 
 (deftest a-feed-from-the-cache
   (let [at      #inst "2026-10-18T12:00:00Z"

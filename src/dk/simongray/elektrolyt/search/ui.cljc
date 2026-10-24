@@ -135,7 +135,7 @@
        [:p author])
      (when shared-title?
        [:p url])
-     (subscription/button (subscription/status state subscribed url)
+     (subscription/button (subscription/status state subscribed url guid)
                           url
                           (cond-> title shared-title? (str ", " url)))
      (subscription/error state url)]))

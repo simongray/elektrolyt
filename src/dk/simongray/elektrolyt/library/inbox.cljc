@@ -83,9 +83,12 @@
 
 (defn offered
   "The undo in `state` with only the :ids that it would put back, or nil
-  when there are none, e.g. once another tab queued them."
+  when there are none, e.g. once another tab queued them, or the library
+  no longer has their show."
   [{:keys [library inbox-undo]}]
-  (when-let [ids (some-> library :profile (restorable inbox-undo) not-empty)]
+  (when-let [ids (some->> (some-> library :profile (restorable inbox-undo))
+                          (filterv #(library/loaded? library (first %)))
+                          not-empty)]
     (assoc inbox-undo :ids ids)))
 
 (defn restore
@@ -98,11 +101,11 @@
   "The change of `state` that puts back what its undo offers, or nil when
   there's nothing to put back."
   [{undo :inbox-undo :as state}]
-  (when-let [{:keys [ids]} (offered state)]
+  (when-let [{:keys [ids] :as kept} (offered state)]
     (changes/announced :inbox-undo
                        (if (= (count ids) (count (:ids undo)))
                          (:done undo)
                          (str "Put " (count ids) " of " (text/counted (count (:ids undo)) "episode")
                               " back in the inbox"))
                        nil
-                       [:inbox/restore undo])))
+                       [:inbox/restore kept])))

@@ -1,5 +1,7 @@
 (ns dk.simongray.elektrolyt.show.ui-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.show.ui :as show]
             [dk.simongray.elektrolyt.ui :as ui]
@@ -205,6 +207,17 @@
     (is (every? nil? (map #(lang-of % x) [:h1 :div.show-notes]))
         "none where the feed names no language, so the page's own applies")
     (is (nil? (lang-of :a (elements :h3 x))))))
+
+(deftest a-subscription-whose-feed-fails
+  (let [lib   (library/update-profile (library/make "test") profile/subscribe "g" {:url url :title "Gone"})
+        state {:route   {:name :route/show :path-params {:guid "g"} :query-params {}}
+               :library lib
+               :feeds   {url {:error {:id :fetch/unreachable}}}}
+        x     (show/content state [:h1 "Gone"])]
+    (is (re-find #"^The feed couldn't be fetched\." (text-of (first (elements :p x)))))
+    (is (= "Unsubscribe from Gone" (spoken (first (elements controls/button x))))
+        "and the listener can still leave it")
+    (is (= "Gone" (ui/page-title state)) "named by the subscription")))
 
 (deftest a-show-that-has-no-page-yet
   (is (= [[:h1 "Show"] [:p {:role "status"} "Loading the show…"]]
