@@ -34,8 +34,9 @@
   - :max-jobs, the most artworks that it fetches and scales at once,
     since each can take some 40 MB of heap while it decodes an artwork
     of 20 MB
-  - :wait-seconds, how long a request waits for a job when the folder
-    has no thumbnails of its artwork, before it gets a redirect
+  - :wait-seconds, how long a request waits for a job, or for another
+    request's fetch of the same artwork, when the folder has no
+    thumbnail for it, before it gets a redirect
   - :retry-seconds, how long the folder keeps a failed fetch, so that no
     request fetches the artwork again until then
   - :send, the function that sends a request
@@ -349,24 +350,49 @@
 
 (defn- shared
   "What `f` returns, called once for all the threads that ask for the key
-  `k` while it runs. The atom `running` holds the keys in progress."
-  [running k f]
-  (let [mine (delay (try (f) (finally (swap! running dissoc k))))
-        now  (get (swap! running #(if (contains? % k) % (assoc % k mine))) k)]
-    @now))
+  `k` while it runs. The atom `running` holds the keys in progress. The
+  thread that calls `f` waits for it, and any other for `ms` milliseconds
+  at most, after which it gets `timed-out`."
+  [running k f ms timed-out]
+  (let [mine (promise)
+        now  (get (swap! running #(if (contains? % k) % (assoc % k mine))) k)
+        {:keys [value error]}
+        (if (identical? now mine)
+          (let [result (try {:value (f)} (catch Exception e {:error e}))]
+            (swap! running dissoc k)
+            (deliver mine result)
+            result)
+          (deref now ms {:value timed-out}))]
+    (if error (throw error) value)))
 
 (defn- entry!
-  "The entry of the artwork at `url`: the one in `cache-dir` while it's
-  fresh, or else one renewed with `jobs`, `lock` and `opts`, shared
-  through `running` with the requests that ask meanwhile. When the
-  renewal throws, it's the stale entry if that has thumbnails."
-  [cache-dir url jobs lock running opts]
-  (let [stale (stored cache-dir url)]
-    (if (and stale (< (System/currentTimeMillis) (:fresh-until stale)))
+  "The entry of the artwork at `url` for its thumbnail at `width`: the one
+  in `cache-dir` while it's fresh, or else one renewed with `jobs`, `lock`
+  and `opts`, shared through `running` with the requests that ask
+  meanwhile.
+
+  A stale entry with that thumbnail is the answer at once, while the
+  renewal runs on a thread of its own. A request that finds another's
+  renewal under way waits :wait-seconds for it at most. When the renewal
+  throws, it's the stale entry if that has thumbnails."
+  [cache-dir url width jobs lock running {:keys [wait-seconds] :as opts}]
+  (let [stale (stored cache-dir url)
+        renew #(renewed! url stale jobs lock opts)]
+    (cond
+      (and stale (< (System/currentTimeMillis) (:fresh-until stale)))
       (do (touch! cache-dir url)
           stale)
+
+      (get-in stale [:thumbnails width])
+      (do (future
+            (try
+              (shared running url renew 0 nil)
+              (catch Exception _)))
+          stale)
+
+      :else
       (try
-        (shared running url #(renewed! url stale jobs lock opts))
+        (shared running url renew (* 1000 wait-seconds) stale)
         (catch Exception _
           (when (seq (:thumbnails stale))
             stale))))))
@@ -378,11 +404,11 @@
   It answers a request with a refusal, or with the thumbnail of the
   artwork at its url parameter at the width of its w parameter. It keeps
   each artwork's thumbnails in the :cache-dir, and once the artwork's
-  freshness ends, it checks it again with its ETag and Last-Modified. It
-  fetches and scales at most :max-jobs artworks at once, but sends cached
-  thumbnails without waiting for a job. After a failed fetch, it sends
-  the thumbnails it has and waits :retry-seconds before it fetches the
-  artwork again.
+  freshness ends, it checks it again with its ETag and Last-Modified,
+  meanwhile sending the thumbnails it has. It fetches and scales at most
+  :max-jobs artworks at once, but sends cached thumbnails without waiting
+  for a job. After a failed fetch, it sends the thumbnails it has and
+  waits :retry-seconds before it fetches the artwork again.
 
   It redirects to the artwork itself when format.image can't scale it,
   or when it has no thumbnails and the fetch fails or waits too long for
@@ -397,6 +423,7 @@
          running (atom {})]
      (fn [request]
        (or (refusal request opts)
-           (let [{:strs [url w]} (url/query-params (:query-string request))]
-             (answer request url (entry! cache-dir url jobs lock running opts)
-                     (parse-long w) opts)))))))
+           (let [{:strs [url w]} (url/query-params (:query-string request))
+                 width           (parse-long w)]
+             (answer request url (entry! cache-dir url width jobs lock running opts)
+                     width opts)))))))

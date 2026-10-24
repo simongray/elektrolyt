@@ -4,6 +4,7 @@
             [clojure.test :refer [deftest is testing]]
             [cognitect.transit :as transit]
             [dk.simongray.elektrolyt.server :as server]
+            [dk.simongray.wary-fetch.proxy :as proxy]
             [io.pedestal.connector.test :refer [response-for]]
             [taoensso.telemere :as tel])
   (:import [java.nio.file Files]
@@ -82,7 +83,20 @@
   (testing "the proxy needs a URL"
     (is (= 400 (:status (response-for connector :get "/proxy")))))
   (testing "the proxy answers GET and HEAD alone"
-    (is (= 405 (:status (response-for connector :post "/proxy"))))))
+    (is (= 405 (:status (response-for connector :post "/proxy")))))
+  (testing "a request that waits too long for its turn fails as the proxy's"
+    (let [held    (promise)
+          handler (server/at-most 1 0 server/busy-proxy (fn [_] @held {:status 200}))
+          first   (future (handler {}))
+          _       (Thread/sleep 100)
+          busy    (handler {})]
+      (deliver held true)
+      @first
+      (is (= 503 (:status busy)))
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"The server is busy"
+                            (proxy/unproxied {:url "https://example.org/feed.xml"}
+                                             (update busy :headers update-keys str/lower-case)))
+          "rather than as a 503 from the site it asked, which would count against its feed"))))
 
 (deftest artwork-test
   (testing "the thumbnails need a URL and a width from the list"
