@@ -145,9 +145,10 @@
     (.removeEventListener js/window "beforeunload" leaving)))
 
 (defn reload!
-  "Load the page again, without the browser asking first."
+  "Load the page again. While changes aren't saved, the browser asks
+  first, e.g. at the Reload of a newer version, since a reload loses
+  them."
   []
-  (warn-before-leaving! false)
   (.reload js/location))
 
 (defn on-transitionend!
