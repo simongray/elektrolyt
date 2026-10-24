@@ -9,6 +9,7 @@
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
             [dk.simongray.elektrolyt.library.queue :as queue]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.routes :as routes]
@@ -35,15 +36,19 @@
   with `next-focus`, the id of the button to focus after a removal."
   [{:keys [id title] :as episode} position n next-focus]
   [:div.queue-actions
-   (rows/button "Play" title {:id    (control-id id :play)
-                              :class "primary"
-                              :on    {:click [[:player/play {:id id} nil]]}})
+   ;; the episode moves to Now playing, and its button goes with it
+   (rows/button "Play" title {:id           (control-id id :play)
+                              :class        "primary"
+                              :data-refocus "#now-playing"
+                              :on           {:click (controls/single-click
+                                                     [[:player/play {:id id} nil]])}})
    (rows/move-buttons title position n
                       #(control-id id %)
                       #(vector :queue/move id %))
    (rows/button "Remove" title {:id (control-id id :remove)
-                                :on {:click [[:queue/remove id]
-                                             [:page/focus next-focus]]}})])
+                                :on {:click (controls/single-click
+                                             [[:queue/remove id]
+                                              [:page/focus next-focus]])}})])
 
 (defn row
   "The row of the queued `episode` in `state`, with the `marks` before its

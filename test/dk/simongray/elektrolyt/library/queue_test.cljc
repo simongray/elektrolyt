@@ -54,7 +54,31 @@
     (is (= ["Episode 4" "Episode 2" "Episode 3"] (titles moved)) "after the episode that plays")
     (is (= "Moved Episode 4 to position 1 of 3" (:announcement moved))))
   (is (= ["Episode 2" "Episode 3"] (titles (changed queue/moved (state true 1 2 3) (id 2) 3)))
-      "never past the end"))
+      "never past the end")
+  (let [gone ["gone" "ep"]
+        s    (-> (state true 1)
+                 (update :library library/update-profile profile.queue/enqueue gone)
+                 (update :library #(reduce (fn [l i] (library/update-profile l profile.queue/enqueue (id i))) % [2 3])))]
+    (is (= ["Episode 2" "Episode 3"] (titles s)) "an episode whose feed has gone isn't listed")
+    (is (= ["Episode 3" "Episode 2"] (titles (changed queue/moved s (id 2) 2)))
+        "but a move counts past it")
+    (is (= ["Episode 3" "Episode 2"] (titles (changed queue/moved s (id 3) 1))))))
+
+(deftest the-episode-that-another-tab-plays
+  (let [s (assoc (state false 1 2 3)
+                 :player {:id      (id 2)
+                          :media   {:paused true}
+                          :now     0
+                          :elsewhere {:id (id 1) :tab "there" :paused false :at 0 :changed 0}})]
+    (is (= "Episode 1" (:title (queue/current s))))
+    (is (= ["Episode 2" "Episode 3"] (titles s)))
+    (is (= :current (queue/place s (id 1))))
+    (is (= :queued (queue/place s (id 2))))))
+
+(deftest the-front-while-the-player-has-another
+  (let [s (assoc (state false 2 3) :player {:id (id 1)})]
+    (is (nil? (queue/current s)))
+    (is (= :queued (queue/place s (id 2))) "the front is up next, as the Queue page lists it")))
 
 (deftest a-removal-and-its-undo
   (let [removed (changed queue/removed (state true 1 2 3) (id 2))]

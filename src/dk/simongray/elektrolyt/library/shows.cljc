@@ -34,11 +34,19 @@
   change, since counting every show's episodes takes a while."
   (memo/remember-last library/shows (juxt :feeds :profile)))
 
+;; ECMA-402, Intl.Collator: the listener's own locale puts e.g. Æ, Ø and Å
+;; after Z in Danish, and Écoute among the E's
+(def title-order
+  "A comparator of titles in the order of the browser's locale, ignoring
+  case and accents, with numbers by their value."
+  #?(:clj  #(compare (str/lower-case %1) (str/lower-case %2))
+     :cljs (.-compare (js/Intl.Collator. js/undefined #js {:sensitivity "base" :numeric true}))))
+
 (defn sorted
   "The `shows` in the order `sort`."
   [shows sort]
   (case sort
-    :title  (sort-by (comp str/lower-case str :title) shows)
+    :title  (sort-by (comp str :title) title-order shows)
     ;; a show whose feed has no dates yet comes last
     :newest (sort-by #(if-let [d (:newest %)] (- (inst-ms d)) ##Inf) shows)
     shows))
@@ -61,13 +69,18 @@
 
 (defn summary
   "The announcement of a refresh's `result`: how many episodes are new and
-  how many shows couldn't be checked. Unless the listener `asked?` for the
-  refresh, it's nil when nothing is new."
-  [{:keys [counts added] :as result} asked?]
+  how many shows couldn't be checked, or that the device is offline.
+  Unless the listener `asked?` for the refresh, it's nil when nothing is
+  new."
+  [{:keys [counts added report] :as result} asked?]
   (let [n      (count added)
         failed (:failed counts 0)
         found  (if (zero? n) "No new episodes" (text/counted n "new episode"))
         failed (when (pos? failed)
                  (str ", but " (text/counted failed "show") " couldn't be checked"))]
-    (when (or asked? (pos? n))
+    (cond
+      (some (comp #{:refresh/offline} :id) report)
+      (when asked? "You're offline, so no shows were checked")
+
+      (or asked? (pos? n))
       (str found failed))))

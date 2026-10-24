@@ -12,6 +12,13 @@
   [x text]
   (some #(when (= text (text-of %)) (second %)) (buttons x)))
 
+(defn clicked
+  "The actions of a click on the button of the Hiccup `x` whose text is
+  `text`, inside the controls/single-click that wraps them, if any."
+  [x text]
+  (let [[[k _ actions] :as click] (get-in (button-of x text) [:on :click])]
+    (if (= :event/single-click k) actions click)))
+
 (deftest the-queue-page
   (let [x (queue-ui/content (state true 1 2 3))]
     (is (re-find #"Now playingEpisode 1" (text-of (elements :section x))))
@@ -25,11 +32,16 @@
              (get-in (button-of x "Move down Episode 2") [:on :click]))
           "a move keeps the focus on the button that moved it")
       (is (= [[:queue/remove (id 2)] [:page/focus (queue-ui/control-id (id 3) :remove)]]
-             (get-in (button-of x "Remove Episode 2") [:on :click]))
+             (clicked x "Remove Episode 2"))
           "and a removal moves it to the next row's")
       (is (= [[:queue/remove (id 3)] [:page/focus (queue-ui/control-id (id 2) :remove)]]
-             (get-in (button-of x "Remove Episode 3") [:on :click]))
-          "or the one before, at the end"))
+             (clicked x "Remove Episode 3"))
+          "or the one before, at the end")
+      (is (every? #(= :event/single-click (ffirst (get-in (button-of x (str % " Episode 2")) [:on :click])))
+                  ["Play" "Remove"])
+          "Play and Remove act once for a double click, since the next row moves up under the pointer")
+      (is (= "#now-playing" (:data-refocus (button-of x "Play Episode 2")))
+          "and Play gives the focus to Now playing, where the episode goes"))
     (is (= [[:dialog/open queue-ui/clear-dialog-id]]
            (get-in (button-of x "Clear the queue") [:on :click])))))
 
