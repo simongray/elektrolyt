@@ -141,22 +141,42 @@
                       (kept!)
                       {:error {:id :library/save-failed :reason (ex-message e)}})))))))
 
-(defn logged!
-  "Log the result `written` of a write if it failed, and return it."
-  [written]
-  (when (:error written)
-    (tel/log! {:level :error :id :library/save-failed :data written}
-              "The library wasn't saved"))
+(defonce ^{:doc "How many writes in a row have failed."}
+  failures
+  (atom 0))
+
+(defn retry-ms
+  "How long to wait before a save is tried again after `n` writes in a row
+  failed: five seconds after the first, twice as long after each one more,
+  and five minutes at most."
+  [n]
+  (min 300000 (* 5000 (js/Math.pow 2 (dec n)))))
+
+(declare save!)
+
+(defn retried!
+  "The result `written` of a write. If it failed, it's logged and the
+  `state` atom is saved again later."
+  [state written]
+  (if (:error written)
+    (do (tel/log! {:level :error :id :library/save-failed :data written}
+                  "The library wasn't saved")
+        (runtime/later! ::retry (retry-ms (swap! failures inc)) #(save! state)))
+    (do (reset! failures 0)
+        (runtime/cancel! ::retry)))
   written)
 
+;; A write can fail for a while, e.g. while the device is out of room, and
+;; the operations that wait would be lost with the tab
 (defn save!
   "A promise of writing this tab's waiting operations from the `state`
-  atom once its earlier reads and writes are done, which logs a write that
-  fails. A save asked for while another waits its turn joins that one."
+  atom once its earlier reads and writes are done. A write that fails is
+  logged and tried again later. A save asked for while another waits its
+  turn joins that one."
   [state]
   (or (:next @turns)
       (let [p (in-turn! #(do (swap! turns assoc :next nil)
-                             (.then (written! state) logged!)))]
+                             (.then (written! state) (partial retried! state))))]
         (swap! turns assoc :next p)
         p)))
 
@@ -228,14 +248,17 @@
   other tabs write. If the library can't be read, the promise fails and
   `state` gets no library."
   [state]
-  (.then (library/read! (library/make (device/id! device-key) {:config config :codec transit/codec})
-                        store
-                        options)
-         (fn [{:keys [library] :as read}]
-           (reset! known read)
-           (swap! state assoc :library (applied-all library @waiting))
-           (listen! state)
-           read)))
+  ;; listening first, a write that another tab announces during the read
+  ;; is read after it
+  (listen! state)
+  (in-turn!
+   #(.then (library/read! (library/make (device/id! device-key) {:config config :codec transit/codec})
+                          store
+                          options)
+           (fn [{:keys [library] :as read}]
+             (reset! known read)
+             (swap! state assoc :library (applied-all library @waiting))
+             read))))
 
 ;; Storage Standard, sections 7.1 and 8. Firefox asks the user first, so the
 ;; request waits until the listener subscribes.

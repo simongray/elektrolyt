@@ -133,25 +133,30 @@
   `asked?`, or else the stale feeds, or else the feeds that are due.
 
   Stale feeds are fetched whole, since a check of their start would find
-  nothing new. Nothing starts while a refresh is under way."
+  nothing new. Nothing starts while a refresh is under way, and what's
+  due goes by what the other tabs wrote too, e.g. a refresh of theirs."
   [store asked?]
-  (let [{:keys [library refresh-status] :as state} @store
-        online? (.-onLine js/navigator)
-        on?     (settings/alternative-feeds? state)
-        whole   (vec (stale state))
-        guids   (cond
-                  asked?      (vec (keys (library/subscriptions library)))
-                  (seq whole) whole)]
+  (let [{:keys [library refresh-status]} @store]
     (when (and library @app-library/known (not (:running? refresh-status)))
       (runtime/cancel! ::next)
-      (swap! refreshed-stale into (map #(vector % on?)) whole)
       (swap! store started asked?)
-      (-> (fetching/fetch-due! (library/due library (cond-> {:online? online?}
-                                                      guids (assoc :feed-guids guids)))
-                               {:head-check?        (empty? whole)
-                                :online?            online?
-                                :alternative-feeds? on?}
-                               #(swap! store update :refresh-status merge %))
+      (-> (app-library/caught-up! store)
+          (.catch (constantly nil))
+          (.then (fn [_]
+                   (let [{:keys [library] :as state} @store
+                         online? (.-onLine js/navigator)
+                         on?     (settings/alternative-feeds? state)
+                         whole   (vec (stale state))
+                         guids   (cond
+                                   asked?      (vec (keys (library/subscriptions library)))
+                                   (seq whole) whole)]
+                     (swap! refreshed-stale into (map #(vector % on?)) whole)
+                     (fetching/fetch-due! (library/due library (cond-> {:online? online?}
+                                                                 guids (assoc :feed-guids guids)))
+                                          {:head-check?        (empty? whole)
+                                           :online?            online?
+                                           :alternative-feeds? on?}
+                                          #(swap! store update :refresh-status merge %)))))
           (.then (fn [{:keys [found busy?]}]
                    (if busy?
                      (swap! store busy asked? (js/Date.))
