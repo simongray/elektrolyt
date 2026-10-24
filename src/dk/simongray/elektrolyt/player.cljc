@@ -15,7 +15,7 @@
   - :buffering?, whether it has waited for data for half a second
   - :elsewhere, the media state that the playing tab posted last, and
     :now, the time in milliseconds of the clock that moves its position on"
-  (:require [dk.simongray.play-nice.page.tabs :as tabs]
+  (:require [dk.simongray.play-nice.page.tabs.playback :as playback]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.format.chapters :as chapters]
             [dk.simongray.podcast.profile :as profile]
@@ -106,7 +106,7 @@
   [kept told now]
   (if (and kept
            (not= (:tab kept) (:tab told))
-           (= (:tab kept) (:tab (tabs/newest [told kept] now))))
+           (= (:tab kept) (:tab (playback/newest [told kept] now))))
     kept
     told))
 
@@ -117,7 +117,7 @@
   lock from may still post its last state."
   [{:keys [elsewhere media now] :as player}]
   (when-not (false? (:paused media))
-    (let [there (some-> elsewhere vector (tabs/newest now))]
+    (let [there (some-> elsewhere vector (playback/newest now))]
       (when (false? (:paused there))
         there))))
 
@@ -134,7 +134,7 @@
   [{:keys [media now] :as player}]
   (if-let [there (elsewhere player)]
     (assoc (select-keys there told-keys)
-           :current-time (some-> (tabs/position there now) Math/floor))
+           :current-time (some-> (playback/position there now) Math/floor))
     media))
 
 ;; Every Play or Pause button uses this, so that a page's button, the

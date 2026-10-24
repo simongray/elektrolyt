@@ -13,7 +13,7 @@
   move their paused elements to where it stopped, so that Play in any tab
   goes on from there."
   (:require [dk.simongray.play-nice.media :as media]
-            [dk.simongray.play-nice.page.tabs :as tabs]
+            [dk.simongray.play-nice.page.tabs.playback :as playback]
             [dk.simongray.play-nice.session :as session]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.media-session :as media-session]
@@ -347,7 +347,7 @@
                                   there))
         el                    (cue! store id
                                     (or (some->> t (player/start-time (:duration (player/playback state id))))
-                                        (some-> there (tabs/position (js/Date.now))))
+                                        (some-> there (playback/position (js/Date.now))))
                                     (:playback-rate there))]
     (some->> el (play-element! store))))
 
