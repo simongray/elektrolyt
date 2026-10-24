@@ -216,8 +216,10 @@
         (let [entry (first (filter #(re-find #"\.edn$" (.getName ^java.io.File %)) (file-seq cache)))]
           (spit entry (pr-str (assoc (read-string (slurp entry)) :fresh-until 0))))
         (reset! hang? true)
-        (is (= 200 (:status (deref (future (h (asked art 64))) 1000 nil)))
-            "the thumbnails of a stale artwork, while its check hangs")
+        (is (= [200 "max-age=0"]
+               ((juxt :status #(get-in % [:headers "Cache-Control"]))
+                (deref (future (h (asked art 64))) 1000 nil)))
+            "the thumbnails of a stale artwork, while its check hangs, which the browser asks for again")
         (let [busy (future (h (asked slow 64)))]
           (is (eventually #(some #{slow} @sent)))
           (is (= [307 "no-store"] ((juxt :status #(get-in % [:headers "Cache-Control"]))
