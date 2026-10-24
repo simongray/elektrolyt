@@ -26,7 +26,17 @@
   (is (= "2 new episodes" (shows/summary {:added [1 2] :counts {:failed 0}} true)))
   (is (= "No new episodes, but 1 show couldn't be checked" (shows/summary {:added [] :counts {:failed 1}} true)))
   (is (nil? (shows/summary {:added [] :counts {}} false)) "nothing of one on its own that found nothing")
-  (is (= "1 new episode" (shows/summary {:added [1] :counts {}} false))))
+  (is (= "1 new episode" (shows/summary {:added [1] :counts {}} false)))
+  (let [offline {:added [] :counts {} :report [{:id :refresh/offline}]}]
+    (is (= "You're offline, so no shows were checked" (shows/summary offline true))
+        "not that nothing is new, when nothing was checked")
+    (is (nil? (shows/summary offline false)))))
+
+(deftest titles-in-the-order-of-the-locale
+  (is (= ["Écoute" "Episode 2" "Episode 10" "zebra"]
+         (map :title (shows/sorted [{:title "zebra"} {:title "Episode 10"} {:title "Écoute"} {:title "Episode 2"}]
+                                   :title)))
+      "accents and case aside, and numbers by their value"))
 
 (deftest when-the-feeds-were-fetched
   (is (= #inst "2026-10-17" (shows/updated-at {:feeds {"a" {:fetched-at #inst "2026-10-16"}

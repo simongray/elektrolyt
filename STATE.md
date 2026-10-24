@@ -35,7 +35,7 @@ as long as the tab.
 | `:searches` | The searches by query, each directory's results | `search.directories`, `search.ui` | `ui.routes`, `search`, `show`, `search.ui` | Clear cache |
 | `:linked` | The shows that a show links to, by guid | `show.feeds` | `show.ui` | Clear cache |
 | `:colors` | The colours of artwork, by URL | `ui.artwork.colors` | `ui.colors`, the views | Clear cache |
-| `:refresh-status` | The refresh under way, and what the last one found | `library.refresh` | `library.refresh`, `library.opml`, `library.ui` | Overwritten |
+| `:refresh-status` | The refresh under way, and what the last one found, or when it failed or found another tab refreshing, which holds back the next | `library.refresh` | `library.refresh`, `library.opml`, `library.ui` | Overwritten |
 | `:route` | The page | `ui.routes`, at each navigation | `ui`, `show`, `ui.colors` | Overwritten |
 | `:server` | What the app's server offers | `elektrolyt`, once | `search`, `library.settings.ui` | Never |
 | `:announcement` | The last status message for a screen reader | `library.changes`, `show`, `library.refresh`, `show.subscription` | `ui` | Overwritten |

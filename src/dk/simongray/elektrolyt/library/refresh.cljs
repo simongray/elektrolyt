@@ -37,14 +37,33 @@
     (let [on? (settings/alternative-feeds? state)]
       (remove #(contains? @refreshed-stale [% on?]) (drpodcast/stale library on?)))))
 
+(def busy-wait-ms
+  "How long a tab waits after finding another tab's worker refreshing."
+  (* 30 1000))
+
+(defn held-until
+  "The time in milliseconds before which no refresh starts by itself, by
+  the `refresh-status`: a while after finding another tab refreshing, and
+  after a failure, from a minute to max-wait-ms, doubling with each
+  failure in a row. Nil when nothing holds it back."
+  [{:keys [busy-at failed-at failures]}]
+  (cond
+    failed-at (+ (inst-ms failed-at) (min max-wait-ms (* 60000 (js/Math.pow 2 (dec failures)))))
+    busy-at   (+ (inst-ms busy-at) busy-wait-ms)))
+
 (defn next-one
   "When the library in `state` should refresh next, or nil when there's
   nothing to fetch. With stale feeds it's now, and after a refresh that
-  found the device offline it's a while later."
+  found the device offline, failed or found another tab refreshing, it's
+  a while later."
   [{:keys [library refresh-status] :as state}]
-  (if (seq (stale state))
-    (js/Date.)
-    (some-> library (library/next-refresh {:after (:result refresh-status)}))))
+  (let [due  (if (seq (stale state))
+               (js/Date.)
+               (some-> library (library/next-refresh {:after (:result refresh-status)})))
+        held (held-until refresh-status)]
+    (if (and due held (< (inst-ms due) held))
+      (js/Date. held)
+      due)))
 
 (defn due?
   "Whether the library in `state` has feeds that are due now."
@@ -69,8 +88,24 @@
   "The `state` as a refresh starts, announced when the listener `asked?`
   for it."
   [state asked?]
-  (cond-> (assoc state :refresh-status {:running? true :done 0})
+  (cond-> (update state :refresh-status #(assoc (select-keys % [:failures]) :running? true :done 0))
     asked? (assoc :announcement "Checking for new episodes…")))
+
+(defn busy
+  "The `state` once another tab's worker turned out to be refreshing at
+  the instant `at`, said when the listener `asked?` for the refresh."
+  [state asked? at]
+  (cond-> (assoc state :refresh-status {:running? false :busy-at at})
+    asked? (assoc :announcement "Another tab is checking for new episodes")))
+
+(defn failed
+  "The `state` once a refresh failed at the instant `at`, one more failure
+  in a row, said when the listener `asked?` for the refresh."
+  [state asked? at]
+  (cond-> (update state :refresh-status
+                  (fn [{:keys [failures]}]
+                    {:running? false :failed-at at :failures (inc (or failures 0))}))
+    asked? (assoc :announcement "Couldn't check for new episodes")))
 
 (defn refreshed
   "The `state` once a refresh is done, with its `result` and a summary to
@@ -119,12 +154,12 @@
                                #(swap! store update :refresh-status merge %))
           (.then (fn [{:keys [found busy?]}]
                    (if busy?
-                     (swap! store assoc :refresh-status {:running? false})
+                     (swap! store busy asked? (js/Date.))
                      (refreshed! store found asked?))))
           (.catch (fn [e]
                     (tel/log! {:level :error :id :library/refresh-failed :error e}
                               "The library didn't refresh")
-                    (swap! store assoc :refresh-status {:running? false})))
+                    (swap! store failed asked? (js/Date.))))
           (.finally #(schedule! store))))))
 
 (defn refresh-if-due!

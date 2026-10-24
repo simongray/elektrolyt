@@ -17,6 +17,7 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.elektrolyt.library.changes :as changes]
+            [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
@@ -26,30 +27,29 @@
   (memo/remember-last library/queue (juxt :feeds :profile)))
 
 (defn current
-  "The first episode of the queue in `state` while the player has it, or
-  nil."
+  "The first episode of the queue in `state` while the player shows it,
+  here or in another tab, or nil."
   [{:keys [library player] :as state}]
   (let [[first-one] (:episodes (view library))]
-    (when (and first-one (= (:id first-one) (:id player)))
+    (when (and first-one (= (:id first-one) (player/shown-id player)))
       first-one)))
 
 (defn up-next
   "The episodes up next in `state`: the queue after its first episode while
-  the player has that one, or else the whole queue."
+  the player shows that one, or else the whole queue."
   [state]
   (let [episodes (:episodes (view (:library state)))]
     (vec (if (current state) (rest episodes) episodes))))
-
-(defn offset
-  "How many places in the queue of `state` come before Up next: 1 while the
-  player has the first episode, or else 0."
-  [state]
-  (if (current state) 1 0))
 
 (defn index-of
   "The index of the episode `id` among the `episodes`, or nil."
   [episodes id]
   (first (keep-indexed #(when (= id (:id %2)) %1) episodes)))
+
+(defn- index-in
+  "The index of `x` in the vector `xs`, or nil."
+  [xs x]
+  (first (keep-indexed #(when (= x %2) %1) xs)))
 
 (defn position
   "The position of the episode `id` among the episodes up next in `state`,
@@ -66,12 +66,16 @@
   "The change of `state` that moves the episode `id` to the position `to`
   of Up next, counting from 1, or nil when either isn't in Up next."
   [state id to]
-  (let [n (count (up-next state))]
+  (let [episodes (up-next state)
+        n        (count episodes)]
     (when (and (position state id) (<= 1 to n))
       (changes/announced :queue-undo
                          (str "Moved " (titled state id) " to position " to " of " n)
                          nil
-                         [:queue/move id (+ (dec to) (offset state))]))))
+                         ;; the place of the episode there among every queued
+                         ;; id, which can include episodes whose feed has gone
+                         [:queue/move id (index-in (queue/queue (:profile (:library state)))
+                                                   (:id (get episodes (dec to))))]))))
 
 (defn undo
   "The undo of taking the episodes `ids` out of the queue in `state`, with
@@ -124,11 +128,6 @@
   (when-let [ids (some-> library :profile (restorable queue-undo) not-empty)]
     (assoc queue-undo :ids ids)))
 
-(defn- index-in
-  "The index of `x` in the vector `xs`, or nil."
-  [xs x]
-  (first (keep-indexed #(when (= x %2) %1) xs)))
-
 ;; Selective undo, as in collaborative editors: the undo reverses this
 ;; tab's change alone, on the queue as it is by then, which another tab or
 ;; device may have changed. So an episode goes back after its neighbour
@@ -179,8 +178,8 @@
 
 (defn place
   "Where the episode `id` is in the queue in `state`: :current at the
-  front, :queued after it, or nil."
+  front while the player shows it, :queued in Up next, or nil."
   [state id]
   (cond
-    (= id (:id (first (:episodes (some-> (:library state) view))))) :current
-    (queued? state id)                                              :queued))
+    (= id (:id (current state))) :current
+    (queued? state id)           :queued))
