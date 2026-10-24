@@ -92,7 +92,7 @@
                                           :result   (dissoc result :library)})
       summary (assoc :announcement summary))))
 
-(defn found!
+(defn refreshed!
   "Apply what the worker `found` to the library of the `store` and save
   it, as the refresh that the listener asked for when `asked?` ends."
   [store found asked?]
@@ -131,7 +131,7 @@
           (.then (fn [{:keys [found busy?]}]
                    (if busy?
                      (swap! store assoc :refresh-status {:running? false})
-                     (found! store found asked?))))
+                     (refreshed! store found asked?))))
           (.catch (fn [e]
                     (tel/log! {:level :error :id :library/refresh-failed :error e}
                               "The library didn't refresh")

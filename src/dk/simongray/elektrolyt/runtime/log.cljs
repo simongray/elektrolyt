@@ -17,7 +17,7 @@
             (.-error event))]
     (if (instance? js/Error x)
       x
-      (ex-info "What nothing caught isn't an error"
+      (ex-info "Something that isn't an error went uncaught"
                {:value x :message (.-message event)}))))
 
 (defn uncaught!
