@@ -2,6 +2,7 @@
 .cpcache/
 .nrepl-port
 .clj-kondo/.cache/
+.clj-kondo/imports/
 .lsp/
 *.iml
 .idea/
