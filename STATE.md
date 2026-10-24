@@ -6,9 +6,10 @@ it, who reads it, how long it lasts and what clears it. Each fact should
 have one writer, so a new row needs a reason, and a fact in two places
 says why.
 
-The namespaces are those of `src/dk/simongray/elektrolyt/`. Only
-`runtime`, `runtime.local` and `worker.fetching` reach outside the store,
-which `runtime_test.clj` checks.
+The namespaces are those of `src/dk/simongray/elektrolyt/`, and
+`elektrolyt` is the root namespace itself. Only `runtime`, `runtime.local`
+and `worker.fetching` reach outside the store, which `runtime_test.clj`
+checks.
 
 The keys and databases that the browser keeps still carry the app's
 former name, `dk.simongray.podcast-app`, and so do the keys of the app's
@@ -19,13 +20,13 @@ rename still opens.
 In the tab's store
 ------------------
 
-One atom, `main/store`, which only effects change. Everything in it lasts
+One atom, `elektrolyt/store`, which only effects change. Everything in it lasts
 as long as the tab.
 
 | Key | What it holds | Writers | Readers | Cleared |
 |---|---|---|---|---|
 | `:library` | The listener's library: the profile, the feeds and the search index, with this tab's operations that wait applied to it | `library` (`open!`, `change!`, `written!`, `caught-up!`) | most views, `player.audio`, `picks`, `library.refresh` | Replaced when another tab writes, or the page is shown again |
-| `:player` | This tab's player: the episode, the element's media state, the volume, a seek, a wait for data, and what another tab plays | `player.audio`, and `main` for `:expanded?` | `player`, the views | Overwritten |
+| `:player` | This tab's player: the episode, the element's media state, the volume, a seek, a wait for data, and what another tab plays | `player.audio`, and `elektrolyt` for `:expanded?` | `player`, the views | Overwritten |
 | `:episodes` | What an episode's files say, by id: chapters, duration, transcript, and when their read began | `player.audio`, `show.feeds` | `player`, `episode.ui` | At a change of page, but for the episode that plays and the 20 whose reads began last (`episode/kept-count`) |
 | `:feeds` | The feeds of shows outside the library, by URL, with their validators and whether this visit checked them | `show.feeds`, through `show` | `show/source` | Clear cache |
 | `:feed-urls` | Where a show's feed is, by guid, from the cache or the Podcast Index | `show.feeds` | `show` | Clear cache, or a 404 or 410 at a URL from the cache |
@@ -36,13 +37,13 @@ as long as the tab.
 | `:colors` | The colours of artwork, by URL | `artwork.colors` | `colors`, the views | Clear cache |
 | `:refresh-status` | The refresh under way, and what the last one found | `library.refresh` | `library.refresh`, `library.opml`, `library.ui` | Overwritten |
 | `:route` | The page | `routes`, at each navigation | `ui`, `show`, `colors` | Overwritten |
-| `:server` | What the app's server offers | `main`, once | `search`, `settings.ui` | Never |
+| `:server` | What the app's server offers | `elektrolyt`, once | `search`, `settings.ui` | Never |
 | `:announcement` | The last status message for a screen reader | `library.changes`, `show`, `library.refresh`, `show.subscription` | `ui` | Overwritten |
 | `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone, which undoes only what's still as it left it | `library.changes`, through `queue` and `inbox` | `queue`, `inbox`, the views, which offer it while there's something to put back | This tab's next change |
 | `:subscribing`, `:subscribe-errors` | The subscriptions under way, and those that failed, by URL | `show.subscription` | `ui.subscription` | Per URL, once it's done |
-| `:settings-status` | The last outcome on Settings | `main`, `settings`, `library.opml` | `settings.ui` | Overwritten |
+| `:settings-status` | The last outcome on Settings | `elektrolyt`, `settings`, `library.opml` | `settings.ui` | Overwritten |
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `settings.ui` | At each check |
-| `:library-view` | The Library page's order and layout | `main` | `library.shows`, `library.ui` | Never |
+| `:library-view` | The Library page's order and layout | `elektrolyt` | `library.shows`, `library.ui` | Never |
 | `:open` | The sections that the listener unfolded | `ui.controls` | `ui.controls` | Never, so that Back finds a section as the listener left it |
 
 
@@ -72,7 +73,7 @@ browser clears the site's data.
 |---|---|---|---|---|
 | `…device` | The id of this browser as a device | like-minded's `device/id!`, once, in `library/open!` | `library/open!` | Never |
 | `…volume` | The level of the volume slider | `player.audio` | `player.audio`, as the page loads | Never |
-| `…library-view` | The Library page's order and layout, which suit a screen | `main` | `main`, as the page loads | Never |
+| `…library-view` | The Library page's order and layout, which suit a screen | `elektrolyt` | `elektrolyt`, as the page loads | Never |
 | `…theme`, `…contrast` | Copies of the listener's preferences, so that `public/theme.js` colours the page before it starts | `page` | `public/theme.js` | When the theme follows the device again |
 
 
@@ -106,7 +107,7 @@ In the page
 | The Media Session | The episode on the lock screen, and its buttons while the player's element is mounted | `runtime/lock-screen!`, from `player.audio` | The platform |
 | `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `page`, at each render | CSS, the browser |
 | The history | The page's URL; `page/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `routes`, `page` | `runtime/follow-history!` |
-| The listeners | The page shown, hidden or restored, the end of a transition, the channels' messages and the store's changes | `runtime`, for `main`, `library`, `player.audio` and `library.opml` | — |
+| The listeners | The page shown, hidden or restored, the end of a transition, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
 
 
 Facts in two places

@@ -58,14 +58,15 @@ player:
   and what the pages show of it, as pure functions.
 - `queue.ui`, `show.ui` and `player.ui` hold the views of each subject.
 - Namespaces such as `player.audio` and `show.feeds` hold the effects of
-  their subject, which `main` registers.
+  their subject, which the root namespace registers.
 - Namespaces such as `show.linked` and `library.refresh` hold a part of
   their subject.
 
 The views that several subjects share, e.g. the controls and the icons,
 are in the namespaces of `ui`, and `ui` itself is the page around them.
-The app starts in `main` in the page, in `worker` in its web worker, and
-in `server` on the JVM. A test checks that only the namespaces marked as
+The root namespace, `dk.simongray.elektrolyt`, starts the app in the page,
+`worker` starts its web worker, and `server` runs on the JVM. A test
+checks that only the namespaces marked as
 runtime reach outside the store, and [STATE.md](STATE.md) lists every
 place where the app keeps something.
 

@@ -10,7 +10,7 @@
                         :output-dir "public/js"
                         :asset-path "/js"
                         :modules    {:shared {:entries []}
-                                     :main   {:init-fn    dk.simongray.elektrolyt.main/init
+                                     :main   {:init-fn    dk.simongray.elektrolyt/init
                                               :depends-on #{:shared}}
                                      :worker {:init-fn    dk.simongray.elektrolyt.worker/init
                                               :depends-on #{:shared}

@@ -2,7 +2,7 @@
   "The views of the app: pure functions from the state to Hiccup.
 
   An event handler is a vector of actions, i.e. data, which Replicant
-  passes to the dispatch function that dk.simongray.elektrolyt.main sets.
+  passes to the dispatch function that dk.simongray.elektrolyt sets.
   The state holds the current page as :route, a map of its :name,
   :path-params and :query-params, which is nil for a path that no page
   has. It holds the listener's library from podcast-clj as :library, once
