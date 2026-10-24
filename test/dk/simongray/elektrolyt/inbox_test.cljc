@@ -5,7 +5,7 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.elektrolyt.inbox :as inbox]
-            [dk.simongray.elektrolyt.operations :as operations]))
+            [dk.simongray.elektrolyt.library.operations :as operations]))
 
 (def url "https://example.org/feed.xml")
 

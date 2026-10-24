@@ -3,7 +3,7 @@
   gives the window its title, address and colours, and moves the focus
   and the scroll."
   (:require [dk.simongray.colour-coded :as cc]
-            [dk.simongray.elektrolyt.local :as local]
+            [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.ui :as ui]
             [replicant.dom :as r]))

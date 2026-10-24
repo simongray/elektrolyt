@@ -35,13 +35,14 @@
 
   ;; The app's own server, for its files and the proxy, on the same Pedestal
   ;; as podcast-clj's server. It logs to stderr through slf4j-simple, and
-  ;; tells the page what it offers as transit.
-  :server {:extra-paths ["server"]
-           :extra-deps  {org.clojure/clojure          {:mvn/version "1.12.6"}
-                         io.pedestal/pedestal.service {:mvn/version "0.8.2"}
-                         io.pedestal/pedestal.jetty   {:mvn/version "0.8.2"}
-                         org.slf4j/slf4j-simple       {:mvn/version "2.0.20"}
-                         com.cognitect/transit-clj    {:mvn/version "1.1.363"}}}
+  ;; tells the page what it offers as transit. Its namespaces are in src
+  ;; with the rest of the app, and this alias adds the libraries that they
+  ;; need on the JVM.
+  :server {:extra-deps {org.clojure/clojure          {:mvn/version "1.12.6"}
+                        io.pedestal/pedestal.service {:mvn/version "0.8.2"}
+                        io.pedestal/pedestal.jetty   {:mvn/version "0.8.2"}
+                        org.slf4j/slf4j-simple       {:mvn/version "2.0.20"}
+                        com.cognitect/transit-clj    {:mvn/version "1.1.363"}}}
 
   ;; the server and the watch in one JVM, with an nREPL server (see
   ;; dev/user.clj): clojure -M:cljs:server:local:serve

@@ -5,7 +5,7 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast-app :as-alias app]
-            [dk.simongray.elektrolyt.operations :as operations]
+            [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.picks :as picks]
             [dk.simongray.elektrolyt.settings :as settings]))
 

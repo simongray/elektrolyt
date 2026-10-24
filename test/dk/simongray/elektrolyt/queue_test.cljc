@@ -3,7 +3,7 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
-            [dk.simongray.elektrolyt.operations :as operations]
+            [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.queue :as queue]))
 
 (def url "https://example.org/feed.xml")

@@ -6,28 +6,29 @@
   each navigation. Nexus expands them into effects, which alone change the
   store, and each change of the store renders the page again. The effects
   are the functions of the namespaces of their subjects, e.g. the player's
-  in dk.simongray.elektrolyt.audio, and this namespace registers them."
+  in dk.simongray.elektrolyt.player.audio, and this namespace registers
+  them."
   (:require [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.podcast-app :as-alias app]
-            [dk.simongray.elektrolyt.artwork-colors :as artwork-colors]
-            [dk.simongray.elektrolyt.audio :as audio]
+            [dk.simongray.elektrolyt.artwork.colors :as artwork-colors]
             [dk.simongray.elektrolyt.cache :as app-cache]
             [dk.simongray.elektrolyt.episode :as episode]
-            [dk.simongray.elektrolyt.feeds :as feeds]
             [dk.simongray.elektrolyt.inbox :as inbox]
             [dk.simongray.elektrolyt.library :as app-library]
-            [dk.simongray.elektrolyt.local :as local]
-            [dk.simongray.elektrolyt.opml :as opml]
+            [dk.simongray.elektrolyt.library.opml :as opml]
+            [dk.simongray.elektrolyt.library.refresh :as refresh]
             [dk.simongray.elektrolyt.page :as page]
+            [dk.simongray.elektrolyt.player.audio :as audio]
             [dk.simongray.elektrolyt.queue :as queue]
-            [dk.simongray.elektrolyt.refresh :as refresh]
             [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.runtime :as runtime]
+            [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.search :as search]
-            [dk.simongray.elektrolyt.searches :as searches]
+            [dk.simongray.elektrolyt.search.searches :as searches]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]
+            [dk.simongray.elektrolyt.show.feeds :as feeds]
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [nexus.registry :as nxr]
             [reitit.frontend.easy :as rfe]

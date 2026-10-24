@@ -48,6 +48,28 @@ How to work on the app
   a candidate for a library of its own.
 
 
+Namespaces
+----------
+
+The namespaces are grouped by subject, e.g. the queue, a show or the
+player:
+
+- `queue`, `show` and `player` hold what the state keeps of each subject
+  and what the pages show of it, as pure functions.
+- `queue.ui`, `show.ui` and `player.ui` hold the views of each subject.
+- Namespaces such as `player.audio` and `show.feeds` hold the effects of
+  their subject, which `main` registers.
+- Namespaces such as `show.linked` and `library.refresh` hold a part of
+  their subject.
+
+The views that several subjects share, e.g. the controls and the icons,
+are in the namespaces of `ui`, and `ui` itself is the page around them.
+The app starts in `main` in the page, in `worker` in its web worker, and
+in `server` on the JVM. A test checks that only the namespaces marked as
+runtime reach outside the store, and [STATE.md](STATE.md) lists every
+place where the app keeps something.
+
+
 Development
 -----------
 

@@ -11,9 +11,9 @@
     play lock across the tabs, and the lock screen
 
   The web worker, its messages and its Web Lock are in
-  dk.simongray.elektrolyt.fetching, which is runtime too, and
-  localStorage is in dk.simongray.elektrolyt.local. What each of them
-  holds and does is in STATE.md."
+  dk.simongray.elektrolyt.worker.fetching, which is runtime too, and
+  localStorage is in dk.simongray.elektrolyt.runtime.local. What each of
+  them holds and does is in STATE.md."
   (:require [cljs.reader :as reader]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.media :as media]
