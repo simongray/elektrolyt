@@ -171,7 +171,7 @@
                                          (ring-middlewares/not-modified)
                                          (tagged client-dir)]}))
 
-;; RFC 9209, sections 2 and 2.3.13: the proxy's own failure, which the
+;; RFC 9209, sections 2 and 2.3.12: the proxy's own failure, which the
 ;; page's wary-fetch reads as one, rather than as the 503 of the site that
 ;; it asked, which would count against that site's feed
 (def busy-proxy
