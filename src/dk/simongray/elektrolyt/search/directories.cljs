@@ -1,8 +1,9 @@
-(ns dk.simongray.elektrolyt.search.searches
-  "The searches of the Search page: the feeds at a link that the listener
-  pasted, or the shows that each directory has for words, from the cache
-  while it's fresh. drpodcast.nu answers as a directory too, by the titles
-  of its slugs.json.
+(ns dk.simongray.elektrolyt.search.directories
+  "The searches of the Search page in the directories: the shows that each
+  directory has for words, from the cache while it's fresh, or the feeds
+  at a link that the listener pasted, which the directories look up when
+  it's an app's link. drpodcast.nu answers as a directory too, by the
+  titles of its slugs.json.
 
   The namespace dk.simongray.elektrolyt.search describes what the state
   keeps of each search."
