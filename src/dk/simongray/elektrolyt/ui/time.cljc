@@ -23,6 +23,13 @@
   [inst]
   [:time {:datetime (date-attribute inst)} (date-text inst)])
 
+(defn time-text
+  "The time of day of the instant `inst` in the language of the page, e.g.
+  \"14:32\"."
+  [inst]
+  #?(:clj  (str inst)
+     :cljs (.toLocaleTimeString inst (text/language) #js {:timeStyle "short"})))
+
 (defn duration-parts
   "The `seconds` of an episode to the minute, as hours and minutes, or as
   seconds when it's shorter than half a minute."

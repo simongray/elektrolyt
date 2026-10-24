@@ -125,6 +125,31 @@
   [f]
   (.addEventListener js/window "pageshow" #(when (.-persisted %) (f))))
 
+(defn leaving
+  "Ask the browser to confirm, with its own words, that the page goes, by
+  the `event` of beforeunload."
+  [^js event]
+  (.preventDefault event)
+  ;; for the browsers before Chrome 119
+  (set! (.-returnValue event) true))
+
+;; MDN, beforeunload: listen only while there's something to lose, since
+;; Firefox keeps no page with the listener in its back/forward cache
+;; https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
+(defn warn-before-leaving!
+  "Have the browser ask before the page goes, e.g. as its tab closes, when
+  `on?`, and not otherwise."
+  [on?]
+  (if on?
+    (.addEventListener js/window "beforeunload" leaving)
+    (.removeEventListener js/window "beforeunload" leaving)))
+
+(defn reload!
+  "Load the page again, without the browser asking first."
+  []
+  (warn-before-leaving! false)
+  (.reload js/location))
+
 (defn on-transitionend!
   "Call `f` with each element of the document whose CSS transition ends."
   [f]

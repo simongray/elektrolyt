@@ -17,6 +17,7 @@
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library.operations :as operations]
+            [dk.simongray.elektrolyt.library.saves :as saves]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.wary-fetch.proxy :as proxy]
             [taoensso.telemere :as tel]))
@@ -141,10 +142,6 @@
                       (kept!)
                       {:error {:id :library/save-failed :reason (ex-message e)}})))))))
 
-(defonce ^{:doc "How many writes in a row have failed."}
-  failures
-  (atom 0))
-
 (defn retry-ms
   "How long to wait before a save is tried again after `n` writes in a row
   failed: five seconds after the first, twice as long after each one more,
@@ -155,15 +152,22 @@
 (declare save!)
 
 (defn retried!
-  "The result `written` of a write. If it failed, it's logged and the
-  `state` atom is saved again later."
+  "The result `written` of a write. If it failed, it's logged, the save
+  status of the `state` atom notes it, and the atom is saved again later.
+  Otherwise the save status goes. While the page tells of the status, the
+  browser asks before the page goes."
   [state written]
-  (if (:error written)
-    (do (tel/log! {:level :error :id :library/save-failed :data written}
-                  "The library wasn't saved")
-        (runtime/later! ::retry (retry-ms (swap! failures inc)) #(save! state)))
-    (do (reset! failures 0)
-        (runtime/cancel! ::retry)))
+  (let [before (:save-status @state)
+        status (when-let [error (:error written)]
+                 (saves/failed before error (or (-> @waiting first :opts :at) (js/Date.))))]
+    (if status
+      (do (tel/log! {:level :error :id :library/save-failed :data written}
+                    "The library wasn't saved")
+          (runtime/later! ::retry (retry-ms (:failures status)) #(save! state)))
+      (runtime/cancel! ::retry))
+    (when (not= before status)
+      (swap! state saves/noted status)
+      (runtime/warn-before-leaving! (saves/shown? status))))
   written)
 
 ;; A write can fail for a while, e.g. while the device is out of room, and

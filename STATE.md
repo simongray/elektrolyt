@@ -38,11 +38,12 @@ as long as the tab.
 | `:refresh-status` | The refresh under way, and what the last one found, or when it failed or found another tab refreshing, which holds back the next | `library.refresh` | `library.refresh`, `library.ui` | Overwritten |
 | `:route` | The page | `ui.routes`, at each navigation | `ui`, `show`, `ui.colors` | Overwritten |
 | `:server` | What the app's server offers | `elektrolyt`, once | `search`, `library.settings.ui` | Never |
-| `:announcement` | The last status message for a screen reader | `library.changes`, `show`, `library.refresh`, `show.subscription` | `ui` | Overwritten |
+| `:announcement` | The last status message for a screen reader | `library.changes`, `show`, `library.refresh`, `show.subscription`, `library.saves` | `ui` | Overwritten |
 | `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone, which undoes only what's still as it left it | `library.changes`, through `library.queue` and `library.inbox` | `library.queue`, `library.inbox`, the views, which offer it while there's something to put back | This tab's next change |
 | `:subscribing`, `:subscribe-errors` | The subscriptions under way, and those that failed, by URL | `show.subscription` | `ui.subscription` | Per URL, once it's done |
 | `:settings-status` | The last outcome on Settings | `elektrolyt`, `library.settings`, `library.opml` | `library.settings.ui` | Overwritten |
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `library.settings.ui` | At each check |
+| `:save-status` | While this tab's writes fail: when the oldest change that waits was made, how many writes in a row failed and why, which holds back the next try | `library`, through `library.saves` | `library`, `library.saves.ui`, `library.settings.ui` | Once a write goes through |
 | `:library-view` | The Library page's order and layout | `elektrolyt` | `library.shows`, `library.ui` | Never |
 | `:open` | The sections that the listener unfolded | `ui.controls` | `ui.controls` | Never, so that Back finds a section as the listener left it |
 
@@ -55,7 +56,6 @@ In the tab, outside the store
 | `library/known` | The library that this tab last read or wrote, and its version | `library` | `library`, `library.refresh` | Until the next read or write |
 | `library/waiting` | The operations that this tab applied and hasn't written | `library` (`change!`, `written!`) | `library` | Until they're written |
 | `library/turns` | The chain of this tab's reads and writes, so that they take turns | `library` | `library` | The tab |
-| `library/failures` | How many of this tab's writes in a row have failed, which holds back the next try | `library` | `library` | Until a write goes through |
 | `runtime/timers` | The timers that wait, by name: the next refresh, a save tried again, a prefetch, a wait for data and the clock of a player elsewhere | `library.refresh`, `library`, `show.feeds`, `player.audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
 | `runtime/channels` | The BroadcastChannels, each opened at its first use | `runtime` | `runtime` | The tab |
 | `runtime/detach` | What stops following the player's audio element and clears the lock screen's buttons | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
@@ -110,6 +110,7 @@ In the page
 | `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `ui.document`, at each render | CSS, the browser |
 | The history | The page's URL; `ui.document/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `ui.routes`, `ui.document` | `runtime/follow-history!` |
 | The listeners | The page shown, hidden or restored, the end of a transition, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
+| The beforeunload listener | That the browser asks before the page goes, while its changes aren't saved | `runtime/warn-before-leaving!`, from `library` | The browser |
 | The listeners of the logs | The errors and the rejected promises that nothing else caught, in the page and in the worker | `runtime.log` | Telemere |
 
 

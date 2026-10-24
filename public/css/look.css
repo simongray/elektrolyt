@@ -889,6 +889,19 @@ search p {
   }
 }
 
+/* The banner of changes that aren't saved: a frame in the ink, thicker on
+   its leading side, as GOV.UK's notification banner has, with its heading
+   in small caps the size of the text */
+.save-banner {
+  border: 2px solid var(--ink);
+  border-inline-start-width: 6px;
+}
+
+#save-banner {
+  font-size: var(--step-0);
+  color: var(--ink);
+}
+
 /* Motion only where the listener allows it: the colours turn from one
    artwork's to the next as the page's focus moves, in all its parts at
    once, since they all derive from the seeds

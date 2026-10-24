@@ -9,6 +9,7 @@
   https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings
   https://design-system.service.gov.uk/components/fieldset/"
   (:require [dk.simongray.podcast-app :as-alias app]
+            [dk.simongray.elektrolyt.library.saves.ui :as saves-ui]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.search :as search]
@@ -226,6 +227,8 @@
                               "Ask the browser to keep it"]))
          (when usage
            [:p (str "The app uses " (text/megabytes usage) " here.")])
+         (when-let [unsaved (saves-ui/status-text state)]
+           [:p unsaved])
          [:p "It also keeps your searches for a month, and the shows you "
           "opened and those they recommend for a week, so that they show at once."]
          [:button {:type "button" :on {:click [[:cache/clear]]}}
