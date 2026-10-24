@@ -1,5 +1,6 @@
 (ns dk.simongray.elektrolyt.player.audio-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.play-nice.media :as media]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
@@ -193,3 +194,37 @@
       (audio/play-id! store player-test/id 3600)
       (is (= [754 nil] @cued)
           "starts where the listener left it, since the end would mark it played"))))
+
+(deftest a-read-of-the-files-that-failed
+  (let [now 1000000]
+    (is (audio/reread? {:status :read :at (- now 60000) :result {:chapters {:error {:id :file/unreachable}}}} now)
+        "is tried again after a minute, when a file failed")
+    (is (audio/reread? {:status :read :at (- now 60000) :error {:message "offline"}} now) "or all of them")
+    (is (not (audio/reread? {:status :read :at (- now 59000) :error {:message "offline"}} now)) "but not sooner")
+    (is (not (audio/reread? {:status :read :at (- now 60000) :result {:chapters {:document {}}}} now))
+        "nor when the files were read")
+    (is (not (audio/reread? {:status :reading :at (- now 60000)} now)) "nor while they're read")))
+
+(deftest a-page-shown-again
+  (let [state (update (player-test/state {:media {:paused true :current-time 30}})
+                      :library library/update-profile profile/progress player-test/id 754 3600)]
+    (is (= 754 (audio/left-at state))
+        "moves the paused element to where the library says, which another tab may have moved")
+    (is (nil? (audio/left-at (assoc-in state [:player :elsewhere] player-test/playing-there)))
+        "unless another tab plays, which it follows")))
+
+(deftest a-player-that-goes-while-it-plays
+  (let [store    (atom {:player {:id player-test/id}})
+        reports  (atom [])
+        told     (atom [])
+        detached (atom 0)]
+    (with-redefs [audio/report!          (fn [_ m] (swap! reports conj m))
+                  audio/tell!            (fn [_ m] (swap! told conj m))
+                  media/state            (fn [^js el] {:paused (.-paused el) :current-time (.-currentTime el)})
+                  runtime/detach-player! #(swap! detached inc)]
+      (audio/unmounted! store #js {:paused false :currentTime 754.2 :duration 3600})
+      (is (= [{:current-time 754.2 :duration 3600}] @reports) "reports where it got to")
+      (is (= [{:paused true :current-time 754.2}] @told) "tells the other tabs that it stopped")
+      (audio/unmounted! store #js {:paused true :currentTime 10 :duration 3600})
+      (is (= 1 (count @reports)) "but not where a paused element is")
+      (is (= 2 @detached) "and stops following it either way"))))

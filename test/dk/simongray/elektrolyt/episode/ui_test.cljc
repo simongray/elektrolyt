@@ -157,7 +157,18 @@
     (is (= "Episode 2, 1h, From drpodcast.nu"
            (spoken (second (elements :p (intro {:numbering  {:type "full" :episode 2} :published nil
                                                 :supplement "https://drpodcast.nu/genstart/feed.xml"})))))
-        "and the feed it came from when that isn't its show's own")))
+        "and the feed it came from when that isn't its show's own")
+    (is (= "Episode 2, 1h 2m"
+           (spoken (second (elements :p (episode-ui/intro (assoc-in state [:episodes (:id page) :result :duration] 3720)
+                                                          [:h1 "Episode 2"]
+                                                          (merge page {:numbering {:type "full" :episode 2} :published nil}))))))
+        "its length as the player has it, which the file can tell better than the feed")))
+
+(deftest a-link-past-the-end
+  (let [state (episode-page "2h")
+        page  (episode-ui/route-page state)]
+    (is (= "Play" (spoken (first (elements controls/button (episode-ui/intro state [:h1 "Episode 2"] page)))))
+        "starts where the listener left it, as the player does, rather than say it plays from there")))
 
 (deftest the-source-of-an-episode
   (let [rows (into {} (episode-ui/details-rows {:supplement "https://drpodcast.nu/genstart/feed.xml"}))]

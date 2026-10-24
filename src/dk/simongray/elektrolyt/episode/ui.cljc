@@ -147,7 +147,9 @@
   [state heading {:keys [id show language numbering published duration explicit? ai-content?
                          supplement]
                   :as   page}]
-  (let [entry (player/entry (:library state) id)]
+  (let [entry (player/entry (:library state) id)
+        ;; as the player has it: what it measured, then the files, then the feed
+        known (or (:duration entry) (get-in state [:episodes id :result :duration]) duration)]
     [:header.episode-intro
      [:hgroup heading [:p [:a {:href (:href show) :lang (text/lang language)} (:title show)]]]
      (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
@@ -156,13 +158,13 @@
       (facts-ui/line
        (concat (numbering-facts numbering)
                [(some-> published time-ui/date)
-                (time-left duration entry)
+                (time-left known entry)
                 (when explicit? "Explicit")
                 (when ai-content? "Made with AI")
                 (facts-ui/labelled-source supplement)
                 (when (:played? entry) "Played")]))
       [:div.episode-actions
-       (play-button page (:player state) entry (start-time state))
+       (play-button page (:player state) entry (player/start-time {:duration known} (start-time state)))
        (queue-buttons page (queue/place state id))]]]))
 
 (defn source

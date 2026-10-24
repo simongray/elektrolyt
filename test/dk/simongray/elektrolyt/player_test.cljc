@@ -48,6 +48,8 @@
     (is (player/report? playing {:paused false :current-time 101} (- now 15000) now nil) "every fifteen seconds")
     (is (player/report? playing {:paused false :current-time 101} nil now nil) "and as it starts")
     (is (not (player/report? playing {:paused false :current-time 103} last now nil)) "but not sooner")
+    (is (player/report? playing {:paused false :current-time 103} (+ now 60000) now nil)
+        "unless the clock went back past the last report")
     (is (not (player/report? {:paused true} {:paused true :current-time 100} nil now nil)) "nor while paused")
     (is (not (player/report? {:paused true :seeking true} {:paused true :seeking false :current-time 600} nil now nil))
         "nor after the seek of a paused element, e.g. as it loads an episode that another tab plays")))

@@ -44,7 +44,10 @@
   (is (= (second items) (episode/item-of items "" "episode-1-the-past"))
       "of two, the one whose title gives the slug")
   (is (= (first items) (episode/item-of items "" "another-slug")) "or else the first")
-  (is (nil? (episode/item-of items "0000000" nil))))
+  (is (nil? (episode/item-of items "0000000" nil)))
+  (let [twice [(first items) (assoc (first items) :rss/title "Episode 1: The Past")]]
+    (is (= (first items) (episode/item-of twice hash-2 "episode-1-the-past"))
+        "and of two with one guid, the first, which the library plays")))
 
 (deftest where-the-feed-comes-from
   (is (= {:feed feed :url url :whole? false} (show/source (loaded false) g)))

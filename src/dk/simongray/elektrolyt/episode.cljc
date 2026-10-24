@@ -32,9 +32,10 @@
 
 (defn item-of
   "The item in `items` whose guid has the short `hash`, and of several such
-  items the one whose title gives the `slug`, or nil."
+  items the one whose title gives the `slug`, or nil. Of items that share
+  a guid, it's the first, the one that the library plays."
   [items hash slug]
-  (let [matches (guid/matching-items items hash)]
+  (let [matches (resolve/distinct-items (guid/matching-items items hash))]
     (or (some #(when (= slug (routes/slug (resolve/title %))) %) matches)
         (first matches))))
 

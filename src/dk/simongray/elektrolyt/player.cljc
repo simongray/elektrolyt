@@ -66,18 +66,21 @@
   and the start of the `outro` in seconds, if any.
 
   It reports at a pause and, while the element plays, after a seek, on
-  reaching the outro and every report-seconds."
+  reaching the outro and every report-seconds, or at once when the clock
+  went back past the last report."
   [old {:keys [paused seeking current-time] :as new} last now outro]
-  (boolean
-   (and (number? current-time)
-        (or (and paused (false? (:paused old)))
-            (and (not paused)
-                 (or (and (:seeking old) (not seeking))
-                     (and (number? outro)
-                          (number? (:current-time old))
-                          (< (:current-time old) outro)
-                          (<= outro current-time))
-                     (>= (- now (or last 0)) (* 1000 report-seconds))))))))
+  (let [since (- now (or last 0))]
+    (boolean
+     (and (number? current-time)
+          (or (and paused (false? (:paused old)))
+              (and (not paused)
+                   (or (and (:seeking old) (not seeking))
+                       (and (number? outro)
+                            (number? (:current-time old))
+                            (< (:current-time old) outro)
+                            (<= outro current-time))
+                       (neg? since)
+                       (>= since (* 1000 report-seconds)))))))))
 
 (def told-keys
   "The keys of an element's media state that the playing tab posts to the
