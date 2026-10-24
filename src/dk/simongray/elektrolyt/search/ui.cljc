@@ -116,8 +116,8 @@
    title])
 
 ;; A site often has several feeds of one show, e.g. in MP3 and in Opus, so a
-;; title that another result shares comes with the URL of its feed, which
-;; the name of the button has too (WCAG 2.2, SC 2.4.6 Headings and Labels)
+;; title that another result shares comes with the URL of its feed (WCAG
+;; 2.2, SC 2.4.6 Headings and Labels)
 ;;
 ;; TODO: mark a show that other directories have too, e.g. with a small
 ;; icon for each, as SearXNG names the engines that found a result. A show
@@ -127,21 +127,20 @@
 (defn result
   "The search `result` in `state` with the `subscribed` URLs, under a
   heading of `level`, e.g. :h3, with its artwork and title linking to its
-  page, and its feed URL when `shared-title?`."
+  page, after the mark of a show that's subscribed, and its feed URL when
+  `shared-title?`."
   [state subscribed level {:keys [url guid title author] :as result} shared-title?]
   (let [title (or title url)]
     [:article
      (artwork/linked (routes/show-href guid title url) title
                      (artwork/img result 64 (merge {:loading "lazy"} (colors/placeholder state result))))
-     [level (show-link (assoc result :title title))]
+     [level (cond->> (show-link (assoc result :title title))
+              (= :subscribed (subscription/status state subscribed url guid))
+              (subscription/marked))]
      (when author
        [:p author])
      (when shared-title?
-       [:p url])
-     (subscription/button (subscription/status state subscribed url guid)
-                          url
-                          (cond-> title shared-title? (str ", " url)))
-     (subscription/error state url)]))
+       [:p url])]))
 
 (defn results
   "The list of `results` in `state`, each under a heading of `level`."

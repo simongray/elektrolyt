@@ -1,9 +1,11 @@
 (ns dk.simongray.elektrolyt.search.ui-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.search :as app-search]
             [dk.simongray.elektrolyt.search.ui :as search]
             [dk.simongray.elektrolyt.ui.controls :as controls]
-            [dk.simongray.elektrolyt.ui-test :refer [elements text-of]]))
+            [dk.simongray.elektrolyt.ui-test :refer [elements spoken text-of]]))
 
 (defn listed
   "A search of the directories `sources` for which each of `lists` has
@@ -47,6 +49,18 @@
         items (last (search/results {} :h2 found))]
     (is (= ["https://freakshow.fm/feed/mp3"] (paragraphs (first items))))
     (is (empty? (paragraphs (last items))) "a title of its own needs no URL")))
+
+(deftest a-subscribed-show-among-the-results
+  (let [found        [{:url "https://example.org/kept.xml" :guid "a" :title "Kept"}
+                      {:url "https://example.org/other.xml" :guid "b" :title "Other"}]
+        lib          (library/update-profile (library/make "test") profile/subscribe "a"
+                                             {:url "https://example.org/kept.xml"})
+        x            (search/results {:library lib} :h3 found)
+        [kept other] (elements :h3 x)]
+    (is (= " Kept, subscribed" (spoken kept)) "marked before its title")
+    (is (= "Other" (spoken other)))
+    (is (empty? (concat (elements controls/button x) (elements controls/icon-button x)))
+        "with no button, since a show subscribes from its own page")))
 
 (defn page
   "The Search page for the words `q` with the `search`."

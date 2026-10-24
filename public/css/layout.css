@@ -67,9 +67,9 @@ button.disclosure {
 }
 
 /* A button with an icon before its words, centred on their line, and a
-   button of an icon alone, a square as tall as the other controls. The
-   icon is larger than the words, since its lines are thinner than the
-   stems of their letters. */
+   button of an icon alone, a square of the player's size (tokens.css).
+   The icon among words is larger than the words, since its lines are
+   thinner than the stems of their letters. */
 .with-icon,
 .icon-button {
   display: inline-flex;
@@ -88,13 +88,71 @@ button.disclosure {
 }
 
 .icon-button {
-  min-width: var(--control-height);
-  padding: 0.3em;
+  min-width: var(--icon-alone-target);
+  min-height: var(--icon-alone-target);
+  padding: 0;
 }
 
 .icon-button .icon {
-  width: 1.5em;
-  height: 1.5em;
+  width: var(--icon-alone);
+  height: var(--icon-alone);
+}
+
+/* The bookmark on a show's page before its title, in a column of its own,
+   so that the title and its byline keep one edge, and with its drawing
+   as far from the title as the artwork is. As a drop cap spans its
+   lines, its drawing spans the title and the first line of the byline,
+   from the top of the title's capitals to the byline's baseline, or to
+   the title's own where there's no byline. The lengths come from the
+   type of each (look.css) and from Charis's metrics (tokens.css): a
+   line's middle is its leading's half from its edges, and --line-middle
+   above its baseline. Between the two lines is the hgroup's margin
+   (above). The target is the drawing and its padding, which it sheds
+   below and before it, so that the lines keep their places and the
+   drawing stands on the edge of the text, and it's past the 24 px of
+   WCAG 2.2, SC 2.5.8 Target Size (Minimum).
+   https://en.wikipedia.org/wiki/Initial
+   https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
+.with-bookmark {
+  --to-byline: 0px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: calc(1em - var(--space-1) - 1px);
+  align-items: start;
+}
+
+.with-bookmark:has(> hgroup > p) {
+  --to-byline: calc(var(--title-size) * (var(--title-leading) / 2 - var(--line-middle)) + var(--space-1)
+                    + var(--byline-size) * (var(--byline-leading) / 2 + var(--line-middle)));
+}
+
+.with-bookmark > :not(.bookmark) {
+  grid-column: 2;
+}
+
+.icon-button.bookmark {
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-1);
+  margin-block:
+    calc(var(--title-size) * (var(--title-leading) / 2 + var(--line-middle) - var(--cap-height)) - var(--space-1) - 1px)
+    calc(-1 * var(--space-1) - 1px);
+  margin-inline-start: calc(-1 * var(--space-1) - 1px);
+}
+
+/* the drawing alone, in a box of its own size (ui/subscription.cljc) */
+.icon-button.bookmark .icon {
+  width: auto;
+  height: calc(var(--title-size) * var(--cap-height) + var(--to-byline));
+  aspect-ratio: 144 / 199;
+}
+
+/* the mark of a show that's subscribed, its bookmark among the words of
+   its title, centred on their capitals */
+.icon.bookmark {
+  width: 1em;
+  height: 1em;
+  vertical-align: calc(0.5cap - (256 - 131.5) * 1em / 256);
 }
 
 /* An icon among words, e.g. the puzzle piece of an episode from
@@ -362,8 +420,8 @@ search p {
   margin-top: var(--space-2);
 }
 
-/* A result has its artwork beside its title, author and button, whether or
-   not it has artwork */
+/* A result has its artwork beside its title and author, whether or not it
+   has artwork */
 .search-results > li {
   padding-block: var(--space-3);
 }
@@ -382,10 +440,6 @@ search p {
 
 .search-results article > :not(img) {
   grid-column: 2;
-}
-
-.search-results button {
-  justify-self: start;
 }
 
 /* Text with no spaces to wrap at wraps anywhere rather than widen the page
@@ -488,7 +542,7 @@ main h1,
 }
 
 .episode-intro > hgroup,
-.show-intro > hgroup,
+.show-intro > .with-bookmark,
 .show-intro > .show-notes {
   grid-column: 1 / -1;
 }
@@ -521,13 +575,11 @@ main h1,
   margin: 0;
 }
 
-.episode-actions,
-.show-subscription {
+.episode-actions {
   margin-top: auto;
 }
 
-.episode-intro button,
-.show-intro button {
+.episode-intro button {
   justify-self: start;
 }
 
@@ -545,7 +597,7 @@ main h1,
   }
 
   .episode-intro > hgroup,
-  .show-intro > hgroup {
+  .show-intro > .with-bookmark {
     grid-column: 2;
   }
 
@@ -637,7 +689,7 @@ main h1,
   }
 
   .episode-intro > hgroup,
-  .show-intro > hgroup,
+  .show-intro > .with-bookmark,
   .episode-intro-body,
   .show-intro-body {
     grid-column: 1;
@@ -709,8 +761,8 @@ main h1,
    its target. */
 #player {
   --player-space: var(--space-3);
-  --player-icon: 32px;
-  --player-target: 44px;
+  --player-icon: var(--icon-alone);
+  --player-target: var(--icon-alone-target);
   --player-inset: calc(var(--player-space) - (var(--player-target) - var(--player-icon)) / 2);
   --player-row: calc(var(--player-icon) + 2 * var(--player-space));
   /* the seek bar: its input, its thumb and its track (look.css) */

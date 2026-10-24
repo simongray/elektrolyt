@@ -116,6 +116,23 @@
   make it."
   (ui/page (whole pc20)))
 
+(def podnews
+  "The feed of a show that the scenes' show recommends."
+  {:rss/title    "Podnews Weekly Review"
+   :itunes/image {:href artwork}
+   :rss/items    []})
+
+(defscene shows-it-recommends
+  "A show that recommends others in its podroll, one of which is in the
+  library already, which its bookmark marks."
+  (ui/page (whole (assoc pc20 :podcast/podroll {:remote-items [{:feed-guid "g1"} {:feed-guid "g2"}]})
+                  {:library (library/subscribe (library/make "scenes") "https://example.org/weekly.xml" podnews)
+                   :linked  {guid {:podroll [{:guid    "g1"
+                                              :title   "Podnews Weekly Review"
+                                              :url     "https://example.org/weekly.xml"
+                                              :artwork artwork}
+                                             {:guid "g2" :title "Boostagram Ball" :artwork artwork}]}}})))
+
 (defscene in-the-colours-of-its-artwork
   "A show whose page takes the colours of its artwork, once they're worked
   out, here of a deep blue: its links and buttons, and a faint tint from

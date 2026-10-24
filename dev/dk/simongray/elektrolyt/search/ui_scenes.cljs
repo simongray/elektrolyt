@@ -68,16 +68,12 @@
                                               :fyyd         (found (take 1 results))}))))
 
 (defscene results-and-subscriptions
-  "Every state of a subscription: one subscribed, one under way, and one
-  that failed."
+  "A show in the library among the results, marked before its title."
   (ui/page (search-page "podcasting"
                         (listed {:apple        (found results)
                                  :podcastindex (found [])
                                  :fyyd         (found [])})
-                        {:library          subscribed-library
-                         :subscribing      #{(:url (second results))}
-                         :subscribe-errors {(:url (last results))
-                                            {:message "The server answered 404."}}})))
+                        {:library subscribed-library})))
 
 (defscene directories-that-failed
   "A list from one directory, while the others didn't answer, which can

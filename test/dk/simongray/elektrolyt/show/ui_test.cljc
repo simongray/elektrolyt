@@ -178,9 +178,10 @@
         x     (first (show/content state [:h1 "A Show"]))
         [_ _ main aside] x
         header (first (elements :header.show-intro main))
-        [_ heading line] (second header)]
+        [_ bookmark [_ heading line]] (second header)]
     (is (= :article.with-details (first x)) "the show as an article")
-    (is (= [:h1 "A Show"] heading) "its header beginning with its heading")
+    (is (= ["bookmark" [:h1 "A Show"]] [(:class (second bookmark)) heading])
+        "its header beginning with its bookmark and heading")
     (is (= ["https://example.org" "https://example.org/feed.xml"] (map #(:href (second %)) (elements :a line)))
         "and its byline below it, which links to its website and its feed")
     (is (= [:aside.details {:aria-labelledby "details"} [:h2.visually-hidden {:id "details"} "Details"]]
@@ -225,9 +226,21 @@
                :feeds   {url {:error {:id :fetch/unreachable}}}}
         x     (show/content state [:h1 "Gone"])]
     (is (re-find #"^The feed couldn't be fetched\." (text-of (first (elements :p x)))))
-    (is (= ["Try again to fetch the feed" "Unsubscribe from Gone"] (map spoken (elements controls/button x)))
+    (is (= ["Try again to fetch the feed" "Unsubscribe from Gone"]
+           (map spoken (concat (elements controls/button x) (elements controls/icon-button x))))
         "and the listener can still leave it")
     (is (= "Gone" (ui/page-title state)) "named by the subscription")))
+
+(deftest a-subscribed-show-among-the-cards
+  (let [lib          (library/update-profile (library/make "test") profile/subscribe "g" {:url url :title "Kept"})
+        x            (show/show-cards {:library lib} [{:guid "g" :title "Kept" :url url}
+                                                      {:guid "h" :title "Other" :url "https://example.org/other.xml"}])
+        [kept other] (elements :h3 x)]
+    (is (= " Kept, subscribed" (spoken kept)) "marked before its title, which a screen reader hears after it")
+    (is (= [controls/icon {:icon icons/bookmark-simple-fill :class "bookmark" :title "Subscribed"}]
+           (first (second kept)))
+        "the filled bookmark among the title's words")
+    (is (= "Other" (spoken other)))))
 
 (deftest a-show-that-has-no-page-yet
   (is (= [[:h1 "Show"] [:p {:role "status"} "Loading the show…"]]

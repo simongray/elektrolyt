@@ -18,6 +18,13 @@
     (is (empty? (tooltips [controls/button {:icon icons/play} "Play"]))
         "and none on a button whose words show")))
 
+(deftest an-icon-placed-in-another
+  (is (= "M 18 22 l 5 0 a 2 2 0 0 1 4 6 H 18 V 32 Z"
+         (controls/placed "M10,20l10,0a4,4,0,0,1,8,12H10V40Z" 0.5 13 12))
+      "its absolute coordinates moved and every length scaled, but an arc's flags kept")
+  (is (= "M 1.33 0.5 L 2 2.25" (controls/placed "M.666.25L1,1.125" 2 0 0))
+      "with its numbers to two decimals, however the path packs them"))
+
 (deftest an-icon-among-words
   (is (= [controls/icon {:icon icons/envelope-simple :class "in-text" :title "Email" :style {:--drawn-to "206"}}]
          (controls/in-text icons/envelope-simple "Email"))

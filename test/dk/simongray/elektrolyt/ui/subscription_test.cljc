@@ -9,26 +9,31 @@
             [dk.simongray.elektrolyt.ui.subscription :as subscription]))
 
 (deftest a-subscription-button
-  (let [[tag attrs label] (subscription/button :ready "https://example.org/feed.xml" "A Show")]
-    (is (= controls/button tag) "with an icon before its words")
-    (is (= ["Subscribe" icons/plus] [label (:icon attrs)]))
-    (is (= "primary" (:class attrs)) "filled, as the main action")
+  (let [[tag attrs & words] (subscription/button :ready "https://example.org/feed.xml" "A Show")]
+    (is (= controls/icon-button tag) "a bookmark, its words for a screen reader and the tooltip")
+    (is (= "bookmark" (:class attrs)) "before the show's title")
+    (is (= ["Subscribe to A Show" (subscription/bookmark icons/bookmark-simple-thin)] [(apply str words) (:icon attrs)]))
     (is (nil? (:aria-disabled attrs)))
     (is (= (controls/single-click [[:library/subscribe "https://example.org/feed.xml" "A Show"]])
            (get-in attrs [:on :click]))
         "once for a double click"))
-  (let [[_ attrs label] (subscription/button :subscribing "https://example.org/feed.xml" "A Show")]
-    (is (= ["Subscribing…" icons/plus] [label (:icon attrs)]))
+  (let [[_ attrs & words] (subscription/button :subscribing "https://example.org/feed.xml" "A Show")]
+    (is (= ["Subscribing to A Show…" (subscription/bookmark subscription/filled-bookmark)] [(apply str words) (:icon attrs)])
+        "filled in at once")
     (is (= "true" (:aria-disabled attrs)))
     (is (nil? (:on attrs)) "nothing happens until it's done"))
-  (let [[_ attrs label] (subscription/button :subscribed "https://example.org/feed.xml" "A Show")]
-    (is (= ["Subscribed" icons/check] [label (:icon attrs)]) "where a page offers no way out")
-    (is (= "true" (:aria-disabled attrs))))
-  (let [[_ attrs label] (subscription/button :subscribed "https://example.org/feed.xml" "A Show" true)]
-    (is (= ["Unsubscribe" icons/minus] [label (:icon attrs)]) "and where it does")
+  (let [[_ attrs & words] (subscription/button :subscribed "https://example.org/feed.xml" "A Show")]
+    (is (= ["Unsubscribe from A Show" (subscription/bookmark subscription/filled-bookmark)] [(apply str words) (:icon attrs)])
+        "and unsubscribes once it's subscribed")
     (is (= (controls/single-click [[:library/unsubscribe "https://example.org/feed.xml" "A Show"]])
-           (get-in attrs [:on :click])))
-    (is (nil? (:class attrs)) "which isn't filled")))
+           (get-in attrs [:on :click])))))
+
+(deftest a-mark-of-a-subscription
+  (let [[icon & more] (subscription/marked [:a {:href "/shows/g"} "A Show"])]
+    (is (= [controls/icon {:icon icons/bookmark-simple-fill :class "bookmark" :title "Subscribed"}] icon)
+        "the filled bookmark before the title, which does nothing")
+    (is (= [" " [:a {:href "/shows/g"} "A Show"] [:span.visually-hidden ", subscribed"]] more)
+        "and words after it for a screen reader")))
 
 (deftest the-state-of-a-subscription
   (let [url "https://example.org/feed.xml"]

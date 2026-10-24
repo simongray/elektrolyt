@@ -5,7 +5,8 @@
   The icon and its buttons are Replicant aliases, e.g.
 
       [controls/icon-button {:icon icons/pause :on {...}} \"Pause\"]"
-  (:require [dk.simongray.elektrolyt.ui.icons :as icons]
+  (:require [clojure.string :as str]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [replicant.alias :refer [defalias]]))
 
 ;; The icon is hidden from a screen reader, since the control that holds it
@@ -60,6 +61,52 @@
    [icon (cond-> {:icon path :class "in-text"}
            title           (assoc :title title)
            (drawn-to path) (assoc :style {:--drawn-to (str (drawn-to path))}))]))
+
+(def path-numbers
+  "How many numbers each command of an SVG path takes."
+  {"M" 2 "L" 2 "T" 2 "H" 1 "V" 1 "C" 6 "S" 4 "Q" 4 "A" 7 "Z" 0})
+
+(defn- coordinate
+  "What the `i`th number of a group of the path command `c` is: :x, :y,
+  a :length, or nil for one that's the same at any size, e.g. an arc's
+  flag."
+  [c i]
+  (case (str/upper-case c)
+    ("M" "L" "T" "C" "S" "Q") (if (even? i) :x :y)
+    "H"                       :x
+    "V"                       :y
+    "A"                       (case i (0 1) :length 5 :x 6 :y nil)))
+
+(defn- number-text
+  "The number `n` to two decimals, as an icon's path writes it."
+  [n]
+  (let [rounded (/ (Math/round (* n 100.0)) 100.0)]
+    (if (== rounded (Math/floor rounded)) (str (long rounded)) (str rounded))))
+
+;; SVG 2, path data: an uppercase command's coordinates are absolute and a
+;; lowercase one's relative to the point before, so that only the absolute
+;; ones move, and an arc's radii grow with the drawing but not its
+;; rotation or flags
+;; https://www.w3.org/TR/SVG2/paths.html#PathData
+(defn placed
+  "The icon `path` drawn `scale` times as big, with the corner of its box
+  at `x` and `y`, e.g. to draw one icon inside another."
+  [path scale x y]
+  (letfn [(moved [c i n]
+            (let [absolute? (= c (str/upper-case c))]
+              (case (coordinate c i)
+                :x      (cond-> (* n scale) absolute? (+ x))
+                :y      (cond-> (* n scale) absolute? (+ y))
+                :length (* n scale)
+                n)))]
+    (->> (re-seq #"[A-Za-z]|-?(?:\d*\.\d+|\d+)" path)
+         (reduce (fn [[out c i] token]
+                   (if-let [n (parse-double token)]
+                     [(conj out (number-text (moved c (mod i (path-numbers (str/upper-case c))) n))) c (inc i)]
+                     [(conj out token) token 0]))
+                 [[] nil 0])
+         first
+         (str/join " "))))
 
 (defalias button
   "A button with the icon that `attrs` has as :icon and then the

@@ -70,6 +70,11 @@
   --font-text: Charis, Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
   --font-display: var(--font-text);
   --font-ui: var(--font-text);
+  /* Charis's capitals, of its em, and the middle of a line of it above its
+     baseline, half of its ascent of 1.074 less its descent of 0.244, for
+     what lines up with its letters, e.g. a show's bookmark (layout.css) */
+  --cap-height: 0.671;
+  --line-middle: 0.415;
 
   /* sizes in rem, and fluid only as rem plus vw, so that zooming to 200%
      still enlarges them (WCAG 2.2, SC 1.4.4)
@@ -108,6 +113,12 @@
      the links of the navigation keep 44 px (layout.css)
      https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
   --control-height: 36px;
+  /* An icon alone, e.g. Play, whose lines are as heavy as the stems of the
+     text's letters in Charis Regular, and its target, the 44 px of WCAG
+     2.2, SC 2.5.5 Target Size (Enhanced)
+     https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html */
+  --icon-alone: 32px;
+  --icon-alone-target: 44px;
 
   /* The app's own colour, a neutral near-black, since the artwork gives it
      most of its colour: the player's bar takes it while no artwork

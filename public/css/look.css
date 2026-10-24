@@ -446,6 +446,21 @@ button[aria-disabled="true"]:is(:hover, :focus-visible, :active) {
   box-shadow: none;
 }
 
+/* the type of a show's title and byline, as the rules of the heading and
+   its byline give it, which the show's bookmark spans (layout.css) */
+.with-bookmark {
+  --title-size: var(--step-3);
+  --title-leading: 1.15;
+  --byline-size: var(--step-0);
+  --byline-leading: var(--leading);
+}
+
+/* the bookmark in the show's colour, as its links and other buttons are,
+   unless it can't act yet */
+.icon-button.bookmark:not([aria-disabled="true"]) {
+  color: var(--accent);
+}
+
 input[type="search"] {
   font-size: var(--step-0);
 }
@@ -612,6 +627,10 @@ hgroup > p {
   .episode-intro hgroup > p,
   .show-intro hgroup > p {
     font-size: var(--step-1);
+  }
+
+  .show-intro > .with-bookmark {
+    --byline-size: var(--step-1);
   }
 
   /* the Details a little smaller than the content beside them */

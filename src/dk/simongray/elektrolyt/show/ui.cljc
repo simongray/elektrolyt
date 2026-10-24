@@ -232,28 +232,26 @@
    " instead."])
 
 ;; HTML, header and hgroup: the introduction of the show's article, its
-;; heading first, with its byline as its subtitle, and its description as
-;; its summary
+;; bookmark and heading first, with its byline as its subtitle, and its
+;; description as its summary
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
-  "The header of the article of the show `page` in `state`: the `heading`
-  and byline, the artwork with the subscription beside it, and the
-  description in the show's language."
+  "The header of the article of the show `page` in `state`: the show's
+  bookmark before the `heading` and byline, the artwork, the error of a
+  subscription that failed, and the description in the show's language."
   [state heading {:keys [title notes language] :as page}]
   (let [url (:url (source state))]
     [:header.show-intro
-     [:hgroup heading (byline page url)]
+     [:div.with-bookmark
+      (when url
+        (subscription/button (subscription/status state (search/subscribed-urls (:library state)) url)
+                             url title))
+      [:hgroup heading (byline page url)]]
      (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
                                   (colors/placeholder state page)))
-     [:div.show-intro-body
-      (when url
-        (let [status (subscription/status state
-                                          (search/subscribed-urls (:library state))
-                                          url)]
-          (list [:div.show-subscription
-                 (subscription/button status url title true)]
-                (subscription/error state url))))]
+     (when-let [error (some->> url (subscription/error state))]
+       [:div.show-intro-body error])
      (when notes
        [:div.show-notes {:lang (text/lang language)} notes])]))
 
@@ -262,18 +260,22 @@
 ;; https://inclusive-components.design/cards/
 (defn show-cards
   "The list of the show `cards` in `state`, each with its artwork or a
-  blank, and its title, both linking to its page."
+  blank, and its title, both linking to its page, after the mark of a show
+  that's subscribed."
   [state cards]
-  [:ul.linked-shows {:role "list"}
-   (for [{show-guid :guid :keys [title url] :as card} cards]
-     (let [href  (routes/show-href show-guid title url)
-           label (or title "Untitled show")]
-       [:li {:replicant/key show-guid}
-        [:article.linked-show
-         (or (artwork/linked href label (artwork/img card 96 (merge {:loading "lazy"}
-                                                                    (colors/placeholder state card))))
-             [:div.no-artwork])
-         [:h3 [:a {:href href} label]]]]))])
+  (let [subscribed (search/subscribed-urls (:library state))]
+    [:ul.linked-shows {:role "list"}
+     (for [{show-guid :guid :keys [title url] :as card} cards]
+       (let [href  (routes/show-href show-guid title url)
+             label (or title "Untitled show")]
+         [:li {:replicant/key show-guid}
+          [:article.linked-show
+           (or (artwork/linked href label (artwork/img card 96 (merge {:loading "lazy"}
+                                                                      (colors/placeholder state card))))
+               [:div.no-artwork])
+           [:h3 (cond->> [:a {:href href} label]
+                  (= :subscribed (subscription/status state subscribed url show-guid))
+                  (subscription/marked))]]]))]))
 
 ;; Pocket Casts puts a show's podroll first among its recommendations, as
 ;; "Recommended shows by the creator", and Apple Podcasts ends a show's
@@ -309,8 +311,7 @@
   (let [lib (:library state)
         url (:url (source state))]
     (when-let [k (some-> lib (show/subscribed-key url))]
-      [:div.show-subscription
-       (subscription/button :subscribed url (or (:title (show/subscription-of lib k)) url) true)])))
+      (subscription/button :subscribed url (or (:title (show/subscription-of lib k)) url)))))
 
 (def picks-section
   "The section of picks under a show: the id and text of its heading, the
@@ -322,17 +323,19 @@
 (defn content
   "The content of the Show page in `state`: the show's article, with the
   `heading` in its header and the picks after its Details, and the shows
-  that it links to, or else the `heading` and the status of the show."
+  that it links to, or else the `heading`, after the bookmark of a
+  subscription whose feed failed, and the status of the show."
   [state heading]
   (let [page   (show/page state (guid state))
         status (show/status state (guid state))]
     (if-not page
-      (list heading
+      (list (if (= :failed status)
+              [:div.with-bookmark (unsubscribe-button state) heading]
+              heading)
             (case status
               :looking-up looking-up
               :loading    [:p {:role "status"} "Loading the show…"]
-              :failed     (list (failure state 0 (:error (source state)) "main h1")
-                                (unsubscribe-button state))
+              :failed     (failure state 0 (:error (source state)) "main h1")
               not-found))
       (let [aside (details/aside (details-rows page) (:people page))
             src   (source state)]
