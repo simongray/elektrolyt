@@ -76,3 +76,14 @@
 
       (and was (not now))
       (announcement/announced "Your changes are saved"))))
+
+(defn tried-again
+  "The `state` once the listener's own try at a save failed, from the save
+  status `before` it: the notice's words announced again when the notice
+  stays as it was, which noted doesn't announce, so that the listener
+  hears that the try failed."
+  [state before]
+  (let [status (:save-status state)]
+    (cond-> state
+      (and (shown? before) (shown? status) (= (:cause before) (:cause status)))
+      (announcement/announced (text status nil)))))

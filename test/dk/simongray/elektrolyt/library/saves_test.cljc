@@ -28,6 +28,20 @@
       "but not over a library that a newer version saved")
   (is (not (saves/retry? nil)) "nor after a write that went through"))
 
+(deftest a-try-again-that-fails-again
+  (let [twice  (saves/failed (saves/failed nil {:id :library/save-failed} since)
+                             {:id :library/save-failed} since)
+        thrice (saves/failed twice {:id :library/save-failed} since)
+        state  (saves/noted {} twice)
+        again  (saves/tried-again (saves/noted state thrice) twice)]
+    (is (= "Your changes aren't saved yet." (:announcement again)))
+    (is (= (inc (:announcements state)) (:announcements again))
+        "is announced again, which noted alone isn't, since the notice stays as it was")
+    (let [full (saves/noted state (saves/failed twice {:cause ::indexeddb/full} since))]
+      (is (= (:announcements full) (:announcements (saves/tried-again full twice)))
+          "but not twice when the cause changes, which noted announces"))
+    (is (= state (saves/tried-again state nil)) "nor without a notice to try again from")))
+
 (deftest announced-as-it-comes-and-goes
   (let [twice (saves/failed (saves/failed nil {} since) {} since)
         shown (saves/noted {} twice)
