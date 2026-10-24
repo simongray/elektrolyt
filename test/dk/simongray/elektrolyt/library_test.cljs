@@ -6,7 +6,8 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.elektrolyt.library :as app-library]
-            [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]))
+            [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
+            [dk.simongray.elektrolyt.runtime :as runtime]))
 
 (def at #inst "2026-10-20T12:00:00Z")
 
@@ -52,6 +53,21 @@
                     {:operation [:library/subscribe "https://example.org/gone.xml" {:status 404}]
                      :opts      {:at at}}])))
         "but for one that throws, e.g. a subscription to a feed that failed")))
+
+(deftest a-save-that-failed
+  (is (= [5000 10000 20000 300000] (map app-library/retry-ms [1 2 3 9]))
+      "is tried again, longer after each failure in a row")
+  (let [retries (atom [])]
+    (with-redefs [runtime/later!  (fn [k ms _] (swap! retries conj [k ms]))
+                  runtime/cancel! (fn [k] (swap! retries conj [k :cancelled]))]
+      (reset! app-library/failures 0)
+      (app-library/retried! (atom {}) {:error {:id :library/save-failed}})
+      (app-library/retried! (atom {}) {:error {:id :library/save-failed}})
+      (app-library/retried! (atom {}) {:version "3"})
+      (is (= [[::app-library/retry 5000] [::app-library/retry 10000] [::app-library/retry :cancelled]]
+             @retries)
+          "until a write goes through")
+      (is (zero? @app-library/failures)))))
 
 (deftest every-new-episode-in-the-inbox
   (async done

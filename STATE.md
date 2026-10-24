@@ -35,7 +35,7 @@ as long as the tab.
 | `:searches` | The searches by query, each directory's results | `search.directories`, `search.ui` | `ui.routes`, `search`, `show`, `search.ui` | Clear cache |
 | `:linked` | The shows that a show links to, by guid | `show.feeds` | `show.ui` | Clear cache |
 | `:colors` | The colours of artwork, by URL | `ui.artwork.colors` | `ui.colors`, the views | Clear cache |
-| `:refresh-status` | The refresh under way, and what the last one found, or when it failed or found another tab refreshing, which holds back the next | `library.refresh` | `library.refresh`, `library.opml`, `library.ui` | Overwritten |
+| `:refresh-status` | The refresh under way, and what the last one found, or when it failed or found another tab refreshing, which holds back the next | `library.refresh` | `library.refresh`, `library.ui` | Overwritten |
 | `:route` | The page | `ui.routes`, at each navigation | `ui`, `show`, `ui.colors` | Overwritten |
 | `:server` | What the app's server offers | `elektrolyt`, once | `search`, `library.settings.ui` | Never |
 | `:announcement` | The last status message for a screen reader | `library.changes`, `show`, `library.refresh`, `show.subscription` | `ui` | Overwritten |
@@ -55,7 +55,8 @@ In the tab, outside the store
 | `library/known` | The library that this tab last read or wrote, and its version | `library` | `library`, `library.refresh` | Until the next read or write |
 | `library/waiting` | The operations that this tab applied and hasn't written | `library` (`change!`, `written!`) | `library` | Until they're written |
 | `library/turns` | The chain of this tab's reads and writes, so that they take turns | `library` | `library` | The tab |
-| `runtime/timers` | The timers that wait, by name: the next refresh, a prefetch, a wait for data and the clock of a player elsewhere | `library.refresh`, `show.feeds`, `player.audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
+| `library/failures` | How many of this tab's writes in a row have failed, which holds back the next try | `library` | `library` | Until a write goes through |
+| `runtime/timers` | The timers that wait, by name: the next refresh, a save tried again, a prefetch, a wait for data and the clock of a player elsewhere | `library.refresh`, `library`, `show.feeds`, `player.audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
 | `runtime/channels` | The BroadcastChannels, each opened at its first use | `runtime` | `runtime` | The tab |
 | `runtime/detach` | What stops following the player's audio element and clears the lock screen's buttons | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
 | `worker.fetching/web-worker` | The web worker, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |

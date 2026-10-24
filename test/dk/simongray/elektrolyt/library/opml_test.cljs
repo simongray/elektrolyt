@@ -1,5 +1,6 @@
 (ns dk.simongray.elektrolyt.library.opml-test
   (:require [clojure.test :refer [deftest is]]
+            [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.opml :as opml]))
@@ -23,24 +24,12 @@
     (is (= "You subscribe to every show of the file already."
            (get-in (imported s subscription-list) [:settings-status :text])))))
 
-(defn phases
-  "The phases of an import's wait as the store goes through the `states`
-  after it, as opml/waited gives them."
-  [states]
-  (rest (reductions (fn [phase [old new]] (opml/waited phase old new))
-                    :waiting
-                    (partition 2 1 states))))
-
-(def idle {:refresh-status {:running? false}})
-(def running {:refresh-status {:running? true :done 0}})
-(def done {:refresh-status {:running? false :result {:counts {}}}})
-
 (deftest the-marks-wait-for-the-feeds
-  (is (= [:started :started :fetched] (phases [idle running (assoc-in running [:refresh-status :done] 1) done]))
-      "a refresh that started after the import fetches its feeds")
-  (is (= [:waiting :started :fetched] (phases [running done running done]))
-      "one that was under way already doesn't, but the next one does")
-  (is (= [:started :waiting :started :fetched] (phases [idle running idle running done]))
-      "nor one that found another tab's worker refreshing, which leaves no result")
-  (is (= [:started :waiting] (phases [idle running idle]))
-      "so the marks wait for the next refresh, as they do after one that failed"))
+  (let [s       (imported {:library inbox-test/lib} subscription-list)
+        fetched (update s :library library/subscribe "https://other.example/feed.xml" inbox-test/feed)]
+    (is (= 1 (opml/fetched-count s)) "only the show that the library had")
+    (is (opml/arrived? s fetched) "so the marks come once another feed has arrived")
+    (is (= 2 (opml/fetched-count fetched) (opml/subscribed-count fetched)))
+    (is (not (opml/arrived? s (assoc s :refresh-status {:running? false :result {:counts {}}})))
+        "and not with a refresh that fetched none, e.g. offline")
+    (is (not (opml/arrived? fetched (update fetched :library library/unsubscribe (key (first (:feeds inbox-test/lib)))))))))

@@ -2,9 +2,9 @@
   "The import and export of the listener's subscriptions as OPML.
 
   An import subscribes to the file's shows, with their folders and tags.
-  Once a refresh has fetched their feeds, it marks the episodes that the
-  file lists as played or started, in the form of Overcast's extended
-  export. An export downloads the subscriptions as a file in that form."
+  As refreshes fetch their feeds, it marks the episodes that the file
+  lists as played or started, in the form of Overcast's extended export.
+  An export downloads the subscriptions as a file in that form."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.format.opml :as format.opml]
             [dk.simongray.podcast.profile :as profile]
@@ -41,38 +41,35 @@
    :text  (str "That file couldn't be read as OPML. Choose a file that a "
                "podcast app exported.")})
 
-;; The marks need the import's feeds. A refresh that was under way before
-;; the import doesn't fetch them, and neither does one that finds another
-;; tab's worker refreshing, but the next comes at once, since the new feeds
-;; are due.
-(defn waited
-  "The next phase of an import's wait for its feeds after `phase`, as the
-  state goes from `old` to `new`:
+(defn fetched-count
+  "How many of the shows that the library in `state` subscribes to have
+  their feeds."
+  [state]
+  (let [lib (:library state)]
+    (count (filter #(library/loaded? lib %)
+                   (keys (some-> lib :profile profile/subscriptions))))))
 
-  - :waiting until a refresh starts after the import
-  - :started while that one runs
-  - :fetched once it's done, or :waiting again if it failed or found
-    another tab's worker refreshing"
-  [phase old new]
-  (let [running? #(boolean (get-in % [:refresh-status :running?]))]
-    (case phase
-      :waiting (if (and (running? new) (not (running? old))) :started :waiting)
-      :started (cond
-                 (running? new)                         :started
-                 (get-in new [:refresh-status :result]) :fetched
-                 :else                                  :waiting)
-      phase)))
+;; The marks need the import's feeds, which arrive with a refresh in this
+;; tab or another, and a feed that failed with a later one. A mark made
+;; already stays as it is when the marks are made again.
+(defn arrived?
+  "Whether more of the subscribed shows have their feeds as the state goes
+  from `old` to `new`."
+  [old new]
+  (and (not (identical? (get-in old [:library :feeds]) (get-in new [:library :feeds])))
+       (> (fetched-count new) (fetched-count old))))
 
 (defn mark-when-fetched!
-  "Once a refresh has fetched the feeds of the OPML `list`, mark its played
-  and started episodes in the library in `store`, and save it."
+  "Each time more feeds have arrived, mark the played and started episodes
+  of the OPML `list` in the library in `store`, and save it, until every
+  show has its feed."
   [store list]
-  (let [k     (gensym "opml-import")
-        phase (atom :waiting)]
+  (let [k (gensym "opml-import")]
     (runtime/watch! store k
                     (fn [old new]
-                      (when (= :fetched (swap! phase waited old new))
-                        (runtime/unwatch! store k)
+                      (when (arrived? old new)
+                        (when (= (fetched-count new) (subscribed-count new))
+                          (runtime/unwatch! store k))
                         (app-library/change! store {:operation [:opml/mark-played list]})
                         (app-library/save! store))))))
 
