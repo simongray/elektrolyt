@@ -30,7 +30,8 @@
   - :cache-dir, the folder that keeps the thumbnails, or nil for none
   - :max-cache-bytes, the most that the folder holds, dropping the
     thumbnails used longest ago first
-  - :max-age, the seconds that a browser keeps a thumbnail
+  - :max-age, the seconds that a browser keeps a thumbnail that isn't
+    stale
   - :max-jobs, the most artworks that it fetches and scales at once,
     since each can take some 40 MB of heap while it decodes an artwork
     of 20 MB
@@ -342,8 +343,11 @@
     (redirect (artwork/thumbnail-url "" url (smallest-width entry width))
               max-age)
 
+    ;; a stale thumbnail goes out at once while its check runs, so the
+    ;; browser asks again next time rather than keeping it for max-age
     :else
-    (sent request entry width cache-dir max-age)))
+    (sent request entry width cache-dir
+          (if (< (:fresh-until entry) (System/currentTimeMillis)) 0 max-age))))
 
 (defn- shared
   "What `f` returns, called once for all the threads that ask for the key
