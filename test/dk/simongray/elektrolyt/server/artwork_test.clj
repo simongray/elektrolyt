@@ -3,10 +3,12 @@
   temporary folder: the refusals, the redirects, the cache and its checks
   with the artwork's ETag, the wait after a failure, and the jobs."
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
             [dk.simongray.elektrolyt.server.artwork :as artwork]
             [dk.simongray.wary-fetch.proxy :as proxy]
-            [dk.simongray.wary-fetch.url :as url])
+            [dk.simongray.wary-fetch.url :as url]
+            [taoensso.telemere :as tel])
   (:import [java.nio.file Files]
            [java.nio.file.attribute FileAttribute]))
 
@@ -145,6 +147,89 @@
           (is (= 200 (:status (h (asked art 64)))))
           (is (= 3 (count @sent)) "and waits a while before it checks again"))))))
 
+(deftest a-check-with-headers-as-vectors
+  (with-temp-dir
+    (fn [dir]
+      (let [sent    (atom [])
+            cache   (io/file dir "artwork")
+            date    "Wed, 21 Oct 2026 07:28:00 GMT"
+            ok      (fn [_] {:status  200
+                             :headers {"etag" ["\"v1\""] "last-modified" [date]}
+                             :body    (jpeg 300 300)})
+            handler (fn [widths answers]
+                      (artwork/handler {:cache-dir cache
+                                        :widths    widths
+                                        :send      (stub sent answers)}))
+            h       (handler [64 128] [ok (fn [_] {:status 304 :headers {}})])
+            expire  #(spit % (pr-str (assoc (read-string (slurp %)) :fresh-until 0)))
+            entry   #(first (filter (fn [^java.io.File f] (re-find #"\.edn$" (.getName f)))
+                                    (file-seq cache)))]
+        (is (= 200 (:status (h (asked art 64)))))
+        (expire (entry))
+        (testing "a response whose headers are vectors of values, as wary-fetch returns them"
+          (is (= 200 (:status (h (asked art 64)))))
+          (is (= {"If-None-Match" "\"v1\"" "If-Modified-Since" date "Via" proxy/via}
+                 (:headers (second @sent)))))
+        (expire (entry))
+        (testing "but none for an entry that lacks a width added since, which a 304 would keep"
+          (let [wider (handler [64 128 256] [ok])
+                made  (wider (asked art 256))]
+            (is (= {"Via" proxy/via} (:headers (nth @sent 2))))
+            (is (= 200 (:status made)))
+            (is (= 256 (.getWidth (javax.imageio.ImageIO/read
+                                   (java.io.ByteArrayInputStream. (body-bytes made))))))))))))
+
+(deftest a-folder-that-cant-be-written
+  (with-temp-dir
+    (fn [dir]
+      (let [file (doto (io/file dir "file") (spit ""))
+            h    (artwork/handler {:cache-dir (io/file file "artwork")
+                                   :send      (fn [_] {:status 200 :headers {} :body (jpeg 200 200)})})
+            {made :value :keys [signals]} (tel/with-signals true (h (asked art 64)))]
+        (is (= 200 (:status made)) "sends the thumbnails it made all the same")
+        (is (= 64 (.getWidth (javax.imageio.ImageIO/read (java.io.ByteArrayInputStream. (body-bytes made))))))
+        (is (= [:warn] (keep #(when (= :artwork/store-failed (:id %)) (:level %)) signals))
+            "and logs a warning")))))
+
+(deftest two-jobs-over-the-cap
+  (with-temp-dir
+    (fn [dir]
+      (let [cache   (io/file dir "artwork")
+            b       (jpeg 200 200)
+            handler #(artwork/handler {:cache-dir       cache
+                                       :max-cache-bytes %
+                                       :send            (fn [_] {:status 200 :headers {} :body b})})
+            bytes   #(reduce + (map (fn [^java.io.File f] (.length f)) (rest (file-seq cache))))
+            [oldest one two] (map #(str "https://example.org/" % ".jpg") (range 3))
+            _       ((handler 1000000) (asked oldest 64))
+            h       (handler (long (* 2.5 (bytes))))
+            write   @#'artwork/written!
+            paused? (atom true)
+            writing (promise)
+            gate    (promise)]
+        ;; the first job stops between its thumbnails and its entry, where
+        ;; the second job's prune would take them for the oldest
+        (with-redefs-fn {#'artwork/written! (fn [^java.io.File file b]
+                                              (when (and (str/ends-with? (.getName file) ".edn")
+                                                         (compare-and-set! paused? true false))
+                                                (deliver writing true)
+                                                @gate)
+                                              (write file b))}
+          (fn []
+            (let [first-job  (future (h (asked one 64)))
+                  _          (deref writing 10000 nil)
+                  second-job (future (h (asked two 64)))]
+              ;; a second for the second job to store, which it can't do
+              ;; while the first job holds the lock
+              (deref second-job 1000 nil)
+              (deliver gate true)
+              (is (= [200 200] (map (comp :status deref) [first-job second-job]))))))
+        (let [offline (artwork/handler {:cache-dir cache
+                                        :send      (fn [_] (throw (ex-info "offline" {})))})]
+          (is (= 200 (:status (offline (asked one 64))))
+              "the files of an artwork that another job was writing stay")
+          (is (= 200 (:status (offline (asked two 64))))))))))
+
 (deftest a-failure-waits-a-while
   (with-temp-dir
     (fn [dir]
@@ -240,7 +325,7 @@
                                        :max-cache-bytes %
                                        :send            (fn [_] {:status 200 :headers {} :body b})})
             bytes   #(reduce + (map (fn [^java.io.File f] (.length f)) (rest (file-seq cache))))
-            urls    (map #(str "https://example.org/" % ".jpg") (range 4))
+            urls    (map #(str "https://example.org/" % ".jpg") (range 3))
             _       ((handler 1000000) (asked (first urls) 64))
             cap     (long (* 2.5 (bytes)))
             h       (handler cap)]
@@ -251,5 +336,6 @@
                         (filter #(re-find #"\.edn$" (.getName ^java.io.File %)))
                         (map #(:url (read-string (slurp %))))
                         set)]
-          (is (= (set (take-last 2 urls)) kept) "the two used last")
+          (is (= (set (take-last 2 urls)) kept)
+              "the two used last, since it drops no more than it must")
           (is (<= (bytes) cap)))))))

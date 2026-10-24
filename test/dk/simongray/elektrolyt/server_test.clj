@@ -4,7 +4,8 @@
             [clojure.test :refer [deftest is testing]]
             [cognitect.transit :as transit]
             [dk.simongray.elektrolyt.server :as server]
-            [io.pedestal.connector.test :refer [response-for]])
+            [io.pedestal.connector.test :refer [response-for]]
+            [taoensso.telemere :as tel])
   (:import [java.nio.file Files]
            [java.nio.file.attribute FileAttribute]))
 
@@ -28,6 +29,12 @@
                                                 :headers page)]
         (is (= 200 status))
         (is (= index body))))
+    (testing "also at a path that ends in a slash"
+      (doseq [path ["/library/" "/shows/abc/"]]
+        (let [{:keys [status body]} (response-for connector :get path
+                                                  :headers page)]
+          (is (= 200 status) path)
+          (is (= index body) path))))
     (testing "but not a script that asks for anything other than HTML"
       (is (= 404 (:status (response-for connector :get "/library"
                                         :headers {"accept" "*/*"})))))))
@@ -40,7 +47,11 @@
       (is (str/starts-with? (get headers "Content-Type") "text/css"))))
   (testing "a missing file is a 404, even for a browser"
     (is (= 404 (:status (response-for connector :get "/js/missing.js"
-                                      :headers page))))))
+                                      :headers page)))))
+  (testing "and so is a dotfile or a dot folder, with a slash or without"
+    (doseq [path ["/.env" "/.git" "/.git/" "/.git/config" "/%2Egit/"]]
+      (is (= 404 (:status (response-for connector :get path :headers page)))
+          path))))
 
 (deftest a-file-that-a-build-wrote-again
   (let [dir  (.toFile (Files/createTempDirectory "client" (make-array FileAttribute 0)))
@@ -113,6 +124,44 @@
         (is (str/includes? (pr-str credentials) "#<secret>"))))
     (is (nil? (server/podcastindex-credentials "no/such/file.edn")))
     (is (nil? (server/podcastindex-credentials nil)))))
+
+(defn read-logged
+  "The credentials in a temporary secrets file that holds the text `s`, the
+  path of the file and the signals that reading it logs."
+  [s]
+  (let [file (str (doto (java.io.File/createTempFile "secrets" ".edn")
+                    (.deleteOnExit)
+                    (spit s)))
+        {:keys [value signals]} (tel/with-signals true
+                                  (server/podcastindex-credentials file))]
+    {:credentials value :file file :signals signals}))
+
+(deftest secrets-that-cant-be-read-test
+  (doseq [s ["{:podcastindex {:key \"K\""
+             "#unknown/tag {}"
+             "{:podcastindex {:key \"K\" :secret 1secret}}"]]
+    (let [{:keys [credentials file signals]} (read-logged s)]
+      (testing "a file that isn't EDN means no credentials, and a warning that names it"
+        (is (nil? credentials) s)
+        (is (= [:warn] (map :level signals)) s)
+        (is (str/includes? (:msg_ (first signals)) file) s))
+      (testing "but not what the reader quotes of it, e.g. a secret without quotes"
+        (is (not (str/includes? (pr-str signals) "1secret")) s)))))
+
+(deftest credentials-without-a-key-or-a-secret-test
+  (doseq [podcastindex ["abc" {} {:key "K"} {:secret "S"}
+                        {:key "K" :secret " "} {:key "" :secret "S"}
+                        {:key "K" :secret 5}]]
+    (let [{:keys [credentials file signals]} (read-logged (pr-str {:podcastindex podcastindex}))]
+      (testing "credentials that the Podcast Index would refuse count as none, with a warning"
+        (is (nil? credentials) (pr-str podcastindex))
+        (is (= [:warn] (map :level signals)) (pr-str podcastindex))
+        (is (str/includes? (:msg_ (first signals)) file)))
+      (testing "a warning that doesn't show the secret"
+        (is (not (str/includes? (pr-str signals) "\"S\""))))))
+  (testing "while a file without the Podcast Index logs nothing"
+    (is (= {:credentials nil :signals nil}
+           (dissoc (read-logged (pr-str {:other {:token "T"}})) :file)))))
 
 (deftest refusals-test
   (testing "a name other than localhost is refused"
