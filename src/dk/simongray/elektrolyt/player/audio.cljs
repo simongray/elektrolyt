@@ -546,7 +546,9 @@
   "Ask the playing tab, if any, for its media state as the back/forward
   cache shows the page of the player in `store` again. Move this tab's
   paused element to where the listener left its episode, once the
-  library has caught up, since another tab may have played it."
+  library has caught up, since another tab may have played it. That's
+  also where a reload would start it, gone back by the listener's rewind
+  after a pause."
   [store]
   (post! {:type :ask})
   (-> (app-library/caught-up! store)

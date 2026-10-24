@@ -217,7 +217,7 @@
   (let [route   (get-in state [:route :name])
         heading (page-heading state)]
     [:main#main
-     (saves-ui/banner state)
+     (saves-ui/notice state)
      (when-not (#{:route/show :route/episode} route)
        heading)
      (if (and (library-pages route) (nil? (:library state)))

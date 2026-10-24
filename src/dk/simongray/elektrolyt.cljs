@@ -209,6 +209,10 @@
     (let [node (:replicant/node dispatch-data)]
       (js/queueMicrotask #(audio/mounted! store node)))))
 
+;; Acted on at once, though the report changes the store during the render,
+;; which then renders again at the next frame: the browser pauses a removed
+;; element at its next stable state, after which nothing would be reported
+;; https://html.spec.whatwg.org/multipage/media.html#playing-the-media-resource
 (nxr/register-effect! :player/unmounted
   (fn [{:keys [dispatch-data]} store]
     (audio/unmounted! store (:replicant/node dispatch-data))))
