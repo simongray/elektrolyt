@@ -156,16 +156,17 @@
 (defn retried!
   "Note the result `written` of a write in the save status of the `state`
   atom, and return it. A write that failed is logged and tried again
-  later, and while the page tells of the failure, the browser asks before
-  the page goes."
+  later, unless a newer version saved the library, and while the page
+  tells of the failure, the browser asks before the page goes."
   [state written]
   (let [before (:save-status @state)
         status (when-let [error (:error written)]
                  (saves/failed before error (or (-> @waiting first :opts :at) (js/Date.))))]
-    (if status
-      (do (tel/log! {:level :error :id :library/save-failed :data written}
-                    "The library wasn't saved")
-          (runtime/later! ::retry (retry-ms (:failures status)) #(save! state)))
+    (when status
+      (tel/log! {:level :error :id :library/save-failed :data written}
+                "The library wasn't saved"))
+    (if (saves/retry? status)
+      (runtime/later! ::retry (retry-ms (:failures status)) #(save! state))
       (runtime/cancel! ::retry))
     (when (not= before status)
       (swap! state saves/noted status)

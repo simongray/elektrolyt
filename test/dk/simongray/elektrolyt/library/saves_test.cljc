@@ -21,6 +21,13 @@
     (is (saves/shown? (saves/failed nil {:cause ::indexeddb/full} since)))
     (is (not (saves/shown? nil)))))
 
+(deftest when-a-write-is-tried-again
+  (is (saves/retry? (saves/failed nil {:id :library/save-failed} since)))
+  (is (saves/retry? (saves/failed nil {:cause ::indexeddb/full} since)) "e.g. once there's room")
+  (is (not (saves/retry? (saves/failed nil {:id :library/newer-format} since)))
+      "but not over a library that a newer version saved")
+  (is (not (saves/retry? nil)) "nor after a write that went through"))
+
 (deftest announced-as-it-comes-and-goes
   (let [twice (saves/failed (saves/failed nil {} since) {} since)
         shown (saves/noted {} twice)
