@@ -12,7 +12,6 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.refresh :as refresh]
-            [dk.simongray.elektrolyt.player.audio :as audio]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
@@ -78,7 +77,7 @@
                       (when (= :fetched (swap! phase waited old new))
                         (runtime/unwatch! store k)
                         (app-library/change! store {:operation [:opml/mark-played list]})
-                        (audio/save! store))))))
+                        (app-library/save! store))))))
 
 (defn import!
   "Import the OPML `file` that the listener chose into the library of the
@@ -89,7 +88,7 @@
                (let [list (format.opml/parse text)]
                  (app-library/change! store (imported @store list))
                  (mark-when-fetched! store list)
-                 (-> (audio/save! store)
+                 (-> (app-library/save! store)
                      (.then #(refresh/refresh! store false))))))
       (.catch (fn [e]
                 (js/console.error "The OPML file wasn't imported" e)

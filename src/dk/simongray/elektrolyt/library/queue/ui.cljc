@@ -115,6 +115,18 @@
      [:p "Add episodes from their pages with Play next or Play last, "
       "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."])))
 
+(defn up-next-item
+  "The item of the `episode` at index `i` of the `episodes` up next in the
+  `state`: its row and its buttons, whose Remove gives the focus to the
+  Remove of the row that takes its place, or else to the heading."
+  [state episodes i {:keys [id] :as episode}]
+  (let [next-one (rows/neighbour episodes i)]
+    [:li {:replicant/key (pr-str id)}
+     [:article.queue-episode
+      (row state episode)
+      (actions episode (inc i) (count episodes)
+               (if next-one (control-id (:id next-one) :remove) "up-next"))]]))
+
 (defn up-next
   "The section of the episodes up next of the `state`, with the undo of
   the last change."
@@ -140,13 +152,7 @@
      (when (seq episodes)
        (list
         [:ol.queue {:role "list"}
-         (for [[i {:keys [id] :as episode}] (map-indexed vector episodes)]
-           (let [next-one (rows/neighbour episodes i)]
-             [:li {:replicant/key (pr-str id)}
-              [:article.queue-episode
-               (row state episode)
-               (actions episode (inc i) n
-                        (if next-one (control-id (:id next-one) :remove) "up-next"))]]))]
+         (map-indexed (partial up-next-item state episodes) episodes)]
         [:button {:type "button" :on {:click [[:dialog/open clear-dialog-id]]}}
          "Clear the queue"]))
      ;; it stays in the page, so that it closes where it opened

@@ -254,7 +254,7 @@
         [:p {:role "status" :replicant/on-mount [[:episode/read-transcript id view]]}
          "Loading the transcript…"]
 
-        (or error (and (= :read transcript-status) (empty? (:segments document))))
+        (or error (empty? (:segments document)))
         [:p {:role "status"} "The transcript couldn't be read."]
 
         document

@@ -149,14 +149,22 @@
                       (kept!)
                       {:error {:id :library/save-failed :reason (ex-message e)}})))))))
 
+(defn logged!
+  "Log the result `written` of a write when it failed, and give it."
+  [written]
+  (when (:error written)
+    (js/console.error "The library wasn't saved" (clj->js written)))
+  written)
+
 (defn save!
   "A promise of the write of the operations that wait in the app `state`,
   an atom, once the writes and reads before it are done, as written!
-  gives it. A save asked for while another waits its turn is that one."
+  gives it, which logged! logs. A save asked for while another waits its
+  turn is that one."
   [state]
   (or (:next @turns)
       (let [p (in-turn! #(do (swap! turns assoc :next nil)
-                             (written! state)))]
+                             (.then (written! state) logged!)))]
         (swap! turns assoc :next p)
         p)))
 

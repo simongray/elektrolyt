@@ -75,6 +75,13 @@
                                      (refresh! store false)
                                      (schedule! store))))))
 
+(defn started
+  "The `state` as a refresh starts, which the listener asked for when
+  `asked?`."
+  [state asked?]
+  (cond-> (assoc state :refresh-status {:running? true :done 0})
+    asked? (assoc :announcement "Checking for new episodes…")))
+
 (defn refreshed
   "The `state` once the refresh that gave the `result` beside the library
   is done, which the listener asked for when `asked?`."
@@ -83,6 +90,15 @@
     (cond-> (assoc state :refresh-status {:running? false
                                           :result   (dissoc result :library)})
       summary (assoc :announcement summary))))
+
+(defn found!
+  "Apply what the worker `found` to the library of the `store` and save
+  it, as the refresh that the listener asked for when `asked?` ends."
+  [store found asked?]
+  (let [result (app-library/change! store
+                                    {:operation [:library/refreshed found]})]
+    (swap! store refreshed result asked?)
+    (app-library/save! store)))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: one message as a refresh that the
 ;; listener asked for starts, and one with what it found, rather than one
@@ -104,8 +120,7 @@
     (when (and library @app-library/known (not (:running? refresh-status)))
       (runtime/cancel! ::next)
       (swap! refreshed-stale into (map #(vector % on?)) whole)
-      (swap! store #(cond-> (assoc % :refresh-status {:running? true :done 0})
-                      asked? (assoc :announcement "Checking for new episodes…")))
+      (swap! store started asked?)
       (-> (fetching/fetch-due! (library/due library (cond-> {:online? online?}
                                                       guids (assoc :feed-guids guids)))
                                {:head-check?        (empty? whole)
@@ -115,11 +130,7 @@
           (.then (fn [{:keys [found busy?]}]
                    (if busy?
                      (swap! store assoc :refresh-status {:running? false})
-                     (let [result (app-library/change! store {:operation [:library/refreshed found]})]
-                       (swap! store refreshed result asked?)
-                       (.then (app-library/save! store)
-                              #(when (:error %)
-                                 (js/console.error "The library wasn't saved" (clj->js %))))))))
+                     (found! store found asked?))))
           (.catch (fn [e]
                     (js/console.error "The library didn't refresh" e)
                     (swap! store assoc :refresh-status {:running? false})))

@@ -55,6 +55,19 @@
                                found)}))
       (.catch #(search/failed (ex-message %)))))
 
+(defn directory-list!
+  "A promise of the list of the directory `source` for the words `q`, with
+  the `index` credentials for the Podcast Index, which is a failed one when
+  the directory fails."
+  [q source index]
+  (-> (if (= drpodcast/source source)
+        (drpodcast-search! q)
+        (.then (directory/search! q {:send        app-cache/send
+                                     :sources     [source]
+                                     :credentials index})
+               search/shows->list))
+      (.catch #(search/failed (ex-message %)))))
+
 (defn search-directory!
   "Search the directory `source` for the words `q`, and keep its list under
   the query in the :searches of the state, through `dispatch`, with the
@@ -67,18 +80,12 @@
   (let [listed! #(dispatch [[:store/assoc-in [:searches q :lists source] %]])
         k       (search/cache-key source q)
         ask!    (fn [kept]
-                  (-> (if (= drpodcast/source source)
-                        (drpodcast-search! q)
-                        (-> (directory/search! q {:send        app-cache/send
-                                                  :sources     [source]
-                                                  :credentials index})
-                            (.then search/shows->list)))
-                      (.catch #(search/failed (ex-message %)))
-                      (.then (fn [l]
-                               (if (= :failed (:status l))
-                                 (listed! (search/stale-list l kept))
-                                 (do (listed! l)
-                                     (app-cache/put! app-cache/searches k l)))))))]
+                  (.then (directory-list! q source index)
+                         (fn [l]
+                           (if (= :failed (:status l))
+                             (listed! (search/stale-list l kept))
+                             (do (listed! l)
+                                 (app-cache/put! app-cache/searches k l))))))]
     (listed! {:status :searching})
     (.then (app-cache/fetch! app-cache/searches k)
            (fn [kept]

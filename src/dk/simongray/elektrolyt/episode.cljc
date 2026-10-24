@@ -44,34 +44,35 @@
 
 (defn page-of
   "The page of the `item` of the show `guid` in the feed `source`, as
-  show/source gives it. Each time in the show notes is what `time-fn` gives for the
-  page, the seconds and the text of the time.
+  show/source gives it. Each time in the show notes is what `time-fn`
+  gives for the page, the seconds and the text of the time.
 
   The page's link, locations and license are the item's own, since its
   Details show what's particular to it, and its people and funding are
   its show's when it has none of its own. Its language is its show's,
   since an item of RSS names none."
   [guid {:keys [feed url key]} item time-fn]
-  (let [item-guid (guid/item-guid item)
-        title     (resolve/title item)
-        guid      (or key guid)
-        base      {:id        [(or key (guid/feed-key feed url)) item-guid]
-                   :guid      guid
-                   :item-guid item-guid
-                   :title     title
-                   :published (resolve/published item)
-                   :language  (resolve/language feed)
-                   :show      {:title (resolve/title feed)
-                               :href  (routes/show-href guid (resolve/title feed)
-                                                        (when-not key url))}
-                   :url       (when-not key url)
-                   :href      (routes/episode-href guid item-guid title
-                                                   (when-not key url))
-                   :src       (:url (resolve/enclosure item))}
-        view      (episode/view feed item
-                                (assoc view-opts
-                                       :url url
-                                       :timestamp-fn #(time-fn base %1 %2)))]
+  (let [item-guid   (guid/item-guid item)
+        title       (resolve/title item)
+        guid        (or key guid)
+        outside-url (when-not key url)
+        show-title  (resolve/title feed)
+        base        {:id        [(or key (guid/feed-key feed url)) item-guid]
+                     :guid      guid
+                     :item-guid item-guid
+                     :title     title
+                     :published (resolve/published item)
+                     :language  (resolve/language feed)
+                     :show      {:title show-title
+                                 :href  (routes/show-href guid show-title outside-url)}
+                     :url       outside-url
+                     :href      (routes/episode-href guid item-guid title
+                                                     outside-url)
+                     :src       (:url (resolve/enclosure item))}
+        view        (episode/view feed item
+                                  (assoc view-opts
+                                         :url url
+                                         :timestamp-fn #(time-fn base %1 %2)))]
     (merge base
            (select-keys view [:explicit? :ai-content? :people :funding
                               :content-links :enclosure])

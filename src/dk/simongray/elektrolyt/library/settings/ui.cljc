@@ -138,6 +138,31 @@
                       "has one.")
                  (settings/explicit-picks? state) ::app/explicit-picks?)))
 
+(defn directory-row
+  "The row of the directory `source` at index `i`, `on?` or off, with the
+  buttons that move it among the `n` that are on, and a note where the
+  app's server doesn't sign the requests to the Podcast Index, which
+  `index?` says it does."
+  [n index? i [source on?]]
+  (let [title (search/source-name source)
+        id    (str "directory-" (name source))
+        hint? (and (= :podcastindex source) (not index?))]
+    [:li.setting {:replicant/key source}
+     [:input (cond-> {:type    "checkbox"
+                      :id      id
+                      :checked (boolean on?)
+                      :on      {:change [[:settings/search-source source [:event/target-checked]]
+                                         [:page/focus id]]}}
+               hint? (assoc :aria-describedby (str id "-hint")))]
+     [:label {:for id} title]
+     (when on?
+       (rows/move-buttons title (inc i) n
+                          #(str id "-" (name %))
+                          #(vector :settings/move-source source %)))
+     (when hint?
+       [:p {:id (str id "-hint")}
+        "This server doesn't sign the requests to it, so a search here leaves it out."])]))
+
 ;; Kagi's lenses: only those turned on in the settings appear while
 ;; searching. The order of the rows is the order of the lists of the
 ;; Search page, which the buttons of the queue rearrange.
@@ -154,25 +179,7 @@
            [:p "A search asks each directory that's on, and shows what each "
             "found in a list of its own, in this order."]
            [:ol.settings-directories {:role "list"}
-            (for [[i [source on?]] (map-indexed vector listed)]
-              (let [title (search/source-name source)
-                    id    (str "directory-" (name source))
-                    hint? (and (= :podcastindex source) (not index?))]
-                [:li.setting {:replicant/key source}
-                 [:input (cond-> {:type    "checkbox"
-                                  :id      id
-                                  :checked (boolean on?)
-                                  :on      {:change [[:settings/search-source source [:event/target-checked]]
-                                                     [:page/focus id]]}}
-                           hint? (assoc :aria-describedby (str id "-hint")))]
-                 [:label {:for id} title]
-                 (when on?
-                   (rows/move-buttons title (inc i) n
-                                      #(str id "-" (name %))
-                                      #(vector :settings/move-source source %)))
-                 (when hint?
-                   [:p {:id (str id "-hint")}
-                    "This server doesn't sign the requests to it, so a search here leaves it out."])]))])))
+            (map-indexed (partial directory-row n index?) listed)])))
 
 (defn dr
   "Whether DR's podcasts take more episodes from drpodcast.nu in the

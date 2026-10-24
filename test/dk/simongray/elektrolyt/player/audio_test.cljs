@@ -4,6 +4,7 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app :as-alias app]
+            [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.picks-test :as picks-test]
             [dk.simongray.elektrolyt.library.settings :as settings]
@@ -71,7 +72,7 @@
 (deftest autoplay-after-an-episode
   ;; Node has no audio element, no IndexedDB and no network
   (with-redefs [audio/element               (constantly nil)
-                audio/save!                 (constantly nil)
+                app-library/save!           (constantly nil)
                 audio/read-library-files!   (constantly nil)]
     (let [grinders picks-test/grinders
           pick     (picks-test/id "Brew Lab" 0)

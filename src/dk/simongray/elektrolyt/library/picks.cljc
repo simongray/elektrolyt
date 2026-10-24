@@ -167,6 +167,15 @@
   [ids]
   (zipmap ids (range (count ids) 0 -1)))
 
+(defn newest-in-feed
+  "The ids of the newest episodes of the parsed `feed` at `url`, as many as
+  heard-count, the newest first, e.g. of a show outside the library."
+  [feed url]
+  (->> (:rss/items feed)
+       (sort-by #(or (some-> (resolve/published %) inst-ms) 0) >)
+       (take heard-count)
+       (mapv #(vector (guid/feed-key feed url) (guid/item-guid %)))))
+
 (defn show-seeds
   "The ids of the episodes of `lib` of the show of the feed `source`, as
   show/source gives it, that its picks start from, and their weights,
@@ -185,11 +194,7 @@
                                                :order      :newest
                                                :limit      heard-count}))
                    nil]
-      :else       [(->> (:rss/items feed)
-                        (sort-by #(or (some-> (resolve/published %) inst-ms) 0) >)
-                        (take heard-count)
-                        (mapv #(vector (guid/feed-key feed url) (guid/item-guid %))))
-                   nil])))
+      :else       [(newest-in-feed feed url) nil])))
 
 (def like-show
   "The picks under the Show page of the show `guid` in the `state`: like
