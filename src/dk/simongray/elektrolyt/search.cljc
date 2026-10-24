@@ -6,8 +6,8 @@
   order, their :lists by source, the :runs that each list waits for, and
   the source whose list the listener last jumped to, :shown. Each list has
   its :status, :searching, :done or :failed, its :results and, if it
-  failed, the :reason. A search of a link has a :status, :results and, if
-  it failed, an :error.
+  failed, the :reason. A search of a link has a :status, :results, the
+  :run it waits for and, if it failed, an :error.
 
   Each directory's list stays in its own order, unchanged by the others.
   A cached list less than a day old answers without asking the directory,
@@ -86,6 +86,14 @@
   [state q source run l]
   (if (= run (get-in state [:searches q :runs source]))
     (assoc-in state [:searches q :lists source] l)
+    state))
+
+(defn found
+  "The `state` with the `search` of the link `q`, which the search `run`
+  found, unless the search of `q` no longer waits for that run."
+  [state q run search]
+  (if (= run (get-in state [:searches q :run]))
+    (assoc-in state [:searches q] (assoc search :run run))
     state))
 
 (defn shows->list
