@@ -22,12 +22,16 @@
     (is (not (saves/shown? nil)))))
 
 (deftest announced-as-it-comes-and-goes
-  (let [twice  (saves/failed (saves/failed nil {} since) {} since)
-        shown  (saves/noted {} twice)
-        again  (saves/noted (dissoc shown :announcement) (saves/failed twice {} since))
-        saved  (saves/noted shown nil)]
-    (is (= "Your changes aren't saved" (:announcement shown)))
+  (let [twice (saves/failed (saves/failed nil {} since) {} since)
+        shown (saves/noted {} twice)
+        again (saves/noted (dissoc shown :announcement) (saves/failed twice {} since))
+        full  (saves/noted (dissoc shown :announcement)
+                           (saves/failed twice {:cause ::indexeddb/full} since))
+        saved (saves/noted shown nil)]
+    (is (= "Your changes aren't saved yet." (:announcement shown)) "with its reason")
     (is (nil? (:announcement again)) "once")
+    (is (= "Your changes aren't saved, because the browser has no room left." (:announcement full))
+        "and again for another reason")
     (is (= "Your changes are saved" (:announcement saved)))
     (is (not (contains? saved :save-status)))
     (is (nil? (:announcement (saves/noted {} (saves/failed nil {} since))))
@@ -38,4 +42,5 @@
   (is (= "Your changes since 14:32 aren't saved, because the browser has no room left."
          (saves/text {:cause :full} "14:32")))
   (is (re-find #"another tab has a newer version of Elektrolyt\.$"
-               (saves/text {:cause :newer-format} "14:32"))))
+               (saves/text {:cause :newer-format} "14:32")))
+  (is (= "Your changes aren't saved yet." (saves/text {:cause :other} nil)) "or without the time"))

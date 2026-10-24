@@ -1,8 +1,9 @@
 (ns dk.simongray.elektrolyt.library.saves.ui
-  "The line that tells the listener that their changes aren't saved."
+  "The notice that tells the listener that their changes aren't saved."
   (:require [dk.simongray.elektrolyt.library.saves :as saves]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
+            [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
@@ -13,8 +14,9 @@
   (when (saves/shown? status)
     (saves/text status (time-ui/time-text (:since status)))))
 
-;; The line goes with its button once a write goes through, so the focus
-;; moves on to the page's heading
+;; The notice goes with its button once a write goes through, so the focus
+;; moves on to the page's heading. The names say what each does among the
+;; page's other buttons and links, e.g. Search's Try again of a directory.
 (defn actions
   "What the listener can do about the save `status`: try again, after
   making room in Settings when the browser has none, or reload when
@@ -23,24 +25,18 @@
   (let [retry [controls/button {:icon         icons/arrows-clockwise
                                 :data-refocus "main h1"
                                 :on           {:click [[:library/save]]}}
-               "Try again"]]
+               "Try again" [:span.visually-hidden " to save your changes"]]]
     (case cause
       :full         (list [:a {:href (routes/href :route/settings nil nil "this-browser")}
-                           "Make room"]
+                           "Make room" [:span.visually-hidden " in Settings"]]
                           retry)
       :newer-format [controls/button {:icon icons/arrows-clockwise :on {:click [[:page/reload]]}}
-                     "Reload"]
+                     "Reload" [:span.visually-hidden " the page"]]
       retry)))
 
-;; GOV.UK Design System, notification banner: before the page's heading,
-;; a region of its own, one at most, and with nothing to dismiss it, since
-;; it goes once the changes are saved. Here it's a single line.
-;; https://design-system.service.gov.uk/components/notification-banner/
 (defn banner
-  "The line in `state` while the page tells that the changes aren't saved,
-  or nil."
+  "The notice in `state` above the page's heading while the changes
+  aren't saved, or nil."
   [state]
   (when-let [text (status-text state)]
-    [:section.save-banner {:aria-label "Not saved"}
-     [:p [controls/icon {:icon icons/warning-circle}] text]
-     (actions (:save-status state))]))
+    (notices/line {:label "Not saved"} text (actions (:save-status state)))))

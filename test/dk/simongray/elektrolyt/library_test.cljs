@@ -66,7 +66,7 @@
       (app-library/retried! state {:error {:id :library/save-failed}})
       (is (= 1 (get-in @state [:save-status :failures])))
       (app-library/retried! state {:error {:id :library/save-failed}})
-      (is (= "Your changes aren't saved" (:announcement @state)))
+      (is (= "Your changes aren't saved yet." (:announcement @state)))
       (app-library/retried! state {:version "3"})
       (is (= [[::app-library/retry 5000] [::app-library/retry 10000] [::app-library/retry :cancelled]]
              @retries)

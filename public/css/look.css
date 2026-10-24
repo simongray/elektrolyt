@@ -889,13 +889,13 @@ search p {
   }
 }
 
-/* The line of changes that aren't saved, the size of a control's words,
-   with its icon in the grey of the headings */
-.save-banner {
+/* A notice of one line, the size of a control's words, with its icon in
+   the grey of the headings */
+.notice {
   font-size: var(--step--1);
 }
 
-.save-banner p > .icon {
+.notice p > .icon {
   color: var(--ink-2);
   font-size: 1.25em;
 }

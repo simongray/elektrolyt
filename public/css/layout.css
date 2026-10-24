@@ -1368,9 +1368,9 @@ main h1,
   margin: 0;
 }
 
-/* The line of changes that aren't saved, above the page's heading: its
-   words, then what to do, in a row that wraps on a phone */
-.save-banner {
+/* A notice of one line, e.g. of changes that aren't saved: its words,
+   then what to do, in a row that wraps on a phone */
+.notice {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1378,7 +1378,7 @@ main h1,
   margin-bottom: var(--space-3);
 }
 
-.save-banner p {
+.notice p {
   display: flex;
   align-items: baseline;
   gap: 0.4em;
@@ -1387,7 +1387,13 @@ main h1,
 
 /* the icon on the baseline of the first line, lowered to the middle of
    its letters */
-.save-banner p > .icon {
+.notice p > .icon {
   flex: none;
   translate: 0 0.2em;
+}
+
+/* a link at least 24 pixels high, as WCAG 2.2, SC 2.5.8 asks of a target
+   https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
+.notice > a {
+  padding-block: var(--space-1);
 }
