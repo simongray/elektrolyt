@@ -9,16 +9,15 @@
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [replicant.dom :as r]))
 
-;; The app's former name, which existing data is stored under
 (def theme-key
   "The localStorage key of a copy of the listener's theme, which
   public/theme.js applies before the first render."
-  "dk.simongray.podcast-app.theme")
+  "dk.simongray.elektrolyt.theme")
 
 (def contrast-key
   "The localStorage key of a copy of the listener's contrast, which
   public/theme.js applies too."
-  "dk.simongray.podcast-app.contrast")
+  "dk.simongray.elektrolyt.contrast")
 
 (defn attributed!
   "Set the attribute `attr` of the document's root to `v`, or remove it for

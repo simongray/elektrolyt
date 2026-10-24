@@ -41,11 +41,10 @@
     (when (and el (not (.-paused el)))
       el)))
 
-;; The app's former name, which existing data is stored under
 (def volume-key
   "The localStorage key of the volume slider's level, since the volume
   belongs to the device rather than the listener's profile."
-  "dk.simongray.podcast-app.volume")
+  "dk.simongray.elektrolyt.volume")
 
 (defonce ^{:doc "This tab's id on the player's channel."}
   tab

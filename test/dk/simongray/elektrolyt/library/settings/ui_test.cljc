@@ -1,7 +1,7 @@
 (ns dk.simongray.elektrolyt.library.settings.ui-test
   (:require [clojure.test :refer [deftest is testing]]
-            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui-test :refer [elements nodes text-of]]))
@@ -48,13 +48,13 @@
       (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours")
       (is (= "pages" (chosen x "navigation-colours")) "and a colour for each page"))
     (testing "each change applied at once"
-      (is (= [[:settings/prefer ::app/appearance [:event/target-keyword]]]
+      (is (= [[:settings/prefer ::settings/appearance [:event/target-keyword]]]
              (get-in (by-id x :select "light-or-dark") [1 :on :change])))
-      (is (= [[:settings/prefer ::app/contrast [:event/target-keyword]]]
+      (is (= [[:settings/prefer ::settings/contrast [:event/target-keyword]]]
              (get-in (by-id x :select "contrast") [1 :on :change])))
-      (is (= [[:settings/prefer ::app/artwork-colors? [:event/target-checked]]]
+      (is (= [[:settings/prefer ::settings/artwork-colors? [:event/target-checked]]]
              (get-in (by-id x :input "artwork-colours") [1 :on :change])))
-      (is (= [[:settings/prefer ::app/navigation-palette [:event/target-keyword]]]
+      (is (= [[:settings/prefer ::settings/navigation-palette [:event/target-keyword]]]
              (get-in (by-id x :select "navigation-colours") [1 :on :change])))
       (is (= [[:settings/prefer :skip-back [:event/target-number]]]
              (get-in (by-id x :select "skip-back") [1 :on :change]))))
@@ -64,7 +64,7 @@
       (is (= [[:settings/prefer :continuous? [:event/target-checked]]] (get-in attrs [:on :change]))))
     (let [[_ attrs] (by-id x :input "alternative-feeds")]
       (is (= ["switch" true] ((juxt :role :checked) attrs)) "drpodcast.nu's episodes, on at first")
-      (is (= [[:settings/prefer ::app/alternative-feeds? [:event/target-checked]]] (get-in attrs [:on :change]))))
+      (is (= [[:settings/prefer ::settings/alternative-feeds? [:event/target-checked]]] (get-in attrs [:on :change]))))
     (is (= 2 (count (filter #(= "status" (:role (second %))) (elements :p.settings-status x))))
         "a status line beside the buttons of each group that has them")))
 

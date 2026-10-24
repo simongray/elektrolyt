@@ -4,7 +4,6 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
-            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.settings :as settings]))
@@ -79,7 +78,7 @@
     (is (true? (:same-show? (picks/opts state :queue false)))
         "the end of the queue takes the shows of the queue too")
     (is (= [{:status :unplayed :queued? false} nil]
-           ((juxt :where :from) (picks/opts (preferring state {::app/explicit-picks? true}) :home false)))
+           ((juxt :where :from) (picks/opts (preferring state {::settings/explicit-picks? true}) :home false)))
         "or the listener chose explicit picks")))
 
 (deftest explicit-episodes
@@ -116,9 +115,9 @@
       (let [s (state clean)]
         (is (identical? (picks/like-episode s page) (picks/like-episode s page)))
         (is (identical? (picks/like-show s k) (picks/like-show s k)))
-        (is (explicit? (picks/like-episode (preferring s {::app/explicit-picks? true}) page))
+        (is (explicit? (picks/like-episode (preferring s {::settings/explicit-picks? true}) page))
             "but found again once the listener chose explicit picks")
-        (is (explicit? (picks/like-show (preferring s {::app/explicit-picks? true}) k)))
+        (is (explicit? (picks/like-show (preferring s {::settings/explicit-picks? true}) k)))
         (is (not= (titles (picks/like-episode s page))
                   (titles (picks/like-episode s (assoc page :id grinders))))
             "or for another episode")))))
@@ -129,7 +128,7 @@
     (is (= ["Grinders compared"] (like grinders)) "of other shows, but not the explicit ones")
     (is (= #{"Espresso grinders in bed" "Grinders for espresso at night" "Grinders compared" "Damn good espresso"}
            (set (titles (picks/recommended lib [grinders]
-                                      (picks/opts (preferring state {::app/explicit-picks? true}) :episode false)))))
+                                      (picks/opts (preferring state {::settings/explicit-picks? true}) :episode false)))))
         "which the listener can choose")
     (is (seq (:terms (picks/recommended lib [grinders] (picks/opts state :episode false))))
         "with the words that found them")
@@ -150,7 +149,7 @@
       (is (= ["Grinders compared"] (titles (picks/home {:library heard})))
           "but no episode of an explicit show, though it says it's clean")
       (is (some #{"Grinders for espresso at night"}
-                (titles (picks/home (preferring {:library heard} {::app/explicit-picks? true}))))
+                (titles (picks/home (preferring {:library heard} {::settings/explicit-picks? true}))))
           "which the listener can choose")))
   (testing "the end of the queue, like what's in it, of its shows too"
     (is (nil? (picks/after-queue {:library lib})) "none for an empty queue")
@@ -166,7 +165,7 @@
   (let [state {:library lib}]
     (is (nil? (picks/autoplayed state grinders)) "not until the listener chose it")
     (is (= (id "Brew Lab" 0)
-           (picks/autoplayed (preferring state {::app/autoplay? true}) grinders))
+           (picks/autoplayed (preferring state {::settings/autoplay? true}) grinders))
         "and then the first pick after the episode that ended")))
 
 (deftest the-episodes-that-the-picks-of-a-show-start-from

@@ -11,10 +11,8 @@ The namespaces are those of `src/dk/simongray/elektrolyt/`, and
 `runtime.log` and `worker.fetching` reach outside the store, which
 `runtime_test.clj` checks.
 
-The keys and databases that the browser keeps still carry the app's
-former name, `dk.simongray.podcast-app`, and so do the keys of the app's
-preferences in the profile. That way, what a listener saved before the
-rename still opens.
+The names of the browser's keys and databases begin with
+`dk.simongray.elektrolyt.`, which the tables shorten to `…`.
 
 
 In the tab's store

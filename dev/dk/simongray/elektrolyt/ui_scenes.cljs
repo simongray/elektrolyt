@@ -2,7 +2,6 @@
   "Scenes of the whole page: its navigation, in each palette that the
   listener can choose, and a path that no page has."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.ui :as ui]
@@ -22,7 +21,7 @@
   [palette]
   (operations/changed {:route   {:name :route/queue :path-params {}}
                        :library (library/make "scenes")}
-                      (settings/preferred {::app/navigation-palette palette})))
+                      (settings/preferred {::settings/navigation-palette palette})))
 
 (defscene colours-for-colour-blindness
   "The navigation in the colours that keep its pages apart for colour

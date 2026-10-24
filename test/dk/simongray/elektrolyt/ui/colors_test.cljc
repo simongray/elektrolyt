@@ -1,6 +1,5 @@
 (ns dk.simongray.elektrolyt.ui.colors-test
   (:require [clojure.test :refer [deftest is testing]]
-            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.queue :as queue]
@@ -69,7 +68,7 @@
                      (assoc-in [:colors (:artwork next-one)] {:seed "#24476b"}))]
     (is (= "#24476b" (colors/bar-seed colored next-one))
         "the seed of an artwork, e.g. of what plays next")
-    (is (nil? (colors/bar-seed (operations/changed colored (settings/preferred {::app/artwork-colors? false}))
+    (is (nil? (colors/bar-seed (operations/changed colored (settings/preferred {::settings/artwork-colors? false}))
                                next-one))
         "or none, when the listener prefers the app's own colours")))
 
@@ -102,6 +101,6 @@
       (is (nil? (colors/focus (-> page
                                   (assoc-in [:colors (:artwork show)] {:seed "#24476b"})
                                   (assoc :library inbox-test/lib)
-                                  (operations/changed (settings/preferred {::app/artwork-colors? false})))))
+                                  (operations/changed (settings/preferred {::settings/artwork-colors? false})))))
           "or the app's own, when the listener prefers them"))
     (is (nil? (colors/focus state)) "and never what plays, which colours the player alone")))

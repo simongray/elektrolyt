@@ -2,10 +2,7 @@
   "The listener's settings, as the Settings page shows and changes them.
   They're preferences in the profile, so that they sync with it."
   (:require [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.elektrolyt.ui.announcement :as announcement]
-            ;; the app's former name, which existing profiles keep the
-            ;; preferences under
-            [dk.simongray.podcast-app :as-alias app]))
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]))
 
 ;; Apple Podcasts offers skips of 10 to 60 seconds and AntennaPod a list
 ;; too, rather than a number to type, so that a skip can't be wrong
@@ -46,19 +43,18 @@
    [:standard "Standard"]
    [:more "More"]])
 
-;; Preferences that only this app reads sync under keys of its own
-;; namespace, which other apps leave alone. Until October 2026 they had no
-;; namespace, and a profile may still hold those keys.
+;; Preferences that only this app reads sync under keys of this namespace,
+;; which other apps leave alone
 (def defaults
   "The app's own preferences and their defaults, by their keys in the
   profile."
-  {::app/appearance         :auto
-   ::app/contrast           :auto
-   ::app/artwork-colors?    true
-   ::app/navigation-palette :pages
-   ::app/explicit-picks?    false
-   ::app/autoplay?          false
-   ::app/alternative-feeds? true})
+  {::appearance         :auto
+   ::contrast           :auto
+   ::artwork-colors?    true
+   ::navigation-palette :pages
+   ::explicit-picks?    false
+   ::autoplay?          false
+   ::alternative-feeds? true})
 
 (defn preferences
   "The listener's preferences in `state`, or nil without a library."
@@ -66,23 +62,22 @@
   (some-> (:library state) :profile profile/preferences))
 
 (defn preference
-  "The app's own preference `k` in `state`: the listener's choice, under
-  `k` or under the old key without a namespace, or else its default."
+  "The app's own preference `k` in `state`: the listener's choice, or else
+  its default."
   [state k]
-  (let [prefs (preferences state)]
-    (get prefs k (get prefs (keyword (name k)) (defaults k)))))
+  (get (preferences state) k (defaults k)))
 
 (defn theme
   "The colour scheme that the listener chose in `state`, \"light\" or
   \"dark\", or nil to follow the device."
   [state]
-  (some-> (#{:light :dark} (preference state ::app/appearance)) name))
+  (some-> (#{:light :dark} (preference state ::appearance)) name))
 
 (defn contrast
   "The contrast that the listener chose in `state`, \"standard\" or
   \"more\", or nil to follow the device."
   [state]
-  (some-> (#{:standard :more} (preference state ::app/contrast)) name))
+  (some-> (#{:standard :more} (preference state ::contrast)) name))
 
 (defn look
   "The listener's colour scheme and contrast in `state`, as a map of the
@@ -96,7 +91,7 @@
   "Whether the pages in `state` take their colours from artwork rather
   than the app's own."
   [state]
-  (preference state ::app/artwork-colors?))
+  (preference state ::artwork-colors?))
 
 ;; The colours for colour blindness keep the pages apart for protans,
 ;; deutans and tritans, but are closer to each other than the pages' own
@@ -113,12 +108,12 @@
   "The colouring of the navigation's links that the listener chose in
   `state`."
   [state]
-  (preference state ::app/navigation-palette))
+  (preference state ::navigation-palette))
 
 (defn explicit-picks?
   "Whether the picks in `state` may be explicit episodes anywhere."
   [state]
-  (preference state ::app/explicit-picks?))
+  (preference state ::explicit-picks?))
 
 ;; Pocket Casts' Autoplay is off until the listener turns it on
 ;; https://blog.pocketcasts.com/2023/07/25/introducing-autoplay/
@@ -126,14 +121,14 @@
   "Whether autoplay is on in `state`, so that a pick plays when an episode
   ends and nothing else would."
   [state]
-  (preference state ::app/autoplay?))
+  (preference state ::autoplay?))
 
 (defn alternative-feeds?
   "Whether the episodes from drpodcast.nu are on in `state`: DR's own feeds
   take those of their siblings there, and a search asks drpodcast.nu for
   the series that DR publishes no podcast of."
   [state]
-  (preference state ::app/alternative-feeds?))
+  (preference state ::alternative-feeds?))
 
 (defn preferred
   "The change that sets the listener's preferences `prefs`."

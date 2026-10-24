@@ -7,7 +7,6 @@
   store renders the page again."
   (:require [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
-            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.inbox :as inbox]
@@ -47,11 +46,10 @@
     (app-library/change! store change)
     (app-library/save! store)))
 
-;; The app's former name, which existing data is stored under
 (def library-view-key
   "The localStorage key of the Library page's order and layout, kept on
   the device since a layout suits its screen."
-  "dk.simongray.podcast-app.library-view")
+  "dk.simongray.elektrolyt.library-view")
 
 (nxr/register-system->state! deref)
 
@@ -348,7 +346,7 @@
     (when (or (boolean? v) (keyword? v) (js/Number.isFinite v))
       (changed! store (settings/preferred {k v}))
       ;; DR's own feeds are stale now, so a refresh fetches them at once
-      (when (= ::app/alternative-feeds? k)
+      (when (= ::settings/alternative-feeds? k)
         (refresh/refresh-if-due! store)))))
 
 (nxr/register-effect! :settings/search-source

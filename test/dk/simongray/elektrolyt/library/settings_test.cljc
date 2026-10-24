@@ -1,6 +1,5 @@
 (ns dk.simongray.elektrolyt.library.settings-test
   (:require [clojure.test :refer [deftest is]]
-            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.settings :as settings]))
@@ -26,37 +25,32 @@
   (is (nil? (settings/preferences {})) "and none before the library is restored"))
 
 (defn own
-  "The app's own preferences in the `state`, by their keys without the
-  app's namespace."
+  "The app's own preferences in the `state`, by the names of their keys."
   [state]
   (into {} (for [k (keys settings/defaults)]
              [(keyword (name k)) (settings/preference state k)])))
 
 (deftest the-apps-own-preferences
   (let [defaults {:appearance :auto :contrast :auto :artwork-colors? true :navigation-palette :pages
-                  :explicit-picks? false :autoplay? false :alternative-feeds? true}
-        before   {:appearance :dark :contrast :more :artwork-colors? false :navigation-palette :none
-                  :explicit-picks? true :autoplay? true :alternative-feeds? false}]
+                  :explicit-picks? false :autoplay? false :alternative-feeds? true}]
     (is (= defaults (own state)) "the defaults, at first")
     (is (= defaults (own {})) "and before the library is restored")
-    (is (= before (own (preferred state before)))
-        "or what the listener chose under the keys that the app kept them under before")
-    (is (= (assoc before :appearance :light :autoplay? false)
-           (own (preferred (preferred state before) {::app/appearance :light ::app/autoplay? false})))
-        "until they choose again, under the app's namespace")))
+    (is (= (assoc defaults :appearance :light :autoplay? true)
+           (own (preferred state {::settings/appearance :light ::settings/autoplay? true})))
+        "or what the listener chose")))
 
 (deftest the-colours-of-the-app
   (is (nil? (settings/theme state)) "the device's, at first")
-  (is (= "dark" (settings/theme (preferred state {::app/appearance :dark}))))
-  (is (= "light" (settings/theme (preferred state {::app/appearance :light}))))
-  (is (nil? (settings/theme (preferred state {::app/appearance :auto}))))
-  (is (= "more" (settings/contrast (preferred state {::app/contrast :more}))))
-  (is (nil? (settings/contrast (preferred state {::app/contrast :auto}))) "or the device's contrast")
+  (is (= "dark" (settings/theme (preferred state {::settings/appearance :dark}))))
+  (is (= "light" (settings/theme (preferred state {::settings/appearance :light}))))
+  (is (nil? (settings/theme (preferred state {::settings/appearance :auto}))))
+  (is (= "more" (settings/contrast (preferred state {::settings/contrast :more}))))
+  (is (nil? (settings/contrast (preferred state {::settings/contrast :auto}))) "or the device's contrast")
   (is (nil? (settings/theme {})) "and before the library is restored"))
 
 (deftest the-look-to-keep
   (is (= {:theme "dark" :contrast "more"}
-         (settings/look (preferred state {::app/appearance :dark ::app/contrast :more}))))
+         (settings/look (preferred state {::settings/appearance :dark ::settings/contrast :more}))))
   (is (= {:theme nil :contrast nil} (settings/look state))
       "the device's, which forgets the copies of an earlier choice")
   (is (nil? (settings/look {}))

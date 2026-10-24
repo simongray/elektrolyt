@@ -8,8 +8,7 @@
   https://www.nngroup.com/articles/toggle-switch-guidelines/
   https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings
   https://design-system.service.gov.uk/components/fieldset/"
-  (:require [dk.simongray.podcast-app :as-alias app]
-            [dk.simongray.elektrolyt.library.saves.ui :as saves-ui]
+  (:require [dk.simongray.elektrolyt.library.saves.ui :as saves-ui]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.search :as search]
@@ -87,20 +86,20 @@
   [state]
   (group :appearance "Appearance"
          (choice "light-or-dark" "Light or dark" settings/appearances
-                 (settings/preference state ::app/appearance)
-                 [:settings/prefer ::app/appearance [:event/target-keyword]])
+                 (settings/preference state ::settings/appearance)
+                 [:settings/prefer ::settings/appearance [:event/target-keyword]])
          (choice "contrast" "Contrast" settings/contrasts
-                 (settings/preference state ::app/contrast)
-                 [:settings/prefer ::app/contrast [:event/target-keyword]])
+                 (settings/preference state ::settings/contrast)
+                 [:settings/prefer ::settings/contrast [:event/target-keyword]])
          (switch "artwork-colours" "Colours from the artwork"
                  (str "The player takes its colours from the artwork of what "
                       "plays, and a show's page from the show's artwork. "
                       "Otherwise the player keeps the app's own dark grey, and a "
                       "show's page the app's own colours.")
-                 (settings/artwork-colors? state) ::app/artwork-colors?)
+                 (settings/artwork-colors? state) ::settings/artwork-colors?)
          (choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
                  (settings/navigation-palette state)
-                 [:settings/prefer ::app/navigation-palette [:event/target-keyword]])))
+                 [:settings/prefer ::settings/navigation-palette [:event/target-keyword]])))
 
 (defn playback
   "The playback settings in `state`."
@@ -123,7 +122,7 @@
            (switch "autoplay" "Autoplay"
                    (str "When an episode ends and neither the queue nor Continuous "
                         "play has another, the first of More like your queue plays.")
-                   (settings/autoplay? state) ::app/autoplay?)
+                   (settings/autoplay? state) ::settings/autoplay?)
            (choice "track-buttons" "Next and previous on the lock screen go to"
                    settings/track-buttons
                    track-buttons [:settings/prefer :track-buttons [:event/target-keyword]]))))
@@ -136,7 +135,7 @@
                  (str "Unless this is on, recommendations are explicit only under "
                       "an explicit episode or show, and at the end of a queue that "
                       "has one.")
-                 (settings/explicit-picks? state) ::app/explicit-picks?)))
+                 (settings/explicit-picks? state) ::settings/explicit-picks?)))
 
 (defn directory-row
   "The row of the directory `source` at index `i`, `on?` or off, with the
@@ -190,7 +189,7 @@
                       "republishes from DR's radio, which DR's own feeds leave out "
                       "or have later. A search finds the programmes that DR "
                       "publishes no podcast of there too.")
-                 (settings/alternative-feeds? state) ::app/alternative-feeds?)))
+                 (settings/alternative-feeds? state) ::settings/alternative-feeds?)))
 
 ;; AntennaPod, Pocket Casts and Castro all import and export OPML
 ;; https://antennapod.org/documentation/

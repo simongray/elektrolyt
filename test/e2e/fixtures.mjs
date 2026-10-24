@@ -94,7 +94,7 @@ export function navLink(page, title) {
  */
 export function cached(page) {
   return page.evaluate(() => new Promise((resolve, reject) => {
-    const request = indexedDB.open('dk.simongray.podcast-app.cache', 1);
+    const request = indexedDB.open('dk.simongray.elektrolyt.cache', 1);
     request.onupgradeneeded = () => {
       request.result.createObjectStore('bodies');
       request.result.createObjectStore('versions');

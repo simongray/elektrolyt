@@ -61,7 +61,7 @@
 (def marks-db
   "The IndexedDB database of the marks of an import that wait for their
   feeds."
-  (indexeddb/store "dk.simongray.podcast-app.opml"))
+  (indexeddb/store "dk.simongray.elektrolyt.opml"))
 
 ;; A document per import, so that a second import leaves the marks of the
 ;; first alone

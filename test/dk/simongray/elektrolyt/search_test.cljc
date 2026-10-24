@@ -1,8 +1,8 @@
 (ns dk.simongray.elektrolyt.search-test
   (:require [clojure.test :refer [deftest is]]
-            [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.search :as search]))
 
 (def pc20
@@ -98,7 +98,7 @@
   (let [lib (library/update-profile (library/make "test") profile/prefer {:search-sources [:fyyd :gpodder]})]
     (is (= [:fyyd :gpodder :drpodcast] (search/sources {:library lib})) "the listener's own, in their order")
     (is (= [:fyyd :gpodder]
-           (search/sources {:library (library/update-profile lib profile/prefer {::app/alternative-feeds? false})}))
+           (search/sources {:library (library/update-profile lib profile/prefer {::settings/alternative-feeds? false})}))
         "and drpodcast.nu only while DR's feeds take its episodes"))
   (is (= "drpodcast.nu" (search/source-name :drpodcast)))
   (is (= "fyyd" (search/source-name :fyyd))))

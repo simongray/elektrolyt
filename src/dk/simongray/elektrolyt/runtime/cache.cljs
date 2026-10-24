@@ -11,10 +11,9 @@
             [dk.simongray.elektrolyt.runtime :as runtime]
             [taoensso.telemere :as tel]))
 
-;; The app's former name, which existing data is stored under
 (def store
   "The IndexedDB database of the caches."
-  (indexeddb/store "dk.simongray.podcast-app.cache"))
+  (indexeddb/store "dk.simongray.elektrolyt.cache"))
 
 (defn config
   "The config of a like-minded cache whose keys start with `prefix`,

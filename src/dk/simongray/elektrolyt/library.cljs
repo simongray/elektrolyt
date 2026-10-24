@@ -27,14 +27,13 @@
   app's server."
   (proxy/sender "/proxy"))
 
-;; The app's former name, which existing data is stored under
 (def device-key
   "The localStorage key of this browser's device id."
-  "dk.simongray.podcast-app.device")
+  "dk.simongray.elektrolyt.device")
 
 (def store
   "The library's IndexedDB database."
-  (indexeddb/store "dk.simongray.podcast-app.library"))
+  (indexeddb/store "dk.simongray.elektrolyt.library"))
 
 ;; The app offers no choice of where new episodes go, so they all go to the
 ;; inbox. A show's own choice from an earlier version or another app stays

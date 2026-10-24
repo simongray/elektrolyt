@@ -101,7 +101,7 @@ test("the colours are the device's, or light or dark as the listener chooses, in
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('main').getByLabel('Light or dark').selectOption('Automatic, as the device');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme');
-  expect(await page.evaluate(() => localStorage.getItem('dk.simongray.podcast-app.theme'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('dk.simongray.elektrolyt.theme'))).toBeNull();
 });
 
 /** The colour of the link to the Queue in the navigation of `page`. */
