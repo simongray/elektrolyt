@@ -38,14 +38,14 @@
   (boolean (or (some :error podroll) (:error publisher))))
 
 (defn kept
-  "What the page shows of the linked shows `fetched` for the show `guid`:
-  the podroll's cards, and the publisher's title and the cards of its
-  other shows when its feed confirms this one."
-  [guid {:keys [podroll publisher]}]
+  "What the page shows of the linked shows `fetched` for the show that goes
+  by the set of guids `own`: the podroll's cards, and the publisher's
+  title and the cards of its other shows when its feed confirms this one."
+  [own {:keys [podroll publisher]}]
   (let [others (when (:confirmed? publisher)
                  (->> (:shows publisher)
                       (keep card)
-                      (remove #(= guid (:guid %)))
+                      (remove (comp own :guid))
                       vec))]
     (cond-> {:podroll (into [] (keep card) podroll)}
       (seq others) (assoc :publisher {:title (some-> (:feed publisher) resolve/title)

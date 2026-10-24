@@ -100,6 +100,8 @@
 (deftest a-feed-gone-from-the-url-in-the-cache
   (let [guid   "g"
         cached {:feed-urls {guid {:url url :from :cache}}}]
+    (is (show/gone? {:status 404}))
+    (is (not (show/gone? nil)) "rather than a fetch that went well")
     (is (show/gone-from-cache? cached guid {:status 404}))
     (is (show/gone-from-cache? cached guid {:status 410}))
     (is (not (show/gone-from-cache? cached guid {:status 500})) "rather than a server that fails")
@@ -183,6 +185,23 @@
                                                     [:rss/items 0 :rss/title] "One, edited")}
                                    later)))
         "and at once when the feed brings no new episode, e.g. an edit")))
+
+(deftest a-feed-that-lost-its-episodes
+  (is (show/emptied? (feed "A Show" "One") (feed "A Show"))
+      "as some hosts answer during an outage")
+  (is (not (show/emptied? (feed "A Show") (feed "A Show"))) "rather than a show yet to publish")
+  (is (not (show/emptied? (feed "A Show" "One") (feed "A Show" "Two")))))
+
+(deftest a-feed-that-moved
+  (let [moved   "https://example.org/moved.xml"
+        hubs    {:hubs ["https://hub.example.org/"] :topic moved}
+        fetched {:url moved :feed (feed "A Show" "One") :status 200 :permanent-url moved :websub hubs}
+        state   (show/whole (on-page "g") url (show/kept fetched) #inst "2026-10-18T12:00:00Z" false)
+        whole   (show/whole-feed state url)]
+    (is (= {:permanent-url moved :websub hubs} (select-keys whole show/subscription-keys))
+        "where it moved to and its hubs, through the cache, for a subscription")
+    (is (= moved (-> (library/subscribe (library/make "test") url whole) :feeds vals first :url))
+        "which keeps the feed at the URL that it moved to")))
 
 (deftest a-show-that-the-library-keeps-for-one-episode
   (let [other "https://example.org/other.xml"

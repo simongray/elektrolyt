@@ -87,7 +87,10 @@
     (is (re-find #"Didn't answer" (text-of x)))
     (is (= [[:search/retry "x" :apple]]
            (get-in (first (elements :button (elements :section.search-list x))) [1 :on :click]))
-        "which can be asked again"))
+        "which can be asked again")
+    (is (= (str "#" (search/list-id :apple))
+           (get-in (first (elements :button (elements :section.search-list x))) [1 :data-refocus]))
+        "and gives the focus to the list's heading as the button goes"))
   (let [kept (app-search/stale-list (app-search/failed "timeout")
                                     {:value {:results [{:url "https://a.example/feed.xml" :title "A"}]}
                                      :at    #inst "2026-10-12T12:00:00Z"})

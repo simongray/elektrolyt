@@ -105,17 +105,43 @@
            [(details/web-link link "Website")
             (some-> url (details/web-link "Feed" icons/rss))])))
 
+(defn episode-href
+  "The path of the page of the episode `row` of the show `show-guid`, with
+  the feed's `url` for a show outside the library, or nil for an item
+  with neither a guid nor an enclosure, which has no page."
+  [show-guid {:keys [guid title] :as row} url]
+  (when guid
+    (routes/episode-href show-guid guid title url)))
+
 (defn episode-row
   "The episode `row` in the list of episodes in `state`: its artwork, or
   else the `show`'s, and its title in the language `lang`, both linking to
-  `href`, with its date, duration and source."
-  [state href {:keys [title published duration supplement] :as row} lang show]
-  [:article.show-episode
-   (lists-ui/linked-row href (lists-ui/thumbnail state (if (:artwork row) row show))
-                        :h3 title lang
-                        [(some-> published time-ui/date)
-                         (some-> duration time-ui/duration)
-                         (facts-ui/source supplement)])])
+  `href` when there is one, with its date, duration and source. A trailer
+  or a bonus says so, since the list puts the trailers first."
+  [state href {:keys [type title published duration supplement] :as row} lang show]
+  (let [img   (lists-ui/thumbnail state (if (:artwork row) row show))
+        facts [(case type "trailer" "Trailer" "bonus" "Bonus" nil)
+               (some-> published time-ui/date)
+               (some-> duration time-ui/duration)
+               (facts-ui/source supplement)]]
+    [:article.show-episode
+     (if href
+       (lists-ui/linked-row href img :h3 title lang facts)
+       (list img
+             [:h3 (cond-> {} lang (assoc :lang lang)) title]
+             (facts-ui/line facts)))]))
+
+(defn failure-text
+  "Why a feed couldn't be fetched, by the `error` of its fetch, in words
+  for the listener rather than the library's own, which are about
+  refreshes."
+  [{:keys [id status]}]
+  (case id
+    :fetch/status             (str "Its server answered with an error, " status ".")
+    :fetch/unreachable        "Its server couldn't be reached."
+    :fetch/malformed          "What its server sent isn't a podcast feed."
+    :fetch/unsupported-format "It's an Atom or RSS 1.0 feed, which can't be read."
+    nil))
 
 (defn status-text
   "The text of the episodes' status line for the feed's load `status`, with
@@ -124,7 +150,7 @@
   [status n error newer]
   (case status
     :loading "Loading episodes…"
-    :failed  (str "The feed couldn't be fetched. " (:message error))
+    :failed  (str/join " " (remove nil? ["The feed couldn't be fetched." (failure-text error)]))
     (str (text/counted n "episode") "."
          (when newer
            (str " " (text/counted newer "new episode") (if (= 1 newer) " is in." " are in."))))))
@@ -137,7 +163,10 @@
 ;; https://web.dev/articles/offline-cookbook#cache-then-network
 ;;
 ;; A show in the library is there whole, so a load of its feed from before
-;; the subscription, e.g. a prefetch, doesn't apply to it
+;; the subscription, e.g. a prefetch, doesn't apply to it.
+;;
+;; The button goes once the last page is listed, so the focus moves on to
+;; the first episode that it listed
 (defn episodes
   "The episodes of the show `page` in `state`, a page at a time, with the
   status of the load and buttons for newer episodes that wait and for
@@ -158,12 +187,13 @@
         (str "Show the " (text/plural newer "new episode"))])
      (when (seq rows)
        [:ol.episodes {:role "list"}
-        (for [row (take shown rows)]
-          [:li {:replicant/key (:guid row)}
-           (episode-row state (routes/episode-href (or key g) (:guid row) (:title row) url) row lang page)])])
+        (for [[i row] (map-indexed vector (take shown rows))]
+          [:li {:replicant/key (or (:guid row) i)}
+           (episode-row state (episode-href (or key g) row url) row lang page)])])
      (when (< shown (count rows))
-       [:button {:type "button"
-                 :on   {:click [[:show/more g (count rows)]]}}
+       [:button {:type         "button"
+                 :data-refocus (str "ol.episodes > li:nth-child(" (inc shown) ") h3 a")
+                 :on           {:click [[:show/more g (count rows)]]}}
         "Show more episodes"])]))
 
 (def looking-up

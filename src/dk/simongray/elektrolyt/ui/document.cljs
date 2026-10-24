@@ -110,7 +110,7 @@
   [state]
   (when-let [path (ui/canonical-path state)]
     (when (not= path (str js/location.pathname js/location.search))
-      (.replaceState js/history nil "" path))))
+      (.replaceState js/history nil "" (str path js/location.hash)))))
 
 (defn focus!
   "Move the focus to the element `id`, where there's one."

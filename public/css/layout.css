@@ -390,8 +390,11 @@ search p {
 
 /* A feed's URL has no spaces to wrap at, so it wraps anywhere rather than
    widen the page on a phone (WCAG 2.2, SC 1.4.10 Reflow), and so do the
-   links in a show's notes */
+   links in a show's notes, a result titled by its URL and a long word in
+   a page's title, e.g. a Danish compound */
 .search-results p,
+.search-results h3,
+main h1,
 .show-notes {
   overflow-wrap: anywhere;
 }

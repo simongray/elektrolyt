@@ -36,16 +36,22 @@
 ;; leaves out the units of zero. Pocket Casts writes a length the same way.
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DurationFormat
 ;; https://github.com/Automattic/pocket-casts-android/blob/main/modules/services/localization/src/main/res/values/strings.xml#L486-L489
+;; It writes the seconds even when they're 0, which it would leave out, and
+;; nothing for a number too large to be a duration, which it would throw on
 (defn duration-text
-  "The `seconds` of an episode in words, e.g. \"1h 23m\"."
+  "The `seconds` of an episode in words, e.g. \"1h 23m\", or nil when
+  they're too many to count."
   [seconds]
-  (let [parts (duration-parts seconds)]
-    #?(:clj  (or (not-empty (str/join " " (for [[k unit] [[:hours "h"] [:minutes "m"] [:seconds "s"]]
-                                                 :when (pos? (k parts 0))]
-                                             (str (k parts) unit))))
-                 "0s")
-       :cljs (.format (js/Intl.DurationFormat. (text/language) #js {:style "narrow"})
-                      (clj->js parts)))))
+  (when (time/countable? seconds)
+    (let [parts (duration-parts seconds)]
+      #?(:clj  (or (not-empty (str/join " " (for [[k unit] [[:hours "h"] [:minutes "m"] [:seconds "s"]]
+                                                   :when (pos? (k parts 0))]
+                                               (str (k parts) unit))))
+                   "0s")
+         :cljs (.format (js/Intl.DurationFormat. (text/language)
+                                                 #js {:style          "narrow"
+                                                      :secondsDisplay (if (:seconds parts) "always" "auto")})
+                        (clj->js parts))))))
 
 (defn duration-attribute
   "The `seconds` as the datetime of a time element, e.g. \"PT5025S\"."
@@ -53,9 +59,11 @@
   (str "PT" (long seconds) "S"))
 
 (defn duration
-  "The `seconds` of an episode as a time element, e.g. 1h 23m."
+  "The `seconds` of an episode as a time element, e.g. 1h 23m, or nil when
+  they're too many to count."
   [seconds]
-  [:time {:datetime (duration-attribute seconds)} (duration-text seconds)])
+  (when-let [text (duration-text seconds)]
+    [:time {:datetime (duration-attribute seconds)} text]))
 
 (defn clock-text
   "The `seconds` as a clock shows them, e.g. \"12:34\", or \"–:––\" while

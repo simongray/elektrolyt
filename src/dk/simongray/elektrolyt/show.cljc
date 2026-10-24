@@ -6,7 +6,8 @@
   The state holds the feeds of shows outside the library:
 
   - :feeds has each feed by URL, as a map of the :feed and whether it's
-    :whole?, the :validators and :fetched-at of a whole fetch, whether
+    :whole?, the :validators and :fetched-at of a whole fetch, with its
+    :permanent-url, :new-feed-url and :websub for a subscription, whether
     this visit has :checked? it, the :error of a whole fetch that failed,
     and a :newer feed that waits for the listener.
   - :feed-urls has each show's feed URL by guid, as a map of the :url and
@@ -44,6 +45,7 @@
   artwork if it has any."
   [item]
   {:guid          (guid/item-guid item)
+   :type          (:type (resolve/numbering item))
    :title         (resolve/title item)
    :published     (resolve/published item)
    :duration      (resolve/duration item)
@@ -236,11 +238,16 @@
   is fresh."
   [:etag :last-modified :not-before])
 
+(def subscription-keys
+  "The keys of a whole fetch that a subscription takes besides the feed and
+  the validators: where the feed moved to for good, and its WebSub hubs."
+  [:permanent-url :new-feed-url :websub])
+
 (defn kept
-  "What the cache keeps of the whole feed `fetched`: its URL, the feed and
-  the fetch's validators."
+  "What the cache keeps of the whole feed `fetched`: its URL, the feed, the
+  fetch's validators, and where the feed moved to and its hubs."
   [fetched]
-  (select-keys fetched (into [:url :feed] validator-keys)))
+  (select-keys fetched (concat [:url :feed] validator-keys subscription-keys)))
 
 (defn validators
   "The validators of the fetch `fetched`, for a subscription or the next
@@ -264,25 +271,40 @@
   `fetched-at`, replacing any earlier entry. The feed is `checked?` when
   it came from the network or was fresh in the cache."
   [state url fetched fetched-at checked?]
-  (assoc-in state [:feeds url] {:feed       (:feed fetched)
-                                :whole?     true
-                                :validators (validators fetched)
-                                :fetched-at fetched-at
-                                :checked?   checked?}))
+  (assoc-in state [:feeds url] (merge {:feed       (:feed fetched)
+                                       :whole?     true
+                                       :validators (validators fetched)
+                                       :fetched-at fetched-at
+                                       :checked?   checked?}
+                                      (select-keys fetched subscription-keys))))
 
 ;; RFC 9110, section 15.5.5 and 15.5.11: a feed that's gone from a URL
+(defn gone?
+  "Whether a fetch failed with `error` because the feed is gone from its
+  URL, a 404 or a 410."
+  [error]
+  (contains? #{404 410} (:status error)))
+
 (defn gone-from-cache?
   "Whether the whole feed of the show `guid` in `state` failed with `error`
-  because it's gone from the URL that the cache had, a 404 or a 410."
+  because it's gone from the URL that the cache had."
   [state guid error]
   (and (= :cache (get-in state [:feed-urls guid :from]))
-       (contains? #{404 410} (:status error))))
+       (gone? error)))
 
 (defn new-episodes
   "How many episodes the feed `fresh` has that the feed `old` hasn't."
   [old fresh]
   (let [known (set (map guid/item-guid (:rss/items old)))]
     (count (remove known (map guid/item-guid (:rss/items fresh))))))
+
+;; podcast-clj's refresh counts such a feed as a failure too, with
+;; :fetch/empty-feed
+(defn emptied?
+  "Whether the feed `fresh` has no items where the feed `old` had some, as
+  some hosts answer during an outage."
+  [old fresh]
+  (boolean (and (seq (:rss/items old)) (empty? (:rss/items fresh)))))
 
 (defn listed?
   "Whether the page in `state` is the Show page of the show `guid`, which
@@ -316,12 +338,13 @@
 
 (defn whole-feed
   "The whole feed at `url` in `state`, as a fetch returns it with its
-  validators, or nil. A :newer feed that waits comes first, since a
-  subscription should start from the newest."
+  validators, where it moved to and its hubs, or nil. A :newer feed that
+  waits comes first, since a subscription should start from the newest."
   [state url]
-  (let [{:keys [feed whole? validators newer]} (get-in state [:feeds url])]
+  (let [{:keys [feed whole? validators newer] :as entry} (get-in state [:feeds url])]
     (when whole?
-      (or (:fetched newer) (assoc validators :feed feed)))))
+      (or (:fetched newer)
+          (merge validators (select-keys entry subscription-keys) {:feed feed})))))
 
 (defn newer-shown
   "The `state` with the :newer feed of the show `guid` in place of the one

@@ -40,9 +40,12 @@
     (is (= {:podroll   [{:guid "g1" :title "Podnews Weekly Review" :url "https://example.org/weekly.xml"
                          :artwork "https://example.org/art.jpg"}]
             :publisher {:title "Podnews LLC" :shows [{:guid "g3" :title "Podnews Daily"}]}}
-           (linked/kept "this" fetched))
+           (linked/kept #{"this"} fetched))
         "the other shows of the publisher")
-    (is (nil? (:publisher (linked/kept "this" (assoc-in fetched [:publisher :confirmed?] false))))
+    (is (= [{:guid "g3" :title "Podnews Daily"}]
+           (get-in (linked/kept #{"from-its-url" "this"} fetched) [:publisher :shows]))
+        "and not this show by the guid that its feed declares, where its page goes by another")
+    (is (nil? (:publisher (linked/kept #{"this"} (assoc-in fetched [:publisher :confirmed?] false))))
         "but only when its feed lists this show too")))
 
 (deftest a-feed-that-links-to-shows

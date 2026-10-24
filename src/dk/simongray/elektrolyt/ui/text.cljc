@@ -112,10 +112,11 @@
   "The size of a file of `bytes`, e.g. \"86 MB\", to the kilobyte or the
   megabyte, or to a tenth of a gigabyte."
   [bytes]
+  ;; by the size once it's rounded, so that it never reads 1,000 kB
   (cond
-    (< bytes 1e6) (quantity (/ bytes 1e3) "kilobyte" 0 0)
-    (< bytes 1e9) (quantity (/ bytes 1e6) "megabyte" 0 0)
-    :else         (quantity (/ bytes 1e9) "gigabyte" 0 1)))
+    (< bytes 999.5e3) (quantity (/ bytes 1e3) "kilobyte" 0 0)
+    (< bytes 999.5e6) (quantity (/ bytes 1e6) "megabyte" 0 0)
+    :else             (quantity (/ bytes 1e9) "gigabyte" 0 1)))
 
 (defn megabytes
   "The `bytes` in megabytes to a tenth, e.g. \"12.3 MB\"."

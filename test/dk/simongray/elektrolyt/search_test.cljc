@@ -90,7 +90,12 @@
          (->> (search/feeds->search {:feeds [{:url "https://example.org/podcast.xml" :podcast? true}
                                              {:url "https://example.org/blog.xml" :podcast? false}]})
               :results
-              (map :url)))))
+              (map :url))))
+  (is (search/failed? (search/feeds->search {:feeds [] :error {:id :fetch/unreachable}}))
+      "a link that couldn't be fetched, e.g. offline, fails the search")
+  (is (search/failed? (search/feeds->search {:feeds [] :error {:id :fetch/status :status 503}})))
+  (is (not (search/failed? (search/feeds->search {:feeds [] :error {:id :discovery/not-found}})))
+      "but a link without feeds is an answer"))
 
 (deftest the-subscribed-feeds
   (let [lib (library/subscribe (library/make "test") "https://feeds.podcastindex.org/pc20.xml")]
@@ -105,11 +110,25 @@
   (is (= [[:route/push :route/search]]
          (search/submitted {} " ")))
   (let [listed (fn [status]
-                 {:searches {"pc20" {:sources [:apple]
+                 {:searches {"pc20" {:sources (search/sources {})
                                      :lists   {:apple {:status status :results []}}}}})]
     (is (= [[:route/push :route/search {} {:q "pc20"}]]
            (search/submitted (listed :done) "pc20"))
         "a search that went well stays")
     (is (= [[:search/run "pc20"] [:route/push :route/search {} {:q "pc20"}]]
            (search/submitted (listed :failed) "pc20"))
-        "one that failed somewhere runs again, before the navigation")))
+        "one that failed somewhere runs again, before the navigation")
+    (is (= [[:search/run "pc20"] [:route/push :route/search {} {:q "pc20"}]]
+           (search/submitted (assoc-in (listed :done) [:searches "pc20" :sources] [:fyyd]) "pc20"))
+        "as does one that asked other directories than a search asks now")))
+
+(deftest a-search-of-other-directories
+  (let [state {:searches {"pc20" (search/searching [:apple :fyyd :drpodcast])
+                          "atp.fm" {:status :done :results []}}}]
+    (is (not (search/outdated? state "pc20")) "the directories that a search asks now")
+    (is (search/outdated? (assoc-in state [:searches "pc20" :sources] [:apple]) "pc20")
+        "rather than those before a change in Settings")
+    (is (search/outdated? (assoc-in state [:searches "pc20" :sources] [:fyyd :apple :drpodcast]) "pc20")
+        "or in another order")
+    (is (not (search/outdated? state "atp.fm")) "a search of a link asks no directory")
+    (is (not (search/outdated? state "other")) "nor one that never ran")))

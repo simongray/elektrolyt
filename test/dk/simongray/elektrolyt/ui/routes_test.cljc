@@ -21,6 +21,11 @@
 (deftest unknown-path-has-no-route
   (is (nil? (route-of "/nowhere"))))
 
+(deftest a-stray-percent-sign
+  (is (= "/search?q=100%25" (routes/decodable "/search?q=100%")))
+  (is (= "/shows/%25zz#50%25" (routes/decodable "/shows/%zz#50%")))
+  (is (= "/search?q=a%20b" (routes/decodable "/search?q=a%20b")) "but not an escape"))
+
 (deftest a-page-with-another-query-is-the-same-page
   (let [search {:name :route/search :path-params {} :query-params {:q "a"}}]
     (is (routes/same-page? search (assoc search :query-params {:q "b"})))
@@ -104,6 +109,9 @@
   (is (= [[:store/assoc :route (search-page "x")] [:page/focus-heading] [:episodes/forget]]
          (routes/navigated {:route inbox :searches {"x" {:status :done}}} (search-page "x")))
       "Back to a search that's kept")
+  (is (= [[:store/assoc :route (search-page "x")] [:page/focus-heading] [:episodes/forget] [:search/run "x"]]
+         (routes/navigated {:route inbox :searches {"x" {:sources [:apple] :lists {}}}} (search-page "x")))
+      "but not one of the directories from before a change in Settings")
   (is (= [[:store/assoc :route (search-page nil)]]
          (routes/navigated {} (search-page nil)))))
 

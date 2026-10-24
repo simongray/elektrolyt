@@ -125,29 +125,41 @@
   (boolean (or (= :searching status)
                (some #(= :searching (:status %)) (vals lists)))))
 
+(defn outdated?
+  "Whether the search of the words `q` in `state` asked other directories
+  than a search asks now, e.g. those from before a change in Settings."
+  [state q]
+  (let [{:keys [lists] :as search} (get-in state [:searches q])]
+    (boolean (and lists (not= (:sources search) (sources state))))))
+
 (defn submitted
   "The actions for the words or the link `q` that the listener submitted
   in `state`: put the query in the URL, whose navigation runs a search
   that isn't in the state yet, and first rerun a search that failed
-  somewhere.
+  somewhere or asked other directories.
 
   A search that went well stays, since the cache would return the same
   lists. One that runs again comes first, so that the navigation finds it
   under way and doesn't start another."
   [state q]
-  (let [q    (str/trim (str q))
-        push [:route/push :route/search {} {:q q}]]
+  (let [q      (str/trim (str q))
+        push   [:route/push :route/search {} {:q q}]
+        rerun? (or (failed? (get-in state [:searches q])) (outdated? state q))]
     (cond
-      (str/blank? q)                         [[:route/push :route/search]]
-      (failed? (get-in state [:searches q])) [[:search/run q] push]
-      :else                                  [push])))
+      (str/blank? q) [[:route/push :route/search]]
+      rerun?         [[:search/run q] push]
+      :else          [push])))
 
+;; A search fails when the link couldn't be fetched, e.g. offline, so that
+;; it can run again. A link without feeds is an answer, not a failure.
 (defn feeds->search
   "The search of the feeds `found` at a link, counting only podcasts, not
-  e.g. a blog's feed."
-  [{:keys [feeds] :as found}]
-  {:status  :done
-   :results (into [] (comp (filter :podcast?) (map feed->result)) feeds)})
+  e.g. a blog's feed. It has the :error of a link that couldn't be
+  fetched."
+  [{:keys [feeds error] :as found}]
+  (cond-> {:status  :done
+           :results (into [] (comp (filter :podcast?) (map feed->result)) feeds)}
+    (#{:fetch/unreachable :fetch/status} (:id error)) (assoc :error error)))
 
 (defn source-name
   "The name of the directory `source-id` for the listener."
