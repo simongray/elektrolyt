@@ -26,6 +26,13 @@ Then start the server and the shadow-cljs watch in one JVM:
 clojure -M:cljs:server:serve
 ```
 
+If you have checkouts of the libraries beside this one, add the `:local`
+alias to this command and to every other one, e.g.
+`clojure -M:cljs:server:local:serve`. It takes podcast-clj, play-nice,
+colour-coded, like-minded, mind-meld and wary-fetch from `../podcast-clj`
+and the other checkouts, so that a fix in any of them shows in the app at
+once. Without it, they come from the versions in `deps.edn`.
+
 The app is at http://localhost:8400, and its views are at
 http://localhost:8402, in [Portfolio](https://github.com/cjohansen/portfolio),
 with a scene for each state of each view.
@@ -130,12 +137,6 @@ The watch starts an nREPL server of its own, whose port is in
 there to reach the app in an open tab. The `:serve` alias starts another
 one, whose port is in `.nrepl-port`.
 
-To work on the libraries at the same time, add the `:local` alias, e.g.
-`clojure -M:cljs:server:local:serve`. It takes podcast-clj, play-nice,
-colour-coded, like-minded, mind-meld and wary-fetch from checkouts beside
-this one, e.g. `../podcast-clj`, so that a fix in any of them shows in the
-app at once.
-
 The page, its web worker and the server log with
 [Telemere](https://github.com/taoensso/telemere). Each event has an id and
 data, e.g. `:library/save-failed`, and a release build logs only errors and
@@ -158,6 +159,10 @@ To run the tests in Node:
 clojure -M:cljs compile test
 ```
 
+While the watch is running, don't start a second shadow-cljs beside it.
+Evaluate `(shadow.cljs.devtools.api/compile :test)` in its nREPL instead,
+which runs the tests too.
+
 To run the server's tests on the JVM:
 
 ```bash
@@ -165,15 +170,17 @@ clojure -X:server:test
 ```
 
 The end-to-end tests run in Firefox and your installed Chrome, against the
-app that the watch built into `public/`, with a server of their own on a
-free port. Install Playwright's Firefox once:
+app in `public/`, with a server of their own on a free port. The watch
+builds the app there, so start the watch first, or else build the app
+with `clojure -M:cljs compile app`. Install Playwright's Firefox once:
 
 ```bash
 npx playwright install firefox
 ```
 
 Then run them. Their server takes the `:server` and `:local` aliases unless
-`E2E_ALIASES` names others, so without the checkouts, name `:server` alone:
+`E2E_ALIASES` names others, so with the checkouts, `npm run e2e` is enough.
+Without them, name `:server` alone:
 
 ```bash
 E2E_ALIASES=:server npm run e2e
