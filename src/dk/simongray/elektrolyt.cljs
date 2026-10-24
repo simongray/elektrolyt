@@ -25,7 +25,7 @@
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.search :as search]
-            [dk.simongray.elektrolyt.search.searches :as searches]
+            [dk.simongray.elektrolyt.search.directories :as directories]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.feeds :as feeds]
@@ -141,11 +141,11 @@
 
 (nxr/register-effect! :search/run
   (fn [{:keys [dispatch]} store q]
-    (searches/search! dispatch q (search/sources @store) (search/index-credentials @store))))
+    (directories/search! dispatch q (search/sources @store) (search/index-credentials @store))))
 
 (nxr/register-effect! :search/retry
   (fn [{:keys [dispatch]} store q source]
-    (searches/search-directory! dispatch q source (search/index-credentials @store) true)))
+    (directories/search-directory! dispatch q source (search/index-credentials @store) true)))
 
 (nxr/register-effect! :show/load
   (fn [_ store guid url preview?]

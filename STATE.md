@@ -32,7 +32,7 @@ as long as the tab.
 | `:feed-urls` | Where a show's feed is, by guid, from the cache or the Podcast Index | `show.feeds` | `show` | Clear cache, or a 404 or 410 at a URL from the cache |
 | `:requests` | The requests for those feeds in flight | `show.feeds`, through `show` | `show/status` | When answered |
 | `:episodes-shown` | How many episodes a Show page lists, by guid | `show` (`:show/more`) | `show.ui` | Never |
-| `:searches` | The searches by query, each directory's results | `search.searches`, `search.ui` | `routes`, `search`, `show`, `search.ui` | Clear cache |
+| `:searches` | The searches by query, each directory's results | `search.directories`, `search.ui` | `routes`, `search`, `show`, `search.ui` | Clear cache |
 | `:linked` | The shows that a show links to, by guid | `show.feeds` | `show.ui` | Clear cache |
 | `:colors` | The colours of artwork, by URL | `artwork.colors` | `colors`, the views | Clear cache |
 | `:refresh-status` | The refresh under way, and what the last one found | `library.refresh` | `library.refresh`, `library.opml`, `library.ui` | Overwritten |
@@ -83,7 +83,7 @@ In IndexedDB
 | Database | What it holds | Writers | Readers | Cleared |
 |---|---|---|---|---|
 | `…library` | The library's document, a document per feed, and the search index's | The tabs, with `library/durable-swap!`; the worker puts only feed documents | The tabs, with `library/read!`; the worker, with `fetch-due!` | Never by the app; the browser can evict it unless the site's storage persists |
-| `…cache` | Directory results, feed URLs by guid, feeds of shows outside the library, linked shows, colours of artwork | `search.searches`, `show.feeds`, `artwork.colors`, once the page is idle | the same | By age and count, and Clear cache |
+| `…cache` | Directory results, feed URLs by guid, feeds of shows outside the library, linked shows, colours of artwork | `search.directories`, `show.feeds`, `artwork.colors`, once the page is idle | the same | By age and count, and Clear cache |
 
 
 Between the tabs and the worker
