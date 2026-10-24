@@ -62,20 +62,24 @@
   feeds."
   (indexeddb/store "dk.simongray.podcast-app.opml"))
 
-(def marks-name
-  "The name of the document of the marks that wait."
-  (str "marks" (:extension transit/codec)))
+;; A document per import, so that a second import leaves the marks of the
+;; first alone
+(defn marks-name
+  "The name of the document of the marks of the import `id` that wait."
+  [id]
+  (str "marks-" id (:extension transit/codec)))
 
 (defn kept!
-  "A promise of keeping the marks of the OPML `list` until their feeds
-  arrive."
-  [list]
-  ((:put marks-db) marks-name ((:encode transit/codec) list) {}))
+  "A promise of keeping the marks of the OPML `list` in the document `name`
+  until their feeds arrive."
+  [name list]
+  ((:put marks-db) name ((:encode transit/codec) list) {}))
 
 (defn forgot!
-  "A promise of forgetting the marks that wait, once no feed is missing."
-  []
-  ((:delete marks-db) marks-name))
+  "A promise of forgetting the marks in the document `name`, once none
+  waits."
+  [name]
+  ((:delete marks-db) name))
 
 ;; The marks need the import's feeds, which arrive with a refresh in this
 ;; tab or another, and a feed that failed with a later one. A mark made
@@ -99,19 +103,20 @@
 (defn mark!
   "Mark the played and started episodes of the OPML `list` whose feeds the
   library in `store` has, and save it, then keep the marks of the other
-  shows until their feeds arrive."
-  [store list]
+  shows in the document `name` until their feeds arrive."
+  [store name list]
   (app-library/change! store {:operation [:opml/mark-played list]})
   (app-library/save! store)
   (if-let [left (waiting @store list)]
-    (do (kept! left)
-        (mark-when-fetched! store left))
-    (forgot!)))
+    (do (kept! name left)
+        (mark-when-fetched! store name left))
+    (forgot! name)))
 
 (defn mark-when-fetched!
   "Mark the episodes of the OPML `list` in the library in `store` once one
-  of its shows has its feed, or the listener left one."
-  [store list]
+  of its shows has its feed, or the listener left one, and keep the rest
+  in the document `name`."
+  [store name list]
   (let [k (gensym "opml-import")]
     (runtime/watch! store k
                     (fn [old new]
@@ -120,24 +125,34 @@
                                                   (get-in new [:library :feeds])))
                                  (not= list (waiting new list)))
                         (runtime/unwatch! store k)
-                        (mark! store list))))))
+                        (mark! store name list))))))
 
-(defn resume!
-  "Go on with the marks of an earlier import that wait for their feeds,
-  e.g. after a reload, in the library in `store`. Nothing is written while
-  none of those feeds has arrived, e.g. one that's gone for good."
-  [store]
-  (-> ((:fetch marks-db) marks-name {})
+(defn resume-import!
+  "Go on with the marks of an earlier import in the document `name` that
+  wait for their feeds, in the library in `store`. Nothing is written
+  while none of those feeds has arrived, e.g. one that's gone for good."
+  [store name]
+  (-> ((:fetch marks-db) name {})
       (.then (fn [doc]
                (when-let [list (some-> doc :body ((:decode transit/codec)))]
-                 (when (:library @store)
-                   (if (= list (waiting @store list))
-                     (mark-when-fetched! store list)
-                     (mark! store list))))))
+                 (if (= list (waiting @store list))
+                   (mark-when-fetched! store name list)
+                   (mark! store name list)))))
       (.catch (fn [e]
-                (tel/log! {:level :warn :id :opml/marks-unread :error e}
+                (tel/log! {:level :warn :id :opml/marks-unread
+                           :data  {:name name} :error e}
                           "The marks of an earlier import weren't read")
-                (forgot!)))))
+                (forgot! name)))))
+
+(defn resume!
+  "Go on with the marks of the earlier imports that wait for their feeds,
+  e.g. after a reload, in the library in `store`."
+  [store]
+  (when (:library @store)
+    (-> ((:list marks-db))
+        (.then #(run! (fn [{:keys [name]}] (resume-import! store name)) %))
+        (.catch #(tel/log! {:level :warn :id :opml/marks-unread :error %}
+                           "The marks of earlier imports weren't listed")))))
 
 (defn import!
   "Import the OPML `file` into the library in `store` and refresh it, or
@@ -147,7 +162,7 @@
       (.then (fn [text]
                (let [list (format.opml/parse text)]
                  (app-library/change! store (imported @store list))
-                 (some->> (marked list) (mark! store))
+                 (some->> (marked list) (mark! store (marks-name (random-uuid))))
                  (-> (app-library/save! store)
                      (.then #(refresh/refresh! store false))))))
       (.catch (fn [e]

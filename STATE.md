@@ -86,7 +86,7 @@ In IndexedDB
 |---|---|---|---|---|
 | `…library` | The library's document, a document per feed, and the search index's | The tabs, with `library/durable-swap!`; the worker puts only feed documents | The tabs, with `library/read!`; the worker, with `fetch-due!` | Never by the app; the browser can evict it unless the site's storage persists |
 | `…cache` | Directory results, feed URLs by guid, feeds of shows outside the library, linked shows, colours of artwork | `search.directories`, `show.feeds`, `ui.artwork.colors`, once the page is idle | the same | By age and count, and Clear cache |
-| `…opml` | The marks of an OPML import that wait for their feeds, apart from the library's, whose other documents podcast-clj reads as its index | `library.opml`, at the import | `library.opml`, as a tab opens | Once every show has its feed, or the document doesn't read |
+| `…opml` | The marks of each OPML import that wait for their feeds, a document per import, apart from the library's, whose other documents podcast-clj reads as its index | `library.opml`, at the import | `library.opml`, as a tab opens | Each once every show of its import has its feed, or the document doesn't read |
 
 
 Between the tabs and the worker
