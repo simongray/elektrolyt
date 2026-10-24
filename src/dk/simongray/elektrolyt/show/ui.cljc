@@ -129,8 +129,9 @@
     [:article.show-episode
      (if href
        (lists-ui/linked-row href img :h3 title lang facts)
+       ;; the focus can go to the title, as to a link's, e.g. from Show more
        (list img
-             [:h3 (cond-> {} lang (assoc :lang lang)) title]
+             [:h3 (cond-> {:tabindex -1} lang (assoc :lang lang)) title]
              (facts-ui/line facts)))]))
 
 (defn failure-text
@@ -213,7 +214,7 @@
            (episode-row state (episode-href (or key g) row url) row lang page)])])
      (when (< shown (count rows))
        [:button {:type         "button"
-                 :data-refocus (str "ol.episodes > li:nth-child(" (inc shown) ") h3 a")
+                 :data-refocus (str "ol.episodes > li:nth-child(" (inc shown) ") :is(h3 a, h3[tabindex])")
                  :on           {:click [[:show/more g (count rows)]]}}
         "Show more episodes"])]))
 
