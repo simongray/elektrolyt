@@ -14,7 +14,8 @@
             [dk.simongray.wary-fetch :as http]
             [dk.simongray.wary-fetch.headers :as headers]
             [dk.simongray.wary-fetch.proxy :as proxy]
-            [dk.simongray.wary-fetch.url :as url])
+            [dk.simongray.wary-fetch.url :as url]
+            [taoensso.telemere :as tel])
   (:import [java.io File]
            [java.nio.file CopyOption Files StandardCopyOption]
            [java.security MessageDigest]
@@ -126,13 +127,18 @@
   [^File dir max-bytes kept]
   (let [files  (filter #(.isFile ^File %) (.listFiles dir))
         groups (group-by #(re-find #"^[0-9a-f]+" (.getName ^File %)) files)
-        used   (fn [[h _]] (.lastModified (entry-file dir h)))
+        ;; read once, since a sort can throw when touch! changes them
+        ;; while it runs
+        used   (into {} (for [h (keys groups)]
+                          [h (.lastModified (entry-file dir h))]))
         size   #(reduce + (map (fn [^File f] (.length f)) %))]
-    (loop [[[_ group :as oldest] & more] (sort-by used (dissoc groups kept))
+    (loop [[[_ group :as oldest] & more] (sort-by (comp used key)
+                                                  (dissoc groups kept))
            total                         (size files)]
       (when (and oldest (> total max-bytes))
-        (run! #(.delete ^File %) group)
-        (recur more (- total (size group)))))))
+        (let [freed (size group)]
+          (run! #(.delete ^File %) group)
+          (recur more (- total freed)))))))
 
 (defn- store!
   "Keep the `entry` of an artwork in the folder `dir`, with each distinct
@@ -154,6 +160,21 @@
                                                         #(dissoc % :data))))
                            "UTF-8"))
       (prune! (io/file dir) max-bytes h))))
+
+(defn- kept!
+  "Keep the `entry` in the folder `dir` of at most `max-bytes` with
+  store!, while holding the `lock`, so that one job's prune never deletes
+  the files that another job is still writing. It logs a store that
+  fails, e.g. on a full disk, since the handler can still send the
+  thumbnails from their :data."
+  [lock dir max-bytes entry]
+  (try
+    (locking lock
+      (store! dir max-bytes entry))
+    (catch Exception e
+      (tel/log! {:level :warn :id :artwork/store-failed
+                 :data  {:url (:url entry)} :error e}
+                "The thumbnails of the artwork weren't kept"))))
 
 (defn- touch!
   "Mark the artwork at `url` in the folder `dir` as used now."
@@ -184,6 +205,17 @@
                  (let [tag (subs (sha-256 data) 0 32)]
                    (assoc thumbnail :etag (str "\"" tag "\""))))))
 
+(defn- validators
+  "The headers that check whether the artwork of the `stale` entry has
+  changed. They're nil when the entry lacks a thumbnail at one of the
+  `widths`, e.g. one added since it was made, because a 304 would keep the
+  entry as it is."
+  [{:keys [etag last-modified thumbnails] :as stale} widths]
+  (when (every? #(contains? thumbnails %) widths)
+    (cond-> {}
+      etag          (assoc "If-None-Match" etag)
+      last-modified (assoc "If-Modified-Since" last-modified))))
+
 ;; RFC 9110, section 7.6.3: the Via header of wary-fetch's proxy, which
 ;; refusal refuses, so that an artwork URL that names the handler can't
 ;; loop
@@ -194,27 +226,22 @@
   :thumbnails, which are nil when format.image can't scale it. It throws
   when the fetch fails."
   [url stale {:keys [send widths] :as opts}]
-  (let [{:keys [etag last-modified]} stale
-        request  (http/with-options
+  (let [request  (http/with-options
                    {:url     url
                     :as      :bytes
-                    :headers (cond-> {"Via" proxy/via}
-                               etag          (assoc "If-None-Match" etag)
-                               last-modified (assoc "If-Modified-Since"
-                                                    last-modified))}
+                    :headers (merge {"Via" proxy/via}
+                                    (validators stale widths))}
                    opts)
         response (send request)
-        now      (System/currentTimeMillis)
-        header   #(some (fn [[k v]] (when (= % (str/lower-case k)) v))
-                        (:headers response))]
+        now      (System/currentTimeMillis)]
     (cond
       (and stale (= 304 (:status response)))
       (assoc stale :fresh-until (fresh-until (:headers response) now))
 
       (<= 200 (:status response) 299)
       {:url           url
-       :etag          (header "etag")
-       :last-modified (header "last-modified")
+       :etag          (headers/header (:headers response) "etag")
+       :last-modified (headers/header (:headers response) "last-modified")
        :fresh-until   (fresh-until (:headers response) now)
        :thumbnails    (some-> (image/thumbnails (:body response) widths opts)
                               with-tags)}
@@ -233,11 +260,11 @@
 
 (defn- renewed!
   "The entry of the artwork at `url`, fetched again with `opts` in place
-  of the `stale` one and kept in the folder, when one of the `jobs` is
-  free. A request with stale thumbnails takes a job only if one is free at
-  once, and any other waits :wait-seconds for one. Without a job, it's the
-  stale entry, or nil."
-  [url stale ^Semaphore jobs
+  of the `stale` one and kept in the folder through the `lock`, when one
+  of the `jobs` is free. A request with stale thumbnails takes a job only
+  if one is free at once, and any other waits :wait-seconds for one.
+  Without a job, it's the stale entry, or nil."
+  [url stale ^Semaphore jobs lock
    {:keys [cache-dir max-cache-bytes wait-seconds retry-seconds] :as opts}]
   (if (.tryAcquire jobs (if (seq (:thumbnails stale)) 0 wait-seconds)
                    TimeUnit/SECONDS)
@@ -247,7 +274,7 @@
                     (catch Exception _
                       (failed url stale (System/currentTimeMillis)
                               retry-seconds)))]
-        (store! cache-dir max-cache-bytes entry)
+        (kept! lock cache-dir max-cache-bytes entry)
         entry)
       (finally
         (.release jobs)))
@@ -330,16 +357,16 @@
 
 (defn- entry!
   "The entry of the artwork at `url`: the one in `cache-dir` while it's
-  fresh, or else one renewed with `jobs` and `opts`, shared through
-  `running` with the requests that ask meanwhile. When the renewal
-  throws, it's the stale entry if that has thumbnails."
-  [cache-dir url jobs running opts]
+  fresh, or else one renewed with `jobs`, `lock` and `opts`, shared
+  through `running` with the requests that ask meanwhile. When the
+  renewal throws, it's the stale entry if that has thumbnails."
+  [cache-dir url jobs lock running opts]
   (let [stale (stored cache-dir url)]
     (if (and stale (< (System/currentTimeMillis) (:fresh-until stale)))
       (do (touch! cache-dir url)
           stale)
       (try
-        (shared running url #(renewed! url stale jobs opts))
+        (shared running url #(renewed! url stale jobs lock opts))
         (catch Exception _
           (when (seq (:thumbnails stale))
             stale))))))
@@ -366,9 +393,10 @@
   ([opts]
    (let [{:keys [cache-dir max-jobs] :as opts} (merge defaults opts)
          jobs    (Semaphore. max-jobs)
+         lock    (Object.)
          running (atom {})]
      (fn [request]
        (or (refusal request opts)
            (let [{:strs [url w]} (url/query-params (:query-string request))]
-             (answer request url (entry! cache-dir url jobs running opts)
+             (answer request url (entry! cache-dir url jobs lock running opts)
                      (parse-long w) opts)))))))

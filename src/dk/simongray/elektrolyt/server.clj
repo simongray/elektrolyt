@@ -91,11 +91,13 @@
 (defn index-fallback
   "An interceptor that answers a request for a page of the app with the
   index.html in `client-dir` when nothing else has, so that the app's
-  router can show the page."
+  router can show the page. It looks at the request as it arrived, before
+  folders adds index.html to a path that ends in a slash."
   [client-dir]
   (interceptor/interceptor
    {:name  ::index-fallback
-    :leave (fn [{:keys [request response] :as context}]
+    :enter #(assoc % ::request (:request %))
+    :leave (fn [{::keys [request] :keys [response] :as context}]
              (let [index (io/file client-dir "index.html")
                    body  (when (= :get (:request-method request)) index)]
                (cond-> context
@@ -184,16 +186,40 @@
          503 "The server is busy. Try again in a few seconds."
          {"Retry-After" "5"})))))
 
+(defn read-secrets
+  "The EDN in the file `secrets`, or nil when there's no such file. It
+  returns nil for a file that isn't EDN too, and logs a warning that names
+  the file, so that the server still starts."
+  [secrets]
+  (when (and secrets (.isFile (io/file secrets)))
+    (try
+      (edn/read-string (slurp secrets))
+      ;; without the exception, whose message can quote the text that the
+      ;; reader stopped at, e.g. a secret without quotes
+      (catch Exception _
+        (tel/log! {:level :warn :id :server/secrets-failed
+                   :data  {:file (str secrets)}}
+                  (str "The secrets in " secrets " couldn't be read"))))))
+
 (defn podcastindex-credentials
   "The Podcast Index's :key and :secret under :podcastindex in the EDN file
   `secrets`, or nil without them. The secret is hidden with wary-fetch, so
-  that it prints as #<secret>."
+  that it prints as #<secret>.
+
+  The :key and the :secret must both be strings that aren't blank, since
+  the Podcast Index refuses a request without them. Otherwise it returns
+  nil and logs a warning that names the file."
   [secrets]
-  (when (and secrets (.isFile (io/file secrets)))
-    (some-> (edn/read-string (slurp secrets))
-            (:podcastindex)
-            (select-keys [:key :secret])
-            (update :secret secret/hide))))
+  (let [credentials (:podcastindex (read-secrets secrets))]
+    (if (every? #(and (string? %) (not (str/blank? %)))
+                ((juxt :key :secret) credentials))
+      (-> (select-keys credentials [:key :secret])
+          (update :secret secret/hide))
+      (when (some? credentials)
+        (tel/log! {:level :warn :id :server/credentials-incomplete
+                   :data  {:file (str secrets)}}
+                  (str "The Podcast Index needs a :key and a :secret in "
+                       secrets))))))
 
 (defn transit-json
   "The value `x` written as transit in JSON."
