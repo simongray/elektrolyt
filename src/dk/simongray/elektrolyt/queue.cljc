@@ -15,7 +15,7 @@
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
-            [dk.simongray.elektrolyt.changes :as changes]
+            [dk.simongray.elektrolyt.library.changes :as changes]
             [dk.simongray.elektrolyt.memo :as memo]
             [dk.simongray.elektrolyt.text :as text]))
 

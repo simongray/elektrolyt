@@ -13,10 +13,10 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.format.chapters :as chapters]
-            [dk.simongray.elektrolyt.links :as links]
             [dk.simongray.elektrolyt.memo :as memo]
             [dk.simongray.elektrolyt.routes :as routes]
-            [dk.simongray.elektrolyt.show :as show]))
+            [dk.simongray.elektrolyt.show :as show]
+            [dk.simongray.elektrolyt.ui.links :as links]))
 
 (def view-opts
   "The options of app.episode/view for the page: the headings of the show

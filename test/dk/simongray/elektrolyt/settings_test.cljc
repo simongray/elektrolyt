@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.inbox-test :as inbox-test]
-            [dk.simongray.elektrolyt.operations :as operations]
+            [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.settings :as settings]))
 
 (def state

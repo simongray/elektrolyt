@@ -9,12 +9,12 @@
   listener heard.
   https://support.apple.com/guide/iphone/find-podcasts-iph19bb8e705/ios
   https://support.pocketcasts.com/article/subscribing-to-podcasts/"
-  (:require [dk.simongray.elektrolyt.picks :as picks]
+  (:require [dk.simongray.elektrolyt.library.shows :as shows]
+            [dk.simongray.elektrolyt.picks :as picks]
+            [dk.simongray.elektrolyt.picks.ui :as picks-ui]
             [dk.simongray.elektrolyt.queue :as queue]
-            [dk.simongray.elektrolyt.shows :as shows]
-            [dk.simongray.elektrolyt.ui.lists :as lists-ui]
-            [dk.simongray.elektrolyt.ui.picks :as picks-ui]
-            [dk.simongray.elektrolyt.ui.queue :as queue-ui]))
+            [dk.simongray.elektrolyt.queue.ui :as queue-ui]
+            [dk.simongray.elektrolyt.ui.lists :as lists-ui]))
 
 (def queue-count
   "How many episodes of the queue Home shows: what plays and the next, or

@@ -10,20 +10,20 @@
 
   The library's document in IndexedDB is the one library of the device,
   which every tab changes as it would an atom. A change is an operation of
-  dk.simongray.elektrolyt.operations, which the tab applies to its own
-  library at once, for the page. A save writes the operations that wait
-  with library/durable-swap!, on condition of the version of the document
-  that the tab knows, and again onto the stored library when another tab
-  wrote first. Then it tells the other tabs the new version on a
-  BroadcastChannel, so that they read it, as a page does when it's shown
+  dk.simongray.elektrolyt.library.operations, which the tab applies to its
+  own library at once, for the page. A save writes the operations that
+  wait with library/durable-swap!, on condition of the version of the
+  document that the tab knows, and again onto the stored library when
+  another tab wrote first. Then it tells the other tabs the new version on
+  a BroadcastChannel, so that they read it, as a page does when it's shown
   again. The app's web worker writes only the documents of the feeds that
-  it fetched, as dk.simongray.elektrolyt.fetching has it. The documents
-  are in Transit, which reads about 30 times faster than EDN."
+  it fetched, as dk.simongray.elektrolyt.worker.fetching has it. The
+  documents are in Transit, which reads about 30 times faster than EDN."
   (:require [dk.simongray.like-minded.device :as device]
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.elektrolyt.operations :as operations]
+            [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.wary-fetch.proxy :as proxy]))
 

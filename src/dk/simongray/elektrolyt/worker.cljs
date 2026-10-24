@@ -1,13 +1,13 @@
 (ns dk.simongray.elektrolyt.worker
   "The web worker of the app, which fetches the feeds that a refresh is
   due to fetch and the feed of a Show page off the page, as
-  dk.simongray.elektrolyt.fetching has it, so that parsing a feed never
-  holds the page up.
+  dk.simongray.elektrolyt.worker.fetching has it, so that parsing a feed
+  never holds the page up.
 
   A web worker has no DOMParser, so it parses with that of
   @xmldom/xmldom."
   (:require ["@xmldom/xmldom" :as xmldom]
-            [dk.simongray.elektrolyt.fetching :as fetching]))
+            [dk.simongray.elektrolyt.worker.fetching :as fetching]))
 
 (defn throwing
   "A function that makes a parser of the class `DOMParser`, e.g. that of

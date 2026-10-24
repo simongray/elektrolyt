@@ -2,8 +2,9 @@
   "The namespaces of the app that reach outside the store: listeners,
   timers, locks, channels, watches and localStorage. Each one is marked as
   runtime, as in (ns ^:runtime …), so that they stay few: the listeners,
-  timers, locks and channels in dk.simongray.elektrolyt.runtime, and
-  localStorage in dk.simongray.elektrolyt.local. The check reads the
+  timers, locks and channels in dk.simongray.elektrolyt.runtime,
+  localStorage in dk.simongray.elektrolyt.runtime.local, and the web
+  worker in dk.simongray.elektrolyt.worker.fetching. The check reads the
   sources, without their strings and comments."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]

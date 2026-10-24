@@ -8,7 +8,7 @@
   the Details when none of their rows has one."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.resolve :as resolve]
-            [dk.simongray.elektrolyt.links :as links]
+            [dk.simongray.elektrolyt.ui.links :as links]
             [dk.simongray.wary-fetch.url :as url]))
 
 (def id

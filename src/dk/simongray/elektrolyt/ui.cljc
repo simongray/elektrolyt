@@ -10,23 +10,23 @@
   :announcement."
   (:require [dk.simongray.elektrolyt.artwork :as sized]
             [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.links :as links]
+            [dk.simongray.elektrolyt.episode.ui :as episode-ui]
+            [dk.simongray.elektrolyt.inbox.ui :as inbox-ui]
+            [dk.simongray.elektrolyt.library.ui :as library-ui]
             [dk.simongray.elektrolyt.player :as player]
+            [dk.simongray.elektrolyt.player.ui :as player-ui]
+            [dk.simongray.elektrolyt.queue.ui :as queue-ui]
             [dk.simongray.elektrolyt.routes :as routes]
+            [dk.simongray.elektrolyt.search.ui :as search-ui]
             [dk.simongray.elektrolyt.settings :as settings]
+            [dk.simongray.elektrolyt.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.show :as show]
+            [dk.simongray.elektrolyt.show.ui :as show-ui]
             [dk.simongray.elektrolyt.text :as text]
             [dk.simongray.elektrolyt.ui.controls :as controls]
-            [dk.simongray.elektrolyt.ui.episode :as episode-ui]
             [dk.simongray.elektrolyt.ui.home :as home-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
-            [dk.simongray.elektrolyt.ui.inbox :as inbox-ui]
-            [dk.simongray.elektrolyt.ui.library :as library-ui]
-            [dk.simongray.elektrolyt.ui.player :as player-ui]
-            [dk.simongray.elektrolyt.ui.queue :as queue-ui]
-            [dk.simongray.elektrolyt.ui.search :as search]
-            [dk.simongray.elektrolyt.ui.settings :as settings-ui]
-            [dk.simongray.elektrolyt.ui.show :as show-ui]))
+            [dk.simongray.elektrolyt.ui.links :as links]))
 
 (def app-name
   "The name of the app, as Home's heading and the window's title show it."
@@ -237,7 +237,7 @@
          :route/queue    (queue-ui/content state)
          :route/inbox    (inbox-ui/content state)
          :route/library  (library-ui/content state)
-         :route/search   (search/content state)
+         :route/search   (search-ui/content state)
          :route/settings (settings-ui/content state)
          :route/show     (show-ui/content state heading)
          :route/episode  (episode-ui/content state heading)

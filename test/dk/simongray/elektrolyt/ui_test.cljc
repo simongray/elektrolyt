@@ -3,7 +3,7 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.inbox-test :as inbox-test]
-            [dk.simongray.elektrolyt.operations :as operations]
+            [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.player-test :as player-test]
             [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.ui :as ui]

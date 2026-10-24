@@ -12,12 +12,12 @@
   while it loads, or of the :status :loading while they're worked out."
   (:require [dk.simongray.elektrolyt.artwork :as artwork]
             [dk.simongray.elektrolyt.inbox :as inbox]
+            [dk.simongray.elektrolyt.library.shows :as shows]
             [dk.simongray.elektrolyt.picks :as picks]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.queue :as queue]
             [dk.simongray.elektrolyt.settings :as settings]
-            [dk.simongray.elektrolyt.show :as show]
-            [dk.simongray.elektrolyt.shows :as shows]))
+            [dk.simongray.elektrolyt.show :as show]))
 
 (defn source
   "The URL to work out the colours of the artwork of `x` from: the smallest
