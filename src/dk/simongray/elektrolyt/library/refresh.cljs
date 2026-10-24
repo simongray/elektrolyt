@@ -93,14 +93,14 @@
 
 (defn busy
   "The `state` once another tab's worker turned out to be refreshing at
-  the instant `at`, said when the listener `asked?` for the refresh."
+  the instant `at`, announced when the listener `asked?` for the refresh."
   [state asked? at]
   (cond-> (assoc state :refresh-status {:running? false :busy-at at})
     asked? (assoc :announcement "Another tab is checking for new episodes")))
 
 (defn failed
   "The `state` once a refresh failed at the instant `at`, one more failure
-  in a row, said when the listener `asked?` for the refresh."
+  in a row, announced when the listener `asked?` for the refresh."
   [state asked? at]
   (cond-> (update state :refresh-status
                   (fn [{:keys [failures]}]
@@ -125,16 +125,36 @@
     (swap! store refreshed result asked?)
     (app-library/save! store)))
 
+(defn fetched!
+  "A promise of what the web worker finds for the library in `store`:
+  every subscribed feed when the listener `asked?`, or else the stale
+  feeds, or else the feeds that are due.
+
+  Stale feeds are fetched whole, since a check of their start would find
+  nothing new."
+  [store asked?]
+  (let [{:keys [library] :as state} @store
+        online? (.-onLine js/navigator)
+        on?     (settings/alternative-feeds? state)
+        whole   (vec (stale state))
+        guids   (cond
+                  asked?      (vec (keys (library/subscriptions library)))
+                  (seq whole) whole)]
+    (swap! refreshed-stale into (map #(vector % on?)) whole)
+    (fetching/fetch-due! (library/due library (cond-> {:online? online?}
+                                                guids (assoc :feed-guids guids)))
+                         {:head-check?        (empty? whole)
+                          :online?            online?
+                          :alternative-feeds? on?}
+                         #(swap! store update :refresh-status merge %))))
+
 ;; WCAG 2.2, SC 4.1.3 Status Messages: a refresh that the listener asked
 ;; for announces its start and its result, rather than each feed
 (defn refresh!
-  "Refresh the library in `store` in the web worker, then schedule the
-  next refresh. It fetches every subscribed feed when the listener
-  `asked?`, or else the stale feeds, or else the feeds that are due.
-
-  Stale feeds are fetched whole, since a check of their start would find
-  nothing new. Nothing starts while a refresh is under way, and what's
-  due goes by what the other tabs wrote too, e.g. a refresh of theirs."
+  "Refresh the library in `store` in the web worker, with every subscribed
+  feed if the listener `asked?`, then schedule the next refresh. Nothing
+  starts while a refresh is under way, and what's due goes by what the
+  other tabs wrote too, e.g. a refresh of theirs."
   [store asked?]
   (let [{:keys [library refresh-status]} @store]
     (when (and library @app-library/known (not (:running? refresh-status)))
@@ -142,21 +162,7 @@
       (swap! store started asked?)
       (-> (app-library/caught-up! store)
           (.catch (constantly nil))
-          (.then (fn [_]
-                   (let [{:keys [library] :as state} @store
-                         online? (.-onLine js/navigator)
-                         on?     (settings/alternative-feeds? state)
-                         whole   (vec (stale state))
-                         guids   (cond
-                                   asked?      (vec (keys (library/subscriptions library)))
-                                   (seq whole) whole)]
-                     (swap! refreshed-stale into (map #(vector % on?)) whole)
-                     (fetching/fetch-due! (library/due library (cond-> {:online? online?}
-                                                                 guids (assoc :feed-guids guids)))
-                                          {:head-check?        (empty? whole)
-                                           :online?            online?
-                                           :alternative-feeds? on?}
-                                          #(swap! store update :refresh-status merge %)))))
+          (.then #(fetched! store asked?))
           (.then (fn [{:keys [found busy?]}]
                    (if busy?
                      (swap! store busy asked? (js/Date.))

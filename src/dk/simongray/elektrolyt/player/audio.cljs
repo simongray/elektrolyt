@@ -115,7 +115,7 @@
   episode or to another. They go through the library."
   [:seekbackward :seekforward :seekto :previoustrack :nexttrack])
 
-(defn handlers
+(defn lock-screen-handlers
   "The handlers of the lock screen's actions for `store`: play, pause and
   stop on the `element` itself, and the moves through the library."
   [store element]
@@ -150,7 +150,7 @@
         id                                 (:id player)]
     (when-let [el (and id (element))]
       (runtime/lock-screen! (:metadata (player/playback state id))
-                            (select-keys (handlers store el)
+                            (select-keys (lock-screen-handlers store el)
                                          (concat [:play :pause :stop]
                                                  (media-session/actions library id
                                                                         (player/playback-opts state id))))))))
@@ -188,7 +188,7 @@
   `store`, and save it."
   [store {:keys [current-time duration] :as media}]
   (when-let [id (and (number? current-time) (get-in @store [:player :id]))]
-    (let [duration (when (and (number? duration) (js/Number.isFinite duration))
+    (let [duration (when (js/Number.isFinite duration)
                      duration)]
       (step! store [:progress id current-time duration]))))
 
@@ -266,36 +266,36 @@
   files are read again, e.g. once the device is back online."
   60000)
 
-(defn reread?
-  "Whether the read of an episode's files that the `episode` entry
-  describes failed, wholly or in part, at least reread-ms before `now`."
-  [{:keys [status at error result]} now]
-  (boolean (and (= :read status)
-                (or error (some :error (vals result)))
-                (<= reread-ms (- now at)))))
+(defn due?
+  "Whether to read an episode's files at `now` by its `episode` entry: when
+  they were never read, or when a read that failed, wholly or in part,
+  began at least reread-ms before."
+  [{:keys [status at error result] :as episode} now]
+  (boolean (or (nil? status)
+               (and (= :read status)
+                    (or error (some :error (vals result)))
+                    (<= reread-ms (- now at))))))
 
 (defn read-files!
-  "Read the files of the episode `id` into the :episodes of `store` once,
-  or again a while after a read that failed, with `read`, a function that
-  returns a promise of what they hold, e.g. chapters, or nil when there's
-  nothing to read. Update the lock screen if the player has the episode."
+  "Read the files of the episode `id` into the :episodes of `store` when
+  that's due, with `read`, a function that returns a promise of what they
+  hold, e.g. chapters, or nil when there's nothing to read. Update the
+  lock screen if the player has the episode."
   [store id read]
-  (when (let [episode (get-in @store [:episodes id])]
-          (or (nil? (:status episode)) (reread? episode (js/Date.now))))
-    (when-let [reading (read)]
-      (swap! store update-in [:episodes id] assoc :status :reading :at (js/Date.now))
-      (-> reading
-          (.then (fn [result]
-                   (swap! store update-in [:episodes id]
-                          #(-> % (assoc :status :read :result result) (dissoc :error)))
-                   (when (= id (get-in @store [:player :id]))
-                     (lock-screen! store))))
-          (.catch #(swap! store update-in [:episodes id] assoc :status :read
-                          :error {:message (ex-message %)}))))))
+  (when-let [reading (and (due? (get-in @store [:episodes id]) (js/Date.now)) (read))]
+    (swap! store update-in [:episodes id] assoc :status :reading :at (js/Date.now))
+    (-> reading
+        (.then (fn [result]
+                 (swap! store update-in [:episodes id]
+                        #(-> % (assoc :status :read :result result) (dissoc :error)))
+                 (when (= id (get-in @store [:player :id]))
+                   (lock-screen! store))))
+        (.catch #(swap! store update-in [:episodes id] assoc :status :read
+                        :error {:message (ex-message %)})))))
 
 (defn read-library-files!
-  "Read the files of the library's episode `id` in `store` once, except
-  the transcript, which waits for the listener."
+  "Read the files of the library's episode `id` in `store`, except the
+  transcript, which waits for the listener."
   [store id]
   (read-files! store id #(library/read-files! (:library @store) id
                                               (assoc app-library/options :except #{:transcript}))))
@@ -346,7 +346,7 @@
                                 (when (= id (:id there))
                                   there))
         el                    (cue! store id
-                                    (or (some->> t (player/start-time (player/playback state id)))
+                                    (or (some->> t (player/start-time (:duration (player/playback state id))))
                                         (some-> there (tabs/position (js/Date.now))))
                                     (:playback-rate there))]
     (some->> el (play-element! store))))
@@ -403,6 +403,13 @@
   [store {:keys [seek-time] :as details}]
   (swap! store assoc-in [:player :seeking] seek-time)
   (some-> (element) (media/seek! seek-time {:fast true})))
+
+(defn released!
+  "Show the seek bar of the player in `store` at the element's position
+  again as a drag ends, e.g. one that ends where it began and so moves
+  nothing."
+  [store]
+  (swap! store assoc-in [:player :seeking] nil))
 
 (defn rate!
   "Set the player in `store` to play at `rate`, and keep it as the
@@ -601,8 +608,7 @@
   "Report the position of the player in `store` as the page is hidden,
   while its element plays."
   [store]
-  (when-let [el (and (get-in @store [:player :id]) (playing-element))]
-    (report! store (media-of el))))
+  (some->> (playing-element) media-of (report! store)))
 
 (defn gone!
   "Tell the other tabs that the player in `store` stops where it is as the

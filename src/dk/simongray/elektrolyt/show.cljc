@@ -102,26 +102,6 @@
    :artwork-sizes artwork-sizes
    :episodes      []})
 
-(defn library-key
-  "The key of the show `guid` at `url` in the library `lib`, or nil unless
-  the library has its feed for a subscription.
-
-  The URL finds a show from a search, whose guid comes from its URL until
-  the fetched feed gives one of its own. A show that the library holds
-  only for an episode that the listener played gets the page of a show
-  outside the library, since the library has no other episodes of it."
-  [lib guid url]
-  (let [feed? #(and (some? (get-in lib [:feeds % :feed]))
-                    (profile/subscribed? (:profile lib) %))]
-    (cond
-      (feed? guid)
-      guid
-
-      url
-      (let [k (get (profile/by-url (:profile lib)) (guid/normal-url url))]
-        (when (and k (feed? k))
-          k)))))
-
 (defn subscription-of
   "The subscription to the show `guid` in the library `lib`, whether or not
   the library has its feed, e.g. one whose feed was never fetched, or nil."
@@ -136,6 +116,19 @@
         k       (get (profile/by-url profile) (guid/normal-url url))]
     (when (profile/subscribed? profile k)
       k)))
+
+(defn library-key
+  "The key of the show `guid` at `url` in the library `lib`, or nil unless
+  the library has its feed for a subscription.
+
+  The URL finds a show from a search, whose guid comes from its URL until
+  the fetched feed gives one of its own. A show that the library holds
+  only for an episode that the listener played gets the page of a show
+  outside the library, since the library has no other episodes of it."
+  [lib guid url]
+  (->> [(when (profile/subscribed? (:profile lib) guid) guid)
+        (some->> url (subscribed-key lib))]
+       (some #(when (get-in lib [:feeds % :feed]) %))))
 
 (def library-page
   "The page of the show under a key in a library, made again only when its
@@ -255,16 +248,17 @@
   is fresh."
   [:etag :last-modified :not-before])
 
-(def subscription-keys
-  "The keys of a whole fetch that a subscription takes besides the feed and
-  the validators: where the feed moved to for good, and its WebSub hubs."
+(def location-keys
+  "The keys of a whole fetch that say where its feed is now: where it moved
+  to for good, and its WebSub hubs. A subscription takes them besides the
+  feed and the validators."
   [:permanent-url :new-feed-url :websub])
 
 (defn kept
   "What the cache keeps of the whole feed `fetched`: its URL, the feed, the
   fetch's validators, and where the feed moved to and its hubs."
   [fetched]
-  (select-keys fetched (concat [:url :feed] validator-keys subscription-keys)))
+  (select-keys fetched (concat [:url :feed] validator-keys location-keys)))
 
 (defn validators
   "The validators of the fetch `fetched`, for a subscription or the next
@@ -293,7 +287,7 @@
                                        :validators (validators fetched)
                                        :fetched-at fetched-at
                                        :checked?   checked?}
-                                      (select-keys fetched subscription-keys))))
+                                      (select-keys fetched location-keys))))
 
 ;; RFC 9110, section 15.5.5 and 15.5.11: a feed that's gone from a URL
 (defn gone?
@@ -318,8 +312,8 @@
 ;; podcast-clj's refresh counts such a feed as a failure too, with
 ;; :fetch/empty-feed
 (defn emptied?
-  "Whether the feed `fresh` has no items where the feed `old` had some, as
-  some hosts answer during an outage."
+  "Whether the feed `fresh` has no items where the feed `old` had some,
+  e.g. from a host during an outage."
   [old fresh]
   (boolean (and (seq (:rss/items old)) (empty? (:rss/items fresh)))))
 
@@ -361,7 +355,7 @@
   (let [{:keys [feed whole? validators newer] :as entry} (get-in state [:feeds url])]
     (when whole?
       (or (:fetched newer)
-          (merge validators (select-keys entry subscription-keys) {:feed feed})))))
+          (merge validators (select-keys entry location-keys) {:feed feed})))))
 
 (defn newer-shown
   "The `state` with the :newer feed of the show `guid` in place of the one

@@ -232,4 +232,6 @@
     (is (= [[[:show/newer "g"]] "Show the new episodes"]
            ((juxt #(get-in % [1 :on :click]) last) (first buttons)))
         "a button above the list, which stays as it is until it's pressed")
+    (is (= "#episodes" (get-in (first buttons) [1 :data-refocus]))
+        "and then gives the focus to the list's heading")
     (is (= 1 (count buttons)))))

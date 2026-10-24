@@ -163,12 +163,9 @@
   (fn [_ _]
     (feeds/prefetch-cancel!)))
 
-;; The button disappears once the new episodes are shown, so the focus
-;; moves to the list's heading
 (nxr/register-effect! :show/newer
   (fn [_ store guid]
-    (swap! store show/newer-shown guid)
-    (document/focus! "episodes")))
+    (swap! store show/newer-shown guid)))
 
 ;; Dispatched as the linked shows mount, so the store changes after the
 ;; render
@@ -231,7 +228,7 @@
 
 (nxr/register-effect! :player/released
   (fn [_ store]
-    (swap! store assoc-in [:player :seeking] nil)))
+    (audio/released! store)))
 
 (nxr/register-effect! :player/chapter
   (fn [_ store direction]
@@ -396,11 +393,7 @@
   "Follow the window's history and dispatch a navigation to each path,
   starting with the current one."
   []
-  ;; a stray % typed into the address bar would make the router throw, and
-  ;; leave the page blank
-  (let [url (str js/location.pathname js/location.search js/location.hash)]
-    (when (not= url (routes/decodable url))
-      (.replaceState js/history nil "" (routes/decodable url))))
+  (document/decodable!)
   (runtime/follow-history! routes/router
                            (fn [match _]
                              (nxr/dispatch store {} [[:route/navigated

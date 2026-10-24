@@ -43,8 +43,8 @@
 ;; leaves out the units of zero. Pocket Casts writes a length the same way.
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DurationFormat
 ;; https://github.com/Automattic/pocket-casts-android/blob/main/modules/services/localization/src/main/res/values/strings.xml#L486-L489
-;; It writes the seconds even when they're 0, which it would leave out, and
-;; nothing for a number too large to be a duration, which it would throw on
+;; DurationFormat would leave out seconds of 0, and it throws on a number
+;; too large to be a duration
 (defn duration-text
   "The `seconds` of an episode in words, e.g. \"1h 23m\", or nil when
   they're too many to count."

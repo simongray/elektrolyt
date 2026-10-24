@@ -6,6 +6,7 @@
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.ui :as ui]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [replicant.dom :as r]))
 
 ;; The app's former name, which existing data is stored under
@@ -111,6 +112,17 @@
   (when-let [path (ui/canonical-path state)]
     (when (not= path (str js/location.pathname js/location.search))
       (.replaceState js/history nil "" (str path js/location.hash)))))
+
+;; A stray % typed into the address bar would make the router throw, and
+;; leave the page blank
+(defn decodable!
+  "Replace the URL in the address bar with one that the router can decode,
+  e.g. with a stray % escaped, without a new history entry."
+  []
+  (let [url   (str js/location.pathname js/location.search js/location.hash)
+        fixed (routes/decodable url)]
+    (when (not= url fixed)
+      (.replaceState js/history nil "" fixed))))
 
 (defn focus!
   "Move the focus to the element `id`, where there's one."

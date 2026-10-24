@@ -210,7 +210,7 @@
         fetched {:url moved :feed (feed "A Show" "One") :status 200 :permanent-url moved :websub hubs}
         state   (show/whole (on-page "g") url (show/kept fetched) #inst "2026-10-18T12:00:00Z" false)
         whole   (show/whole-feed state url)]
-    (is (= {:permanent-url moved :websub hubs} (select-keys whole show/subscription-keys))
+    (is (= {:permanent-url moved :websub hubs} (select-keys whole show/location-keys))
         "where it moved to and its hubs, through the cache, for a subscription")
     (is (= moved (-> (library/subscribe (library/make "test") url whole) :feeds vals first :url))
         "which keeps the feed at the URL that it moved to")))

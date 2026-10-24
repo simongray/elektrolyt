@@ -165,8 +165,9 @@
 ;; A show in the library is there whole, so a load of its feed from before
 ;; the subscription, e.g. a prefetch, doesn't apply to it.
 ;;
-;; The button goes once the last page is listed, so the focus moves on to
-;; the first episode that it listed
+;; Both buttons go once they've done their part, so the focus moves on: to
+;; the list's heading once the new episodes show, and to the first episode
+;; that the last page listed
 (defn episodes
   "The episodes of the show `page` in `state`, a page at a time, with the
   status of the load and buttons for newer episodes that wait and for
@@ -183,7 +184,7 @@
      [:h2#episodes {:tabindex -1} "Episodes"]
      [:p {:role "status"} (status-text status (count rows) error newer)]
      (when newer
-       [:button {:type "button" :on {:click [[:show/newer g]]}}
+       [:button {:type "button" :data-refocus "#episodes" :on {:click [[:show/newer g]]}}
         (str "Show the " (text/plural newer "new episode"))])
      (when (seq rows)
        [:ol.episodes {:role "list"}
@@ -286,7 +287,7 @@
   [state]
   (let [lib (:library state)
         url (:url (source state))]
-    (when-let [k (when (and lib url) (show/subscribed-key lib url))]
+    (when-let [k (some-> lib (show/subscribed-key url))]
       [:div.show-subscription
        (subscription/button :subscribed url (or (:title (show/subscription-of lib k)) url) true)])))
 

@@ -142,6 +142,8 @@
                       (kept!)
                       {:error {:id :library/save-failed :reason (ex-message e)}})))))))
 
+;; A write can fail for a while, e.g. while the device is out of room, and
+;; the operations that wait would be lost with the tab
 (defn retry-ms
   "How long to wait before a save is tried again after `n` writes in a row
   failed: five seconds after the first, twice as long after each one more,
@@ -152,10 +154,10 @@
 (declare save!)
 
 (defn retried!
-  "The result `written` of a write. If it failed, it's logged, the save
-  status of the `state` atom notes it, and the atom is saved again later.
-  Otherwise the save status goes. While the page tells of the status, the
-  browser asks before the page goes."
+  "Note the result `written` of a write in the save status of the `state`
+  atom, and return it. A write that failed is logged and tried again
+  later, and while the page tells of the failure, the browser asks before
+  the page goes."
   [state written]
   (let [before (:save-status @state)
         status (when-let [error (:error written)]
@@ -170,8 +172,6 @@
       (runtime/warn-before-leaving! (saves/shown? status))))
   written)
 
-;; A write can fail for a while, e.g. while the device is out of room, and
-;; the operations that wait would be lost with the tab
 (defn save!
   "A promise of writing this tab's waiting operations from the `state`
   atom once its earlier reads and writes are done. A write that fails is

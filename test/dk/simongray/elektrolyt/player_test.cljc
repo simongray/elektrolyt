@@ -137,12 +137,11 @@
     (is (nil? (player/playing here nil)))))
 
 (deftest a-start-before-the-end
-  (let [pb {:duration 3600}]
-    (is (= 754 (player/start-time pb 754)))
-    (is (nil? (player/start-time pb 3600)) "not at the end, which would only mark it played")
-    (is (nil? (player/start-time pb 5000)) "nor past it")
-    (is (= 5000 (player/start-time {} 5000)) "unless the duration is unknown")
-    (is (nil? (player/start-time pb nil)))))
+  (is (= 754 (player/start-time 3600 754)))
+  (is (nil? (player/start-time 3600 3600)) "not at the end, which would only mark it played")
+  (is (nil? (player/start-time 3600 5000)) "nor past it")
+  (is (= 5000 (player/start-time nil 5000)) "unless the duration is unknown")
+  (is (nil? (player/start-time 3600 nil))))
 
 (deftest a-step-that-moves-on
   (is (player/moved-on? [[:stop [:feed "ep"]] [:played [:feed "ep"]] [:play [:feed "next"]]])

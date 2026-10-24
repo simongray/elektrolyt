@@ -42,7 +42,7 @@
   (let [{:keys [path-params slug]} (:route state)]
     (episode/page state (:guid path-params) (:hash path-params) slug time-link)))
 
-(defn start-time
+(defn link-time
   "The seconds that the t of the link in `state` starts the episode at,
   e.g. 73 for ?t=73 or ?t=1m13s, or nil."
   [state]
@@ -144,12 +144,11 @@
   "The header of the article of the episode `page` in `state`: the
   `heading` with its show, the artwork, the facts, and the buttons that
   play and queue it."
-  [state heading {:keys [id show language numbering published duration explicit? ai-content?
-                         supplement]
+  [state heading {:keys [id show language numbering published explicit? ai-content? supplement]
                   :as   page}]
-  (let [entry (player/entry (:library state) id)
+  (let [entry    (player/entry (:library state) id)
         ;; as the player has it: what it measured, then the files, then the feed
-        known (or (:duration entry) (get-in state [:episodes id :result :duration]) duration)]
+        duration (or (:duration entry) (get-in state [:episodes id :result :duration]) (:duration page))]
     [:header.episode-intro
      [:hgroup heading [:p [:a {:href (:href show) :lang (text/lang language)} (:title show)]]]
      (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
@@ -158,13 +157,13 @@
       (facts-ui/line
        (concat (numbering-facts numbering)
                [(some-> published time-ui/date)
-                (time-left known entry)
+                (time-left duration entry)
                 (when explicit? "Explicit")
                 (when ai-content? "Made with AI")
                 (facts-ui/labelled-source supplement)
                 (when (:played? entry) "Played")]))
       [:div.episode-actions
-       (play-button page (:player state) entry (player/start-time {:duration known} (start-time state)))
+       (play-button page (:player state) entry (player/start-time duration (link-time state)))
        (queue-buttons page (queue/place state id))]]]))
 
 (defn source

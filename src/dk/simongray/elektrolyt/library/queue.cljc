@@ -41,15 +41,15 @@
   (let [episodes (:episodes (view (:library state)))]
     (vec (if (current state) (rest episodes) episodes))))
 
+(defn index-in
+  "The index of `x` in `xs`, or nil."
+  [xs x]
+  (first (keep-indexed #(when (= x %2) %1) xs)))
+
 (defn index-of
   "The index of the episode `id` among the `episodes`, or nil."
   [episodes id]
-  (first (keep-indexed #(when (= id (:id %2)) %1) episodes)))
-
-(defn- index-in
-  "The index of `x` in the vector `xs`, or nil."
-  [xs x]
-  (first (keep-indexed #(when (= x %2) %1) xs)))
+  (index-in (map :id episodes) id))
 
 (defn position
   "The position of the episode `id` among the episodes up next in `state`,
@@ -121,15 +121,20 @@
                      (and (profile/played? profile %) (not (contains? heard %)))))
            ids))
 
+(def undo-rules
+  "How an undo of the queue puts its episodes back, as library.changes
+  describes it."
+  {:undo-key   :queue-undo
+   :restorable restorable
+   :place      "queue"
+   :operation  :queue/restore})
+
 (defn offered
   "The undo in `state` with only the :ids that it would put back, or nil
   when there are none, e.g. once another tab queued them again, or the
   library no longer has their show."
-  [{:keys [library queue-undo]}]
-  (when-let [ids (some->> (some-> library :profile (restorable queue-undo))
-                          (filterv #(library/loaded? library (first %)))
-                          not-empty)]
-    (assoc queue-undo :ids ids)))
+  [state]
+  (changes/offered state undo-rules))
 
 ;; Selective undo, as in collaborative editors: the undo reverses this
 ;; tab's change alone, on the queue as it is by then, which another tab or
@@ -153,15 +158,8 @@
 (defn undone
   "The change of `state` that puts back what its undo offers, or nil when
   there's nothing to put back."
-  [{undo :queue-undo :as state}]
-  (when-let [{:keys [ids] :as kept} (offered state)]
-    (changes/announced :queue-undo
-                       (if (= (count ids) (count (:ids undo)))
-                         (:done undo)
-                         (str "Put " (count ids) " of " (text/counted (count (:ids undo)) "episode")
-                              " back in the queue"))
-                       nil
-                       [:queue/restore kept])))
+  [state]
+  (changes/undone state undo-rules))
 
 (defn added
   "The change that puts the episode `id` titled `title` at the end of the

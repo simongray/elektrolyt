@@ -15,7 +15,7 @@
   - :label, the name of the region of the page that it is, for a notice
     about the whole page, or nil for one among other content
   - :icon, warning-circle by default"
-  [{:keys [label icon] :or {icon icons/warning-circle}} text actions]
+  [{:keys [label icon] :or {icon icons/warning-circle} :as opts} text actions]
   (conj (if label [:section.notice {:aria-label label}] [:div.notice])
         [:p [controls/icon {:icon icon}] text]
         actions))

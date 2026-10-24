@@ -388,10 +388,10 @@ search p {
   justify-self: start;
 }
 
-/* A feed's URL has no spaces to wrap at, so it wraps anywhere rather than
-   widen the page on a phone (WCAG 2.2, SC 1.4.10 Reflow), and so do the
-   links in a show's notes, a result titled by its URL and a long word in
-   a page's title, e.g. a Danish compound */
+/* Text with no spaces to wrap at wraps anywhere rather than widen the page
+   on a phone (WCAG 2.2, SC 1.4.10 Reflow): a feed's URL, a result titled
+   by its URL, a long word in a page's title, e.g. a Danish compound, and
+   the links in a show's notes */
 .search-results p,
 .search-results h3,
 main h1,
@@ -1392,7 +1392,7 @@ main h1,
   translate: 0 0.2em;
 }
 
-/* a link at least 24 pixels high, as WCAG 2.2, SC 2.5.8 asks of a target
+/* a link at least 24 pixels high, which WCAG 2.2, SC 2.5.8 asks of a target
    https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
 .notice > a {
   padding-block: var(--space-1);

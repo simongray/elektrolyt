@@ -159,11 +159,6 @@
   [media]
   (update media :current-time #(when (number? %) (Math/floor %))))
 
-(defn data-url?
-  "Whether `s` is a data URL, e.g. of a chapter's image in the media file."
-  [s]
-  (boolean (and (string? s) (re-find #"(?i)^data:" s))))
-
 (defn proxied
   "The `url` through the app's proxy, e.g. for a chapter's image, so that
   its site can't see who looks at the page. A data URL needs no fetch, so
@@ -171,8 +166,8 @@
   returns nil."
   [url]
   (cond
-    (url/web-url? url) (:url (proxy/proxied "/proxy" {:url url}))
-    (data-url? url)    url))
+    (url/web-url? url)          (:url (proxy/proxied "/proxy" {:url url}))
+    (= "data" (url/scheme url)) url))
 
 ;; Podcasting 2.0 JSON chapters: what a chapters file links to can track
 ;; the listener
@@ -189,12 +184,9 @@
 
 (defn playback-opts
   "The options that library/playback takes for the episode `id` in
-  `state`: what's been read of its files, e.g. a chapters file, if
-  anything."
+  `state`: what's been read of its files, e.g. a chapters file, or nil."
   [{:keys [episodes] :as state} id]
-  (if-let [read (get-in episodes [id :result])]
-    {:read read}
-    {}))
+  {:read (get-in episodes [id :result])})
 
 (defn playback
   "The playback of the episode `id` in `state`, with what's been read of
@@ -208,16 +200,15 @@
 ;; A start at the end or past it, e.g. from a link's t, would only end the
 ;; episode and mark it played
 (defn start-time
-  "The seconds `t` to start the `playback` at, or nil when it's at or past
-  the playback's known duration."
-  [playback t]
-  (let [duration (:duration playback)]
-    (when-not (and (number? t) (number? duration) (<= duration t))
-      t)))
+  "The seconds `t` to start an episode of `duration` seconds at, or nil
+  when it's at or past the duration, if that's known."
+  [duration t]
+  (when-not (and (number? t) (number? duration) (<= duration t))
+    t))
 
 (defn moved-on?
   "Whether the `effects` of a library step stop the episode that played or
-  play another, after which the events meant for it no longer apply."
+  play another."
   [effects]
   (boolean (some (comp #{:stop :play} first) effects)))
 
@@ -263,7 +254,7 @@
   "The seconds left in the `media` state, or nil while the duration is
   unknown."
   [{:keys [current-time duration]}]
-  (when (and (number? duration) (number? current-time) (time/finite? duration))
+  (when (and (time/finite? duration) (number? current-time))
     (max 0 (- duration current-time))))
 
 ;; W3C Remote Playback API: while the media plays elsewhere, the player

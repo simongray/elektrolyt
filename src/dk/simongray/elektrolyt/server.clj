@@ -214,9 +214,9 @@
   `secrets`, or nil without them. The secret is hidden with wary-fetch, so
   that it prints as #<secret>.
 
-  The :key and the :secret must both be strings that aren't blank, since
-  the Podcast Index refuses a request without them. Otherwise it returns
-  nil and logs a warning that names the file."
+  Each must be a string that isn't blank, since the Podcast Index refuses
+  a request without them, and a :podcastindex that lacks one logs a
+  warning that names the file."
   [secrets]
   (let [credentials (:podcastindex (read-secrets secrets))]
     (if (every? #(and (string? %) (not (str/blank? %)))

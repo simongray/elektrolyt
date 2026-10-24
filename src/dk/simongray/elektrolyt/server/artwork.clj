@@ -144,38 +144,34 @@
 (defn- store!
   "Keep the `entry` of an artwork in the folder `dir`, with each distinct
   thumbnail's :data in a file of its own, and drop the artworks used
-  longest ago past `max-bytes`."
-  [dir max-bytes {:keys [url thumbnails] :as entry}]
-  (when dir
-    (let [h (hashed url)]
-      (.mkdirs (io/file dir))
-      (doseq [thumbnail (vals (into {} (map (juxt :width identity))
-                                    (vals thumbnails)))
-              :when     (:data thumbnail)]
-        (written! (image-file dir h thumbnail) (:data thumbnail)))
-      ;; an artwork that format.image can't scale keeps nil as its
-      ;; thumbnails
-      (written! (entry-file dir h)
-                (.getBytes (pr-str (cond-> entry
-                                     thumbnails (update :thumbnails update-vals
-                                                        #(dissoc % :data))))
-                           "UTF-8"))
-      (prune! (io/file dir) max-bytes h))))
+  longest ago past `max-bytes`.
 
-(defn- kept!
-  "Keep the `entry` in the folder `dir` of at most `max-bytes` with
-  store!, while holding the `lock`, so that one job's prune never deletes
-  the files that another job is still writing. It logs a store that
-  fails, e.g. on a full disk, since the handler can still send the
-  thumbnails from their :data."
-  [lock dir max-bytes entry]
-  (try
-    (locking lock
-      (store! dir max-bytes entry))
-    (catch Exception e
-      (tel/log! {:level :warn :id :artwork/store-failed
-                 :data  {:url (:url entry)} :error e}
-                "The thumbnails of the artwork weren't kept"))))
+  It holds the `lock` meanwhile, so that one job's prune never deletes the
+  files that another job is still writing. A store that fails, e.g. on a
+  full disk, is logged, since the handler can still send the thumbnails
+  from their :data."
+  [lock dir max-bytes {:keys [url thumbnails] :as entry}]
+  (when dir
+    (try
+      (locking lock
+        (let [h (hashed url)]
+          (.mkdirs (io/file dir))
+          (doseq [thumbnail (vals (into {} (map (juxt :width identity))
+                                        (vals thumbnails)))
+                  :when     (:data thumbnail)]
+            (written! (image-file dir h thumbnail) (:data thumbnail)))
+          ;; an artwork that format.image can't scale keeps nil as its
+          ;; thumbnails
+          (written! (entry-file dir h)
+                    (.getBytes (pr-str (cond-> entry
+                                         thumbnails (update :thumbnails update-vals
+                                                            #(dissoc % :data))))
+                               "UTF-8"))
+          (prune! (io/file dir) max-bytes h)))
+      (catch Exception e
+        (tel/log! {:level :warn :id :artwork/store-failed
+                   :data  {:url url} :error e}
+                  "The thumbnails of the artwork weren't kept")))))
 
 (defn- touch!
   "Mark the artwork at `url` in the folder `dir` as used now."
@@ -275,7 +271,7 @@
                     (catch Exception _
                       (failed url stale (System/currentTimeMillis)
                               retry-seconds)))]
-        (kept! lock cache-dir max-cache-bytes entry)
+        (store! lock cache-dir max-cache-bytes entry)
         entry)
       (finally
         (.release jobs)))
@@ -352,8 +348,8 @@
   "What `f` returns, called once for all the threads that ask for the key
   `k` while it runs. The atom `running` holds the keys in progress. The
   thread that calls `f` waits for it, and any other for `ms` milliseconds
-  at most, after which it gets `timed-out`."
-  [running k f ms timed-out]
+  at most, after which it gets nil."
+  [running k f ms]
   (let [mine (promise)
         now  (get (swap! running #(if (contains? % k) % (assoc % k mine))) k)
         {:keys [value error]}
@@ -362,20 +358,20 @@
             (swap! running dissoc k)
             (deliver mine result)
             result)
-          (deref now ms {:value timed-out}))]
+          (deref now ms nil))]
     (if error (throw error) value)))
 
 (defn- entry!
   "The entry of the artwork at `url` for its thumbnail at `width`: the one
-  in `cache-dir` while it's fresh, or else one renewed with `jobs`, `lock`
-  and `opts`, shared through `running` with the requests that ask
-  meanwhile.
+  in the :cache-dir of `opts` while it's fresh, or else one renewed with
+  `jobs`, `lock` and `opts`, shared through `running` with the requests
+  that ask meanwhile.
 
   A stale entry with that thumbnail is the answer at once, while the
   renewal runs on a thread of its own. A request that finds another's
   renewal under way waits :wait-seconds for it at most. When the renewal
   throws, it's the stale entry if that has thumbnails."
-  [cache-dir url width jobs lock running {:keys [wait-seconds] :as opts}]
+  [url width jobs lock running {:keys [cache-dir wait-seconds] :as opts}]
   (let [stale (stored cache-dir url)
         renew #(renewed! url stale jobs lock opts)]
     (cond
@@ -384,15 +380,12 @@
           stale)
 
       (get-in stale [:thumbnails width])
-      (do (future
-            (try
-              (shared running url renew 0 nil)
-              (catch Exception _)))
+      (do (future (shared running url renew 0))
           stale)
 
       :else
       (try
-        (shared running url renew (* 1000 wait-seconds) stale)
+        (or (shared running url renew (* 1000 wait-seconds)) stale)
         (catch Exception _
           (when (seq (:thumbnails stale))
             stale))))))
@@ -417,7 +410,7 @@
   ([]
    (handler {}))
   ([opts]
-   (let [{:keys [cache-dir max-jobs] :as opts} (merge defaults opts)
+   (let [{:keys [max-jobs] :as opts} (merge defaults opts)
          jobs    (Semaphore. max-jobs)
          lock    (Object.)
          running (atom {})]
@@ -425,5 +418,5 @@
        (or (refusal request opts)
            (let [{:strs [url w]} (url/query-params (:query-string request))
                  width           (parse-long w)]
-             (answer request url (entry! cache-dir url width jobs lock running opts)
+             (answer request url (entry! url width jobs lock running opts)
                      width opts)))))))
