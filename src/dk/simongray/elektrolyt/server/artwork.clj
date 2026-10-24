@@ -206,9 +206,10 @@
   "The headers that check whether the artwork of the `stale` entry has
   changed. They're nil when the entry lacks a thumbnail at one of the
   `widths`, e.g. one added since it was made, because a 304 would keep the
-  entry as it is."
+  entry as it is. An artwork that format.image can't scale, whose
+  thumbnails are nil, lacks none."
   [{:keys [etag last-modified thumbnails] :as stale} widths]
-  (when (every? #(contains? thumbnails %) widths)
+  (when (or (nil? thumbnails) (every? #(contains? thumbnails %) widths))
     (cond-> {}
       etag          (assoc "If-None-Match" etag)
       last-modified (assoc "If-Modified-Since" last-modified))))

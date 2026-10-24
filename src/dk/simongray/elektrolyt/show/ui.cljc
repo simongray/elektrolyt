@@ -150,7 +150,9 @@
   [status n error newer]
   (case status
     :loading "Loading episodes…"
-    :failed  (str/join " " (remove nil? ["The feed couldn't be fetched." (failure-text error)]))
+    :failed  (str/join " " (remove nil? ["The feed couldn't be fetched."
+                                         (failure-text error)
+                                         (when (pos? n) (str (text/counted n "episode") " from before."))]))
     (str (text/counted n "episode") "."
          (when newer
            (str " " (text/counted newer "new episode") (if (= 1 newer) " is in." " are in."))))))

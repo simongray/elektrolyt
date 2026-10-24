@@ -217,14 +217,16 @@
 (defn status
   "Where the feed of the show `guid` in `state` stands: :looking-up its
   URL, :loading, :checking it again, :done or :failed, or nil when no load
-  has begun."
+  has begun. A cached feed that's gone from its URL when it's checked
+  again has failed, though its episodes still show."
   [state guid]
   (let [{:keys [url key feed whole? error]} (source state guid)]
     (cond
       (requested? state [:look-up guid])                    :looking-up
-      (or key whole?)                                       (if (requested? state [:check url])
-                                                              :checking
-                                                              :done)
+      (or key whole?)                                       (cond
+                                                              (requested? state [:check url]) :checking
+                                                              error                           :failed
+                                                              :else                           :done)
       (some #(requested? state [% url]) [:open :head :whole]) :loading
       error                                                 :failed
       ;; only the start of the feed, e.g. from a prefetch
@@ -308,14 +310,6 @@
   [old fresh]
   (let [known (set (map guid/item-guid (:rss/items old)))]
     (count (remove known (map guid/item-guid (:rss/items fresh))))))
-
-;; podcast-clj's refresh counts such a feed as a failure too, with
-;; :fetch/empty-feed
-(defn emptied?
-  "Whether the feed `fresh` has no items where the feed `old` had some,
-  e.g. from a host during an outage."
-  [old fresh]
-  (boolean (and (seq (:rss/items old)) (empty? (:rss/items fresh)))))
 
 (defn listed?
   "Whether the page in `state` is the Show page of the show `guid`, which

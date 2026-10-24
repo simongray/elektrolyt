@@ -361,7 +361,20 @@
           (is (= [307 art "max-age=86400"] (check (cached (asked art 64)))))
           (is (= [307 art "max-age=86400"] (check (cached (asked art 128))))
               "and so does the cache that keeps it, at another width")
-          (is (= 1 (count @fetches)) "without a fetch"))))))
+          (is (= 1 (count @fetches)) "without a fetch"))))
+    (with-temp-dir
+      (fn [dir]
+        (let [fetches (atom [])
+              cache   (io/file dir "artwork")
+              cached  (artwork/handler {:cache-dir cache
+                                        :send      (stub fetches [(fn [_] {:status 200 :headers {"etag" "\"w1\""} :body webp})
+                                                                  (fn [_] {:status 304 :headers {}})])})]
+          (cached (asked art 64))
+          (let [entry (first (filter #(re-find #"\.edn$" (.getName ^java.io.File %)) (file-seq cache)))]
+            (spit entry (pr-str (assoc (read-string (slurp entry)) :fresh-until 0))))
+          (is (= [307 art "max-age=86400"] (check (cached (asked art 64)))))
+          (is (= {"If-None-Match" "\"w1\"" "Via" proxy/via} (:headers (second @fetches)))
+              "and checks it with its ETag, since it has no thumbnail to lack"))))))
 
 (deftest the-oldest-go-first
   (with-temp-dir

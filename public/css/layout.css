@@ -393,6 +393,7 @@ search p {
    by its URL, a long word in a page's title, e.g. a Danish compound, and
    the links in a show's notes */
 .search-results p,
+.search-results h2,
 .search-results h3,
 main h1,
 .show-notes {
