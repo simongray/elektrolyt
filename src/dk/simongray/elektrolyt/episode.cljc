@@ -3,7 +3,7 @@
   the library keeps, or that the Show page loaded, whole or its start.
 
   The page names the episode by the short hash of its guid and the slug of
-  its title, as dk.simongray.elektrolyt.routes has it. The state keeps
+  its title, as dk.simongray.elektrolyt.ui.routes has it. The state keeps
   what the files of an episode say under its id in :episodes, as a map of
   the :status of their read, :reading or :read, the time in milliseconds
   when it began, :at, its :result, and the :transcript-status and
@@ -13,10 +13,10 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.format.chapters :as chapters]
-            [dk.simongray.elektrolyt.memo :as memo]
-            [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.show :as show]
-            [dk.simongray.elektrolyt.ui.links :as links]))
+            [dk.simongray.elektrolyt.ui.links :as links]
+            [dk.simongray.elektrolyt.ui.memo :as memo]
+            [dk.simongray.elektrolyt.ui.routes :as routes]))
 
 (def view-opts
   "The options of app.episode/view for the page: the headings of the show

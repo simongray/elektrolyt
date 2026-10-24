@@ -33,9 +33,9 @@
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.feed.schedule :as schedule]
             [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.elektrolyt.memo :as memo]
             [dk.simongray.elektrolyt.search :as search]
-            [dk.simongray.elektrolyt.ui.links :as links]))
+            [dk.simongray.elektrolyt.ui.links :as links]
+            [dk.simongray.elektrolyt.ui.memo :as memo]))
 
 (def page-size
   "How many episodes the page lists at first, and how many more each time

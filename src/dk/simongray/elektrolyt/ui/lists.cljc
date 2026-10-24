@@ -4,10 +4,10 @@
   and a show's episodes show them, and the line after a list that links
   to the whole of it."
   (:require [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.elektrolyt.artwork.ui :as artwork]
-            [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.routes :as routes]
-            [dk.simongray.elektrolyt.ui.facts :as facts-ui]))
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
+            [dk.simongray.elektrolyt.ui.colors :as colors]
+            [dk.simongray.elektrolyt.ui.facts :as facts-ui]
+            [dk.simongray.elektrolyt.ui.routes :as routes]))
 
 (defn queue-feed-url
   "The URL of the feed of the show `feed-guid` that the library `lib` keeps

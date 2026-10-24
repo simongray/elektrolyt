@@ -1,6 +1,6 @@
 (ns dk.simongray.elektrolyt.library.opml-test
   (:require [clojure.test :refer [deftest is]]
-            [dk.simongray.elektrolyt.inbox-test :as inbox-test]
+            [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.opml :as opml]))
 

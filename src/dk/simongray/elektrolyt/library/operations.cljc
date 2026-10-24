@@ -15,8 +15,8 @@
             [dk.simongray.podcast.profile.opml :as profile.opml]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast.util.time :as time]
-            [dk.simongray.elektrolyt.inbox :as inbox]
-            [dk.simongray.elektrolyt.queue :as queue]))
+            [dk.simongray.elektrolyt.library.inbox :as inbox]
+            [dk.simongray.elektrolyt.library.queue :as queue]))
 
 (defn- profile-changed
   "The `library` with its profile changed by `f` of it, the `args` and the

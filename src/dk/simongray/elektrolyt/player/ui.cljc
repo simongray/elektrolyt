@@ -9,15 +9,15 @@
   are icons alone. The Episode page is the player's full view, with the
   notes, the chapters and the transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
-            [dk.simongray.elektrolyt.artwork.ui :as artwork]
-            [dk.simongray.elektrolyt.colors :as colors]
+            [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.player :as player]
-            [dk.simongray.elektrolyt.queue :as queue]
-            [dk.simongray.elektrolyt.routes :as routes]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
+            [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 ;; at the size of the player on a desktop, whose height is 7rem (see

@@ -2,12 +2,12 @@
   "The views of the Library page: the newest episodes of the inbox, and the
   shows that the listener subscribes to, in the order and the layout of
   their choice, with the refresh of their feeds."
-  (:require [dk.simongray.elektrolyt.artwork.ui :as artwork]
-            [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.inbox.ui :as inbox-ui]
+  (:require [dk.simongray.elektrolyt.library.inbox.ui :as inbox-ui]
             [dk.simongray.elektrolyt.library.shows :as shows]
-            [dk.simongray.elektrolyt.routes :as routes]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
+            [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 (defn choice

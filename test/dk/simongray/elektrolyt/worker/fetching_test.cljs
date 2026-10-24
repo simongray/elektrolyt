@@ -96,7 +96,7 @@
           (.then (fn [_] ((fetch {dr ours}) dr {})))
           (.then (fn [answer]
                    (is (= ["o2"] (guids answer)) "and stays as it is without a sibling")
-                   (is (:dk.simongray.elektrolyt.drpodcast/supplemented (:feed answer))
+                   (is (:dk.simongray.elektrolyt.search.drpodcast/supplemented (:feed answer))
                        "though marked as fetched with drpodcast.nu's episodes")))
           (.then (fn [_]
                    (reset! asked [])
@@ -104,7 +104,7 @@
           (.then (fn [answer]
                    (is (= ["d3" "d2"] (guids answer)))
                    (is (= 1 (count @asked)) "while any other feed is fetched alone")
-                   (is (nil? (:dk.simongray.elektrolyt.drpodcast/supplemented (:feed answer))) "and unmarked")))
+                   (is (nil? (:dk.simongray.elektrolyt.search.drpodcast/supplemented (:feed answer))) "and unmarked")))
           (.catch #(is false (str "rejected: " %)))
           (.finally #(do (reset! fetching/known-slugs nil)
                          (done)))))))

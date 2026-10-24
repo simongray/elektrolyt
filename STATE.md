@@ -25,24 +25,24 @@ as long as the tab.
 
 | Key | What it holds | Writers | Readers | Cleared |
 |---|---|---|---|---|
-| `:library` | The listener's library: the profile, the feeds and the search index, with this tab's operations that wait applied to it | `library` (`open!`, `change!`, `written!`, `caught-up!`) | most views, `player.audio`, `picks`, `library.refresh` | Replaced when another tab writes, or the page is shown again |
+| `:library` | The listener's library: the profile, the feeds and the search index, with this tab's operations that wait applied to it | `library` (`open!`, `change!`, `written!`, `caught-up!`) | most views, `player.audio`, `library.picks`, `library.refresh` | Replaced when another tab writes, or the page is shown again |
 | `:player` | This tab's player: the episode, the element's media state, the volume, a seek, a wait for data, and what another tab plays | `player.audio`, and `elektrolyt` for `:expanded?` | `player`, the views | Overwritten |
 | `:episodes` | What an episode's files say, by id: chapters, duration, transcript, and when their read began | `player.audio`, `show.feeds` | `player`, `episode.ui` | At a change of page, but for the episode that plays and the 20 whose reads began last (`episode/kept-count`) |
 | `:feeds` | The feeds of shows outside the library, by URL, with their validators and whether this visit checked them | `show.feeds`, through `show` | `show/source` | Clear cache |
 | `:feed-urls` | Where a show's feed is, by guid, from the cache or the Podcast Index | `show.feeds` | `show` | Clear cache, or a 404 or 410 at a URL from the cache |
 | `:requests` | The requests for those feeds in flight | `show.feeds`, through `show` | `show/status` | When answered |
 | `:episodes-shown` | How many episodes a Show page lists, by guid | `show` (`:show/more`) | `show.ui` | Never |
-| `:searches` | The searches by query, each directory's results | `search.directories`, `search.ui` | `routes`, `search`, `show`, `search.ui` | Clear cache |
+| `:searches` | The searches by query, each directory's results | `search.directories`, `search.ui` | `ui.routes`, `search`, `show`, `search.ui` | Clear cache |
 | `:linked` | The shows that a show links to, by guid | `show.feeds` | `show.ui` | Clear cache |
-| `:colors` | The colours of artwork, by URL | `artwork.colors` | `colors`, the views | Clear cache |
+| `:colors` | The colours of artwork, by URL | `ui.artwork.colors` | `ui.colors`, the views | Clear cache |
 | `:refresh-status` | The refresh under way, and what the last one found | `library.refresh` | `library.refresh`, `library.opml`, `library.ui` | Overwritten |
-| `:route` | The page | `routes`, at each navigation | `ui`, `show`, `colors` | Overwritten |
-| `:server` | What the app's server offers | `elektrolyt`, once | `search`, `settings.ui` | Never |
+| `:route` | The page | `ui.routes`, at each navigation | `ui`, `show`, `ui.colors` | Overwritten |
+| `:server` | What the app's server offers | `elektrolyt`, once | `search`, `library.settings.ui` | Never |
 | `:announcement` | The last status message for a screen reader | `library.changes`, `show`, `library.refresh`, `show.subscription` | `ui` | Overwritten |
-| `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone, which undoes only what's still as it left it | `library.changes`, through `queue` and `inbox` | `queue`, `inbox`, the views, which offer it while there's something to put back | This tab's next change |
+| `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone, which undoes only what's still as it left it | `library.changes`, through `library.queue` and `library.inbox` | `library.queue`, `library.inbox`, the views, which offer it while there's something to put back | This tab's next change |
 | `:subscribing`, `:subscribe-errors` | The subscriptions under way, and those that failed, by URL | `show.subscription` | `ui.subscription` | Per URL, once it's done |
-| `:settings-status` | The last outcome on Settings | `elektrolyt`, `settings`, `library.opml` | `settings.ui` | Overwritten |
-| `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `settings.ui` | At each check |
+| `:settings-status` | The last outcome on Settings | `elektrolyt`, `library.settings`, `library.opml` | `library.settings.ui` | Overwritten |
+| `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `library.settings.ui` | At each check |
 | `:library-view` | The Library page's order and layout | `elektrolyt` | `library.shows`, `library.ui` | Never |
 | `:open` | The sections that the listener unfolded | `ui.controls` | `ui.controls` | Never, so that Back finds a section as the listener left it |
 
@@ -60,7 +60,7 @@ In the tab, outside the store
 | `runtime/detach` | What stops following the player's audio element and clears the lock screen's buttons | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
 | `worker.fetching/web-worker` | The web worker, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
-| `memo` slots | The last result of a view that takes a while, e.g. the queue, a show's page, the picks | the views | the views | Until its arguments change |
+| `ui.memo` slots | The last result of a view that takes a while, e.g. the queue, a show's page, the picks | the views | the views | Until its arguments change |
 
 
 In localStorage
@@ -74,7 +74,7 @@ browser clears the site's data.
 | `…device` | The id of this browser as a device | like-minded's `device/id!`, once, in `library/open!` | `library/open!` | Never |
 | `…volume` | The level of the volume slider | `player.audio` | `player.audio`, as the page loads | Never |
 | `…library-view` | The Library page's order and layout, which suit a screen | `elektrolyt` | `elektrolyt`, as the page loads | Never |
-| `…theme`, `…contrast` | Copies of the listener's preferences, so that `public/theme.js` colours the page before it starts | `page` | `public/theme.js` | When the theme follows the device again |
+| `…theme`, `…contrast` | Copies of the listener's preferences, so that `public/theme.js` colours the page before it starts | `ui.document` | `public/theme.js` | When the theme follows the device again |
 
 
 In IndexedDB
@@ -83,7 +83,7 @@ In IndexedDB
 | Database | What it holds | Writers | Readers | Cleared |
 |---|---|---|---|---|
 | `…library` | The library's document, a document per feed, and the search index's | The tabs, with `library/durable-swap!`; the worker puts only feed documents | The tabs, with `library/read!`; the worker, with `fetch-due!` | Never by the app; the browser can evict it unless the site's storage persists |
-| `…cache` | Directory results, feed URLs by guid, feeds of shows outside the library, linked shows, colours of artwork | `search.directories`, `show.feeds`, `artwork.colors`, once the page is idle | the same | By age and count, and Clear cache |
+| `…cache` | Directory results, feed URLs by guid, feeds of shows outside the library, linked shows, colours of artwork | `search.directories`, `show.feeds`, `ui.artwork.colors`, once the page is idle | the same | By age and count, and Clear cache |
 
 
 Between the tabs and the worker
@@ -105,8 +105,8 @@ In the page
 |---|---|---|---|
 | The audio element | The episode's file, where it is, the volume and the rate | `player.audio`, through play-nice | `player.audio`, through `runtime/attach-player!` |
 | The Media Session | The episode on the lock screen, and its buttons while the player's element is mounted | `runtime/lock-screen!`, from `player.audio` | The platform |
-| `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `page`, at each render | CSS, the browser |
-| The history | The page's URL; `page/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `routes`, `page` | `runtime/follow-history!` |
+| `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `ui.document`, at each render | CSS, the browser |
+| The history | The page's URL; `ui.document/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `ui.routes`, `ui.document` | `runtime/follow-history!` |
 | The listeners | The page shown, hidden or restored, the end of a transition, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
 
 

@@ -31,7 +31,7 @@
             [dk.simongray.podcast.format.chapters :as chapters]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.util.time :as time]
-            [dk.simongray.elektrolyt.memo :as memo]
+            [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.wary-fetch.proxy :as proxy]))
 
 (def element-name

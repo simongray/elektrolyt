@@ -1,9 +1,9 @@
 (ns dk.simongray.elektrolyt.player.ui-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.elektrolyt.library.queue-test :as queue-test]
             [dk.simongray.elektrolyt.player-test :refer [id lib state]]
             [dk.simongray.elektrolyt.player.ui :as player-ui]
-            [dk.simongray.elektrolyt.queue-test :as queue-test]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]

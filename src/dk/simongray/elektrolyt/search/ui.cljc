@@ -5,14 +5,14 @@
   The state holds each search under its query in :searches, as
   dk.simongray.elektrolyt.search describes it."
   (:require [clojure.string :as str]
-            [dk.simongray.elektrolyt.artwork.ui :as artwork]
-            [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
-            [dk.simongray.elektrolyt.routes :as routes]
+            [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.search :as search]
-            [dk.simongray.elektrolyt.settings.ui :as settings-ui]
-            [dk.simongray.elektrolyt.text :as text]
+            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
+            [dk.simongray.elektrolyt.ui.colors :as colors]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
+            [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 (defn query

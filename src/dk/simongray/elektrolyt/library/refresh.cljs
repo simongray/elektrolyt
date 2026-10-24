@@ -19,11 +19,11 @@
   another refreshing reads what that one writes. A hidden tab doesn't
   refresh, so with every tab hidden, nothing does."
   (:require [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.library.shows :as shows]
             [dk.simongray.elektrolyt.runtime :as runtime]
-            [dk.simongray.elektrolyt.settings :as settings]
+            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]))
 
 (def max-wait-ms
