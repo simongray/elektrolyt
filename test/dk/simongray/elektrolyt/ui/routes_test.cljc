@@ -24,7 +24,10 @@
 (deftest a-stray-percent-sign
   (is (= "/search?q=100%25" (routes/decodable "/search?q=100%")))
   (is (= "/shows/%25zz#50%25" (routes/decodable "/shows/%zz#50%")))
-  (is (= "/search?q=a%20b" (routes/decodable "/search?q=a%20b")) "but not an escape"))
+  (is (= "/search?q=a%20b" (routes/decodable "/search?q=a%20b")) "but not an escape")
+  (is (= "/search?q=%C3%A6" (routes/decodable "/search?q=%C3%A6")) "of UTF-8")
+  (is (= "/search?q=%25FF" (routes/decodable "/search?q=%FF")) "unlike escapes that aren't UTF-8")
+  (is (= "/search?q=%25C3x" (routes/decodable "/search?q=%C3x")) "e.g. half a letter"))
 
 (deftest a-page-with-another-query-is-the-same-page
   (let [search {:name :route/search :path-params {} :query-params {:q "a"}}]
