@@ -184,6 +184,9 @@
 ;; users weren't confused by the boxes (NCSU)
 ;; https://blogs.library.duke.edu/bitstreams/2014/07/03/bento-is-coming/
 ;; https://www.lib.ncsu.edu/node/45126
+;;
+;; The button to try again goes as the directory is asked again, so the
+;; focus moves to the list's heading
 (defn directory-list
   "The list `l` of the directory `source` for the words `q` in `state`: its
   heading, its results, and a button to try again if it didn't answer."
@@ -192,7 +195,9 @@
    [:h2 {:id (list-id source) :tabindex -1} (search/source-name source)]
    [:p (list-text q l)]
    (when (= :failed status)
-     [:button {:type "button" :on {:click [[:search/retry q source]]}}
+     [:button {:type         "button"
+               :data-refocus (str "#" (list-id source))
+               :on           {:click [[:search/retry q source]]}}
       "Try again" [:span.visually-hidden " " (search/source-name source)]])
    (results state :h3 (:results l))])
 

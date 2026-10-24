@@ -25,5 +25,6 @@
 
 (deftest sizes
   (is (= ["850 kB" "86 MB" "1.5 GB"] (map text/size-text [850000 86000000 1500000000])))
+  (is (= ["1 MB" "1 GB"] (map text/size-text [999600 999700000])) "never 1,000 of a unit")
   (is (= "12.3 MB" (text/megabytes 12345678)))
   (is (= "0.0 MB" (text/megabytes 0))))

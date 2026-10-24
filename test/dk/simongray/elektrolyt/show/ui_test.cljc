@@ -35,8 +35,10 @@
       "while the whole feed is fetched, or the cache is read")
   (is (= "207 episodes." (show/status-text :done 207 nil nil)))
   (is (= "207 episodes." (show/status-text :checking 207 nil nil)) "and while it's fetched again")
-  (is (= "The feed couldn't be fetched. The server answered 404."
-         (show/status-text :failed 0 {:message "The server answered 404."} nil)))
+  (is (= "The feed couldn't be fetched. Its server answered with an error, 404."
+         (show/status-text :failed 0 {:id :fetch/status :status 404 :message "The feed stays as it was."} nil))
+      "in the listener's words, not the library's")
+  (is (= "The feed couldn't be fetched." (show/status-text :failed 0 {:id :fetch/other} nil)))
   (is (= "207 episodes. 2 new episodes are in." (show/status-text :done 207 nil 2)))
   (is (= "207 episodes. 1 new episode is in." (show/status-text :done 207 nil 1))))
 
@@ -48,8 +50,8 @@
         "rather than say there's no such show")
     (is (= "Loading the show…" (text-of (show/content (show-page {:requests {[:open url] {}}}) nil)))
         "nor while the cache is read")
-    (is (= "The feed couldn't be fetched. The server answered 404."
-           (text-of (show/content (show-page {:feeds {url {:error {:message "The server answered 404."}}}})
+    (is (= "The feed couldn't be fetched. Its server couldn't be reached."
+           (text-of (show/content (show-page {:feeds {url {:error {:id :fetch/unreachable}}}})
                                   nil))))
     (is (re-find #"isn't in the library"
                  (text-of (show/content (assoc unlinked :feed-urls {"g" {:not-found? true}}) nil))))))
@@ -77,9 +79,20 @@
     (is (re-find #"^/shows/g/episodes/\w+/episode-0\?url=" href)
         "each title links to the page of its episode, with the URL of the feed")
     (is (= [[:show/more "g" 45]] (get-in button [1 :on :click])))
+    (is (= "ol.episodes > li:nth-child(21) h3 a" (get-in button [1 :data-refocus]))
+        "which gives the focus to the first episode that it lists, once it goes")
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
                     (show/episodes (show-page {:episodes-shown {"g" 45}}) {:episodes rows})))
         "no button once they're all listed")))
+
+(deftest an-episode-without-a-guid
+  (let [feed  {:rss/title "A Show" :rss/items [{:rss/title "Nameless"}]}
+        state (show-page {:feeds {url {:feed feed :whole? true}}})
+        [item] (elements :li (elements :ol.episodes (show/content state [:h1 "A Show"])))]
+    (is (= 0 (get-in item [1 :replicant/key])) "keyed by its place in the list")
+    (is (= "Nameless" (text-of (elements :h3 item))))
+    (is (empty? (elements :a item))
+        "but not linked, since an item with neither a guid nor an enclosure has no page")))
 
 (deftest an-episode-beside-its-artwork
   (let [src #(:src (second (first (elements :img (show/episode-row {} "/e" % nil {:artwork "https://example.org/show.jpg"})))))]
@@ -89,7 +102,10 @@
 (deftest an-episode-from-another-feed
   (let [facts #(first (elements :p (show/episode-row {} "/e" % nil {})))]
     (is (= "From drpodcast.nu" (spoken (facts {:title "One" :supplement "https://drpodcast.nu/genstart/feed.xml"}))))
-    (is (nil? (facts {:title "One"})) "and no line for one of the show's own without facts")))
+    (is (nil? (facts {:title "One"})) "and no line for one of the show's own without facts")
+    (is (= "Trailer" (spoken (facts {:title "One" :type "trailer"})))
+        "a trailer says so, since it comes first in the list")
+    (is (nil? (facts {:title "One" :type "full"})))))
 
 (deftest how-often-a-show-publishes
   (let [day (* 24 3600 1000)]

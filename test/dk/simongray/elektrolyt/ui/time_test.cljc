@@ -8,7 +8,9 @@
   (is (= "45m" (time-ui/duration-text 2700)))
   (is (= "1m" (time-ui/duration-text 40)) "rounded to the minute")
   (is (= "20s" (time-ui/duration-text 20)) "but for less than half a minute")
-  (is (= [:time {:datetime "PT4980S"} "1h 23m"] (time-ui/duration 4980))))
+  (is (= [:time {:datetime "PT4980S"} "1h 23m"] (time-ui/duration 4980)))
+  (is (= "0s" (time-ui/duration-text 0)) "not nothing for none at all")
+  (is (nil? (time-ui/duration 1e17)) "and no duration for a number beyond counting"))
 
 (deftest a-date-in-british-english
   (is (= "2 Oct 2026" (time-ui/date-text #inst "2026-10-02T12:00:00Z"))))

@@ -3,6 +3,7 @@
   the actions of a navigation."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.elektrolyt.search :as search]
             [reitit.core :as reitit]))
 
 ;; A show's page is at /shows/<guid>/<slug>, as a question is on Stack
@@ -29,6 +30,13 @@
     ["/shows/:guid/:slug"                {:name :route/titled-show :page :route/show}]
     ["/shows/:guid/episodes/:hash"       :route/episode]
     ["/shows/:guid/episodes/:hash/:slug" {:name :route/titled-episode :page :route/episode}]]))
+
+(defn decodable
+  "The URL `url` with each percent sign that doesn't start an escape
+  escaped itself, e.g. \"/search?q=100%25\" for \"/search?q=100%\", since
+  the router can't decode a stray one."
+  [url]
+  (str/replace url #"%(?![0-9A-Fa-f]{2})" "%25"))
 
 (defn href
   "The path of the route `route-name` with its `path-params`,
@@ -147,7 +155,8 @@
 
       (and (= :route/search (:name route))
            (not (str/blank? q))
-           (not (get-in state [:searches q])))
+           (or (not (get-in state [:searches q]))
+               (search/outdated? state q)))
       (conj [:search/run q])
 
       (#{:route/show :route/episode} (:name route))

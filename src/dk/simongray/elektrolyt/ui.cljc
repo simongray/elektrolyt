@@ -176,7 +176,9 @@
   "The heading of the page in `state`, in its title's language, which can
   take the focus."
   [state]
-  [:h1 {:tabindex -1 :lang (title-lang state)} (page-title state)])
+  ;; data-refocus, since a Show or Episode page moves its heading into its
+  ;; article once the feed arrives
+  [:h1 {:tabindex -1 :lang (title-lang state) :data-refocus "main h1"} (page-title state)])
 
 (def not-found
   "The content for a path that no page has."

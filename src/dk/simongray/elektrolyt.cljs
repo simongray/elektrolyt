@@ -378,6 +378,11 @@
   "Follow the window's history and dispatch a navigation to each path,
   starting with the current one."
   []
+  ;; a stray % typed into the address bar would make the router throw, and
+  ;; leave the page blank
+  (let [url (str js/location.pathname js/location.search js/location.hash)]
+    (when (not= url (routes/decodable url))
+      (.replaceState js/history nil "" (routes/decodable url))))
   (runtime/follow-history! routes/router
                            (fn [match _]
                              (nxr/dispatch store {} [[:route/navigated

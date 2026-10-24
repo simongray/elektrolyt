@@ -10,6 +10,7 @@
             [dk.simongray.podcast.app.show :as app.show]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
+            [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.settings :as settings]
@@ -43,8 +44,8 @@
 (defn index-lookup!
   "A promise of the feed URL of the show `guid` from the Podcast Index,
   through the app's server: a map of the :url, which is then cached, and
-  where it came :from, or of :not-found? when the index doesn't have it
-  or fails."
+  where it came :from, of :not-found? when the index doesn't have it, or
+  nil when the lookup fails, e.g. offline."
   [guid]
   (-> (directory/call! :podcastindex :lookup {:id guid}
                        {:send app-cache/send :credentials {}})
@@ -53,7 +54,7 @@
                  (do (app-cache/put! app-cache/feed-urls guid url)
                      {:url url :from :index})
                  {:not-found? true})))
-      (.catch (constantly {:not-found? true}))))
+      (.catch (constantly nil))))
 
 (defn feed-url!
   "A promise of the feed URL of the show `guid`, from the cache or else the
@@ -73,13 +74,14 @@
   "Find the feed URL of the show `guid` in the cache, or else the Podcast
   Index, and load the show into `store`, only the start of its feed when
   `preview?`. When `fresh?`, only the index is asked, e.g. once the feed
-  is gone from the cached URL."
+  is gone from the cached URL. A lookup that fails leaves nothing, so
+  that the next visit asks again."
   [store guid preview? fresh?]
   (swap! store show/requested [:look-up guid])
   (.then (feed-url! guid fresh?)
          (fn [found]
-           (swap! store #(-> (show/answered % [:look-up guid])
-                             (assoc-in [:feed-urls guid] found)))
+           (swap! store #(cond-> (show/answered % [:look-up guid])
+                           found (assoc-in [:feed-urls guid] found)))
            (when-let [url (:url found)]
              (load-show! store guid url preview?)))))
 
@@ -152,17 +154,21 @@
   "Fetch the cached feed of the show `guid` at `url` in `store` again with
   its validators, once a visit and only when it's past its time. A 304
   renews the cached copy, and a new feed replaces it in the cache and on
-  the page."
+  the page, unless it lost every item. A 404 or a 410 fails as a fetch of
+  the whole feed does."
   [store guid url]
-  (let [{:keys [feed whole? validators checked?]} (get-in @store [:feeds url])]
+  (let [{:keys [feed whole? validators checked?] :as entry} (get-in @store [:feeds url])]
     (when (and whole? (not checked?))
       (swap! store #(-> (assoc-in % [:feeds url :checked?] true)
                         (show/requested [:check url])))
       (-> (fetching/fetch! url (merge (whole-opts @store)
                                       (select-keys validators [:etag :last-modified])))
-          (.then (fn [{:keys [status] :as fetched}]
+          (.then (fn [{:keys [status error] :as fetched}]
                    (cond
-                     (:feed fetched)
+                     (show/gone? error)
+                     (show-failed! store guid url error)
+
+                     (and (:feed fetched) (not (show/emptied? feed (:feed fetched))))
                      (do (swap! store show/refetched guid url fetched (js/Date.))
                          (keep-show! url fetched))
 
@@ -170,6 +176,7 @@
                      ;; counts
                      (= 304 status)
                      (keep-show! url (merge {:url url :feed feed}
+                                            (select-keys entry show/subscription-keys)
                                             (dissoc validators :not-before)
                                             (show/validators fetched))))))
           (.catch #(tel/log! {:level :warn :id :show/check-failed
@@ -318,7 +325,9 @@
           (app.show/view feed {:url url :except linked-except})
           {:send app-library/send :index index})
          (fn [fetched]
-           (let [shows (linked/kept guid fetched)]
+           ;; the page's guid can come from the feed's URL, while the
+           ;; publisher lists the show by the guid that its feed declares
+           (let [shows (linked/kept #{guid (guid/feed-guid feed url)} fetched)]
              (when-not (linked/failed? fetched)
                (app-cache/put! app-cache/linked guid shows))
              shows))))
