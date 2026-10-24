@@ -38,27 +38,33 @@
   (boolean (and status
                 (or (<= 2 failures) (contains? #{:full :newer-format} cause)))))
 
-;; WCAG 2.2, SC 4.1.3 Status Messages: announced as it comes and goes,
-;; without taking the focus, since it isn't about what the listener does
+(defn text
+  "What the page says of the save `status`, with the time of day of its
+  :since as `time`, e.g. \"14:32\", or without a time when it's nil."
+  [{:keys [cause]} time]
+  (let [changes (str "Your changes" (when time (str " since " time)))]
+    (case cause
+      :full         (str changes " aren't saved, because the browser has no room left.")
+      :newer-format (str changes " can't be saved, because another tab has a newer "
+                         "version of Elektrolyt.")
+      (str changes " aren't saved yet."))))
+
+;; WCAG 2.2, SC 4.1.3 Status Messages: announced as it comes, changes its
+;; cause and goes, without taking the focus, since it isn't about what the
+;; listener does
 (defn noted
   "The `state` with the save `status`, or without one once the changes are
-  saved, announced as the page starts or stops telling of it."
+  saved, announced as the page starts telling of it or of another cause,
+  and as it stops."
   [state status]
-  (let [was (shown? (:save-status state))
-        now (shown? status)]
+  (let [before (:save-status state)
+        was    (shown? before)
+        now    (shown? status)]
     (cond-> (if status
               (assoc state :save-status status)
               (dissoc state :save-status))
-      (and now (not was)) (assoc :announcement "Your changes aren't saved")
-      (and was (not now)) (assoc :announcement "Your changes are saved"))))
+      (and now (or (not was) (not= (:cause before) (:cause status))))
+      (assoc :announcement (text status nil))
 
-(defn text
-  "What the page says of the save `status`, with the time of day of its
-  :since as `time`, e.g. \"14:32\"."
-  [{:keys [cause]} time]
-  (case cause
-    :full         (str "Your changes since " time " aren't saved, because the "
-                       "browser has no room left.")
-    :newer-format (str "Your changes since " time " can't be saved, because "
-                       "another tab has a newer version of Elektrolyt.")
-    (str "Your changes since " time " aren't saved yet.")))
+      (and was (not now))
+      (assoc :announcement "Your changes are saved"))))
