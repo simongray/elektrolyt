@@ -7,6 +7,7 @@
   feed past its time is checked again once a visit. When the link doesn't
   give a show's feed URL, the cache or the Podcast Index finds it by guid."
   (:require [dk.simongray.podcast.app.episode :as episode]
+            [dk.simongray.podcast.app.feeds :as feeds]
             [dk.simongray.podcast.app.show :as app.show]
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
@@ -167,7 +168,9 @@
                      (show/gone? error)
                      (show-failed! store guid url error)
 
-                     (and (:feed fetched) (not (show/emptied? feed (:feed fetched))))
+                     ;; a feed that lost every item counts as a failure, as in a
+                     ;; refresh of the library
+                     (and (:feed fetched) (not (feeds/emptied? feed (:feed fetched))))
                      (do (swap! store show/refetched guid url fetched (js/Date.))
                          (keep-show! url fetched))
 

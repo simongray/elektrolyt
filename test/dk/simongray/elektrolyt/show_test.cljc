@@ -85,7 +85,9 @@
         "but not while it's fetched again")
     (let [done (show/whole (on-page guid) url {:feed (feed "A Show")} #inst "2026-10-18T12:00:00Z" false)]
       (is (= :done (show/status done guid)))
-      (is (= :checking (show/status (show/requested done [:check url]) guid))))
+      (is (= :checking (show/status (show/requested done [:check url]) guid)))
+      (is (= :failed (show/status (assoc-in done [:feeds url :error] {:id :fetch/status :status 410}) guid))
+          "and failed once a check finds it gone from its URL"))
     (is (= :looking-up (show/status (show/requested {} [:look-up guid]) guid)))))
 
 (deftest where-the-feed-of-a-show-is
@@ -197,12 +199,6 @@
                                                     [:rss/items 0 :rss/title] "One, edited")}
                                    later)))
         "and at once when the feed brings no new episode, e.g. an edit")))
-
-(deftest a-feed-that-lost-its-episodes
-  (is (show/emptied? (feed "A Show" "One") (feed "A Show"))
-      "as some hosts answer during an outage")
-  (is (not (show/emptied? (feed "A Show") (feed "A Show"))) "rather than a show yet to publish")
-  (is (not (show/emptied? (feed "A Show" "One") (feed "A Show" "Two")))))
 
 (deftest a-feed-that-moved
   (let [moved   "https://example.org/moved.xml"

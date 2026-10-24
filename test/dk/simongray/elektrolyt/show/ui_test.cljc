@@ -41,6 +41,9 @@
          (show/status-text :failed 0 {:id :fetch/status :status 404 :message "The feed stays as it was."} nil))
       "in the listener's words, not the library's")
   (is (= "The feed couldn't be fetched." (show/status-text :failed 0 {:id :fetch/other} nil)))
+  (is (= "The feed couldn't be fetched. Its server answered with an error, 410. 207 episodes from before."
+         (show/status-text :failed 207 {:id :fetch/status :status 410} nil))
+      "with the episodes of the copy kept from before")
   (is (= "207 episodes. 2 new episodes are in." (show/status-text :done 207 nil 2)))
   (is (= "207 episodes. 1 new episode is in." (show/status-text :done 207 nil 1))))
 
