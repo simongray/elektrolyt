@@ -63,14 +63,17 @@
   (post! {:type  :told
           :state (player/told media (get-in @store [:player :id]) tab (js/Date.now))}))
 
-(declare autoplay! press! play-id!)
+(declare act! autoplay! press! play-id! resume!)
 
+;; An earlier step can load another episode, e.g. at the outro. A seek
+;; meant for the episode before mustn't move it.
 (defn apply-effects!
   "Carry out the `effects` of a library step on the player in `store`."
   [store effects]
   (doseq [[kind id position] effects]
     (case kind
-      :seek         (some-> (element) (media/seek! position))
+      :seek         (when (= id (get-in @store [:player :id]))
+                      (some-> (element) (media/seek! position)))
       :stop         (some-> (element) media/pause!)
       :play         (play-id! store id nil)
       :played       nil
@@ -85,6 +88,17 @@
     (apply-effects! store effects)
     effects))
 
+(defn steps!
+  "Run the player `events` through steps of the library in `store` in
+  turn. Stop once a step stops the episode or plays another, since the
+  rest were meant for the episode that played."
+  [store events]
+  (reduce (fn [_ event]
+            (let [effects (step! store event)]
+              (cond-> effects (player/moved-on? effects) reduced)))
+          nil
+          events))
+
 ;; A library step plays what's next in the queue, or in the show with
 ;; Continuous play, and stops at the end of a sleep timer, so a pick plays
 ;; only when the step has nothing to play next
@@ -96,14 +110,37 @@
     (step! store [:play pick])
     (play-id! store pick nil)))
 
+(def moves
+  "The actions of the lock screen and the keys that move within the
+  episode or to another. They go through the library."
+  [:seekbackward :seekforward :seekto :previoustrack :nexttrack])
+
 (defn handlers
-  "The handlers of the lock screen's actions and the keys for `store`:
-  play, pause and stop on the `element` itself, and the rest through the
-  library."
+  "The handlers of the lock screen's actions for `store`: play, pause and
+  stop on the `element` itself, and the moves through the library."
   [store element]
   (merge (select-keys (session/element-actions element) [:play :pause :stop])
-         (zipmap [:seekbackward :seekforward :seekto :previoustrack :nexttrack]
-                 (repeat #(press! store %)))))
+         (zipmap moves (repeat #(press! store %)))))
+
+;; A play/pause key asks for play while this tab's element is paused, as
+;; it is while another tab plays. In that case it pauses the other tab,
+;; like the player's button.
+(defn play-key!
+  "Pause the playback that the player in `store` shows in another tab, or
+  else resume it here."
+  [store]
+  (if (player/elsewhere (:player @store))
+    (act! store [:pause])
+    (resume! store)))
+
+(defn key-handlers
+  "The handlers of the keys pressed in the player in `store`, which act on
+  the playback that it shows, in this tab or another, as its buttons do."
+  [store]
+  (merge {:play  (fn [_] (play-key! store))
+          :pause (fn [_] (act! store [:pause]))
+          :stop  (fn [_] (act! store [:pause]))}
+         (zipmap moves (repeat #(act! store [:press %])))))
 
 (defn lock-screen!
   "Show the episode of the player in `store` on the lock screen, with the
@@ -115,7 +152,8 @@
       (runtime/lock-screen! (:metadata (player/playback state id))
                             (select-keys (handlers store el)
                                          (concat [:play :pause :stop]
-                                                 (media-session/actions library id)))))))
+                                                 (media-session/actions library id
+                                                                        (player/playback-opts state id))))))))
 
 (defn moved!
   "Post the state of the paused `element` and the episode in `store` to
@@ -128,13 +166,15 @@
 (defn press!
   "Carry out the Media Session action in `details`, e.g. {:action
   :seekforward}, on the player in `store` through the library: report
-  where the element is, then move."
+  where the element is, then move, unless the report ended the episode,
+  e.g. in its outro."
   [store details]
-  (let [{:keys [library player]} @store
-        id                       (:id player)]
+  (let [{:keys [library player] :as state} @store
+        id                                 (:id player)]
     (when-let [el (and id (element))]
       (swap! store assoc-in [:player :seeking] nil)
-      (run! #(step! store %) (media-session/events library id (.-currentTime el) details))
+      (steps! store (media-session/events library id (.-currentTime el) details
+                                          (player/playback-opts state id)))
       (moved! store el))))
 
 (defn media-of
@@ -203,26 +243,40 @@
   [store answer]
   (swap! store assoc-in [:player :answer] (when (:refused answer) answer)))
 
+(defn reload!
+  "Load the file of the audio `element` again where it is, at its rate."
+  [^js element]
+  (media/source! element {:src           (.-src element)
+                          :position      (.-currentTime element)
+                          :playback-rate (.-playbackRate element)}))
+
+;; HTML, §4.8.11.8: play doesn't load a file that failed again. It even
+;; refuses a file that the browser couldn't play, which includes a dead one.
 (defn play-element!
   "Play the audio `element`, and keep the browser's answer in the player in
-  `store`."
-  [store element]
+  `store`. After a failure, e.g. of the network, it loads the file again
+  first."
+  [store ^js element]
+  (when (.-error element)
+    (reload! element))
   (.then (media/play! element) #(answered! store %)))
 
 (defn read-files!
   "Read the files of the episode `id` into the :episodes of `store` once,
   with `read`, a function that returns a promise of what they hold, e.g.
-  chapters. Update the lock screen if the player has the episode."
+  chapters, or nil when there's nothing to read. Update the lock screen if
+  the player has the episode."
   [store id read]
   (when-not (get-in @store [:episodes id :status])
-    (swap! store update-in [:episodes id] assoc :status :reading :at (js/Date.now))
-    (-> (read)
-        (.then (fn [result]
-                 (swap! store update-in [:episodes id] assoc :status :read :result result)
-                 (when (= id (get-in @store [:player :id]))
-                   (lock-screen! store))))
-        (.catch #(swap! store update-in [:episodes id] assoc :status :read
-                        :error {:message (ex-message %)})))))
+    (when-let [reading (read)]
+      (swap! store update-in [:episodes id] assoc :status :reading :at (js/Date.now))
+      (-> reading
+          (.then (fn [result]
+                   (swap! store update-in [:episodes id] assoc :status :read :result result)
+                   (when (= id (get-in @store [:player :id]))
+                     (lock-screen! store))))
+          (.catch #(swap! store update-in [:episodes id] assoc :status :read
+                          :error {:message (ex-message %)}))))))
 
 (defn read-library-files!
   "Read the files of the library's episode `id` in `store` once, except
@@ -231,12 +285,18 @@
   (read-files! store id #(library/read-files! (:library @store) id
                                               (assoc app-library/options :except #{:transcript}))))
 
+;; A new source pauses the element without a pause event, so the reporter
+;; misses the last position. A paused element has reported its position
+;; already, or holds a stale one, e.g. while another tab plays.
 (defn load!
   "Load the library's episode `id` into the player in `store`, at `t`
   seconds if given or else where the listener left it, and return the
-  element."
+  element, or nil when the library has no such episode, e.g. one that
+  another tab plays and this tab's library doesn't have yet. First it
+  reports where the element got to in the episode that plays."
   [store id t]
-  (let [pb (player/playback @store id)]
+  (when-let [pb (player/playback @store id)]
+    (some->> (playing-element) media-of (report! store))
     (swap! store update :player assoc :id id :answer nil :seeking nil)
     (read-library-files! store id)
     ;; the swap has rendered by now, so the element is in the page
@@ -262,16 +322,18 @@
 
 (defn play-id!
   "Play the library's episode `id` in the player in `store`, from `t`
-  seconds if given. Otherwise it goes on from where another tab plays it,
-  at that tab's rate, or from where the player or the listener left it."
+  seconds if given and before its end. Otherwise it goes on from where
+  another tab plays it, at that tab's rate, or from where the player or
+  the listener left it."
   [store id t]
-  (let [p     (:player @store)
-        there (let [there (player/elsewhere p)]
-                (when (= id (:id there))
-                  there))
-        el    (cue! store id
-                    (or t (some-> there (tabs/position (js/Date.now))))
-                    (:playback-rate there))]
+  (let [{p :player :as state} @store
+        there                 (let [there (player/elsewhere p)]
+                                (when (= id (:id there))
+                                  there))
+        el                    (cue! store id
+                                    (or (some->> t (player/start-time (player/playback state id)))
+                                        (some-> there (tabs/position (js/Date.now))))
+                                    (:playback-rate there))]
     (some->> el (play-element! store))))
 
 (defn added
@@ -294,7 +356,8 @@
                 "The episode didn't play"))))
 
 (defn resume!
-  "Resume the player in `store` from where it is."
+  "Resume the player in `store` from where it is, or try its file again
+  where it failed."
   [store]
   (some->> (element) (play-element! store)))
 
@@ -307,14 +370,15 @@
 
 (defn chapter!
   "Move the player in `store` to the chapter in `direction`, :previous or
-  :next."
+  :next, unless the report of where it is ends the episode, e.g. in its
+  outro."
   [store direction]
   (let [{:keys [player] :as state} @store
         id                         (:id player)
         el                         (element)]
     (when-let [doc (and id el (player/chapter-doc (player/playback state id)))]
-      (report! store (media-of el))
-      (step! store [:chapter id direction doc])
+      (when-not (player/moved-on? (report! store (media-of el)))
+        (step! store [:chapter id direction doc]))
       (moved! store el))))
 
 (defn drag!
@@ -468,7 +532,7 @@
                                      :on-report    (reporter store)
                                      :lock         player/element-name
                                      :keys-element (.closest element "#player")
-                                     :handlers     (handlers store element)})
+                                     :handlers     (key-handlers store)})
     (lock-screen! store)))
 
 (defn restored

@@ -104,7 +104,7 @@
            (choice "skip-forward" "Skip forward"
                    (for [s (settings/skip-options skip-forward)] [s (str s " seconds")])
                    skip-forward [:settings/prefer :skip-forward [:event/target-number]])
-           (choice "speed" "Speed" player/speed-options
+           (choice "speed" "Speed" (player/speed-options playback-rate)
                    playback-rate [:settings/prefer :playback-rate [:event/target-number]])
            (switch "continuous" "Continuous play"
                    (str "When an episode ends and the queue has no other, the next "

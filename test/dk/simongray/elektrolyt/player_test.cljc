@@ -60,11 +60,17 @@
   (is (= {:title        "E"
           :chapter-info [{:title "Intro" :start-time 0
                           :artwork [{:src "/proxy?url=https%3A%2F%2Fexample.org%2F1.jpg"}]}
-                         {:title "Two" :start-time 60 :artwork []}]}
+                         {:title "Two" :start-time 60 :artwork []}
+                         {:title "Three" :start-time 120 :artwork [{:src "data:image/png;base64,iVBORw0K"}]}]}
          (player/with-proxied-chapters
           {:title        "E"
            :chapter-info [{:title "Intro" :start-time 0 :artwork [{:src "https://example.org/1.jpg"}]}
-                          {:title "Two" :start-time 60}]}))))
+                          {:title "Two" :start-time 60}
+                          {:title "Three" :start-time 120 :artwork [{:src "data:image/png;base64,iVBORw0K"}]}]})))
+  (is (= "data:image/jpeg;base64,/9j/" (player/proxied "data:image/jpeg;base64,/9j/"))
+      "but not the image of an ID3 chapter, which the media file holds")
+  (is (nil? (player/proxied "//example.org/1.jpg")) "nor a URL that isn't http or https")
+  (is (nil? (player/proxied nil))))
 
 (deftest the-chapter-at-a-time
   (let [pb {:chapters {:document {:chapters [{:start-time 0 :title "A"} {:start-time 60 :title "B"}]}}}]
@@ -92,7 +98,10 @@
   (is (= {:paused false :current-time 12.5 :id [:feed "ep"] :tab "t" :at 1000 :changed 1000}
          (player/told {:paused false :seeking false :current-time 12.5 :buffered [[0 20]]}
                       [:feed "ep"] "t" 1000))
-      "its told-keys, and when, for tabs/position and tabs/newest"))
+      "its told-keys, and when, for tabs/position and tabs/newest")
+  (is (true? (:paused (player/told {:paused false :status :error :error {:code :network}}
+                                   [:feed "ep"] "t" 1000)))
+      "and paused once its element failed, which HTML leaves unpaused"))
 
 (deftest the-newest-that-a-tab-told-of
   (let [paused (assoc playing-there :paused true :at 500 :changed 500)
@@ -120,7 +129,25 @@
     (is (= {:paused true :current-time 30} (player/shown-media here)) "or else its own")
     (is (= :here (player/playing (assoc-in here [:media :paused] false) [:feed "here"])))
     (is (nil? (player/playing here [:feed "here"])) "unless it's paused")
+    (is (nil? (player/playing (update here :media assoc :paused false :error {:code :src-not-supported})
+                              [:feed "here"]))
+        "or failed, e.g. at a dead file")
     (is (nil? (player/playing here nil)))))
+
+(deftest a-start-before-the-end
+  (let [pb {:duration 3600}]
+    (is (= 754 (player/start-time pb 754)))
+    (is (nil? (player/start-time pb 3600)) "not at the end, which would only mark it played")
+    (is (nil? (player/start-time pb 5000)) "nor past it")
+    (is (= 5000 (player/start-time {} 5000)) "unless the duration is unknown")
+    (is (nil? (player/start-time pb nil)))))
+
+(deftest a-step-that-moves-on
+  (is (player/moved-on? [[:stop [:feed "ep"]] [:played [:feed "ep"]] [:play [:feed "next"]]])
+      "stops the episode in its outro and plays the next")
+  (is (player/moved-on? [[:play [:feed "next"]]]) "or skips to the next")
+  (is (not (player/moved-on? [[:seek [:feed "ep"] 600] [:played [:feed "ep"]]])) "but a seek doesn't")
+  (is (not (player/moved-on? []))))
 
 (deftest the-playback-that-the-player-shows
   (let [pb (player/shown-playback (state {}))]
