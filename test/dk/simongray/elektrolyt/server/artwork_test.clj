@@ -67,6 +67,21 @@
   "The URL of the artwork of the tests."
   "https://example.org/art.jpg")
 
+(defn- eventually
+  "Whether `pred` holds within two seconds."
+  [pred]
+  (loop [n 0]
+    (cond
+      (pred)    true
+      (< n 200) (do (Thread/sleep 10) (recur (inc n)))
+      :else     false)))
+
+(defn- renewed?
+  "Whether the folder holds the entry `file` again with a freshness that
+  hasn't ended, after a check that runs behind the answer."
+  [file]
+  (eventually #(pos? (:fresh-until (read-string (slurp file))))))
+
 (deftest refusals
   (let [h (artwork/handler {:send (fn [_] (throw (ex-info "no network" {})))})]
     (is (= 405 (:status (h (assoc (asked art 64) :request-method :post)))))
@@ -138,11 +153,13 @@
         (is (= 200 (:status (h (asked art 64)))))
         (let [entry (first (filter #(re-find #"\.edn$" (.getName ^java.io.File %)) (file-seq cache)))]
           (expire entry)
-          (is (= 200 (:status (h (asked art 64)))) "a 304 keeps the thumbnails")
+          (is (= 200 (:status (h (asked art 64)))) "the thumbnails at once, while it checks the artwork")
+          (is (renewed? entry) "and a 304 keeps them")
           (is (= {"If-None-Match" "\"v1\"" "Via" proxy/via} (:headers (second @sent))))
           (expire entry)
           (is (= 200 (:status (h (asked art 64))))
               "and a failed check sends the thumbnails it has")
+          (is (renewed? entry))
           (is (= 3 (count @sent)))
           (is (= 200 (:status (h (asked art 64)))))
           (is (= 3 (count @sent)) "and waits a while before it checks again"))))))
@@ -168,6 +185,7 @@
         (expire (entry))
         (testing "a response whose headers are vectors of values, as wary-fetch returns them"
           (is (= 200 (:status (h (asked art 64)))))
+          (is (renewed? (entry)))
           (is (= {"If-None-Match" "\"v1\"" "If-Modified-Since" date "Via" proxy/via}
                  (:headers (second @sent)))))
         (expire (entry))
@@ -178,6 +196,35 @@
             (is (= 200 (:status made)))
             (is (= 256 (.getWidth (javax.imageio.ImageIO/read
                                    (java.io.ByteArrayInputStream. (body-bytes made))))))))))))
+
+(deftest answers-that-dont-wait-for-a-fetch
+  (with-temp-dir
+    (fn [dir]
+      (let [slow  "https://slow.example/art.jpg"
+            gate  (promise)
+            hang? (atom false)
+            sent  (atom [])
+            cache (io/file dir "artwork")
+            b     (jpeg 200 200)
+            h     (artwork/handler {:cache-dir    cache
+                                    :wait-seconds 0
+                                    :send         (fn [{:keys [url]}]
+                                                    (swap! sent conj url)
+                                                    (when @hang? @gate)
+                                                    {:status 200 :headers {} :body b})})]
+        (h (asked art 64))
+        (let [entry (first (filter #(re-find #"\.edn$" (.getName ^java.io.File %)) (file-seq cache)))]
+          (spit entry (pr-str (assoc (read-string (slurp entry)) :fresh-until 0))))
+        (reset! hang? true)
+        (is (= 200 (:status (deref (future (h (asked art 64))) 1000 nil)))
+            "the thumbnails of a stale artwork, while its check hangs")
+        (let [busy (future (h (asked slow 64)))]
+          (is (eventually #(some #{slow} @sent)))
+          (is (= [307 "no-store"] ((juxt :status #(get-in % [:headers "Cache-Control"]))
+                                   (h (asked slow 64))))
+              "and the artwork itself to a request that would wait on another's fetch")
+          (deliver gate true)
+          (is (= 200 (:status @busy))))))))
 
 (deftest a-folder-that-cant-be-written
   (with-temp-dir

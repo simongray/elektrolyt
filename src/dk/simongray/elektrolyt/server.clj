@@ -171,10 +171,18 @@
                                          (ring-middlewares/not-modified)
                                          (tagged client-dir)]}))
 
+;; RFC 9209, sections 2 and 2.3.13: the proxy's own failure, which the
+;; page's wary-fetch reads as one, rather than as the 503 of the site that
+;; it asked, which would count against that site's feed
+(def busy-proxy
+  "The headers of a 503 from the proxy when it's busy."
+  {"Retry-After"  "5"
+   "Proxy-Status" "wary-fetch; error=connection_limit_reached; details=\"The server is busy\""})
+
 (defn at-most
   "The Ring `handler` answering at most `n` requests at once. A request
-  that waits `seconds` for its turn gets a 503 with a Retry-After."
-  [n seconds handler]
+  that waits `seconds` for its turn gets a 503 with the `busy` headers."
+  [n seconds busy handler]
   (let [turns (Semaphore. n true)]
     (fn [request]
       (if (.tryAcquire turns (long seconds) TimeUnit/SECONDS)
@@ -184,7 +192,7 @@
             (.release turns)))
         (ring/text-response
          503 "The server is busy. Try again in a few seconds."
-         {"Retry-After" "5"})))))
+         busy)))))
 
 (defn read-secrets
   "The EDN in the file `secrets`, or nil when there's no such file. It
@@ -249,8 +257,8 @@
   (let [send       (if podcastindex
                      (podcastindex/sender podcastindex {:send client/send!})
                      client/send!)
-        proxy      (at-most 4 30 (proxy/handler {:user-agent client/user-agent
-                                                 :send       send}))
+        proxy      (at-most 4 30 busy-proxy (proxy/handler {:user-agent client/user-agent
+                                                            :send       send}))
         ;; no at-most, which would hold up the cached thumbnails too, since
         ;; the handler limits its own jobs
         thumbnails (artwork/handler {:cache-dir artwork-dir})]
