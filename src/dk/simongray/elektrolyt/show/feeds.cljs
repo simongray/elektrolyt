@@ -294,8 +294,10 @@
   [store url title]
   (app-library/persist!)
   (swap! store subscription/subscribing url)
-  (-> (whole-feed! store url)
-      (.then (fn [fetched]
+  ;; the bookmark fills in before the page indexes the feed, which can
+  ;; hold it up for a while
+  (-> (js/Promise.all #js [(whole-feed! store url) (runtime/painted!)])
+      (.then (fn [[fetched]]
                (try
                  (app-library/change! store (subscription/subscribed url title fetched))
                  (catch :default e

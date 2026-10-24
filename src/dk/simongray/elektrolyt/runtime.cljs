@@ -56,6 +56,25 @@
     (js/requestIdleCallback f #js {:timeout ms})
     (soon! f)))
 
+;; HTML Living Standard, the event loop's processing model: the browser
+;; paints between tasks, right after the callbacks of requestAnimationFrame,
+;; so a task queued from one runs once the frame is painted. A hidden page
+;; gets no frames, so a timeout stands in for them.
+;; https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model
+;; https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
+;; https://web.dev/articles/optimize-long-tasks
+(defn painted!
+  "A promise that resolves once the browser has painted the page as it is,
+  e.g. a button that changed when it was pressed, before a long task, or
+  after the current task where nothing paints."
+  []
+  (js/Promise.
+   (fn [resolve]
+     (if (exists? js/requestAnimationFrame)
+       (do (js/requestAnimationFrame #(soon! resolve))
+           (js/setTimeout resolve 100))
+       (soon! resolve)))))
+
 ;; Channels
 
 (defonce ^{:doc "The BroadcastChannels of the app by name, each opened at
