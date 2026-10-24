@@ -920,13 +920,15 @@ main h1,
 
 /* The volume's slider rises from the speaker on a panel that lies under
    it, as wide as its target, so that the speaker is the panel's foot. The
-   slider is upright, loud at the top and silent at the bottom, in a
-   column whose items are centred, since Firefox doesn't centre an upright
-   slider by its auto margins.
+   speaker and its panel lie over the seek bar, since the bar comes later
+   in the page and would else cross the panel. The slider is upright, loud
+   at the top and silent at the bottom, in a column whose items are
+   centred, since Firefox doesn't centre an upright slider by its auto
+   margins.
    https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Writing_modes/Vertical_controls */
 .player-volume {
   position: relative;
-  z-index: 0;
+  z-index: 1;
 }
 
 .player-volume-slider {

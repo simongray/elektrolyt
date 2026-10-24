@@ -98,6 +98,9 @@
   --space-5: clamp(2rem, 1.5rem + 2vw, 3rem);
   --measure: 36em;
   --radius: 2px;
+  /* the shadow all round anything that lifts off the paper or the bar,
+     e.g. the volume's panel and a key under the pointer */
+  --lift: 0 0 5px oklch(0% 0 0 / 0.3);
   /* artwork's corners, barely rounded, as a printed square's are */
   --artwork-radius: 3px;
   /* the least height of a control, past the 24 px of WCAG 2.2, SC 2.5.8

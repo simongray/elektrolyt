@@ -174,6 +174,9 @@ time,
   --accent-ink: var(--on-bar-fill);
   --accent-soft: oklch(from var(--on-bar) l c h / 0.14);
   --focus: var(--on-bar);
+  /* a key's fill, a light so faint that the bar or the deck shows
+     through */
+  --key: oklch(from var(--on-bar) l c h / 0.1);
 }
 
 /* The navigation lies on a paper of its own, as a book's contents would:
@@ -626,15 +629,35 @@ hgroup > p {
 }
 
 /* The player's buttons are their icons, with neither an outline nor a
-   fill, but for the bar's soft fill under the pointer, as the speed has */
+   fill. Under the pointer or the keyboard's focus, each becomes a key
+   that lifts like the volume's panel, lit faintly so that it shows on
+   the bar and on the deck alike. A press sinks the key flat and keeps
+   its light. A touch screen has no hover, so there a key shows only its
+   press and doesn't stay lifted after a tap.
+   https://developer.mozilla.org/en-US/docs/Web/CSS/@media/hover */
 #player .icon-button {
   border-color: transparent;
   background: none;
 }
 
-#player .icon-button:hover,
-#player-speed:hover {
-  background: var(--grain) 0 0 / var(--grain-size), var(--accent-soft);
+#player .icon-button:focus-visible,
+#player-speed:focus-visible {
+  background: var(--key);
+  box-shadow: var(--lift);
+}
+
+@media (hover: hover) {
+  #player .icon-button:hover,
+  #player-speed:hover {
+    background: var(--key);
+    box-shadow: var(--lift);
+  }
+}
+
+#player .icon-button:active,
+#player-speed:active {
+  background: var(--key);
+  box-shadow: none;
 }
 
 /* the volume's panel a piece of the deck that it rises from, lifted off
@@ -642,7 +665,13 @@ hgroup > p {
 .player-volume-slider {
   border-radius: var(--radius);
   background: var(--grain) 0 0 / var(--grain-size), var(--bar-deck);
-  box-shadow: 0 0 5px oklch(0% 0 0 / 0.3);
+  box-shadow: var(--lift);
+}
+
+/* while its panel shows, the speaker is the panel's foot and casts no
+   shadow of its own, which would draw a seam between them */
+#player .player-volume:not([data-dismissed]):has(.player-volume-slider) > .icon-button {
+  box-shadow: none;
 }
 
 /* The seek bar drawn by the app rather than the browser, so that it's the
@@ -910,7 +939,14 @@ search p {
   }
 
   button,
+  select,
   a {
-    transition: background-color 0.15s, text-decoration-color 0.33s, text-decoration-thickness 0.15s;
+    transition: background-color 0.15s, box-shadow 0.15s, text-decoration-color 0.33s, text-decoration-thickness 0.15s;
+  }
+
+  /* a press shows at once, since a tap can be shorter than the fade */
+  #player .icon-button:active,
+  #player-speed:active {
+    transition-duration: 0s;
   }
 }
