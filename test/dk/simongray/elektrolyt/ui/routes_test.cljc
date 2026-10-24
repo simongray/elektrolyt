@@ -44,6 +44,8 @@
   (is (= "podcasting-2-0" (routes/slug "Podcasting 2.0")))
   (is (= "jagten-pa-det-evige-liv" (routes/slug "Jagten på det evige liv")) "accents taken off")
   (is (= "morkeland-aero" (routes/slug "Mørkeland: Ærø!")) "and the letters without accents folded")
+  (is (= ["the-best-show" "hello" "kirmizi"] (map routes/slug ["𝐓𝐡𝐞 𝐁𝐞𝐬𝐭 𝐒𝐡𝐨𝐰" "ℌello" "Kırmızı"]))
+      "and the capitals that only their decomposition gives")
   (is (nil? (routes/slug "日本語")) "no slug of a title without Latin letters or digits")
   (is (<= (count (routes/slug (apply str (repeat 20 "Long title ")))) 60))
   (is (nil? (routes/slug nil))))

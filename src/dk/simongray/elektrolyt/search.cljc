@@ -3,10 +3,11 @@
   has for words, or the feeds at a link that the listener pasted.
 
   A search of words is a map of the :sources it asks, in the listener's
-  order, their :lists by source, and the source whose list the listener
-  last jumped to, :shown. Each list has its :status, :searching, :done or
-  :failed, its :results and, if it failed, the :reason. A search of a link
-  has a :status, :results and, if it failed, an :error.
+  order, their :lists by source, the :runs that each list waits for, and
+  the source whose list the listener last jumped to, :shown. Each list has
+  its :status, :searching, :done or :failed, its :results and, if it
+  failed, the :reason. A search of a link has a :status, :results and, if
+  it failed, an :error.
 
   Each directory's list stays in its own order, unchanged by the others.
   A cached list less than a day old answers without asking the directory,
@@ -75,6 +76,17 @@
   "The list of a directory whose search failed for `reason`, a message."
   [reason]
   {:status :failed :results [] :reason reason})
+
+;; An earlier run can answer last, e.g. one that timed out after a retry
+;; went through, or one that Clear cache left without its search
+(defn listed
+  "The `state` with the list `l` of the directory `source` for the words
+  `q`, which the search `run` found, unless that search no longer waits
+  for that run."
+  [state q source run l]
+  (if (= run (get-in state [:searches q :runs source]))
+    (assoc-in state [:searches q :lists source] l)
+    state))
 
 (defn shows->list
   "The list of one directory from its search `answer`: :done with its

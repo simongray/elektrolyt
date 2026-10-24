@@ -73,7 +73,8 @@
   cached, and for a directory that fails, the cached list stands in with
   its date."
   [dispatch q source index retry?]
-  (let [listed! #(dispatch [[:store/assoc-in [:searches q :lists source] %]])
+  (let [run     (random-uuid)
+        listed! #(dispatch [[:search/listed q source run %]])
         k       (search/cache-key source q)
         ask!    (fn [kept]
                   (.then (directory-list! q source index)
@@ -82,6 +83,7 @@
                              (listed! (search/stale-list l kept))
                              (do (listed! l)
                                  (app-cache/put! app-cache/searches k l))))))]
+    (dispatch [[:store/assoc-in [:searches q :runs source] run]])
     (listed! {:status :searching})
     (.then (app-cache/fetch! app-cache/searches k)
            (fn [kept]

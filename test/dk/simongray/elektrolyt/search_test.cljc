@@ -73,6 +73,16 @@
   (is (search/failed? {:status :done :results [] :error "No such site"})
       "or a search of a link"))
 
+(deftest an-answer-that-came-late
+  (let [state {:searches {"q" (assoc (search/searching [:apple]) :runs {:apple 2})}}
+        done  {:status :done :results []}]
+    (is (= done (get-in (search/listed state "q" :apple 2 done) [:searches "q" :lists :apple]))
+        "from the run that the search waits for")
+    (is (= state (search/listed state "q" :apple 1 (search/failed "Didn't answer")))
+        "but not from a run that a retry replaced")
+    (is (= {} (search/listed {} "q" :apple 2 done))
+        "nor for a search that Clear cache removed")))
+
 (deftest the-directories-of-a-search
   (is (= [:podcastindex :apple :fyyd :drpodcast] (search/sources {:server {:podcastindex? true}}))
       "the defaults, before the library is restored")
