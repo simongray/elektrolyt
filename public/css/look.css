@@ -817,6 +817,17 @@ search p {
   font-size: var(--step--1);
 }
 
+/* A notice of one line, the size of a control's words, with its icon in
+   the grey of the headings */
+.notice {
+  font-size: var(--step--1);
+}
+
+.notice p > .icon {
+  color: var(--ink-2);
+  font-size: 1.25em;
+}
+
 
 /* More contrast, as tokens.css has it: the bar's secondary text and the
    edges of its controls lighter, the links and the labels on the paper
@@ -887,17 +898,6 @@ search p {
     border-color: Highlight;
     background: radial-gradient(circle at calc(100% - 0.62rem) 50%, HighlightText 0.42rem, transparent 0.47rem) Highlight;
   }
-}
-
-/* A notice of one line, the size of a control's words, with its icon in
-   the grey of the headings */
-.notice {
-  font-size: var(--step--1);
-}
-
-.notice p > .icon {
-  color: var(--ink-2);
-  font-size: 1.25em;
 }
 
 /* Motion only where the listener allows it: the colours turn from one

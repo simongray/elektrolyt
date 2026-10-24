@@ -70,7 +70,7 @@
   (is (not (search/failed? (search/searching [:apple]))))
   (is (search/failed? {:lists {:apple {:status :failed} :fyyd {:status :done}}})
       "in one of its directories")
-  (is (search/failed? {:status :done :results [] :error "No such site"})
+  (is (search/failed? {:status :done :results [] :error {:message "No such site"}})
       "or a search of a link"))
 
 (deftest an-answer-that-came-late

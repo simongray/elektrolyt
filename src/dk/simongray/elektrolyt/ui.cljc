@@ -119,7 +119,7 @@
 
       :route/episode
       (when-let [{:keys [guid item-guid title url]} (episode-ui/route-page state)]
-        (routes/episode-href guid item-guid title url (episode-ui/start-time state)))
+        (routes/episode-href guid item-guid title url (episode-ui/link-time state)))
 
       nil)))
 

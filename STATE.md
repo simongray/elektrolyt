@@ -43,7 +43,7 @@ as long as the tab.
 | `:subscribing`, `:subscribe-errors` | The subscriptions under way, and those that failed, by URL | `show.subscription` | `ui.subscription` | Per URL, once it's done |
 | `:settings-status` | The last outcome on Settings | `elektrolyt`, `library.settings`, `library.opml` | `library.settings.ui` | Overwritten |
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `library.settings.ui` | At each check |
-| `:save-status` | While this tab's writes fail: when the oldest change that waits was made, how many writes in a row failed and why, which holds back the next try | `library`, through `library.saves` | `library`, `library.saves.ui`, `library.settings.ui` | Once a write goes through |
+| `:save-status` | While this tab's writes fail: when the oldest change that waits was made, how many writes in a row failed and why, which holds back the next try | `library`, through `library.saves` | `library`, `library.saves.ui`, for `ui` and `library.settings.ui` | Once a write goes through |
 | `:library-view` | The Library page's order and layout | `elektrolyt` | `library.shows`, `library.ui` | Never |
 | `:open` | The sections that the listener unfolded | `ui.controls` | `ui.controls` | Never, so that Back finds a section as the listener left it |
 

@@ -106,7 +106,7 @@
       (found! {:status :searching :results []})
       (-> (discovery/find-feeds! q {:send app-library/send :index index})
           (.then #(found! (search/feeds->search %)))
-          (.catch #(found! {:status :done :results [] :error (ex-message %)}))))
+          (.catch #(found! {:status :done :results [] :error {:message (ex-message %)}}))))
     (do (dispatch [[:store/assoc-in [:searches q] (search/searching sources)]])
         (doseq [source sources]
           (search-directory! dispatch q source index false)))))

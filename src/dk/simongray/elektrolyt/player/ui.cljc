@@ -3,6 +3,7 @@
   page is the player's full view, with the notes, the chapters and the
   transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
+            [dk.simongray.podcast.util.time :as time]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
@@ -60,7 +61,7 @@
   one, e.g. a live stream's. It's a string for a CSS property, since
   Replicant adds px to a number."
   [seconds duration]
-  (when (and (number? duration) (pos? duration) (not (infinite? duration)))
+  (when (and (time/finite? duration) (pos? duration))
     (str (double (/ (or seconds 0) duration)))))
 
 ;; The marks are for a pointer alone, since the chapters' buttons and the

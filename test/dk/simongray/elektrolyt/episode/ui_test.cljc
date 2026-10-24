@@ -56,9 +56,9 @@
         "a click that plays from there")))
 
 (deftest the-start-of-a-link
-  (is (= 73 (episode-ui/start-time (episode-page "73"))))
-  (is (= 73 (episode-ui/start-time (episode-page "1m13s"))))
-  (is (nil? (episode-ui/start-time (episode-page nil)))))
+  (is (= 73 (episode-ui/link-time (episode-page "73"))))
+  (is (= 73 (episode-ui/link-time (episode-page "1m13s"))))
+  (is (nil? (episode-ui/link-time (episode-page nil)))))
 
 (deftest the-play-button
   (let [page    (episode-ui/route-page (episode-page nil))

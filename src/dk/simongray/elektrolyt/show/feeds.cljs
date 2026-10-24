@@ -154,8 +154,7 @@
   "Fetch the cached feed of the show `guid` at `url` in `store` again with
   its validators, once a visit and only when it's past its time. A 304
   renews the cached copy, and a new feed replaces it in the cache and on
-  the page, unless it lost every item. A 404 or a 410 fails as a fetch of
-  the whole feed does."
+  the page, unless it lost every item."
   [store guid url]
   (let [{:keys [feed whole? validators checked?] :as entry} (get-in @store [:feeds url])]
     (when (and whole? (not checked?))
@@ -176,7 +175,7 @@
                      ;; counts
                      (= 304 status)
                      (keep-show! url (merge {:url url :feed feed}
-                                            (select-keys entry show/subscription-keys)
+                                            (select-keys entry show/location-keys)
                                             (dissoc validators :not-before)
                                             (show/validators fetched))))))
           (.catch #(tel/log! {:level :warn :id :show/check-failed

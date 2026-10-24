@@ -195,15 +195,16 @@
       (is (= [754 nil] @cued)
           "starts where the listener left it, since the end would mark it played"))))
 
-(deftest a-read-of-the-files-that-failed
+(deftest when-to-read-the-files
   (let [now 1000000]
-    (is (audio/reread? {:status :read :at (- now 60000) :result {:chapters {:error {:id :file/unreachable}}}} now)
-        "is tried again after a minute, when a file failed")
-    (is (audio/reread? {:status :read :at (- now 60000) :error {:message "offline"}} now) "or all of them")
-    (is (not (audio/reread? {:status :read :at (- now 59000) :error {:message "offline"}} now)) "but not sooner")
-    (is (not (audio/reread? {:status :read :at (- now 60000) :result {:chapters {:document {}}}} now))
+    (is (audio/due? nil now) "once")
+    (is (audio/due? {:status :read :at (- now 60000) :result {:chapters {:error {:id :file/unreachable}}}} now)
+        "and again a minute after a read in which a file failed")
+    (is (audio/due? {:status :read :at (- now 60000) :error {:message "offline"}} now) "or all of them")
+    (is (not (audio/due? {:status :read :at (- now 59000) :error {:message "offline"}} now)) "but not sooner")
+    (is (not (audio/due? {:status :read :at (- now 60000) :result {:chapters {:document {}}}} now))
         "nor when the files were read")
-    (is (not (audio/reread? {:status :reading :at (- now 60000)} now)) "nor while they're read")))
+    (is (not (audio/due? {:status :reading :at (- now 60000)} now)) "nor while they're read")))
 
 (deftest a-page-shown-again
   (let [state (update (player-test/state {:media {:paused true :current-time 30}})
