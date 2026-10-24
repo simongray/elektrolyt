@@ -338,6 +338,23 @@
         now  (get (swap! running #(if (contains? % k) % (assoc % k mine))) k)]
     @now))
 
+(defn- entry!
+  "The entry of the artwork at `url` for a request: the one in the
+  `cache-dir` while it's fresh, or else one renewed! with the `jobs` and
+  the `opts`, once for the requests that ask while it runs, as `running`
+  holds them, or the stale one when it has thumbnails and the renewal
+  fails."
+  [cache-dir url jobs running opts]
+  (let [stale (stored cache-dir url)]
+    (if (and stale (< (System/currentTimeMillis) (:fresh-until stale)))
+      (do (touch! cache-dir url)
+          stale)
+      (try
+        (shared running url #(renewed! url stale jobs opts))
+        (catch Exception _
+          (when (seq (:thumbnails stale))
+            stale))))))
+
 (defn handler
   "A Ring handler of thumbnails of artwork, with the `opts` over
   defaults.
@@ -367,16 +384,6 @@
          running (atom {})]
      (fn [request]
        (or (refusal request opts)
-           (let [{:strs [url w]} (url/query-params (:query-string request))
-                 stale           (stored cache-dir url)
-                 entry           (if (and stale (< (System/currentTimeMillis)
-                                                   (:fresh-until stale)))
-                                   (do (touch! cache-dir url)
-                                       stale)
-                                   (try
-                                     (shared running url
-                                             #(renewed! url stale jobs opts))
-                                     (catch Exception _
-                                       (when (seq (:thumbnails stale))
-                                         stale))))]
-             (answer request url entry (parse-long w) opts)))))))
+           (let [{:strs [url w]} (url/query-params (:query-string request))]
+             (answer request url (entry! cache-dir url jobs running opts)
+                     (parse-long w) opts)))))))

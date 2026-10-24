@@ -77,6 +77,25 @@
     (drpodcast/same-show? ours theirs)
     (update :feed #(feed/supplemented (drpodcast/without-promos %) theirs))))
 
+(defn sibling!
+  "A promise of the parsed feed of the series `slug` on drpodcast.nu,
+  fetched with `fetch` and the `opts`, or of nil when the fetch fails."
+  [fetch opts slug]
+  (-> (fetch (drpodcast/feed-url slug) opts)
+      (.then #(:feed %))
+      (.catch (constantly nil))))
+
+(defn renamed-sibling!
+  "A promise of the sibling of DR's feed `ours` under another slug than
+  `slug`, as slugs.json names it by the production number, fetched with
+  `fetch-sibling`, a function of the slug, or of nil."
+  [fetch-sibling slug ours]
+  (.then (slugs!)
+         (fn [by-number]
+           (let [other (get by-number (drpodcast/production-number ours))]
+             (when (and other (not= slug other))
+               (fetch-sibling other))))))
+
 ;; drpodcast.nu publishes nearly every series under DR's own slug, so the
 ;; guess goes out beside DR's feed, and slugs.json only names the others
 (defn supplementing
@@ -87,30 +106,22 @@
   [fetch sibling-opts]
   (fn [url opts]
     (if-let [slug (drpodcast/official-slug url)]
-      (let [theirs    (fn [slug]
-                        (-> (fetch (drpodcast/feed-url slug)
+      (let [fetch-sibling (partial sibling! fetch
                                    (merge (select-keys opts [:send :timeout-seconds :max-bytes
                                                              :allow-pred :signal :lenient-parser])
                                           sibling-opts))
-                            (.then #(:feed %))
-                            (.catch (constantly nil))))
-            guessed   (theirs slug)
-            elsewhere (fn [ours]
-                        (.then (slugs!)
-                               (fn [by-number]
-                                 (let [other (get by-number (drpodcast/production-number ours))]
-                                   (when (and other (not= slug other))
-                                     (theirs other))))))]
+            guessed       (fetch-sibling slug)]
         (.then (fetch url opts)
                (fn [{ours :feed :as answer}]
-                 (if-not ours
-                   answer
-                   (let [answer (update answer :feed drpodcast/marked)]
-                     (.then guessed
-                            (fn [found]
-                              (if (drpodcast/same-show? ours found)
-                                (supplement answer found)
-                                (.then (elsewhere ours) #(supplement answer %))))))))))
+                 (if ours
+                   (-> guessed
+                       (.then #(if (drpodcast/same-show? ours %)
+                                 %
+                                 (renamed-sibling! fetch-sibling slug ours)))
+                       (.then #(-> answer
+                                   (update :feed drpodcast/marked)
+                                   (supplement %))))
+                   answer))))
       (fetch url opts))))
 
 ;; The start of DR's feed has its newest episodes, which DR may date days

@@ -40,6 +40,33 @@
   [url fetched]
   (app-cache/put! app-cache/shows (show/cache-key url) (show/kept fetched)))
 
+(defn index-lookup!
+  "A promise of where the Podcast Index says the feed of the show `guid`
+  is, asked through the app's server: a map of the :url, which the cache
+  keeps then, and where it came :from, or of :not-found? when the index
+  doesn't know it or doesn't answer."
+  [guid]
+  (-> (directory/call! :podcastindex :lookup {:id guid}
+                       {:send app-cache/send :credentials {}})
+      (.then (fn [[show]]
+               (if-let [url (some-> show resolve/self-url)]
+                 (do (app-cache/put! app-cache/feed-urls guid url)
+                     {:url url :from :index})
+                 {:not-found? true})))
+      (.catch (constantly {:not-found? true}))))
+
+(defn feed-url!
+  "A promise of where the feed of the show `guid` is: in the cache, or
+  else as index-lookup! finds it, which alone is asked when `fresh?`."
+  [guid fresh?]
+  (if fresh?
+    (index-lookup! guid)
+    (.then (app-cache/fetch! app-cache/feed-urls guid)
+           (fn [kept]
+             (if-let [url (:value kept)]
+               {:url url :from :cache}
+               (index-lookup! guid))))))
+
 (declare load-show!)
 
 (defn look-up-show!
@@ -49,27 +76,13 @@
   :not-found? in :feed-urls. When `fresh?`, only the index is asked, e.g.
   once the feed at the URL from the cache is gone."
   [store guid preview? fresh?]
-  (let [found!     (fn [found]
-                     (swap! store #(-> (show/answered % [:look-up guid])
-                                       (assoc-in [:feed-urls guid] found)))
-                     (when-let [url (:url found)]
-                       (load-show! store guid url preview?)))
-        ask!       #(-> (directory/call! :podcastindex :lookup {:id guid}
-                                         {:send app-cache/send :credentials {}})
-                        (.then (fn [[show]]
-                                 (if-let [url (some-> show resolve/self-url)]
-                                   (do (app-cache/put! app-cache/feed-urls guid url)
-                                       (found! {:url url :from :index}))
-                                   (found! {:not-found? true}))))
-                        (.catch (fn [_] (found! {:not-found? true}))))]
-    (swap! store show/requested [:look-up guid])
-    (if fresh?
-      (ask!)
-      (.then (app-cache/fetch! app-cache/feed-urls guid)
-             (fn [kept]
-               (if-let [url (:value kept)]
-                 (found! {:url url :from :cache})
-                 (ask!)))))))
+  (swap! store show/requested [:look-up guid])
+  (.then (feed-url! guid fresh?)
+         (fn [found]
+           (swap! store #(-> (show/answered % [:look-up guid])
+                             (assoc-in [:feed-urls guid] found)))
+           (when-let [url (:url found)]
+             (load-show! store guid url preview?)))))
 
 (defn show-failed!
   "Note in the `store` that the whole feed of the show `guid` at `url`
@@ -83,13 +96,45 @@
     (swap! store #(-> (show/answered % [:whole url])
                       (assoc-in [:feeds url :error] error)))))
 
+(defn answered!
+  "Note in the `store` that the `request` for a feed is answered, with `f`
+  of the state then, e.g. one that keeps the feed that it gave, and write
+  the canonical path of the page into the address bar, which the feed can
+  change, e.g. with the show's title."
+  [store request f]
+  (document/canonicalize! (swap! store #(f (show/answered % request)))))
+
 (defn show-fetched!
   "Put the whole feed at `url` that the worker `fetched` into the :feeds
   of the `store`, and keep it in the cache."
   [store url fetched]
-  (document/canonicalize! (swap! store #(-> (show/answered % [:whole url])
-                                        (show/whole url fetched (js/Date.) true))))
+  (answered! store [:whole url] #(show/whole % url fetched (js/Date.) true))
   (keep-show! url fetched))
+
+(defn fetch-start!
+  "Fetch the start of the feed at `url` into the :feeds of the `store`,
+  which shows the first episodes, parsed here, since it's small."
+  [store url]
+  (swap! store show/requested [:head url])
+  (-> (discovery/fetch-head! url {:items show/page-size :send app-library/send})
+      (.then (fn [{:keys [feed]}]
+               (answered! store [:head url]
+                          #(cond-> % feed (show/arrived url feed)))))
+      (.catch #(swap! store show/answered [:head url]))))
+
+;; in the worker, since a feed of 20 MB takes a third of a second or more
+;; to parse
+(defn fetch-whole!
+  "Fetch the whole feed of the show `guid` at `url` into the :feeds of the
+  `store` in the worker, and keep it in the cache, or note why it failed."
+  [store guid url]
+  (swap! store show/requested [:whole url])
+  (-> (fetching/fetch! url (whole-opts @store))
+      (.then (fn [{:keys [feed error] :as fetched}]
+               (if feed
+                 (show-fetched! store url fetched)
+                 (show-failed! store guid url error))))
+      (.catch #(show-failed! store guid url {:message (ex-message %)}))))
 
 (defn fetch-show!
   "Fetch the show `guid` at `url` into the :feeds of the `store`: the start
@@ -101,23 +146,9 @@
         {:keys [feed whole? error]} (get-in state [:feeds url])
         asked?                      #(show/requested? state [% url])]
     (when-not (or feed error (asked? :head) (asked? :whole))
-      (swap! store show/requested [:head url])
-      (-> (discovery/fetch-head! url {:items show/page-size :send app-library/send})
-          (.then (fn [{:keys [feed]}]
-                   (document/canonicalize! (swap! store #(cond-> (show/answered % [:head url])
-                                                       feed (show/arrived url feed))))))
-          (.catch #(swap! store show/answered [:head url]))))
+      (fetch-start! store url))
     (when-not (or preview? whole? (asked? :whole) (asked? :open))
-      (swap! store show/requested [:whole url])
-      ;; in the worker, since a feed of 20 MB takes a third of a second or
-      ;; more to parse; the start of the feed already shows the first
-      ;; episodes, parsed here, since it's small
-      (-> (fetching/fetch! url (whole-opts state))
-          (.then (fn [{:keys [feed error] :as fetched}]
-                   (if feed
-                     (show-fetched! store url fetched)
-                     (show-failed! store guid url error))))
-          (.catch #(show-failed! store guid url {:message (ex-message %)}))))))
+      (fetch-whole! store guid url))))
 
 ;; RFC 9110, sections 13.1.1 and 13.1.3: the validators of the kept feed
 ;; ask whether it changed, and a 304 says it didn't
@@ -132,7 +163,8 @@
     (when (and whole? (not checked?))
       (swap! store #(-> (assoc-in % [:feeds url :checked?] true)
                         (show/requested [:check url])))
-      (-> (fetching/fetch! url (merge (whole-opts @store) (select-keys validators [:etag :last-modified])))
+      (-> (fetching/fetch! url (merge (whole-opts @store)
+                                      (select-keys validators [:etag :last-modified])))
           (.then (fn [{:keys [status] :as fetched}]
                    (cond
                      (:feed fetched)
@@ -148,6 +180,17 @@
           (.catch #(js/console.warn "The show wasn't checked" %))
           (.finally #(swap! store show/answered [:check url]))))))
 
+;; a feed of DR's own that the cache kept from before the listener turned
+;; drpodcast.nu's episodes on or off is old
+(defn kept-fresh?
+  "Whether the feed at `url` that the cache `kept`, as its :value at the
+  time :at, is fresh in the `state` at `now`: within its time, and fetched
+  as DR's own feeds are fetched now."
+  [state url {:keys [value at]} now]
+  (and (show/fresh? value at now)
+       (drpodcast/fetched-as? (:feed value) url
+                              (settings/alternative-feeds? state))))
+
 (defn open-show!
   "Open the show `guid` at `url` into the `store` from the feed that the
   cache keeps, or else fetch it as fetch-show! does with `preview?`. A kept
@@ -159,17 +202,31 @@
          (fn [kept]
            (let [whole? (get-in @store [:requests [:open url] :whole?])]
              (if-let [fetched (:value kept)]
-               ;; a feed of DR's own that the cache kept from before the
-               ;; listener turned drpodcast.nu's episodes on or off is old
-               (let [fresh? (and (show/fresh? fetched (:at kept) (js/Date.))
-                                 (drpodcast/fetched-as? (:feed fetched) url
-                                                        (settings/alternative-feeds? @store)))]
-                 (document/canonicalize! (swap! store #(-> (show/answered % [:open url])
-                                                       (show/whole url fetched (:at kept) fresh?))))
+               (let [fresh? (kept-fresh? @store url kept (js/Date.))]
+                 (answered! store [:open url]
+                            #(show/whole % url fetched (:at kept) fresh?))
                  (when whole?
                    (check-show! store guid url)))
                (do (swap! store show/answered [:open url])
                    (fetch-show! store guid url (not whole?))))))))
+
+(defn in-library?
+  "Whether the library of the `state` keeps the feed of the show `guid` at
+  `url`, as show/library-key finds it."
+  [state guid url]
+  (some? (some-> (:library state) (show/library-key guid url))))
+
+(defn look-up?
+  "Whether the `state` should look up the show `guid` that has no `url` by
+  its guid: when nothing has found its feed or looks for it yet, the app's
+  server signs the requests to the Podcast Index, and the library keeps no
+  feed of it."
+  [state guid url]
+  (and (nil? url)
+       (nil? (get-in state [:feed-urls guid]))
+       (not (show/requested? state [:look-up guid]))
+       (some? (search/index-credentials state))
+       (not (in-library? state guid nil))))
 
 (defn load-show!
   "Load the show `guid` at `url` into the :feeds of the `store`, unless the
@@ -179,25 +236,27 @@
   Without a URL, the cache or the Podcast Index finds the feed by the
   guid, when the app's server signs the requests to it."
   [store guid url preview?]
-  (let [state       @store
-        url         (or url (:url (show/source state guid)))
-        known       (get-in state [:feeds url])
-        asked?      #(show/requested? state [% url])
-        in-library? #(some-> (:library state) (show/library-key guid %))]
-    (when (and (nil? url)
-               (nil? (get-in state [:feed-urls guid]))
-               (not (show/requested? state [:look-up guid]))
-               (search/index-credentials state)
-               (not (in-library? nil)))
+  (let [state  @store
+        url    (or url (:url (show/source state guid)))
+        known  (get-in state [:feeds url])
+        asked? #(show/requested? state [% url])]
+    (when (look-up? state guid url)
       (look-up-show! store guid preview? false))
-    (when (and url (not (in-library? url)))
+    (when (and url (not (in-library? state guid url)))
       (cond
-        (asked? :open)                             (when-not preview?
-                                                     (swap! store assoc-in [:requests [:open url] :whole?] true))
-        (:whole? known)                            (when-not preview?
-                                                     (check-show! store guid url))
-        (or known (asked? :head) (asked? :whole)) (fetch-show! store guid url preview?)
-        :else                                      (open-show! store guid url preview?)))))
+        (asked? :open)
+        (when-not preview?
+          (swap! store assoc-in [:requests [:open url] :whole?] true))
+
+        (:whole? known)
+        (when-not preview?
+          (check-show! store guid url))
+
+        (or known (asked? :head) (asked? :whole))
+        (fetch-show! store guid url preview?)
+
+        :else
+        (open-show! store guid url preview?)))))
 
 (defn prefetch-soon!
   "Fetch the start of the feed of the show `guid` at `url` into the `store`
@@ -211,18 +270,24 @@
   []
   (runtime/cancel! ::prefetch))
 
+(defn whole-feed!
+  "A promise of the whole feed at `url` for the `store`: the one that the
+  Show page has, or else one fetched in the worker, or the :error of a
+  fetch that failed, e.g. with the worker."
+  [store url]
+  (if-let [fetched (show/whole-feed @store url)]
+    (js/Promise.resolve fetched)
+    (.catch (fetching/fetch! url (whole-opts @store))
+            (fn [e] {:error {:message (ex-message e)}}))))
+
 (defn subscribe!
   "Subscribe the library of the `store` to the show `title` at `url`, and
-  save the library. A feed that the Show page has whole isn't fetched
-  again, and one that it hasn't is fetched in the worker. A fetch that
-  fails, e.g. with the worker, fails the subscription."
+  save the library, with the feed that whole-feed! gives. A fetch that
+  fails fails the subscription."
   [store url title]
   (app-library/persist!)
   (swap! store subscription/subscribing url)
-  (-> (if-let [fetched (show/whole-feed @store url)]
-        (js/Promise.resolve fetched)
-        (.catch (fetching/fetch! url (whole-opts @store))
-                (fn [e] {:error {:message (ex-message e)}})))
+  (-> (whole-feed! store url)
       (.then (fn [fetched]
                (try
                  (app-library/change! store (subscription/subscribed url title fetched))
@@ -233,9 +298,7 @@
       ;; a show subscribed to from its page loses the URL of its feed from
       ;; the address bar, since the library knows it now
       (.then #(do (document/canonicalize! %) %))
-      (.then (fn [_] (app-library/save! store)))
-      (.then #(when (:error %)
-                (js/console.error "The library wasn't saved" (clj->js %))))))
+      (.then (fn [_] (app-library/save! store)))))
 
 ;; The page of the show stays, now as one outside the library, by the URL
 ;; of its feed, which it gets in its address too
@@ -253,27 +316,32 @@
   leaves out."
   #{:notes :text :episodes :seasons :links})
 
+(defn linked-shows!
+  "A promise of the shows that the show `guid`, whose parsed `feed` is at
+  `url`, links to, fetched through the app's server, and from the Podcast
+  Index with the `index` credentials, and kept in the cache unless a feed
+  failed, so that the next visit asks again."
+  [guid feed url index]
+  (.then (app.show/fetch-linked-shows!
+          (app.show/view feed {:url url :except linked-except})
+          {:send app-library/send :index index})
+         (fn [fetched]
+           (let [shows (linked/kept guid fetched)]
+             (when-not (linked/failed? fetched)
+               (app-cache/put! app-cache/linked guid shows))
+             shows))))
+
 (defn fetch-linked!
   "Fetch the shows that the show `guid`, whose parsed `feed` is at `url`,
   links to into the :linked of the `store`, once: from the cache, or else
-  through the app's server, and from the Podcast Index where the server
-  signs the requests to it, and keep them in the cache unless a feed
-  failed, so that the next visit asks again."
+  as linked-shows! fetches them, from the Podcast Index too where the
+  app's server signs the requests to it."
   [store guid feed url]
   (when-not (get-in @store [:linked guid])
     (swap! store assoc-in [:linked guid] {:status :fetching})
     (-> (app-cache/fetch! app-cache/linked guid)
-        (.then (fn [kept]
-                 (or (:value kept)
-                     (.then (app.show/fetch-linked-shows!
-                             (app.show/view feed {:url url :except linked-except})
-                             {:send  app-library/send
-                              :index (search/index-credentials @store)})
-                            (fn [fetched]
-                              (let [shows (linked/kept guid fetched)]
-                                (when-not (linked/failed? fetched)
-                                  (app-cache/put! app-cache/linked guid shows))
-                                shows))))))
+        (.then #(or (:value %)
+                    (linked-shows! guid feed url (search/index-credentials @store))))
         (.then #(swap! store assoc-in [:linked guid] (assoc % :status :done)))
         (.catch (fn [e]
                   (js/console.warn "The shows that a show links to weren't fetched" e)
@@ -294,9 +362,8 @@
   [store id view]
   (when-not (get-in @store [:episodes id :transcript-status])
     (swap! store assoc-in [:episodes id :transcript-status] :reading)
-    (-> (episode/read-files! view {:send app-library/send :except #{:chapters :media}})
-        (.then #(swap! store update-in [:episodes id] assoc
-                       :transcript-status :read :transcript (:transcript %)))
-        (.catch #(swap! store update-in [:episodes id] assoc
-                        :transcript-status :read
-                        :transcript {:error {:message (ex-message %)}})))))
+    (let [read! #(swap! store update-in [:episodes id] assoc
+                        :transcript-status :read :transcript %)]
+      (-> (episode/read-files! view {:send app-library/send :except #{:chapters :media}})
+          (.then (comp read! :transcript))
+          (.catch #(read! {:error {:message (ex-message %)}}))))))

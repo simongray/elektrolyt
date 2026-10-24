@@ -52,14 +52,6 @@
   volume belongs to this device rather than to the listener's profile."
   "dk.simongray.podcast-app.volume")
 
-(defn save!
-  "A promise of the write of the changes to the library of the `store`
-  that wait, which logs a write that failed."
-  [store]
-  (.then (app-library/save! store)
-         #(when (:error %)
-            (js/console.error "The library wasn't saved" (clj->js %)))))
-
 (defonce ^{:doc "The id of this tab on the channel of the player."}
   tab
   (str (random-uuid)))
@@ -94,7 +86,7 @@
   library, do the effects of the step, and give them."
   [store event]
   (let [{:keys [effects]} (app-library/change! store {:operation [:player/step event]})]
-    (save! store)
+    (app-library/save! store)
     (apply-effects! store effects)
     effects))
 
@@ -352,7 +344,7 @@
     (let [el (element)]
       (some-> el (media/rate! rate))
       (app-library/change! store (settings/preferred {:playback-rate rate}))
-      (save! store)
+      (app-library/save! store)
       (some->> el (moved! store)))))
 
 (defn volume!

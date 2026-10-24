@@ -45,7 +45,7 @@
   [store change]
   (when change
     (app-library/change! store change)
-    (audio/save! store)))
+    (app-library/save! store)))
 
 ;; The app's former name, since a browser keeps the listener's data under it
 (def library-view-key
