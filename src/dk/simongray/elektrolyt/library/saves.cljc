@@ -9,7 +9,8 @@
   - :cause, :full when the browser has no room left for the site,
     :newer-format when a newer version of the app saved the library, or
     else :other"
-  (:require [dk.simongray.like-minded.store.indexeddb :as-alias indexeddb]))
+  (:require [dk.simongray.like-minded.store.indexeddb :as-alias indexeddb]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]))
 
 (defn cause-of
   "The cause of a write that failed with the `error` of its save: :full,
@@ -71,7 +72,7 @@
               (assoc state :save-status status)
               (dissoc state :save-status))
       (and now (or (not was) (not= (:cause before) (:cause status))))
-      (assoc :announcement (text status nil))
+      (announcement/announced (text status nil))
 
       (and was (not now))
-      (assoc :announcement "Your changes are saved"))))
+      (announcement/announced "Your changes are saved"))))

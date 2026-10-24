@@ -16,6 +16,7 @@
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.refresh :as refresh]
             [dk.simongray.elektrolyt.runtime :as runtime]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.ui.text :as text]
             [taoensso.telemere :as tel]))
 
@@ -168,7 +169,8 @@
       (.catch (fn [e]
                 (tel/log! {:level :error :id :opml/import-failed :error e}
                           "The OPML file wasn't imported")
-                (swap! store assoc :settings-status unreadable :announcement (:text unreadable))))))
+                (swap! store #(-> (assoc % :settings-status unreadable)
+                                  (announcement/announced (:text unreadable))))))))
 
 (defn export!
   "Download the subscriptions in `state` as an OPML file."

@@ -193,10 +193,12 @@
 ;; WCAG 2.2, SC 4.1.3 Status Messages: one place on every page announces
 ;; what happened out of sight, e.g. a finished subscription
 (defn announcer
-  "A status line of the `announcement` for a screen reader, hidden from
-  sight."
-  [announcement]
-  [:p.visually-hidden {:role "status"} announcement])
+  "A status line of the announcement in `state` for a screen reader,
+  hidden from sight. Each message is a new element by its count, so that
+  one that repeats the last is read out too."
+  [{:keys [announcement announcements]}]
+  [:p.visually-hidden {:role "status"}
+   [:span {:replicant/key announcements} announcement]])
 
 (def library-pages
   "The names of the routes whose pages need the listener's library."
@@ -233,7 +235,7 @@
          :route/show     (show-ui/content state heading)
          :route/episode  (episode-ui/content state heading)
          nil))
-     (announcer (:announcement state))
+     (announcer state)
      (for [{:keys [id text]} (vals links/notes)]
        [:p.visually-hidden {:id id} text])]))
 

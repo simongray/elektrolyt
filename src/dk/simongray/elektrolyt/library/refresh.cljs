@@ -16,6 +16,7 @@
             [dk.simongray.elektrolyt.library.shows :as shows]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]
             [taoensso.telemere :as tel]))
 
@@ -89,14 +90,14 @@
   for it."
   [state asked?]
   (cond-> (update state :refresh-status #(assoc (select-keys % [:failures]) :running? true :done 0))
-    asked? (assoc :announcement "Checking for new episodes…")))
+    asked? (announcement/announced "Checking for new episodes…")))
 
 (defn busy
   "The `state` once another tab's worker turned out to be refreshing at
   the instant `at`, announced when the listener `asked?` for the refresh."
   [state asked? at]
   (cond-> (assoc state :refresh-status {:running? false :busy-at at})
-    asked? (assoc :announcement "Another tab is checking for new episodes")))
+    asked? (announcement/announced "Another tab is checking for new episodes")))
 
 (defn failed
   "The `state` once a refresh failed at the instant `at`, one more failure
@@ -105,7 +106,7 @@
   (cond-> (update state :refresh-status
                   (fn [{:keys [failures]}]
                     {:running? false :failed-at at :failures (inc (or failures 0))}))
-    asked? (assoc :announcement "Couldn't check for new episodes")))
+    asked? (announcement/announced "Couldn't check for new episodes")))
 
 (defn refreshed
   "The `state` once a refresh is done, with its `result` and a summary to
@@ -114,7 +115,7 @@
   (let [summary (shows/summary result asked?)]
     (cond-> (assoc state :refresh-status {:running? false
                                           :result   (dissoc result :library)})
-      summary (assoc :announcement summary))))
+      summary (announcement/announced summary))))
 
 (defn refreshed!
   "Apply the feeds that a refresh `found` to the library in `store` and

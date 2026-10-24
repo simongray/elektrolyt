@@ -23,6 +23,7 @@
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.linked :as linked]
             [dk.simongray.elektrolyt.show.subscription :as subscription]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.ui.document :as document]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]
@@ -101,7 +102,7 @@
         (look-up-show! store guid false true))
     (swap! store #(-> (show/answered % [:whole url])
                       (assoc-in [:feeds url :error] error)
-                      (assoc :announcement "The feed couldn't be fetched")))))
+                      (announcement/announced "The feed couldn't be fetched")))))
 
 (defn answered!
   "Note in `store` that the `request` for a feed is answered, apply `f` to
