@@ -74,7 +74,11 @@
       (is (nil? (:save-status @state)))
       (is (= "Your changes are saved" (:announcement @state)))
       (is (= [false true false] @warned)
-          "while the browser asks before the page goes, from the second failure until then"))))
+          "while the browser asks before the page goes, from the second failure until then")
+      (reset! retries [])
+      (app-library/retried! state {:error {:id :library/newer-format}})
+      (is (= [[::app-library/retry :cancelled]] @retries)
+          "but not after a newer version saved the library, which only a reload can write over"))))
 
 (deftest every-new-episode-in-the-inbox
   (async done

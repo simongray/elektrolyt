@@ -38,6 +38,13 @@
   (boolean (and status
                 (or (<= 2 failures) (contains? #{:full :newer-format} cause)))))
 
+;; Only the newer version, after a reload, writes over what it saved
+(defn retry?
+  "Whether a write is tried again after the save `status`: unless a newer
+  version of the app saved the library."
+  [{:keys [cause] :as status}]
+  (boolean (and status (not= :newer-format cause))))
+
 (defn text
   "What the page says of the save `status`, with the time of day of its
   :since as `time`, e.g. \"14:32\", or without a time when it's nil."
