@@ -22,6 +22,7 @@
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.runtime.local :as local]
+            [dk.simongray.elektrolyt.runtime.log :as log]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.search.directories :as directories]
             [dk.simongray.elektrolyt.show :as show]
@@ -33,7 +34,8 @@
             [nexus.registry :as nxr]
             [reitit.frontend.easy :as rfe]
             [reitit.frontend.history :as rfh]
-            [replicant.dom :as r]))
+            [replicant.dom :as r]
+            [taoensso.telemere :as tel]))
 
 (defonce ^{:doc "The whole state of the app, which only effects change."}
   store
@@ -269,7 +271,8 @@
       (app-library/change! store (audio/added @store playable))
       (changed! store (queue/added id title next?))
       (catch :default e
-        (js/console.error "The episode couldn't be queued" e)))))
+        (tel/log! {:level :error :id :queue/add-failed :error e}
+                  "The episode couldn't be queued")))))
 
 (nxr/register-effect! :queue/move
   (fn [_ store id to]
@@ -359,7 +362,8 @@
     (-> (app-cache/clear!)
         (.then #(swap! store settings/cleared nil))
         (.catch (fn [e]
-                  (js/console.error "The cache wasn't cleared" e)
+                  (tel/log! {:level :error :id :cache/clear-failed :error e}
+                            "The cache wasn't cleared")
                   (swap! store settings/cleared e)))
         (.then #(app-library/check-storage! store)))))
 
@@ -394,7 +398,8 @@
   (-> (app-library/open! store)
       ;; the title of a show that only the library keeps is known now
       (.then #(document/canonicalize! @store))
-      (.catch #(js/console.error "The library didn't restore" %))))
+      (.catch #(tel/log! {:level :error :id :library/restore-failed :error %}
+                         "The library didn't restore"))))
 
 (defn load-server-info!
   "Read what the app's server offers from /api/server into the :server of
@@ -406,7 +411,8 @@
       (.then (fn [text]
                (nxr/dispatch store {} [[:store/assoc :server
                                         (transit/read (transit/reader :json) text)]])))
-      (.catch #(js/console.error "The server didn't say what it offers" %))))
+      (.catch #(tel/log! {:level :error :id :server/info-failed :error %}
+                         "The server didn't say what it offers"))))
 
 (defn ^:dev/after-load reload!
   "Start the router again with the routes and views that shadow-cljs just
@@ -415,12 +421,13 @@
   (start-router!))
 
 (defn ^:export init
-  "Start the app: send the actions of the views to Nexus, follow the
-  playback of the other tabs, restore the library, and once the server
-  has said what it offers, put the current episode in the player, render
-  the page at each change of the store and follow the window's history.
-  Tell the library where the player is, and save it, when the page is
-  hidden while it plays, and the other tabs that it stops as it goes.
+  "Start the app: start its logs, send the actions of the views to Nexus,
+  follow the playback of the other tabs, restore the library, and once
+  the server has said what it offers, put the current episode in the
+  player, render the page at each change of the store and follow the
+  window's history. Tell the library where the player is, and save it,
+  when the page is hidden while it plays, and the other tabs that it
+  stops as it goes.
 
   The first page waits for both, since what it shows can depend on them,
   e.g. a search asks the Podcast Index too when the server signs for it,
@@ -429,6 +436,7 @@
   colours that the cache keeps of its artwork too, so that it opens in
   them rather than turns to them."
   []
+  (log/start! js/window)
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
   (audio/listen! store)
   (runtime/on-hidden! #(audio/hidden! store))

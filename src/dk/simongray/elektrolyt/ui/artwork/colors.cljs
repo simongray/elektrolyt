@@ -12,7 +12,8 @@
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.routes :as routes]
-            [reitit.core :as reitit]))
+            [reitit.core :as reitit]
+            [taoensso.telemere :as tel]))
 
 (defn cached-colors
   "The colours of an artwork in the entry `kept` of the cache, or nil for
@@ -73,8 +74,9 @@
                                   (app-cache/put! app-cache/colors artwork v))
                                 v))))))
       (.catch (fn [e]
-                (js/console.warn "The colours of the artwork weren't worked out" e)
-                nil))
+                (tel/log! {:level :warn :id :artwork/colors-failed
+                           :data  {:artwork artwork} :error e}
+                          "The colours of the artwork weren't worked out")))
       (.then #(swap! store assoc-in [:colors artwork] (or % {:seed nil})))))
 
 (def colors-at-once

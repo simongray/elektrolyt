@@ -24,7 +24,8 @@
             [dk.simongray.elektrolyt.library.shows :as shows]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
-            [dk.simongray.elektrolyt.worker.fetching :as fetching]))
+            [dk.simongray.elektrolyt.worker.fetching :as fetching]
+            [taoensso.telemere :as tel]))
 
 (def max-wait-ms
   "The longest wait for the next refresh, after which the page asks the
@@ -132,7 +133,8 @@
                      (swap! store assoc :refresh-status {:running? false})
                      (found! store found asked?))))
           (.catch (fn [e]
-                    (js/console.error "The library didn't refresh" e)
+                    (tel/log! {:level :error :id :library/refresh-failed :error e}
+                              "The library didn't refresh")
                     (swap! store assoc :refresh-status {:running? false})))
           (.finally #(schedule! store))))))
 

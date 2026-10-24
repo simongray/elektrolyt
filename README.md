@@ -68,7 +68,7 @@ an obvious place:
   the views that several pages use, the paths of the pages, their words
   and colours, and the artwork.
 - **What reaches outside the store,** in `runtime`: the listeners, timers,
-  channels, localStorage and the caches.
+  channels, localStorage, the caches and the logs.
 
 Within a group, a subject's model, effects and views sit together, e.g.
 `library.queue` holds what the state keeps of the queue, `library.queue.ui`
@@ -100,6 +100,10 @@ clojure -M:cljs:server:local:serve
 - The server also makes small thumbnails of artwork at `/artwork`, since
   most feeds name a single artwork of 3000 pixels. It keeps them in
   `.cache/artwork`, at most 200 MB.
+- The page, its web worker and the server log with
+  [Telemere](https://github.com/taoensso/telemere). Each event has an id
+  and data, e.g. `:library/save-failed`, and a release build logs errors
+  and warnings alone.
 - The views are at http://localhost:8402, in
   [Portfolio](https://github.com/cjohansen/portfolio), with a scene for each
   state of each view. The scenes live in the `-scenes` namespaces of `dev/`.

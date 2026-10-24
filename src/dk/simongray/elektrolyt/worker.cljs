@@ -7,6 +7,7 @@
   A web worker has no DOMParser, so it parses with that of
   @xmldom/xmldom."
   (:require ["@xmldom/xmldom" :as xmldom]
+            [dk.simongray.elektrolyt.runtime.log :as log]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]))
 
 (defn throwing
@@ -20,8 +21,9 @@
                                   (throw (js/Error. message))))})))
 
 (defn ^:export init
-  "Answer the page's requests to fetch feeds."
+  "Start the worker's logs, and answer the page's requests to fetch feeds."
   []
+  (log/start! js/self)
   (when-not (exists? js/DOMParser)
     (set! (.-DOMParser js/globalThis) (throwing xmldom/DOMParser)))
   (fetching/serve!))

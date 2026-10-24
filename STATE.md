@@ -7,9 +7,9 @@ have one writer, so a new row needs a reason, and a fact in two places
 says why.
 
 The namespaces are those of `src/dk/simongray/elektrolyt/`, and
-`elektrolyt` is the root namespace itself. Only `runtime`, `runtime.local`
-and `worker.fetching` reach outside the store, which `runtime_test.clj`
-checks.
+`elektrolyt` is the root namespace itself. Only `runtime`, `runtime.local`,
+`runtime.log` and `worker.fetching` reach outside the store, which
+`runtime_test.clj` checks.
 
 The keys and databases that the browser keeps still carry the app's
 former name, `dk.simongray.podcast-app`, and so do the keys of the app's
@@ -61,6 +61,7 @@ In the tab, outside the store
 | `worker.fetching/web-worker` | The web worker, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
 | `ui.memo` slots | The last result of a view that takes a while, e.g. the queue, a show's page, the picks | the views | the views | Until its arguments change |
+| Telemere's handlers and minimum level | Its console handler, and the minimum level, which is `:warn` in a release build | `runtime.log/start!` | Telemere | The tab, or the worker |
 
 
 In localStorage
@@ -108,6 +109,7 @@ In the page
 | `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `ui.document`, at each render | CSS, the browser |
 | The history | The page's URL; `ui.document/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `ui.routes`, `ui.document` | `runtime/follow-history!` |
 | The listeners | The page shown, hidden or restored, the end of a transition, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
+| The listeners of the logs | The errors and the rejected promises that nothing else caught, in the page and in the worker | `runtime.log` | Telemere |
 
 
 Facts in two places

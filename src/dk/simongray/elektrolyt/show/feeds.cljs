@@ -25,7 +25,8 @@
             [dk.simongray.elektrolyt.ui.document :as document]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]
-            [reitit.frontend.easy :as rfe]))
+            [reitit.frontend.easy :as rfe]
+            [taoensso.telemere :as tel]))
 
 (defn whole-opts
   "The options of the worker's fetch of a whole feed in the `state`: at
@@ -177,7 +178,9 @@
                      (keep-show! url (merge {:url url :feed feed}
                                             (dissoc validators :not-before)
                                             (show/validators fetched))))))
-          (.catch #(js/console.warn "The show wasn't checked" %))
+          (.catch #(tel/log! {:level :warn :id :show/check-failed
+                              :data  {:url url} :error %}
+                             "The show wasn't checked"))
           (.finally #(swap! store show/answered [:check url]))))))
 
 ;; a feed of DR's own that the cache kept from before the listener turned
@@ -344,7 +347,9 @@
                     (linked-shows! guid feed url (search/index-credentials @store))))
         (.then #(swap! store assoc-in [:linked guid] (assoc % :status :done)))
         (.catch (fn [e]
-                  (js/console.warn "The shows that a show links to weren't fetched" e)
+                  (tel/log! {:level :warn :id :show/linked-failed
+                             :data  {:guid guid} :error e}
+                            "The shows that a show links to weren't fetched")
                   (swap! store assoc-in [:linked guid :status] :failed))))))
 
 (defn read-files!
