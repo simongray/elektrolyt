@@ -1,12 +1,7 @@
 (ns dk.simongray.elektrolyt.phosphor
-  "Write the app's icons, ui/icons.cljc, from Phosphor's npm package.
-
-  The package, @phosphor-icons/core, has each icon in each weight as an svg
-  of one path, filled with currentColor on a grid of 256 by 256. The app's
-  namespace has a def for the path of each icon of one weight, named as
-  Phosphor names it, e.g. play or gear-six. A release build keeps only the
-  defs that the views use, where a map of all 1,512 icons would keep them
-  all."
+  "Writing the app's icons, ui/icons.cljc, from Phosphor's npm package,
+  @phosphor-icons/core: a def for the path of each icon in one weight, so
+  that a release build keeps only the icons that the views use."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.reader :as reader]
@@ -27,19 +22,18 @@
                    (slurp (io/file package "package.json")))))
 
 (defn icon-name
-  "The name of the icon in the `file` of the `weight`, e.g. play for
-  play-light.svg, since every weight but Regular ends its files' names in
-  its own."
+  "The name of the icon in the `file` of `weight`, e.g. play for
+  play-light.svg, since the file names of every weight but Regular end in
+  the weight's name."
   [weight file]
   (str/replace (.getName (io/file file))
                (re-pattern (str "(-" weight ")?\\.svg$"))
                ""))
 
-;; The app's icon alias draws the path on this grid, so a file with
-;; anything else in it, or another grid, stops the run
 (defn path
-  "The path of an icon from the text of its `svg` file, which holds one
-  path on a grid of 256 by 256 and nothing else."
+  "The path in the text of an icon's `svg` file, which must hold one path
+  on a grid of 256 by 256 and nothing else, since the app's icon alias
+  draws on that grid."
   [svg]
   (or (second (re-matches #"(?s)<svg [^>]*viewBox=\"0 0 256 256\"[^>]*><path d=\"([^\"]+)\"/></svg>\s*"
                           svg))
@@ -100,8 +94,8 @@
        (str/join "\n")))
 
 (defn source
-  "The source of the namespace of the `icons` of the `weight`, with the
-  names in `excluded` excluded from clojure.core."
+  "The source of the namespace of the `icons` in `weight`, which excludes
+  the names `excluded` from clojure.core."
   [weight icons excluded]
   (let [weight-name (str/capitalize weight)]
     (str ";; Phosphor Icons " (version) ", the " weight-name " weight, from the npm package\n"

@@ -156,7 +156,8 @@ time,
    on the paper, so the paper's grain lies over it. Below the episode's
    row the controls lie on a deck of their own, which the artwork and
    what's next stand on, so that they don't float. The bar stays the
-   background's colour, which the browser's own bars take (page.cljs). */
+   background's colour, which the browser's own bars take
+   (ui/document.cljs). */
 #player {
   background: var(--grain) 0 0 / var(--grain-size),
               linear-gradient(transparent var(--player-row), var(--bar-deck) 0),
@@ -509,7 +510,7 @@ img {
 /* Artwork that links where the title after it does is a little brighter
    under the pointer, as a button's soft fill lightens it, and the title
    is underlined as it is under the pointer itself. A keyboard and a
-   screen reader skip the artwork for the title (artwork.cljc). */
+   screen reader skip the artwork for the title (ui/artwork.cljc). */
 .artwork-link:hover img {
   filter: brightness(1.12);
 }

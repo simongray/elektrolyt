@@ -1,12 +1,10 @@
 (ns dk.simongray.elektrolyt.library.opml
-  "The import and export of the listener's subscriptions as OPML, the way
-  podcast apps hand them to each other.
+  "The import and export of the listener's subscriptions as OPML.
 
-  An import subscribes to the shows of the file, with their folders and
-  tags, refreshes the feeds, and once a refresh has fetched them, takes
-  over the episodes that the file says were played or started, as
-  Overcast's extended export writes them. An export downloads the
-  subscriptions as a file, with those episodes, in the same form."
+  An import subscribes to the file's shows, with their folders and tags.
+  Once a refresh has fetched their feeds, it marks the episodes that the
+  file lists as played or started, in the form of Overcast's extended
+  export. An export downloads the subscriptions as a file in that form."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.format.opml :as format.opml]
             [dk.simongray.podcast.profile :as profile]
@@ -17,14 +15,13 @@
             [taoensso.telemere :as tel]))
 
 (defn subscribed-count
-  "How many shows the library of the `state` subscribes to."
+  "How many shows the library in `state` subscribes to."
   [state]
   (count (some-> state :library :profile profile/subscriptions)))
 
 (defn imported
-  "The change of the `state` that subscribes to the shows of the OPML
-  subscription `list`, with the page's status line saying how many of
-  them are new."
+  "The change of `state` that subscribes to the shows in the OPML
+  subscription `list`, with a status of how many of them are new."
   [state list]
   (let [before (subscribed-count state)]
     {:operation [:opml/subscribe list]
@@ -44,18 +41,18 @@
    :text  (str "That file couldn't be read as OPML. Choose a file that a "
                "podcast app exported.")})
 
-;; The marks need the feeds, but refresh! starts nothing while a refresh is
-;; under way, which began before the import and so lacks its feeds, and
-;; finds nothing to fetch while another tab's worker refreshes. The next
-;; refresh comes at once, since the new feeds are due.
+;; The marks need the import's feeds. A refresh that was under way before
+;; the import doesn't fetch them, and neither does one that finds another
+;; tab's worker refreshing, but the next comes at once, since the new feeds
+;; are due.
 (defn waited
-  "The phase of an import's wait for its feeds, from `phase` as the state
-  of its store goes from `old` to `new`:
+  "The next phase of an import's wait for its feeds after `phase`, as the
+  state goes from `old` to `new`:
 
   - :waiting until a refresh starts after the import
   - :started while that one runs
-  - :fetched once it's done, or :waiting again where it found another
-    tab's worker refreshing, or failed"
+  - :fetched once it's done, or :waiting again if it failed or found
+    another tab's worker refreshing"
   [phase old new]
   (let [running? #(boolean (get-in % [:refresh-status :running?]))]
     (case phase
@@ -67,9 +64,8 @@
       phase)))
 
 (defn mark-when-fetched!
-  "Take over the episodes that the OPML `list` says were played or started
-  into the library of the `store` once a refresh has fetched its feeds, as
-  waited tells, and save it."
+  "Once a refresh has fetched the feeds of the OPML `list`, mark its played
+  and started episodes in the library in `store`, and save it."
   [store list]
   (let [k     (gensym "opml-import")
         phase (atom :waiting)]
@@ -81,8 +77,8 @@
                         (app-library/save! store))))))
 
 (defn import!
-  "Import the OPML `file` that the listener chose into the library of the
-  `store`, as the namespace describes."
+  "Import the OPML `file` into the library in `store` and refresh it, or
+  set a status if the file can't be read."
   [store file]
   (-> (.text file)
       (.then (fn [text]
@@ -97,8 +93,7 @@
                 (swap! store assoc :settings-status unreadable)))))
 
 (defn export!
-  "Download the subscriptions of the library of the `state` as an OPML
-  file."
+  "Download the subscriptions in `state` as an OPML file."
   [state]
   (let [text (format.opml/emit (library/to-opml (:library state)))
         url  (js/URL.createObjectURL (js/Blob. #js [text] #js {:type "text/x-opml"}))

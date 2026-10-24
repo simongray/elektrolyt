@@ -1,10 +1,6 @@
 (ns dk.simongray.elektrolyt.ui.artwork.colors
-  "Working out the colours of artwork with colour-coded, a few artworks at
-  once, into the :colors of the state, from the cache, or else from the
-  image itself, whose colours the cache keeps then.
-
-  The namespace dk.simongray.elektrolyt.ui.colors describes what the
-  colours are for and how the state keeps them."
+  "Working out the colours of artwork with colour-coded, from the cache or
+  else from the image, a few artworks at a time."
   (:require [clojure.string :as str]
             [dk.simongray.colour-coded :as cc]
             [dk.simongray.colour-coded.image :as image]
@@ -16,16 +12,15 @@
             [taoensso.telemere :as tel]))
 
 (defn cached-colors
-  "The colours of an artwork in the entry `kept` of the cache, or nil for
-  none, or for colours kept before they had a :dominant colour."
+  "The colours in the cache entry `kept`, or nil when there are none or
+  they were kept before colours had a :dominant one."
   [kept]
   (when (contains? (:value kept) :dominant)
     (:value kept)))
 
 (defn image-colors
-  "A promise of the colours of the image in the bytes `b` that colors.cljc
-  keeps: its :seed and its :dominant colour, as hex, or nil where it can't
-  be decoded."
+  "A promise of the :seed and :dominant colour of the image in the bytes
+  `b`, as hex, or of nil when the image can't be decoded."
   [b]
   (image/then (image/colours b)
               (fn [{:keys [seed background]}]
@@ -34,20 +29,18 @@
 
 (defn- proxied-bytes
   "A promise of the bytes of the image at `url`, through the proxy, since
-  most hosts of artwork don't let a page of another site read it."
+  most sites that serve artwork don't let another site's page read it."
   [url]
   (.then (app-library/send {:url url :as :bytes}) :body))
 
-;; Fetch, section 4.3: with the redirect mode manual, fetch doesn't follow
-;; the server's redirect to the artwork's own host, whose answer a page
-;; can't read without CORS
+;; Fetch, redirect mode manual: fetch doesn't follow a redirect to the
+;; artwork's own site, which a page can't read without CORS
 ;; https://fetch.spec.whatwg.org/#concept-request-redirect-mode
 (defn image-bytes
-  "A promise of the bytes of the image to work out the colours of the
-  artwork of `x` from: its source, which the server's thumbnails serve
-  from the app's own origin, or else through the proxy. A thumbnail that
-  the server redirects to the artwork itself, e.g. of WebP, comes through
-  the proxy from the artwork."
+  "A promise of the bytes of the image to take the colours of the artwork
+  of `x` from: the server's thumbnail, on the app's own origin, or else
+  the artwork through the proxy. When the server redirects a thumbnail to
+  the artwork, e.g. for WebP, the artwork comes through the proxy too."
   [{:keys [artwork] :as x}]
   (let [url (colors/source x)]
     (if (str/starts-with? url "/")
@@ -59,10 +52,10 @@
       (proxied-bytes url))))
 
 (defn load-colors!
-  "Work out the colours of the artwork `x`, as colors/wanted names it, into
-  the :colors of the `store`: from the cache, or else from the image,
-  whose colours the cache keeps then. An image that doesn't come leaves
-  the artwork without colours until the page loads again."
+  "Work out the colours of the artwork `x` into the :colors of `store`,
+  from the cache or else from the image, whose colours are then cached.
+  An image that fails to load leaves the artwork without colours until
+  the page loads again."
   [store {:keys [artwork] :as x}]
   (-> (app-cache/fetch! app-cache/colors artwork)
       (.then (fn [kept]
@@ -81,13 +74,13 @@
       (.then #(swap! store assoc-in [:colors artwork] (or % {:seed nil})))))
 
 (def colors-at-once
-  "How many artworks' colours are worked out at once, so that a long list,
-  e.g. the Library, doesn't send all its images through the proxy at once."
+  "How many artworks' colours are worked out at a time, so that a long
+  list doesn't send all its images through the proxy at once."
   4)
 
 (defn colored!
-  "Work out the colours of the artworks that the page of the `state` wants
-  and doesn't have yet, into the `store`, a few at once, the first first."
+  "Work out the missing colours of the artworks on the page in `state`
+  into `store`, a few at a time and in order."
   [store state]
   (let [loading (count (filter #(= :loading (:status %)) (vals (:colors state))))
         xs      (take (- colors-at-once loading) (colors/wanted state))]
@@ -97,9 +90,9 @@
         (load-colors! store x)))))
 
 (defn kept-colors!
-  "A promise that the :colors of the `store` have what the cache keeps of
-  the artwork that the page at the window's location wants, before it
-  renders, which comes to nothing for artwork that it doesn't keep."
+  "A promise of loading the cached colours of the artwork on the page at
+  the window's location into the :colors of `store`, so that the first
+  render has them."
   [store]
   (let [route  (routes/match->route (reitit/match-by-path routes/router js/location.pathname))
         wanted (colors/wanted (assoc @store :route route))]

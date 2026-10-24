@@ -1,17 +1,14 @@
 (ns dk.simongray.elektrolyt.ui.subscription
-  "The button that subscribes to a show, on each page that lists one.
-
-  The state holds the feed URLs that are being subscribed to in
-  :subscribing, and the errors of those that failed by URL in
-  :subscribe-errors."
+  "The button that subscribes to a show, and the error of a subscription
+  that failed."
   (:require [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]))
 
 (defn status
-  "Where the subscription to the feed at `url` stands in the `state`, with
-  the `subscribed` URLs: :subscribed, :subscribing, :ready, or :waiting
-  while the library is restored."
+  "Where the subscription to the feed at `url` stands in `state`, given the
+  `subscribed` URLs: :subscribed, :subscribing, :ready, or :waiting until
+  the library is restored."
   [state subscribed url]
   (cond
     (nil? subscribed)                    :waiting
@@ -19,19 +16,18 @@
     (contains? (:subscribing state) url) :subscribing
     :else                                :ready))
 
-;; WCAG 2.2, SC 2.5.3 Label in Name: the name that a screen reader hears
-;; starts with the visible label, e.g. "Subscribe to Podcasting 2.0". The
-;; button is aria-disabled rather than disabled, so that it keeps the focus
-;; as it changes. Subscribe is filled, as the main action of a show that
-;; the listener doesn't have, as Play is of an episode. Its icon is a plus,
-;; as Pocket Casts' is, which becomes a check once subscribed, and a minus
-;; where it unsubscribes. Where it turns into Unsubscribe at once, a double
-;; click subscribes once (controls/single-click).
+;; WCAG 2.2, SC 2.5.3 Label in Name: the accessible name starts with the
+;; visible label, e.g. "Subscribe to Podcasting 2.0". The button is
+;; aria-disabled rather than disabled, so that it keeps the focus as it
+;; changes. Subscribe is the main action for a show that the listener
+;; doesn't have, as Play is for an episode, so it's filled. Its icon is a
+;; plus, as in Pocket Casts, then a check once subscribed, or a minus to
+;; unsubscribe.
 ;; https://support.pocketcasts.com/article/subscribing-to-podcasts/
 (defn button
-  "The button that subscribes to the show `title` at `url`, at the
-  subscription `status`, or unsubscribes from it once it's subscribed,
-  where the page offers that, `unsubscribe?`."
+  "The button that subscribes to the show `title` at `url`, labelled by the
+  subscription `status`, or unsubscribes once it's subscribed if
+  `unsubscribe?`."
   ([status url title]
    (button status url title false))
   ([status url title unsubscribe?]
@@ -51,8 +47,8 @@
       [:span.visually-hidden " to " title]])))
 
 (defn error
-  "The paragraph that tells why the subscription to the feed at `url`
-  failed in the `state`, or nil."
+  "The paragraph that says why the subscription to the feed at `url`
+  failed in `state`, or nil."
   [state url]
   (when-let [e (get-in state [:subscribe-errors url])]
     [:p "Couldn't subscribe: " (:message e)]))

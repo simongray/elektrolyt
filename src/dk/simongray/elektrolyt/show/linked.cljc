@@ -1,14 +1,11 @@
 (ns dk.simongray.elektrolyt.show.linked
-  "The shows that a show links to, which its Show page shows: the shows of
-  its podroll, which its creator recommends, and the other shows of its
-  publisher, once the publisher's feed lists this show too, as the podcast
-  namespace asks.
+  "The shows that a show links to: those its creator recommends in its
+  podroll, and its publisher's other shows, once the publisher's feed
+  lists this show too, as the podcast namespace asks.
 
-  The state keeps them under the guid of the show in :linked, as a map of
-  the :status of their fetch, :fetching, :done or :failed, the :podroll,
-  as cards, and the :publisher, a map of its :title and the cards of its
-  :shows. A card is what the page shows of a show: its :guid, :title, the
-  :url of its feed, and its :artwork and :artwork-sizes."
+  Each show's entry in :linked has the :status of the fetch, :fetching,
+  :done or :failed, the :podroll as cards, and the :publisher, a map of
+  its :title and the cards of its :shows."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]))
 
@@ -19,9 +16,9 @@
   (boolean (or (seq (resolve/podroll feed)) (resolve/publisher feed))))
 
 (defn card
-  "The card of the remote `item` of a podroll or a publisher feed, with
-  the start of its feed as its :show when that was fetched, or nil when it
-  names no show."
+  "The card of the remote `item` in a podroll or a publisher feed, or nil
+  when it names no show. A card has the show's guid, title, feed URL and
+  artwork, from the start of its feed in :show where it was fetched."
   [{:keys [feed-guid feed-url title show] :as item}]
   (let [url (or feed-url (some-> show resolve/self-url))
         id  (or feed-guid (when (and show url) (guid/feed-guid show url)))]
@@ -35,16 +32,15 @@
              :artwork-sizes (some-> show resolve/artwork-sizes not-empty)}))))
 
 (defn failed?
-  "Whether a part of what app.show/fetch-linked-shows! gave, `fetched`,
-  failed: the feed of a show of the podroll, or the publisher's feed."
+  "Whether a part of the linked shows `fetched` failed: the feed of a show
+  in the podroll, or the publisher's feed."
   [{:keys [podroll publisher]}]
   (boolean (or (some :error podroll) (:error publisher))))
 
 (defn kept
-  "What the page shows of the shows that app.show/fetch-linked-shows! gave,
-  `fetched`, for the show `guid`: the cards of the podroll, and of the
-  publisher's other shows when its feed confirms it, which is what the
-  cache keeps of them."
+  "What the page shows of the linked shows `fetched` for the show `guid`:
+  the podroll's cards, and the publisher's title and the cards of its
+  other shows when its feed confirms this one."
   [guid {:keys [podroll publisher]}]
   (let [others (when (:confirmed? publisher)
                  (->> (:shows publisher)

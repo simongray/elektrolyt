@@ -1,14 +1,14 @@
 (ns dk.simongray.elektrolyt.ui.facts
-  "The facts of an episode or a show in a line, e.g. its show, its date and
-  its length, as the rows of the lists and the pages set them."
+  "The facts of an episode or a show in a line, e.g. its show, date and
+  length."
   (:require [clojure.string :as str]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.wary-fetch.url :as url]))
 
 (defn source-host
-  "The host of the feed `supplement` that an episode came from, as
-  feed/supplement names it, without www., or nil when it names no URL."
+  "The domain of the feed `supplement` that an episode came from, without
+  www., or nil when it isn't a URL."
   [supplement]
   (when (string? supplement)
     (some-> (url/host supplement) (str/replace #"^www\." "") not-empty)))
@@ -20,17 +20,14 @@
   (when supplement
     (str "From " (or (source-host supplement) "another feed"))))
 
-;; Apple Podcasts keeps the episodes that only subscribers get on the
-;; show's one page, and marks what's special about one in its row rather
-;; than in a list of its own. The mark is Phosphor's puzzle piece, for an
-;; episode from elsewhere that fills a gap in its show's own feed. In a
-;; row, it's the icon alone, whose words are its tooltip and what a screen
-;; reader reads, as an icon button's are. The episode's own page has room
-;; for the words.
+;; Apple Podcasts keeps subscriber-only episodes on the show's one page and
+;; marks them in their rows rather than listing them apart. The mark here
+;; is a puzzle piece, for an episode that fills a gap in its show's own
+;; feed.
 ;; https://podcasters.apple.com/support/set-up-your-show-for-a-subscription
 (defn source
-  "The mark of an episode that came from the feed `supplement`, for its row
-  in a list: a puzzle piece whose tooltip is source-text, or nil."
+  "The mark for the row of an episode that came from the feed `supplement`:
+  a puzzle piece whose tooltip and hidden text say where from, or nil."
   [supplement]
   (when-let [text (source-text supplement)]
     [:span
@@ -38,18 +35,15 @@
      [:span.visually-hidden text]]))
 
 (defn labelled-source
-  "The mark of an episode that came from the feed `supplement`, for its own
-  page: a puzzle piece before source-text, or nil."
+  "The mark for the page of an episode that came from the feed
+  `supplement`: a puzzle piece and the words that say where from, or nil."
   [supplement]
   (when-let [text (source-text supplement)]
     [:span.source (controls/in-text icons/puzzle-piece) text]))
 
-;; The middle dot is decoration, which a screen reader leaves out, so it
-;; reads a comma in its place rather than run two facts together, e.g.
-;; "Oct 2, 2026, 1 h 30 min" rather than "Oct 2, 2026 1 h 30 min"
 (def separator
   "What stands between two facts in a line: a middle dot that shows, and a
-  comma that only a screen reader reads."
+  comma for a screen reader, so that it doesn't run the facts together."
   (list [:span.separator {:aria-hidden "true"} " · "]
         [:span.visually-hidden ", "]))
 

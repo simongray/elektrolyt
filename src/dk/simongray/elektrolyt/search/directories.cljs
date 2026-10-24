@@ -1,12 +1,8 @@
 (ns dk.simongray.elektrolyt.search.directories
-  "The searches of the Search page in the directories: the shows that each
-  directory has for words, from the cache while it's fresh, or the feeds
-  at a link that the listener pasted, which the directories look up when
-  it's an app's link. drpodcast.nu answers as a directory too, by the
-  titles of its slugs.json.
-
-  The namespace dk.simongray.elektrolyt.search describes what the state
-  keeps of each search."
+  "Running the searches of the Search page: the shows that each directory
+  has for words, or the feeds at a link that the listener pasted. The
+  search of drpodcast.nu works like a directory's, by the titles in its
+  slugs.json."
   (:require [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.elektrolyt.library :as app-library]
@@ -15,17 +11,17 @@
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
 
 (def drpodcast-limit
-  "How many series at most a search finds on drpodcast.nu, each of which
-  costs a request to DR."
+  "The most series that a search finds on drpodcast.nu, since each costs a
+  request to DR."
   10)
 
 (defn unpublished!
-  "A promise of the `series` of slugs.json when DR publishes no podcast of
-  it, or of nil. One that DR wouldn't tell of counts as unpublished."
+  "A promise of the `series` of slugs.json if DR publishes no podcast of
+  it, or of nil. A series whose check fails counts as unpublished."
   [{:keys [slug] :as series}]
-  ;; TODO: DR's podcastUrl in slugs.json would tell this without asking DR
-  ;; for each series, and would know the feeds of the series that DR
-  ;; renamed, which this counts as unpublished.
+  ;; TODO: with DR's podcastUrl in slugs.json, this wouldn't need a request
+  ;; per series, and a series that DR renamed wouldn't count as unpublished.
+  ;;
   ;; DR's CDN can ignore the range and send a whole feed, which the
   ;; truncation cuts short
   (-> (app-cache/send {:url       (drpodcast/official-url slug)
@@ -36,9 +32,9 @@
       (.catch (constantly series))))
 
 (defn drpodcast-search!
-  "A promise of the list of drpodcast.nu for the words `q`: the series
-  whose titles have every word and that DR publishes no podcast of, since
-  the other directories list those that it does."
+  "A promise of drpodcast.nu's list for the words `q`: the series with
+  every word in their titles that DR publishes no podcast of, since the
+  other directories list DR's podcasts."
   [q]
   (-> (app-cache/send {:url drpodcast/slugs-url :as :json})
       (.then (fn [{:keys [status body]}]
@@ -57,7 +53,7 @@
 
 (defn directory-list!
   "A promise of the list of the directory `source` for the words `q`, with
-  the `index` credentials for the Podcast Index, which is a failed one when
+  the `index` credentials for the Podcast Index, or of a failed list when
   the directory fails."
   [q source index]
   (-> (if (= drpodcast/source source)
@@ -69,13 +65,13 @@
       (.catch #(search/failed (ex-message %)))))
 
 (defn search-directory!
-  "Search the directory `source` for the words `q`, and keep its list under
-  the query in the :searches of the state, through `dispatch`, with the
-  `index` credentials for the Podcast Index.
+  "Search the directory `source` for the words `q` with the `index`
+  credentials, and put its list in the :searches of the state through
+  `dispatch`.
 
-  A list that the cache kept less than a day ago answers at once, unless
-  the listener asks to `retry?`. A new list goes into the cache, and for a
-  directory that fails, the cache's list shows with its date."
+  A fresh cached list answers at once, unless `retry?`. A new list is
+  cached, and for a directory that fails, the cached list stands in with
+  its date."
   [dispatch q source index retry?]
   (let [listed! #(dispatch [[:store/assoc-in [:searches q :lists source] %]])
         k       (search/cache-key source q)
@@ -93,15 +89,15 @@
                (listed! (:value kept))
                (ask! kept))))))
 
-;; Each directory answers in a list of its own, so that no answer reorders
-;; or replaces what another showed, as one merged list did when the others
-;; arrived (web.dev, Cumulative Layout Shift)
+;; Each directory gets a list of its own, so that no answer reorders or
+;; replaces another's, as one merged list did (web.dev, Cumulative Layout
+;; Shift)
 ;; https://web.dev/articles/cls
 (defn search!
-  "Search for the query `q`, and keep what's found under the query in the
-  :searches of the state, through `dispatch`: the feeds at a link, or else
-  the shows that each of the directories `sources` has, in a list of its
-  own. With the `index` credentials, the Podcast Index can be among them."
+  "Search for the query `q` and put what's found in the :searches of the
+  state through `dispatch`: the feeds at a link, or else a list from each
+  of the directories `sources`, with the `index` credentials for the
+  Podcast Index."
   [dispatch q sources index]
   (if (search/link? q)
     (let [found! #(dispatch [[:store/assoc-in [:searches q] %]])]

@@ -1,13 +1,7 @@
 (ns dk.simongray.elektrolyt.player.ui
-  "The views of the player, which stays as the pages change.
-
-  On a phone or a narrow window it's a row of the episode and what's
-  next, above the seek bar between the chapters' buttons, and the
-  transport with the speed and the speaker below them. Where the title has
-  room beside it, the transport is beside the episode, with the seek row
-  below them. Every control is in view at every width, and its buttons
-  are icons alone. The Episode page is the player's full view, with the
-  notes, the chapters and the transcript."
+  "The views of the player, which stays as the pages change. The Episode
+  page is the player's full view, with the notes, the chapters and the
+  transcript."
   (:require [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.player :as player]
@@ -20,13 +14,11 @@
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
-;; at the size of the player on a desktop, whose height is 7rem (see
-;; layout.css)
+;; at the player's height on a desktop, 7rem (layout.css)
 (defn artwork
   "The artwork of the `playback`, or the image of its chapter at `seconds`,
-  which takes its place, at an edge of the player, with the `attrs` merged
-  in, e.g. its colour while it loads, as a link to `href`, the page of its
-  episode, as its title is."
+  as a link to its episode's page at `href`, with the `attrs` merged in,
+  e.g. its colour while it loads."
   [{:keys [artwork title] :as playback} seconds href attrs]
   (let [image (or (some-> (:img (player/chapter-at playback seconds)) player/proxied)
                   artwork)]
@@ -34,13 +26,13 @@
       (artwork/linked href title (artwork/img {:artwork image} 112 (merge {:class "player-artwork"} attrs))))))
 
 ;; Each line is cut short where it doesn't fit (layout.css), so each part
-;; has its whole text as its tooltip, which a screen reader doesn't read
-;; again, since a link's is its name and a span's isn't read at all (as
-;; Chrome's accessibility tree has them)
+;; has its whole text as its tooltip. A screen reader doesn't read that
+;; twice, since a link's title is its name and a span's isn't read at all
+;; (in Chrome's accessibility tree).
 (defn now-playing
-  "The title and the show of the `playback`, with its title of the chapter
-  at `seconds`, whose title links to `href`, the page of its episode, and
-  whose show to `show-href`, the page of its show."
+  "The title and show of the `playback`, linked to its episode's page at
+  `href` and its show's at `show-href`, with the title of its chapter at
+  `seconds`."
   [{:keys [title show] :as playback} seconds href show-href]
   (let [chapter (:title (player/chapter-at playback seconds))]
     [:div.player-title
@@ -48,9 +40,9 @@
      (facts-ui/line [(when show [:a {:href show-href :title show} show])
                      (when chapter [:span {:title chapter} chapter])])]))
 
-;; WAI-ARIA APG, button pattern: a button whose label changes, from Play to
-;; Pause, has no aria-pressed. Play, Pause, Next and Previous are the IEC's
-;; symbols for equipment, so they need no words to be understood.
+;; WAI-ARIA APG, button pattern: a button whose label changes from Play to
+;; Pause has no aria-pressed. Play, Pause, Next and Previous are the IEC's
+;; symbols for equipment, so they need no words.
 ;; https://en.wikipedia.org/wiki/Media_control_symbols
 (defn play-button
   "The button that plays the episode that the `player` shows, or pauses
@@ -63,28 +55,24 @@
      "Play"]))
 
 (defn fraction
-  "The `seconds` as a fraction of the `duration`, as a string for a CSS
-  property, since Replicant gives a number px, or nil without a
-  duration."
+  "The `seconds` as a fraction of the `duration`, or nil without one. It's
+  a string for a CSS property, since Replicant adds px to a number."
   [seconds duration]
   (when (and (number? duration) (pos? duration))
     (str (double (/ (or seconds 0) duration)))))
 
-;; Notches in the bar's track, where each chapter begins. A mark goes to
-;; its chapter's start, and the browser's own tooltip names the chapter
-;; under the pointer. A mark under the thumb shrinks away, so that it
-;; neither crosses the thumb nor keeps it from being dragged (layout.css).
 ;; The marks are for a pointer alone, since the chapters' buttons and the
-;; Episode page's list of chapters do the same for a keyboard and a screen
-;; reader, as WCAG allows of a small target with an equivalent. On a touch
-;; screen they only show where the chapters are, as YouTube's do on a
-;; phone.
+;; Episode page's list of chapters serve a keyboard and a screen reader,
+;; which WCAG allows of a small target with an equivalent. On a touch
+;; screen they only show where the chapters are, like YouTube's on a
+;; phone. A mark under the thumb shrinks away, so that it neither crosses
+;; the thumb nor keeps it from being dragged (layout.css).
 ;; https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
 ;; https://mobilesyrup.com/2020/05/28/youtube-video-chapters/
 (defn chapter-marks
-  "Marks on the seek bar of the `media` state where the `chapters` after
-  the first begin, each a press to its start, or nil without a
-  duration."
+  "Marks on the seek bar where the `chapters` after the first begin, or
+  nil while the `media` state has no duration. A click on a mark goes to
+  its chapter, whose title is its tooltip."
   [{:keys [duration]} chapters]
   (when (fraction 0 duration)
     [:div.player-chapter-marks {:aria-hidden "true"}
@@ -96,15 +84,15 @@
          :style         {:--at (fraction start-time duration)}
          :on            {:click [[:player/press {:action :seekto :seek-time start-time}]]}}])]))
 
-;; A range input, rather than a slider of our own, since a screen reader on
-;; a phone adjusts it with a swipe, which it always follows. What it reads
-;; of the position names the chapter too. The bar draws how much has
-;; played itself (look.css), and the times are as wide as the duration
-;; for the whole episode, so that the bar beside them never moves.
+;; A range input rather than a slider of our own, since a screen reader on
+;; a phone can always adjust it with a swipe. Its value text names the
+;; chapter too. The bar draws the part that has played (look.css), and
+;; both times are as wide as the duration, so that the bar between them
+;; never moves.
 (defn seek-bar
-  "The seek bar of the `media` state of the `playback`, at the `seeking`
-  seconds while it's dragged, with the time so far and the time left, and
-  the marks of its chapters."
+  "The seek bar of the `playback` at the position in its `media` state, or
+  at the `seeking` seconds while it's dragged, with its chapters' marks
+  between the time played and the time left."
   [media seeking playback]
   (let [{:keys [current-time duration] :as shown} (cond-> media seeking (assoc :current-time seeking))
         attrs   (controls/range-attributes shown)
@@ -126,9 +114,8 @@
      (update (time-ui/clock (player/remaining shown)) 2 #(str "−" %))]))
 
 ;; Phosphor has no skip by a number of seconds, and the listener chooses
-;; theirs, so the number is text inside the arrow, in the font of the page,
-;; as Apple's own symbols for it draw it, e.g. gobackward.15. Its size
-;; leaves a stroke's width of air between it and the ring.
+;; theirs, so the number is text in the page's font, like Apple's symbol
+;; gobackward.15. Its size leaves a stroke's width between it and the ring.
 ;; https://developer.apple.com/sf-symbols/
 (defn skip-icon
   "The icon of a skip by `seconds` in the `direction`, :back or :forward,
@@ -147,17 +134,16 @@
              :fill        "currentColor"}
       text]]))
 
-;; Play between back and forward, as every podcast player has it, where a
-;; thumb reaches it best on a phone, with the speed before them and the
-;; speaker after, as Apple Podcasts on a Mac has them. The row comes first
-;; after the episode, as the controls used most.
+;; Play sits between back and forward, like in every podcast player, where
+;; a thumb reaches it best on a phone. The speed comes before them and the
+;; speaker after, like in Apple Podcasts on a Mac. The row follows the
+;; episode, since it has the controls used most.
 ;; https://support.apple.com/guide/podcasts/pod970198c2
 ;; https://www.uxmatters.com/mt/archives/2013/02/how-do-users-really-hold-mobile-devices.php
 (defn transport
-  "The row of the button that plays or pauses what the `player` shows,
-  between those that skip back and forward by the seconds that the
-  listener prefers, `back` and `forward`, with the `speed` before them and
-  the `volume` after."
+  "The row of the `player`'s play button between the buttons that skip
+  `back` and `forward` seconds, with the `speed` before them and the
+  `volume` after."
   [player back forward speed volume]
   [:div.player-transport
    speed
@@ -173,9 +159,9 @@
    volume])
 
 ;; At the ends of the seek bar, since a chapter is a place on it, rather
-;; than at the transport's ends, where a music player skips a track and a
-;; listener might take them for the next episode. Pocket Casts keeps them
-;; by the chapter too.
+;; than at the ends of the transport, where a music player skips a track
+;; and the listener might take them for the next episode. Pocket Casts
+;; keeps them by the chapter too.
 ;; https://support.pocketcasts.com/knowledge-base/chapters/
 ;; https://forum.antennapod.org/t/player-screen-ux-ui-work/6177?page=2
 (defn chapter-button
@@ -190,15 +176,15 @@
       [controls-ui/icon-button {:icon icon :class class :on {:click [[:player/chapter direction]]}}
        words])))
 
-;; Its options, e.g. 1.5×, say what it is, so it's named by its title
-;; alone, which is its tooltip too: a title beside a label would be read
-;; after it again in Chrome, as the label's name repeated. It's bare text
-;; with a caret of our own, since the browser's arrow, beside room for its
-;; longest option, is too wide below the artwork on a phone (layout.css).
+;; Its options, e.g. 1.5×, make clear what it is, so its title alone names
+;; it and is its tooltip too: Chrome would read a title beside a label
+;; again after the label. It's bare text with a caret of our own, since the
+;; browser's arrow, beside room for the longest option, is too wide below
+;; the artwork on a phone (layout.css).
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H65
 (defn speed
-  "The choice of the speed of the `media` state, which sets the listener's
-  preference."
+  "The choice of speed, at the rate in the `media` state, which sets the
+  listener's preference."
   [{:keys [playback-rate] :as media}]
   [:div.player-speed
    (controls-ui/select "player-speed" player/speed-options (or playback-rate 1)
@@ -207,28 +193,27 @@
    [controls-ui/icon {:icon icons/caret-down}]])
 
 (defn volume-icon
-  "The icon of the sound at the `level` of the volume slider, struck out
-  while it's `muted` or silent."
+  "The speaker icon for the volume `level`, struck out while it's `muted`
+  or silent."
   [level muted]
   (cond
     (or muted (zero? level)) icons/speaker-slash
     (< level 0.5)            icons/speaker-low
     :else                    icons/speaker-high))
 
-;; The speaker mutes on every device, and its name says what a press does,
-;; Mute or Unmute, with no aria-pressed, as the APG's button pattern has
-;; it. Where a mouse can rest on it, the slider rises from it, as Video.js
-;; draws its volume when it's not inline: on hover, and on the keyboard's
-;; focus, so that Tab reaches the slider (layout.css). An iPhone plays at
-;; the system's volume, which a page can neither set nor read, so there's
-;; no slider there, and on a touch screen, whose buttons set the level,
-;; none shows. While muted, the slider stands at silence, at the bottom,
-;; and moving it unmutes.
+;; The speaker mutes on every device. Its label is what a press does, Mute
+;; or Unmute, with no aria-pressed, by the APG's button pattern. Where a
+;; mouse can rest on it, the slider rises from it on hover and on focus,
+;; like Video.js's volume when it's not inline, so that Tab reaches the
+;; slider (layout.css). An iPhone plays at the system's volume, which a
+;; page can neither set nor read, so there's no slider there, and a touch
+;; screen, whose buttons set the level, shows none. While muted, the
+;; slider stands at silence, and moving it unmutes.
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ;; https://docs.videojs.com/control-bar_volume-panel.js.html
 (defn volume-control
-  "The mute button of the `media` state, with the slider at its `level`
-  that rises from it, unless the device `locked?` the volume."
+  "The mute button of the `media` state, with a slider at the volume
+  `level` unless the device `locked?` the volume."
   [{:keys [muted] :as media} level locked?]
   (let [shown (if muted 0 level)]
     [:div (cond-> {:class "player-volume"}
@@ -252,13 +237,11 @@
                                            muted (conj [:player/mute false]))}}]])]))
 
 ;; Pocket Casts, Apple Podcasts and Spotify all reach the queue from the
-;; player, which here is a page of the app. At every width it's a square at
-;; the player's right edge, as the artwork is at its left (layout.css):
-;; "Next" above the episode's artwork, whose title only a screen reader
-;; reads, in the colour that the player will take from that artwork.
+;; player. The episode's title is for a screen reader alone, and the link
+;; has the colour that the player will take from its artwork.
 (defn next-up
-  "The episode that plays after the one of the player of the `state`, as a
-  link to the queue with its artwork, or nil."
+  "The episode that plays next in `state`, as a link to the queue with its
+  artwork, or nil."
   [state]
   (when-let [{:keys [title] :as episode} (first (queue/up-next state))]
     (let [seed (colors/bar-seed state episode)]
@@ -270,19 +253,18 @@
        (artwork/img episode 68 (merge {:class "player-next-artwork"}
                                       (colors/placeholder state episode)))])))
 
-;; Only a screen reader reads it, as it does the page's announcer: a
-;; sighted listener sees the player's state in its controls, and a line
-;; that came and went would move the player each time
+;; For a screen reader alone, like the page's announcer: the controls show
+;; the player's state, and a line that came and went would move the player
+;; each time
 (defn status-line
-  "The line that says why the `player` doesn't play, or that it waits for
-  data, which a screen reader reads as it changes."
+  "The status of the `player` as a line that a screen reader reads as it
+  changes."
   [player]
   [:p.visually-hidden {:role "status"} (player/status-text player)])
 
 (defn content
-  "The content of the player of the `state`: the episode that plays, in
-  this tab or another, and its controls, each a part of the player's grid
-  in layout.css."
+  "The content of the player in `state`: the episode that plays, in this
+  tab or another, and its controls."
   [{:keys [player library] :as state}]
   (let [{:keys [seeking volume volume-locked?]} player
         playback       (player/shown-playback state)
@@ -311,13 +293,12 @@
      (next-up state)
      (status-line player))))
 
-;; WAI-ARIA APG, landmark regions: a section with a label is a region, the
-;; landmark for content that none of the others describes. It comes with an
-;; episode, rather than stand empty, so that the main content has the room
-;; while nothing plays.
+;; WAI-ARIA APG, landmark regions: a labelled section is a region, the
+;; landmark for content that no other landmark fits. It's left out without
+;; an episode, so that the main content has the room while nothing plays.
 (defn region
-  "The player of the `state`, which stays as the pages change, while it
-  has an episode, in this tab or another, or else nil."
+  "The player in `state` while it has an episode, in this tab or another,
+  or else nil."
   [state]
   (when (player/shown-playback state)
     [:section#player {:aria-label "Player"}

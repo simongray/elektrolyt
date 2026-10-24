@@ -1,15 +1,14 @@
 (ns dk.simongray.elektrolyt.library.operations
   "The operations on the listener's library, as data, and the functions
-  that apply them: every way in which the app changes the library.
+  that apply them: every change that the app makes to the library.
 
   An operation is a vector of its kind and its arguments, e.g. [:queue/move
-  id 3], as the namespace of its subject gives it. A change of the state
-  is a map of the :operation and the :ui, a function of the state with the
-  changed library that changes what the page shows, e.g. its
-  announcement. Either can be missing.
+  id 3]. A change is a map of an :operation and a :ui, a function of the
+  state with the changed library that changes what the page shows, e.g.
+  its announcement. Either can be missing.
 
-  An operation is applied with the time of the listener's action, as :at,
-  so that it stamps the same time whenever it's applied."
+  An operation is applied at the time of the listener's action, as :at,
+  so that it stamps the same time however often it's applied."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.opml :as profile.opml]
@@ -19,23 +18,25 @@
             [dk.simongray.elektrolyt.library.queue :as queue]))
 
 (defn- profile-changed
-  "The `library` with its profile changed by `f` of it, the `args` and the
-  instant `at`, in that order, as the profile's functions take them."
+  "The `library` with its profile changed by `f`, called with the profile,
+  the `args` and then the instant `at`."
   [library at f & args]
   (update library :profile #(apply f % (concat args [at]))))
 
 (defn- given
-  "What a function of podcast-clj's library gave, `x`, as a map of the
-  :library and what else it tells, e.g. the :effects of a step."
+  "The result `x` of a library function as a map of the :library and
+  anything else it returns, e.g. the :effects of a step."
   [x]
   (if (contains? x :library) x {:library x}))
 
 (defn applied
-  "What the `operation` gives of the `library`, applied at the :at of the
-  `opts`, the instant of the listener's action, or now: a map of the new
-  :library and what else it tells, as podcast-clj's library returns them,
-  e.g. the :effects of a step, or nil for a nil `library`. The other
-  `opts` go to the library's calls, e.g. its :codec."
+  "The result of the `operation` on the `library` with the `opts`, as a
+  map of the new :library and anything else it returns, e.g. the :effects
+  of a step, or nil without a library.
+
+  It's applied at the :at of the `opts`, the time of the listener's
+  action, or else now. The other `opts` go to the library's functions,
+  e.g. its :codec."
   [library [kind & args :as operation] opts]
   (when library
     (let [at      (or (:at opts) (time/now))
@@ -72,8 +73,8 @@
                                 (library/step library event (assoc opts :at at))))))))
 
 (defn changed
-  "The `state` with the `change` made to it, with the `opts` of applied:
-  its operation applied to the library, and then its change to the UI."
+  "The `state` with the `change` made to it: its operation applied to the
+  library with the `opts`, and then its :ui function."
   ([state change]
    (changed state change {}))
   ([state {:keys [operation ui] :or {ui identity}} opts]

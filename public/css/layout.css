@@ -172,7 +172,7 @@ hgroup > p {
    follows a phone's browser toolbars as they come and go. From Chrome 130,
    the keyboard also reaches a scroller with no links in it. On a phone
    the tab bar is at the top, and the player at the foot, where a thumb
-   reaches its transport (ui/player.cljc).
+   reaches its transport (player/ui.cljc).
    https://developer.chrome.com/blog/keyboard-focusable-scrollers */
 .shell {
   display: grid;
@@ -841,7 +841,7 @@ search p {
    dragged: its width follows its distance from the thumb, |at - played|
    of the track, less a thumb, and grows to its full width within 4 px of
    that. A mark is a press only for a pointer that can aim at it
-   (ui/player.cljc). */
+   (player/ui.cljc). */
 .player-chapter-marks {
   position: absolute;
   inset: 0;
@@ -949,7 +949,8 @@ search p {
 /* The panel shows while a mouse rests on the speaker or the panel, while
    the keyboard's focus is on either, and while the slider is dragged or
    has the focus, so that a hand that drifts doesn't lose it. It stays
-   0.3 s after the mouse leaves, and Escape hides it at once (page.cljs).
+   0.3 s after the mouse leaves, and Escape hides it at once
+   (ui/document.cljs).
    A touch screen has no hover, so there the speaker only mutes. Players
    whose slider showed on hover alone lost the keyboard, and those that
    hid it at once lost the listener mid-drag.
@@ -1087,7 +1088,7 @@ search p {
   }
 
   /* the times as wide as the duration for the whole episode, each against
-     the bar, so that the bar never moves as they change (ui/player.cljc) */
+     the bar, so that the bar never moves as they change (player/ui.cljc) */
   .player-seek time {
     flex: none;
     inline-size: var(--clock, auto);

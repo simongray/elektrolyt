@@ -1,15 +1,14 @@
 (ns dk.simongray.elektrolyt.grain
-  "Make the grain of the app's paper, public/images/grain.png, from a
+  "Making the grain of the app's paper, public/images/grain.png, from a
   texture of paper.
 
   The texture is dev-resources/paper.png, the paper of simon.grays.blog
-  (CC0). It's grey at 15% alpha, which the blog lays over its cream, so it
-  darkens the whole page as well as giving it a grain. On white that veil
-  would read as grey paper, so the grain keeps only the texture's
-  variation. Each pixel darker than the texture's median grey becomes a
-  black speck, and each lighter one a white speck, with an alpha in
-  proportion to the difference. White paper shows only the black specks
-  and dark paper only the white ones, while a colour shows both.
+  (CC0): grey at 15% alpha over the blog's cream, which darkens the page
+  as well as giving it grain. On white that would read as grey paper, so
+  the grain keeps only the texture's variation. Pixels darker than its
+  median grey become black specks and lighter ones white specks, with an
+  alpha in proportion to the difference. White paper shows only the black
+  specks, dark paper only the white ones, and a colour both.
 
   The design, with a mock-up at each strength:
   https://claude.ai/artifact/MrZ7s4UY9fihNoS8hSpMfq"
@@ -73,9 +72,8 @@
                  (io/file out)))
 
 (defn strongest
-  "The alpha, from 0 to 1, of the strongest 1% of the black and the white
-  specks of the grain in the file `f`, as {:black a :white a}, which the
-  look test lays under text."
+  "The 99th percentile of the alpha, from 0 to 1, of the black and of the
+  white specks in the grain file `f`, as a map of :black and :white."
   [f]
   (let [specks (group-by #(if (zero? (bit-and % 0xffffff)) :black :white)
                          (pixels (ImageIO/read (io/file f))))]

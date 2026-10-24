@@ -1,35 +1,27 @@
 (ns dk.simongray.elektrolyt.library.settings
-  "The listener's settings, as the Settings page shows and changes them:
-  the preferences of the profile, and what the page says of how this
-  browser keeps the library.
-
-  The preferences live in the profile, so that they sync with it, among
-  them the directories that a search asks, in the order of their lists.
-  The state keeps the last outcome that the page tells of as
-  :settings-status, a map of the :group of settings that it's about and
-  its :text, and what the browser said of its storage as :storage, a map
-  of :supported?, :persisted? and the :usage in bytes."
+  "The listener's settings, as the Settings page shows and changes them.
+  They're preferences in the profile, so that they sync with it."
   (:require [dk.simongray.podcast.profile :as profile]
-            ;; the app's former name, since the listener's profile keeps
-            ;; the preferences under keys of it
+            ;; the app's former name, which existing profiles keep the
+            ;; preferences under
             [dk.simongray.podcast-app :as-alias app]))
 
-;; Apple Podcasts offers skips of 10 to 60 seconds, and AntennaPod a list
-;; of them too, rather than a number to type, which can't be wrong
+;; Apple Podcasts offers skips of 10 to 60 seconds and AntennaPod a list
+;; too, rather than a number to type, so that a skip can't be wrong
 ;; https://support.apple.com/guide/podcasts/pod4130f48/mac
 (def skip-seconds
-  "The seconds that a skip can jump, as the Settings page offers them."
+  "The skips that the listener can choose, in seconds."
   [5 10 15 30 45 60])
 
 (defn skip-options
-  "The seconds that a skip can jump, with the listener's `current` among
-  them, e.g. one that another app set."
+  "The skips to choose from, in seconds, with the listener's `current` one
+  among them, e.g. one that another app set."
   [current]
   (sort (distinct (cond-> skip-seconds (pos-int? current) (conj current)))))
 
 (def track-buttons
-  "What the next and previous buttons of a lock screen or headphones can
-  go to, as profile/default-preferences names it, with the text of each."
+  "What the next and previous buttons on a lock screen or headphones can
+  go to, with the text of each."
   [[:chapters "Chapters"]
    [:queue "The episodes of the queue"]
    [:chapters-first "Chapters, then the queue"]])
@@ -38,30 +30,27 @@
 ;; listener choose, since some want a dark device but light pages
 ;; https://web.dev/articles/prefers-color-scheme
 (def appearances
-  "The colours that the app can have, as the app keeps them, with the text
-  of each."
+  "The colour schemes that the listener can choose, with the text of each."
   [[:auto "Automatic, as the device"]
    [:light "Light"]
    [:dark "Dark"]])
 
-;; Media Queries 5, prefers-contrast: follow the device by default, as with
-;; light and dark, and let the listener ask for more, or for the standard
-;; on a device that asks for more
+;; Media Queries 5, prefers-contrast: follow the device by default, and let
+;; the listener ask for more contrast, or for the standard one on a device
+;; that asks for more
 ;; https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
 (def contrasts
-  "The contrasts that the app can have, as the app keeps them, with the
-  text of each."
+  "The contrasts that the listener can choose, with the text of each."
   [[:auto "Automatic, as the device"]
    [:standard "Standard"]
    [:more "More"]])
 
-;; podcast-clj's profile/prefer: preferences that only this app reads sync
-;; with the others under keys of its own namespace, which other apps leave
-;; alone. Until October 2026, the app kept them under the same keys
-;; without a namespace, which a profile may still hold.
+;; Preferences that only this app reads sync under keys of its own
+;; namespace, which other apps leave alone. Until October 2026 they had no
+;; namespace, and a profile may still hold those keys.
 (def defaults
-  "The preferences that the app keeps of its own, by their keys in the
-  profile, with their values until the listener chooses others."
+  "The app's own preferences and their defaults, by their keys in the
+  profile."
   {::app/appearance         :auto
    ::app/contrast           :auto
    ::app/artwork-colors?    true
@@ -71,82 +60,77 @@
    ::app/alternative-feeds? true})
 
 (defn preferences
-  "The listener's preferences in the library of the `state`, or nil before
-  it's restored."
+  "The listener's preferences in `state`, or nil without a library."
   [state]
   (some-> (:library state) :profile profile/preferences))
 
 (defn preference
-  "The app's own preference `k` in the `state`, one of the keys of
-  defaults: the listener's choice, under `k` or the key without its
-  namespace that the app kept before, or else the default."
+  "The app's own preference `k` in `state`: the listener's choice, under
+  `k` or under the old key without a namespace, or else its default."
   [state k]
   (let [prefs (preferences state)]
     (get prefs k (get prefs (keyword (name k)) (defaults k)))))
 
 (defn theme
-  "The colours that the listener chose in the `state`, \"light\" or
-  \"dark\", or nil for the device's."
+  "The colour scheme that the listener chose in `state`, \"light\" or
+  \"dark\", or nil to follow the device."
   [state]
   (some-> (#{:light :dark} (preference state ::app/appearance)) name))
 
 (defn contrast
-  "The contrast that the listener chose in the `state`, \"standard\" or
-  \"more\", or nil for the device's."
+  "The contrast that the listener chose in `state`, \"standard\" or
+  \"more\", or nil to follow the device."
   [state]
   (some-> (#{:standard :more} (preference state ::app/contrast)) name))
 
 (defn look
-  "The colours and the contrast that the listener chose in the `state`, as
-  a map of the :theme and the :contrast, each nil for the device's, or nil
-  where there are no preferences to read, e.g. before the library is
-  restored or when it failed to."
+  "The listener's colour scheme and contrast in `state`, as a map of the
+  :theme and the :contrast, or nil when there are no preferences to read,
+  e.g. before the library opens."
   [state]
   (when (preferences state)
     {:theme (theme state) :contrast (contrast state)}))
 
 (defn artwork-colors?
-  "Whether the pages take colours from artwork in the `state`, which they
-  do until the listener prefers the app's own."
+  "Whether the pages in `state` take their colours from artwork rather
+  than the app's own."
   [state]
   (preference state ::app/artwork-colors?))
 
-;; The colours that colour-coded's vision namespace found for colour
-;; blindness keep the pages apart for protans, deutans and tritans, but are
-;; closer to each other than the pages' own colours, so they're a choice
+;; The colours for colour blindness keep the pages apart for protans,
+;; deutans and tritans, but are closer to each other than the pages' own
+;; colours, so they're a choice rather than the default
 (def navigation-palettes
-  "The colours that the links of the navigation can have, as the app keeps
-  them, with the text of each."
+  "The colourings of the navigation's links that the listener can choose,
+  with the text of each."
   [[:pages "A colour for each page"]
    [:player "The player's colour"]
    [:color-blind "Colours for colour blindness"]
    [:none "None"]])
 
 (defn navigation-palette
-  "The colours of the links of the navigation that the listener chose in
-  the `state`, a colour for each page until they choose others."
+  "The colouring of the navigation's links that the listener chose in
+  `state`."
   [state]
   (preference state ::app/navigation-palette))
 
 (defn explicit-picks?
-  "Whether the picks of the `state` may be explicit episodes anywhere, as
-  they may not until the listener chooses so."
+  "Whether the picks in `state` may be explicit episodes anywhere."
   [state]
   (preference state ::app/explicit-picks?))
 
 ;; Pocket Casts' Autoplay is off until the listener turns it on
 ;; https://blog.pocketcasts.com/2023/07/25/introducing-autoplay/
 (defn autoplay?
-  "Whether a pick plays when nothing else would after an episode ends, in
-  the `state`, which it doesn't until the listener chooses so."
+  "Whether autoplay is on in `state`, so that a pick plays when an episode
+  ends and nothing else would."
   [state]
   (preference state ::app/autoplay?))
 
 (defn alternative-feeds?
-  "Whether DR's own feeds take the episodes of their siblings on
-  drpodcast.nu in the `state`, and a search asks drpodcast.nu for the
-  series that DR publishes no podcast of, as they do until the listener
-  turns it off."
+  "Whether the episodes from drpodcast.nu are on in `state`: DR's own feeds
+  take those of their siblings there, and a search asks drpodcast.nu for
+  the series that DR publishes no podcast of."
   [state]
   (preference state ::app/alternative-feeds?))
 
@@ -156,20 +140,18 @@
   {:operation [:settings/prefer prefs]})
 
 (def directories
-  "The directories that the Settings page offers, in the order in which it
-  lists those that a search leaves out."
+  "The directories that a search can ask, in the order in which those that
+  it leaves out are listed."
   [:podcastindex :apple :fyyd :gpodder])
 
 (defn searched
-  "The directories that a search asks by the preferences of the `state`, in
-  the listener's order."
+  "The directories that a search asks in `state`, in the listener's order."
   [state]
   (:search-sources (or (preferences state) profile/default-preferences)))
 
 (defn directory-rows
-  "The directories as the Settings page lists them for the `state`, each a
-  pair of its id and whether a search asks it: those that it asks, in
-  their order, and then the others."
+  "The rows of the directories in `state`, each a pair of a directory and
+  whether a search asks it: those that it asks, in order, then the others."
   [state]
   (let [on (searched state)]
     (concat (map #(vector % true) on)
@@ -177,15 +159,15 @@
               [d false]))))
 
 (defn turned
-  "The change of the `state` that has a search ask the directory `source`,
-  at the end of the order, where `on?`, or leave it out."
+  "The change of `state` that adds the directory `source` to the end of
+  those that a search asks if `on?`, or else removes it."
   [state source on?]
   (let [others (filterv #(not= source %) (searched state))]
     (preferred {:search-sources (if on? (conj others source) others)})))
 
 (defn moved-source
-  "The change of the `state` that puts the directory `source` at the
-  position `to`, from 1, in the order of those that a search asks."
+  "The change of `state` that moves the directory `source` to the position
+  `to`, counted from 1, among those that a search asks."
   [state source to]
   (let [others (filterv #(not= source %) (searched state))
         i      (max 0 (min (count others) (dec to)))]
@@ -193,11 +175,10 @@
                                       (subvec others i))})))
 
 (defn cleared
-  "The `state` once the cache is empty, or not, by `error`, with a status
-  that says how it went. A cleared tab forgets what the cache kept too: the
-  searches, the feeds of shows and where they are, the shows they link to
-  and the colours of artwork. So Back doesn't bring them back, and the page
-  works out its colours again."
+  "The `state` once clearing the cache has succeeded, or failed with the
+  `error`, with a status of how it went. A success also drops what the
+  cache held from the state, so that Back doesn't bring it back and the
+  colours are worked out again."
   [state error]
   (if error
     (assoc state :settings-status

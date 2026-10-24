@@ -46,7 +46,7 @@
   (ui/page (library-page {:library-view {:layout :grid}})))
 
 (defscene while-it-refreshes
-  "A refresh under way, which the list says it's busy with."
+  "A refresh under way, with the list marked busy."
   (ui/page (library-page {:refresh-status {:running? true :done 12 :total 40}})))
 
 (defscene no-shows-yet

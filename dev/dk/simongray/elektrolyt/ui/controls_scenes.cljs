@@ -1,6 +1,6 @@
 (ns dk.simongray.elektrolyt.ui.controls-scenes
   "Scenes of the buttons with icons on the paper, in the app's own colours
-  and in an artwork's. The player's scenes show them on its bar."
+  and in an artwork's."
   (:require [dk.simongray.elektrolyt.player.ui :as player-ui]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]

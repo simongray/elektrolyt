@@ -1,18 +1,17 @@
 (ns dk.simongray.elektrolyt.player.ui-scenes
-  "Scenes of the player: nothing playing, an episode that plays with its
-  chapters, one whose volume the device locks, an episode that plays in
-  another tab, the ways it can fail to play, and its colours."
+  "Scenes of the player, from nothing playing to the ways an episode can
+  fail to play."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.scenes :refer [artwork feed url]]
             [dk.simongray.elektrolyt.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
 
 (def lib
-  "A library subscribed to the scenes' show, in its artwork."
+  "A library subscribed to the scenes' show, with its artwork."
   (library/subscribe (library/make "scenes") url (assoc feed :itunes/image {:href artwork})))
 
 (def id
-  "The episode of the scenes, which has chapters."
+  "The id of the scenes' episode, which has chapters."
   [(first (keys (:feeds lib))) "PC20-273"])
 
 (def episodes
@@ -34,8 +33,8 @@
    :muted         false})
 
 (defn playing
-  "The state of the queue with the `player` merged into one that plays the
-  episode of the scenes."
+  "The state of the Queue page while the scenes' episode plays, with the
+  `player` merged in."
   [player]
   {:route    {:name :route/queue}
    :library  lib

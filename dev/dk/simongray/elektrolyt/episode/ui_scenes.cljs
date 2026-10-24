@@ -1,8 +1,6 @@
 (ns dk.simongray.elektrolyt.episode.ui-scenes
-  "Scenes of the Episode page: an episode from the start of its show's
-  feed, with its chapters once they're read, with the Details of one that
-  says much of itself, in another language, with a transcript in another
-  language than its feed, while it plays, and the ways it can be missing."
+  "Scenes of the Episode page, from the start of its show's feed to the
+  ways the episode can be missing."
   (:require [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.episode.ui :as episode-ui]
@@ -39,9 +37,9 @@
   (guid/short-hash "https://example.org/?p=275"))
 
 (defn episode-page
-  "The state of the Episode page with what :feeds keeps of the feed of its
-  show, `known`, if anything, while the whole feed is fetched, and the
-  `more` state merged in."
+  "The state of the Episode page while its show's whole feed is fetched,
+  with `known`, what :feeds has of the feed, if anything, and the `more`
+  state merged in."
   ([known]
    (episode-page known {}))
   ([known more]
@@ -57,7 +55,7 @@
   {:feed feed :whole? false})
 
 (defn id
-  "The id of the episode of the scenes."
+  "The id of the scenes' episode."
   []
   (:id (episode-ui/route-page (episode-page from-the-start))))
 

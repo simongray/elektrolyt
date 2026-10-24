@@ -1,11 +1,6 @@
 (ns dk.simongray.elektrolyt.library.picks.ui-scenes
-  "Scenes of the picks and the pages that show them: Home, with the start
-  of the queue and the picks like what the listener heard, Home for a new
-  listener, the end of the queue, an episode, and a show with the shows
-  that it recommends.
-
-  The picks are found as the app finds them, in a library of a few shows
-  whose notes share some words."
+  "Scenes of the picks on each page that shows them, found as in the app,
+  in a library of a few shows whose notes share some words."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.profile :as profile]
@@ -53,9 +48,8 @@
    :defn     (feed "defn" "#27ae60"
                    [["REPL-driven development" "Clojure at the REPL, with data and pure functions."]
                     ["Datomic in production" "Clojure and Datomic at scale, with data as values."]])
-   ;; shows of other topics, whose notes use the everyday words of the
-   ;; others, as most shows do, so that those aren't what the picks are
-   ;; about
+   ;; shows of other topics, whose notes use the same everyday words as the
+   ;; others, as most shows do, so that the picks aren't about those words
    :design   (feed "99% Invisible" "#8e44ad"
                    [["The hidden life of garbage trucks" "A look at the design of a city, and what it takes for the trucks to work."]])
    :gardens  (feed "Gardeners' Question Time" "#b7950b"

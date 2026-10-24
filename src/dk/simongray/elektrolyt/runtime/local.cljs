@@ -1,10 +1,7 @@
 (ns ^:runtime dk.simongray.elektrolyt.runtime.local
-  "What this browser keeps in localStorage for the app, apart from the
-  library: values that belong to the device rather than to the listener,
-  e.g. the layout of the Library page, which a screen suits.
-
-  Where the browser keeps nothing, e.g. in a private window that blocks
-  storage, a read gives nil and a write does nothing."
+  "Values that the app keeps in this browser's localStorage. Where the
+  browser blocks storage, e.g. in a private window, a read returns nil and
+  a write does nothing."
   (:require [cljs.reader :as reader]))
 
 (defn stored
@@ -18,21 +15,21 @@
   (try (.setItem js/localStorage key s) (catch :default _ nil)))
 
 (defn forget!
-  "Forget what this browser keeps under `key`."
+  "Remove what this browser keeps under `key`."
   [key]
   (try (.removeItem js/localStorage key) (catch :default _ nil)))
 
 (defn stored-number
-  "The finite number that this browser keeps under `key`, or nil, also for
-  what isn't one."
+  "The finite number that this browser keeps under `key`, or nil when
+  there's none."
   [key]
   (let [n (js/parseFloat (stored key))]
     (when (js/Number.isFinite n)
       n)))
 
 (defn stored-edn
-  "The value that this browser keeps under `key` as EDN, or nil, also for
-  what isn't EDN."
+  "The value that this browser keeps under `key` as EDN, or nil when
+  there's none or it isn't EDN."
   [key]
   (try (some-> (stored key) reader/read-string) (catch :default _ nil)))
 

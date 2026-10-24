@@ -1,24 +1,20 @@
 (ns dk.simongray.elektrolyt.portfolio
-  "The workbench of the views, at http://localhost:8402 while shadow-cljs
-  watches the portfolio build.
-
-  The scenes come from the namespaces of dev/ that end in -scenes. Each
-  renders with the app's stylesheet, in the width of a desktop, a phone, or
-  the 320 CSS pixels that WCAG 2.2 asks content to reflow to (SC 1.4.10)."
+  "The Portfolio workbench of the views, with the app's stylesheet, in the
+  sizes of a desktop, a phone, and the 320 CSS pixels that content must
+  reflow to (WCAG 2.2, SC 1.4.10)."
   (:require [portfolio.ui :as portfolio]
             [replicant.dom :as r]))
 
 (defn log-actions
-  "Log the `actions` of an event handler in a scene, which has no app to
-  dispatch them to, with the `dispatch-data` of the event."
+  "Log the `actions` of an event handler with the event's `dispatch-data`,
+  since a scene has no app to dispatch them to."
   [dispatch-data actions]
   (js/console.log "Actions:" (pr-str actions) dispatch-data))
 
 (defn- viewport
-  "The viewport option of the `title`, `width` by `height` CSS pixels.
-
-  It has a height and no padding, since the page fills the window, which a
-  scene that Portfolio fits to its content doesn't have."
+  "The viewport option `title`, of `width` by `height` CSS pixels. It has a
+  height and no padding, since the app's page fills the window, unlike a
+  scene that Portfolio fits to its content."
   [title width height]
   {:title title
    :value {:viewport/width   width

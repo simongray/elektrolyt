@@ -1,10 +1,6 @@
 (ns dk.simongray.elektrolyt.episode.ui
-  "The views of the Episode page: the episode, the button that plays it, and
-  its show notes, chapters and transcript, whose times play it from there.
-
-  The page comes from the feed of its show at hand, as
-  dk.simongray.elektrolyt.episode describes it, so it shows at once when
-  the start of the feed has the episode."
+  "The views of the Episode page: the episode, its buttons, and its show
+  notes, chapters and transcript, whose times play it from there."
   (:require [dk.simongray.play-nice.media.fragment :as fragment]
             [dk.simongray.podcast.format.transcript :as transcript]
             [dk.simongray.elektrolyt.episode :as episode]
@@ -26,9 +22,9 @@
             [dk.simongray.wary-fetch.url :as url]))
 
 ;; MDN: a link is for a real URL. Each time links to the page at ?t=, which
-;; can be copied or opened in a tab of its own, and a click on it plays the
-;; episode from there instead, as a time does in the description of a
-;; YouTube video.
+;; can be copied or opened in a tab of its own, and a click plays the
+;; episode from there instead, like a time in a YouTube video's
+;; description.
 ;; https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a
 (defn time-link
   "A link to the episode `page` at `seconds` into it, with the Hiccup
@@ -41,44 +37,44 @@
    content])
 
 (defn route-page
-  "The episode page of the Episode page of the `state`, or nil."
+  "The page of the episode that the route in `state` names, or nil."
   [state]
   (let [{:keys [path-params slug]} (:route state)]
     (episode/page state (:guid path-params) (:hash path-params) slug time-link)))
 
 (defn start-time
-  "The seconds that the Episode page of the `state` starts the episode at,
-  as the t of its link gives them, e.g. 73 for ?t=73 or ?t=1m13s, or nil."
+  "The seconds that the t of the link in `state` starts the episode at,
+  e.g. 73 for ?t=73 or ?t=1m13s, or nil."
   [state]
   (some->> (get-in state [:route :query-params :t])
            (str "?t=")
            (fragment/link-time)))
 
 (defn started?
-  "Whether the `entry` of an episode in the profile has started it, and not
-  played it to the end."
+  "Whether an episode's `entry` in the profile is started and not yet
+  played."
   [{:keys [position played?]}]
   (and (number? position) (pos? position) (not played?)))
 
-;; The time that an episode has left is among its facts, as in the rows of
-;; the queue and the inbox, rather than in Resume, which it made wide
+;; The time left is among the episode's facts, like in the rows of the
+;; queue and the inbox, rather than in Resume, which it made wide
 (defn time-left
-  "How long an episode of `duration` seconds lasts, or how long it has left
-  once its `entry` in the profile has started it, e.g. 50m left, or nil
-  when the duration is unknown."
+  "How long an episode of `duration` seconds lasts, or has left once its
+  `entry` in the profile is started, e.g. 50m left, or nil when the
+  duration is unknown."
   [duration {:keys [position] :as entry}]
   (when (number? duration)
     (if (started? entry)
       (conj (time-ui/duration (max 0 (- duration position))) " left")
       (time-ui/duration duration))))
 
-;; WAI-ARIA APG, button pattern: a button whose label changes with its
-;; state, from Play to Pause, has no aria-pressed, which would say the
-;; opposite. https://www.w3.org/WAI/ARIA/apg/patterns/button/
+;; WAI-ARIA APG, button pattern: a button whose label changes from Play to
+;; Pause has no aria-pressed, which would mean the opposite
+;; https://www.w3.org/WAI/ARIA/apg/patterns/button/
 (defn play-label
-  "What the button of an episode says when it would play it, by the `entry`
-  of the episode in the profile and the start time `t` of the link, e.g.
-  \"Play from 1:13\", \"Resume\" or \"Play\"."
+  "The label of the button that plays an episode, by its `entry` in the
+  profile and the link's start time `t`: \"Play from 1:13\", \"Resume\" or
+  \"Play\"."
   [entry t]
   (cond
     t                (str "Play from " (time-ui/clock-text t))
@@ -86,9 +82,9 @@
     :else            "Play"))
 
 (defn play-button
-  "The button that plays the episode `page`, from `t` seconds or from where
+  "The button that plays the episode `page` from `t` seconds or from where
   its `entry` in the profile left it, or pauses it while the `player`
-  plays it, in this tab or another, with the player's icons of the two."
+  plays it, in this tab or another."
   [page player entry t]
   (if (player/playing player (:id page))
     [controls-ui/button {:icon icons/pause :class "primary" :on {:click [[:player/pause]]}} "Pause"]
@@ -97,15 +93,14 @@
                          :on    {:click [[:player/play (episode/playable page) t]]}}
      (play-label entry t)]))
 
-;; The two places of Apple, Pocket Casts, Castro and Overcast: right after
-;; the episode that plays, or at the end, which Apple's Podcasts named Play
-;; Next and Play Last. Play next moves an episode that's queued already.
-;; Their icons add a row at the top of a stack or at its bottom, and Remove
-;; has the minus of Unsubscribe, which a double click on Play last doesn't
-;; reach (controls/single-click).
+;; Apple, Pocket Casts, Castro and Overcast queue an episode in two places,
+;; right after the one that plays or at the end, which Apple Podcasts named
+;; Play Next and Play Last. Play next moves an episode that's queued
+;; already. Remove has the minus of Unsubscribe, and a double click on Play
+;; last doesn't reach it.
 ;; https://support.apple.com/en-ca/guide/podcasts/use-up-next-poddfb50a470/1.1.0/mac/13.0
 (defn queue-buttons
-  "The buttons that queue the episode `page`, by where it is in the queue,
+  "The buttons that queue the episode `page` by its place in the queue,
   `queued`: nil, :queued, or :current, which needs none."
   [{:keys [title] :as page} queued]
   (let [playable (episode/playable page)]
@@ -122,8 +117,7 @@
           "Play last"])))))
 
 (defn number-text
-  "The number `n` of a season or an episode, without a fraction when it
-  has none, e.g. 3 for 3.0."
+  "The number `n` of a season or an episode as text, e.g. 3 for 3.0."
   [n]
   (if (== n (Math/floor n))
     (str (long n))
@@ -135,8 +129,8 @@
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/season.md
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/episode.md
 (defn numbering-facts
-  "The season and the number of an episode by its `numbering`, as
-  resolve/numbering gives it, and whether it's a trailer or a bonus."
+  "The season and number of an episode by its `numbering`, and whether
+  it's a trailer or a bonus."
   [{:keys [type season season-name episode episode-display]}]
   [(or season-name (some->> season number-text (str "Season ")))
    (or episode-display (some->> episode number-text (str "Episode ")))
@@ -147,10 +141,9 @@
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
-  "The header of the article of the episode `page` of the Episode page of
-  the `state`: its `heading` with its show, its artwork and facts, whether
-  its entry in the profile is played, the button that plays it, from the
-  start time of the link, and the buttons that queue it."
+  "The header of the article of the episode `page` in `state`: the
+  `heading` with its show, the artwork, the facts, and the buttons that
+  play and queue it."
   [state heading {:keys [id show language numbering published duration explicit? ai-content?
                          supplement]
                   :as   page}]
@@ -174,7 +167,7 @@
 
 (defn source
   "The site of the feed `supplement` that an episode came from, as a link
-  for its row of the Details, or nil when the episode is its show's own."
+  for the Details, or nil when the episode is its show's own."
   [supplement]
   (when-let [host (facts-ui/source-host supplement)]
     (details/web-link (str "https://" host "/") host)))
@@ -183,8 +176,7 @@
 ;; since the show's are on the show's page
 (defn details-rows
   "The rows of the Details of the episode `page`, with the links that
-  support its show, and the site of the feed it came from when that isn't
-  its show's own."
+  support it or its show."
   [{:keys [link content-links funding locations license enclosure supplement]}]
   (let [length (:length enclosure)]
     (concat
@@ -194,24 +186,23 @@
       ["Support" (details/support funding)]]
      (details/location-rows locations)
      [["License" [(details/license license)]]
-      ;; TODO: the format and bitrate of the media file, and its size where
-      ;; the feed gives none or a wrong one, from what read-files! reads of
-      ;; it. They matter once episodes can be downloaded.
+      ;; TODO: the media file's format and bitrate, and its size where the
+      ;; feed's is missing or wrong, from what's read of the file. They
+      ;; matter once episodes can be downloaded.
       ["File" [(when (and (number? length) (pos? length))
                  (text/size-text length))]]])))
 
-;; A chapters file is the publisher's, so a chapter's link is only one when
-;; it goes to the web, never e.g. a javascript: URL. Chapters name no
-;; language of their own, so the titles take the feed's, while the times
-;; stay in the page's (WCAG 2.2, SC 3.1.2 Language of Parts, technique H58).
+;; A chapters file is the publisher's, so a chapter links only to the web,
+;; never e.g. to a javascript: URL. Chapters name no language of their own,
+;; so the titles take the feed's while the times stay in the page's (WCAG
+;; 2.2, SC 3.1.2 Language of Parts, technique H58).
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/chapters/jsonChapters.md
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
-;; Folded, as the transcript is, so that the notes come before a long list
 (defn chapters
-  "The `chapters` of the episode `page` in the `state` as a list of their
-  times and titles, which link to the web page of a chapter that has one,
-  once the listener opened them."
+  "The `chapters` of the episode `page` in `state`, folded like the
+  transcript so that the notes come before a long list. Each has its time
+  and its title, which links to the chapter's web page, if any."
   [state {:keys [id language] :as page} chapters]
   (let [lang (text/lang language)]
     (controls-ui/folded state {:id "chapters" :heading "Chapters" :place [:chapters id]}
@@ -225,31 +216,30 @@
                                       (when title
                                         [:span {:lang lang} title]))])))))
 
-;; WAI, Transcribing Audio to Text: the transcript is on the page of the
-;; media itself, in paragraphs that name who speaks. It's behind a
-;; disclosure, since an hour's transcript is ten thousand words, and it's
-;; read once the listener opens it.
+;; WAI, Transcribing Audio to Text: the transcript is on the media's own
+;; page, in paragraphs that name who speaks. It's folded, since an hour's
+;; transcript is ten thousand words.
 ;; https://www.w3.org/WAI/media/av/transcripts/
 ;;
-;; The transcript that resolve picks can be in another language than the
-;; feed. The podcast namespace's transcript tag names its language, and a
-;; transcript without one is in the feed's. Its text takes that language
-;; (WCAG 2.2, SC 3.1.2 Language of Parts, technique H58).
+;; A transcript can be in another language than the feed. The podcast
+;; namespace's transcript tag names its language, or else it's the feed's,
+;; and the text is marked with it (WCAG 2.2, SC 3.1.2 Language of Parts,
+;; technique H58).
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/transcript.md
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
 (defn transcript
-  "The transcript of the episode `page` in the `state`, with the `files`
-  read so far, in paragraphs of a speaker's turn or about a minute, once
-  the listener opened it, which reads it."
+  "The transcript of the episode `page` in `state` from the `files` read so
+  far, in paragraphs of a speaker's turn or about a minute. It's read once
+  the listener opens it."
   [state {:keys [id view] :as page} files]
   (let [{:keys [transcript-status]}       files
         {:keys [document error language]} (:transcript files)]
     (controls-ui/folded
      state {:id "transcript" :heading "Transcript" :place [:transcript id]}
      #(cond
-        ;; read as it mounts, so that an open transcript whose read the
-        ;; state forgot is read again when its page shows once more
+        ;; read on mount, so that an open transcript whose read was dropped
+        ;; from the state is read again when its page shows once more
         (not= :read transcript-status)
         [:p {:role "status" :replicant/on-mount [[:episode/read-transcript id view]]}
          "Loading the transcript…"]
@@ -268,15 +258,14 @@
             body])]))))
 
 (def not-found
-  "The content of the page of an episode that its show's feed doesn't
-  have."
+  "The content of an Episode page whose episode isn't in its show's feed."
   [:p "This episode isn't in its show's feed any more, "
    "or the link to it is out of date."])
 
 (defn missing
-  "What the Episode page of the `state` says while it has no episode to
-  show: that its show or its feed is on the way, or that the episode isn't
-  there, with a link to its show when the feed is at hand."
+  "The content of the Episode page in `state` while it has no episode to
+  show: that its show or feed is on the way, why it failed, or that the
+  episode isn't in the feed and a link to the show."
   [state]
   (let [{:keys [guid]} (get-in state [:route :path-params])]
     (case (episode/status state guid)
@@ -291,8 +280,9 @@
              " for its other episodes."]))))
 
 (def picks-section
-  "The section of the picks under an episode: its heading's id and text,
-  the lead of its line of why, and what it says without picks."
+  "The section of the picks under an episode: the id and text of its
+  heading, the word before the terms that explain the picks, and the text
+  without picks."
   {:id "episode-picks" :heading "More like this" :lead "About"
    :none "Nothing in your library is like it yet."})
 
@@ -302,17 +292,17 @@
 ;; https://support.google.com/youtube/answer/16089387
 ;; https://www.nngroup.com/articles/recommendation-expectations/
 (defn content
-  "The content of the Episode page of the `state` under its `heading`: an
-  article, whose header has the heading, with the picks like it after its
-  Details, or else the heading and what became of the episode."
+  "The content of the Episode page in `state` with its `heading`: the
+  episode's article and the picks like it, or else the heading and what
+  became of the episode."
   [state heading]
   (if-let [{:keys [id notes view language] :as page} (route-page state)]
     (let [files (get-in state [:episodes id])
           shown (episode/shown-chapters page files)
           aside (details/aside (details-rows page) (:people page))]
       (list
-       ;; the files are read once the page of the episode is in the
-       ;; document, and again for the page of another one
+       ;; the files are read on mount, and the key mounts the article again
+       ;; for another episode
        (details/article
         {:replicant/key      (pr-str id)
          :replicant/on-mount [[:episode/read-files id view]]}

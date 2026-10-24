@@ -1,13 +1,6 @@
 (ns dk.simongray.elektrolyt.ui
-  "The views of the app: pure functions from the state to Hiccup.
-
-  An event handler is a vector of actions, i.e. data, which Replicant
-  passes to the dispatch function that dk.simongray.elektrolyt sets.
-  The state holds the current page as :route, a map of its :name,
-  :path-params and :query-params, which is nil for a path that no page
-  has. It holds the listener's library from podcast-clj as :library, once
-  it's restored, and the last thing to tell a screen reader as
-  :announcement."
+  "The page of the app as Hiccup, from the state: the window's title, the
+  navigation, the main content and the player."
   (:require [dk.simongray.elektrolyt.episode.ui :as episode-ui]
             [dk.simongray.elektrolyt.library.inbox.ui :as inbox-ui]
             [dk.simongray.elektrolyt.library.queue.ui :as queue-ui]
@@ -29,7 +22,7 @@
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def app-name
-  "The name of the app, as Home's heading and the window's title show it."
+  "The name of the app."
   "Elektrolyt")
 
 (def titles
@@ -42,20 +35,19 @@
    :route/settings "Settings"})
 
 ;; Material 3's navigation bar has three to five destinations, so the Inbox
-;; is a part of the Library, whose page has the start of it
+;; is part of the Library, whose page shows the start of it
 ;; https://m3.material.io/components/navigation-bar/guidelines
 (def destinations
-  "The names of the routes that the main navigation links to, in order,
-  Home first and Settings last."
+  "The names of the routes that the main navigation links to, in order."
   [:route/home :route/queue :route/library :route/search :route/settings])
 
 (def part-of
-  "The page of the navigation that each page outside it is a part of, by
-  the names of their routes."
+  "The page in the navigation that each page outside it is part of, by
+  route name."
   {:route/inbox :route/library})
 
 (def nav-icons
-  "The icon of each page of the main navigation, by the name of its route."
+  "The icon of each page in the main navigation, by route name."
   {:route/home     icons/house
    :route/queue    icons/queue
    :route/library  icons/books
@@ -63,16 +55,15 @@
    :route/settings icons/gear-six})
 
 (defn page-name
-  "The name of the page of the navigation that the route named
-  `route-name` is, e.g. \"queue\", whose colour look.css has, or nil for a
-  page that the navigation doesn't link to."
+  "The name of the route `route-name`, e.g. \"queue\", or nil when the
+  navigation doesn't link to it."
   [route-name]
   (when (some #{route-name} destinations)
     (name route-name)))
 
 (defn page-title
-  "The title of the page of the `state`: the app's name on Home, a show's
-  own on its page, and an episode's on its."
+  "The title of the page in `state`: the app's name on Home, and the title
+  of the show or the episode on its page."
   [state]
   (case (get-in state [:route :name])
     :route/home    app-name
@@ -81,9 +72,8 @@
     (get titles (get-in state [:route :name]) "Page not found")))
 
 (defn title-lang
-  "The lang attribute of the title of the page of the `state`: the language
-  of the feed of a show or an episode that has a title, as text/lang has
-  it, or nil."
+  "The lang attribute of the page's title in `state`: the feed's language
+  on the page of a show or an episode with a title, or else nil."
   [state]
   (let [{:keys [title language]} (case (get-in state [:route :name])
                                    :route/show    (show/page state (show-ui/guid state))
@@ -92,32 +82,28 @@
     (when title
       (text/lang language))))
 
-;; WCAG 2.2, SC 2.4.2 Page Titled: the page before the app, as in example 1
-;; of technique G88, which lists "the most important identifying information
-;; first", since that's what tells the tabs of the same app apart
+;; WCAG 2.2, SC 2.4.2 Page Titled, technique G88, example 1: the page before
+;; the app, the most identifying first, since the page tells the tabs apart
 (defn document-title
-  "The title of the window or tab for the page of the `state`, the app's
-  name alone on Home."
+  "The window's title for the page in `state`, which is the app's name
+  alone on Home."
   [state]
   (if (= :route/home (get-in state [:route :name]))
     app-name
     (str (page-title state) " – " app-name)))
 
-;; The tab shows the artwork of what plays, playing or paused, as a small
-;; picture of it, from the smallest thumbnail that fills a tab's 16 CSS
-;; pixels at twice the density
+;; 32 pixels fill a tab's 16 CSS pixels at twice the density
 (defn favicon
-  "The URL of the icon of the page of the `state`: the artwork of what the
-  player shows, or nil while it shows nothing."
+  "The URL of the page's icon in `state`: the artwork of what the player
+  shows, playing or paused, or nil while it shows nothing."
   [state]
   (when-let [artwork (:artwork (player/shown-playback state))]
     (artwork/smallest {:artwork artwork} 32)))
 
 (defn canonical-path
-  "The path that the Show page or the Episode page of the `state` should
-  have, or nil before the title is known: with the slug of the title, and
-  for a show that the library keeps, its key there and no URL of its feed,
-  since the library knows the URL."
+  "The canonical path of the Show or Episode page in `state`, with the slug
+  of its title, or nil before the title is known. A show that the listener
+  subscribes to goes by its key in the library, without its feed's URL."
   [{{:keys [name path-params query-params]} :route :as state}]
   (let [guid (:guid path-params)
         url  (:url query-params)]
@@ -136,12 +122,11 @@
 
 ;; WAI-ARIA 1.2, aria-current: "page" marks the link to the current page
 ;; within a set of links, and "true" the current item of a set, here the
-;; page that the current page is a part of
+;; page that the current page is part of
 (defn page-link
-  "A link to the route named `route-name` with the `label`, which is marked
-  as the current page when the `state` is on that route, or as current
-  when it's on a page that is a part of the route's page, and whose
-  tooltip is the page's title, for where it shows its icon alone."
+  "A link with the `label` to the route `route-name`, marked as current
+  when the page in `state` is that route or part of it. Its tooltip is the
+  page's title, for where the link shows its icon alone."
   [state route-name label]
   (let [current (get-in state [:route :name])]
     [:a {:href         (routes/href route-name)
@@ -152,29 +137,26 @@
      label]))
 
 ;; WCAG 2.2, SC 2.4.1 Bypass Blocks, technique G1: a link at the top of the
-;; page to the main content. It moves the focus itself rather than follow
-;; its fragment, which would add an entry to the history.
+;; page to the main content. It moves the focus itself, since following its
+;; fragment would add an entry to the history.
 (def skip-link
-  "The first thing a keyboard reaches: a link past the navigation, to the
-  heading of the page."
+  "A link past the navigation to the page's heading, the first thing that a
+  keyboard reaches."
   [:a.skip-link {:href "#main"
                  :on   {:click [[:event/prevent-default]
                                 [:page/focus-heading]]}}
    "Skip to content"])
 
-;; WAI-ARIA APG, landmark regions: a label that doesn't repeat the role,
-;; which a screen reader announces anyway, e.g. "Main navigation". The
-;; list's role is explicit, since the CSS removes its markers (see layout.css).
-;; Each page's link names its page for its colour, from the palette that
-;; the listener chose, unless they chose none, and so does the navigation
-;; itself, for the tone of the rail, on a page of it. Each link has its
-;; page's title and then its icon: on a phone the tab shows the icon alone,
-;; as Material's navigation bar can, and the title is for a screen reader
-;; (layout.css).
+;; WAI-ARIA APG, landmark regions: the label leaves out the role, which a
+;; screen reader announces anyway, e.g. "Main navigation". The list's role
+;; is explicit, since the CSS removes its markers. The data-page of each
+;; item, and of the nav on one of its pages, selects a colour from the
+;; listener's palette. On a phone, a link shows its icon alone, as
+;; Material's navigation bar can, and its title is for a screen reader.
 ;; https://github.com/material-components/material-components-android/blob/master/docs/components/BottomNavigation.md
 (defn main-nav
-  "The navigation between the pages for the `state`: the main pages and
-  Settings, as a tab bar on a phone and a rail on a wider screen."
+  "The main navigation for `state`, a tab bar on a phone and a rail on a
+  wider screen."
   [state]
   (let [palette (settings/navigation-palette state)
         colour  #(when-not (= :none palette) (page-name %))
@@ -187,42 +169,40 @@
                     (list [:span.title (titles route-name)]
                           [controls/icon {:icon (nav-icons route-name)}]))])]]))
 
-;; The heading takes the focus after each navigation, which the users who
-;; tested the techniques of client-side routing found the best experience
-;; (Marcy Sutton with Fable Tech Labs, 2019):
+;; The heading takes the focus after each navigation, which users found best
+;; in Marcy Sutton's tests of client-side routing with Fable Tech Labs, 2019
 ;; https://v2.gatsbyjs.com/blog/2019-07-11-user-testing-accessible-client-routing
 (defn page-heading
-  "The heading of the page of the `state`, in the language of its title,
-  which can take the focus."
+  "The heading of the page in `state`, in its title's language, which can
+  take the focus."
   [state]
   [:h1 {:tabindex -1 :lang (title-lang state)} (page-title state)])
 
 (def not-found
-  "The content of the page of a path that no page has."
+  "The content for a path that no page has."
   [:p "There's no page here. Go to "
    [:a {:href (routes/href :route/home)} "Home"]
    " instead."])
 
-;; WCAG 2.2, SC 4.1.3 Status Messages: what happened out of sight, e.g. a
-;; subscription that finished, which every page announces in the same place
+;; WCAG 2.2, SC 4.1.3 Status Messages: one place on every page announces
+;; what happened out of sight, e.g. a finished subscription
 (defn announcer
-  "The status line that a screen reader reads the `announcement` from,
-  which only it shows."
+  "A status line of the `announcement` for a screen reader, hidden from
+  sight."
   [announcement]
   [:p.visually-hidden {:role "status"} announcement])
 
 (def library-pages
-  "The names of the routes of the pages that show nothing without the
-  listener's library."
+  "The names of the routes whose pages need the listener's library."
   #{:route/queue :route/inbox :route/library :route/settings})
 
 (def no-library
-  "What a page of library-pages says when the library couldn't be read."
+  "The content of a page that needs the library when it couldn't be read."
   [:p "The library couldn't be read."])
 
 (defn main-content
-  "The main content of the page of the `state`, under its heading, which
-  the page of a show or an episode puts in the header of its article."
+  "The main content of the page in `state`, under its heading, which a
+  Show or Episode page puts in its article instead."
   [state]
   (let [route   (get-in state [:route :name])
         heading (page-heading state)]
@@ -247,20 +227,16 @@
        [:p.visually-hidden {:id id} text])]))
 
 (defn shell-attrs
-  "The attributes of the shell of the page of the `state`: the palette of
-  the navigation that the listener chose, and the seeds of artwork as
-  colors/attrs has them."
+  "The attributes of the page's shell in `state`: the navigation palette
+  that the listener chose, and the seeds of artwork."
   [state]
   (merge {:data-palette (name (settings/navigation-palette state))}
          (colors/attrs state)))
 
 (defn page
-  "The whole page for the `state` of the app.
-
-  The landmarks come in the same order at every width, so that the order of
-  the focus doesn't change with the layout: the navigation, the main
-  content and the player. The paper of a page about a show takes the
-  colours of the show's artwork, and the player those of what plays."
+  "The whole page for `state`, with the navigation, the main content and
+  the player in the same order at every width, so that the focus order
+  doesn't change with the layout."
   [state]
   [:div.shell (shell-attrs state)
    skip-link

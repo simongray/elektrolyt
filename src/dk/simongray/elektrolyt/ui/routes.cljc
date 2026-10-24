@@ -1,19 +1,20 @@
 (ns dk.simongray.elektrolyt.ui.routes
-  "The pages of the app by name and path, and the paths of the links to them."
+  "The pages of the app by name and path, the paths of links to them, and
+  the actions of a navigation."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.guid :as guid]
             [reitit.core :as reitit]))
 
 ;; A show's page is at /shows/<guid>/<slug>, as a question is on Stack
-;; Overflow: the guid names the show, and the slug of its title is there for
-;; a reader of the link alone, so the guid finds the show with any slug or
-;; none. The route keeps the page as its :page.
+;; Overflow: the guid finds the show, and the slug of its title is only for
+;; whoever reads the link, so any slug or none will do. A titled route
+;; names its page as :page.
 ;;
-;; An episode's page is under its show's, since an item's guid names it only
-;; within its feed, as podcast:remoteItem names it by both. The item is
-;; named by the short hash of its guid, as git names a commit, since the
-;; guid is often a URL, whose slashes many servers refuse in a path even
-;; percent-encoded, and the slug tells apart two items of one hash.
+;; An episode's page is under its show's, since an item's guid is unique
+;; only within its feed, as podcast:remoteItem has it. The item goes by a
+;; short hash of its guid, as git names a commit, since the guid is often a
+;; URL, whose slashes many servers refuse in a path even percent-encoded.
+;; The slug tells apart two items with the same hash.
 ;; https://podcasting2.org/docs/podcast-namespace/tags/remote-item
 (def router
   "The router of the app's paths, whose routes are named :route/…"
@@ -30,9 +31,8 @@
     ["/shows/:guid/episodes/:hash/:slug" {:name :route/titled-episode :page :route/episode}]]))
 
 (defn href
-  "The path of the route named `route-name`, with its `path-params` and
-  `query-params`, and the `fragment` that names a part of its page, e.g.
-  \"/settings#search\"."
+  "The path of the route `route-name` with its `path-params`,
+  `query-params` and `fragment`, e.g. \"/settings#search\"."
   ([route-name]
    (href route-name nil nil))
   ([route-name path-params]
@@ -52,7 +52,8 @@
      :cljs (.normalize s "NFKD")))
 
 (def foldings
-  "The letters that have no accents to take off, as the letters of a slug."
+  "How a slug spells the letters that have no accent to take off, e.g. o
+  for ø."
   {"ø" "o" "æ" "ae" "œ" "oe" "ß" "ss" "đ" "d" "ł" "l" "þ" "th"})
 
 (defn slug
@@ -64,7 +65,7 @@
   [title]
   (let [words (-> (str/lower-case (str title))
                   (decomposed)
-                  ;; the combining accents that NFKD takes off the letters
+                  ;; the combining accents that NFKD splits off the letters
                   (str/replace #"[̀-ͯ]" "")
                   (str/replace #"[øæœßđłþ]" foldings)
                   (str/replace #"[^a-z0-9]+" "-"))]
@@ -73,10 +74,9 @@
         (not-empty))))
 
 (defn show-route
-  "The name, path params and query params of the page of the show `guid`
-  titled `title`, with the `url` of its feed for a show that the library
-  doesn't keep, in the order that href and reitit's push-state take
-  them."
+  "The route name, path params and query params, in that order, of the
+  page of the show `guid` titled `title`, with its feed's `url` for a show
+  outside the library."
   [guid title url]
   (let [query (when url {:url url})]
     (if-let [s (slug title)]
@@ -84,8 +84,8 @@
       [:route/show {:guid guid} query])))
 
 (defn show-href
-  "The path of the page of the show `guid` titled `title`, with the `url` of
-  its feed for a show that the library doesn't keep."
+  "The path of the page of the show `guid` titled `title`, with its feed's
+  `url` for a show outside the library."
   ([guid title]
    (show-href guid title nil))
   ([guid title url]
@@ -95,9 +95,9 @@
 ;; with a query is a page of its own, which a fragment isn't
 ;; (Media Fragments URI 1.0, section 3.2)
 (defn episode-href
-  "The path of the page of the episode `item-guid` titled `title` of the
-  show `guid`, with the `url` of its feed for a show that the library
-  doesn't keep, and at `t` seconds into the episode when it's given."
+  "The path of the page of the episode `item-guid` titled `title` in the
+  show `guid`, with the feed's `url` for a show outside the library, and
+  the time `t` in seconds, if given."
   ([guid item-guid title url]
    (episode-href guid item-guid title url nil))
   ([guid item-guid title url t]
@@ -110,10 +110,9 @@
        (href :route/episode path query)))))
 
 (defn match->route
-  "The route of the reitit `match` as it's kept in the state: the :name of
-  its page, its :path-params but the slug, which is its :slug, its
-  :query-params, and the :fragment of the URL where it has one, or nil for
-  a path of no route."
+  "The reitit `match` as a route: the :name of its page, its :path-params
+  and :query-params, and its :slug and :fragment where it has them, or nil
+  for no match."
   [{:keys [data path-params query-params fragment] :as match}]
   (when match
     (cond-> {:name         (or (:page data) (:name data))
@@ -123,30 +122,25 @@
       (seq fragment)      (assoc :fragment fragment))))
 
 (defn same-page?
-  "Whether the routes `a` and `b` are the same page, perhaps with another
-  slug, other query parameters or another fragment, e.g. the Search page of
-  another query."
+  "Whether the routes `a` and `b` are the same page, whatever their slugs,
+  query parameters and fragments."
   [a b]
   (= (dissoc a :query-params :slug :fragment)
      (dissoc b :query-params :slug :fragment)))
 
 (defn navigated
-  "The actions of the navigation to the `route` from the `state`: keep the
-  route, move the focus to the heading of a page that replaces another and
-  forget the oldest reads of episodes' files, search for the query of a
-  Search page that has no search for it yet, load the show of a Show page
-  or an Episode page, ask the browser how it keeps the library for the
-  Settings page, and show the part of the page that the URL's fragment
-  names.
+  "The actions of the navigation to `route` from `state`: keep the route,
+  and prepare the page, e.g. run its search, load its show or move the
+  focus to its heading.
 
-  The page that loads first keeps the focus at the start of the document,
-  and so does a page that only changes its query, unless the fragment
-  names a part of it."
+  The first page, and a page that only changes its query, keep the focus
+  at the start of the document unless the URL's fragment names a part of
+  it."
   [state route]
   (let [{:keys [q url]} (:query-params route)]
     (cond-> [[:store/assoc :route route]]
-      ;; the reads only then, since the page that showed them has gone, and
-      ;; an Episode page reads its episode's files again as it mounts
+      ;; forget the reads of episodes' files only on a new page, since an
+      ;; Episode page reads its own again as it mounts
       (and (contains? state :route)
            (not (same-page? route (:route state))))
       (conj [:page/focus-heading] [:episodes/forget])
@@ -162,8 +156,7 @@
       (= :route/settings (:name route))
       (conj [:storage/check])
 
-      ;; last, once the page shows, and so after the focus moves to its
-      ;; heading, which this moves on
+      ;; last, so that it moves the focus on from the heading
       (:fragment route)
       (conj [:page/scroll-to (:fragment route)]))))
 

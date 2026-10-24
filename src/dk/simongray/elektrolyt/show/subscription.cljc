@@ -1,9 +1,6 @@
 (ns dk.simongray.elektrolyt.show.subscription
-  "Subscribing to a show and unsubscribing from it in the state.
-
-  The state holds the feed URLs that are being subscribed to in
-  :subscribing, and the errors of those that failed by URL in
-  :subscribe-errors."
+  "Subscribing to a show and unsubscribing from it, as changes to the
+  library and the state."
   (:require [dk.simongray.elektrolyt.show :as show]))
 
 (defn subscribing
@@ -12,9 +9,8 @@
   (update state :subscribing (fnil conj #{}) url))
 
 (defn failed
-  "The change once the subscription to the show `title` at `url` failed
-  with the `error` of its fetch or of the subscription, which the
-  announcement tells."
+  "The change once the subscription to the show `title` at `url` has
+  failed with `error`, which it announces."
   [url title error]
   {:ui #(-> (update % :subscribing disj url)
             (assoc-in [:subscribe-errors url] error)
@@ -22,10 +18,8 @@
 
 (defn subscribed
   "The change once the feed at `url` is `fetched` for a subscription to the
-  show `title`: the subscription when the fetch has the feed, and the error
-  of the fetch otherwise.
-
-  Either way, the announcement says how it went."
+  show `title`: the subscription, or the fetch's error when it failed.
+  Either way, it announces the outcome."
   [url title {:keys [error] :as fetched}]
   (if error
     (failed url title error)
@@ -35,8 +29,8 @@
                      (assoc :announcement (str "Subscribed to " title)))}))
 
 (defn unsubscribed
-  "The change of the `state` once the listener unsubscribed from the show
-  `title` at `url`, or nil when the library doesn't subscribe to it."
+  "The change once the listener unsubscribes from the show `title` at
+  `url` in `state`, or nil when the library isn't subscribed to it."
   [state url title]
   (when-let [k (some-> (:library state) (show/library-key nil url))]
     {:operation [:library/unsubscribe k]

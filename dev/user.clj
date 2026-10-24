@@ -1,10 +1,10 @@
 (ns user
-  "The development environment in one JVM: `(start!)` runs the app's server
-  and the shadow-cljs watch of the app and its views.
+  "The development environment in one JVM: the app's server and the
+  shadow-cljs watch of the app and its views.
 
   Every JVM with dev/ on its classpath loads this namespace, including the
-  shadow-cljs CLI, which runs without the :server alias. So this namespace
-  resolves the server's functions only when they're called."
+  shadow-cljs CLI, which runs without the :server alias, so the server's
+  functions are resolved only when they're called."
   (:require [shadow.cljs.devtools.api :as shadow]
             [shadow.cljs.devtools.server :as shadow.server]))
 
@@ -12,8 +12,8 @@
   "Start the shadow-cljs watch of the :app and :portfolio builds in this
   JVM."
   []
-  ;; shadow-cljs refuses to run twice in one project, so a watch started
-  ;; outside this JVM is left where it is and its complaint returned
+  ;; shadow-cljs refuses to run twice in one project, so with a watch
+  ;; outside this JVM, this returns the error message
   (try
     (shadow.server/start!)
     (shadow/watch :app)
@@ -22,14 +22,13 @@
       (ex-message e))))
 
 (def secrets
-  "The file of secrets beside the checkouts, whose :podcastindex holds the
-  credentials of the Podcast Index, unless PODCAST_APP_SECRETS names
-  another."
+  "The path of the secrets file: PODCAST_APP_SECRETS, or else the file
+  beside the checkouts."
   (or (System/getenv "PODCAST_APP_SECRETS") "../secrets.edn"))
 
 (defn start!
-  "Start the server, with the credentials in secrets, and the watch. Both
-  are no-ops when they're already running."
+  "Start the server with the secrets file, and the watch. Both are no-ops
+  when they're already running."
   []
   ((requiring-resolve 'dk.simongray.elektrolyt.server/start!) {:secrets secrets})
   (watch!))
@@ -41,9 +40,9 @@
   (shadow.server/stop!))
 
 (defn restart!
-  "Stop the server and start it again, leaving the watch as it is. Needed
-  after reloading the server's namespace: the route table holds the
-  handlers it was built with."
+  "Stop the server and start it again, leaving the watch as it is. The
+  route table holds the handlers it was built with, so this is needed
+  after reloading the server's namespace."
   []
   ((requiring-resolve 'dk.simongray.elektrolyt.server/stop!))
   (start!))

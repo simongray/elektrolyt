@@ -1,14 +1,16 @@
 (ns dk.simongray.elektrolyt.library.inbox
-  "The inbox: what the Inbox page and the main navigation show of it, and
-  the changes that the listener makes to it, each with what a screen
-  reader hears of it, and the last dismissal, which can be undone.
+  "The inbox and the listener's changes to it, each announced to a screen
+  reader.
 
-  The inbox is the profile's, as library/inbox lists it, the newest
-  episode first. The state keeps the dismissal that can be undone as
-  :inbox-undo, until the next change of the inbox: a map of the :label of
-  its button, the :ids that it dismissed, and what a screen reader hears
-  once it's undone, the :done. The undo puts back only what's as the
-  dismissal left it, as the queue's does."
+  A dismissal can be undone until the next change of the inbox. The state
+  keeps the undo as :inbox-undo, a map of:
+
+  - :label, the text of its button
+  - :ids, the episodes dismissed
+  - :done, the announcement once it's undone
+
+  An undo puts back only the episodes that are still as the dismissal left
+  them, since another tab may have handled them in the meantime."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
@@ -17,24 +19,23 @@
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def view
-  "The inbox of a library from library/inbox, made again only when its
-  feeds or its profile change, since every page counts the inbox in its
-  navigation."
+  "The inbox of a library, made again only when its feeds or profile
+  change, since every page counts it in the navigation."
   (memo/remember-last library/inbox (juxt :feeds :profile)))
 
 (defn episodes
-  "The episodes in the inbox of the `state`, the newest first."
+  "The episodes in the inbox of `state`, the newest first."
   [state]
   (or (some-> (:library state) view :episodes) []))
 
 (defn titled
-  "The title of the episode `id` in the inbox of the `state`."
+  "The title of the episode `id` in the inbox of `state`."
   [state id]
   (some #(when (= id (:id %)) (:title %)) (episodes state)))
 
 (defn dismissed
-  "The change of the `state` that dismisses the episode `id` from the
-  inbox, which an undo puts back, or nil when it isn't there."
+  "The change of `state` that dismisses the episode `id` from the inbox,
+  or nil when it isn't there. An undo puts it back."
   [state id]
   (when-let [title (titled state id)]
     (changes/announced :inbox-undo
@@ -45,8 +46,8 @@
                        [:inbox/dismiss id])))
 
 (defn all-dismissed
-  "The change of the `state` that dismisses every episode of the inbox,
-  which an undo puts back, or nil when it's empty."
+  "The change of `state` that dismisses every episode in the inbox, or nil
+  when it's empty. An undo puts them back."
   [state]
   (let [ids     (mapv :id (episodes state))
         counted (text/counted (count ids) "episode")]
@@ -59,9 +60,9 @@
                          [:inbox/dismiss-all ids]))))
 
 (defn all-queued
-  "The change of the `state` that puts every episode of the inbox at the
-  end of the queue, the oldest first, as a refresh queues new episodes, or
-  nil when it's empty."
+  "The change of `state` that puts every episode in the inbox at the end of
+  the queue, the oldest first as a refresh queues them, or nil when the
+  inbox is empty."
   [state]
   (let [ids (mapv :id (episodes state))]
     (when (seq ids)
@@ -70,12 +71,10 @@
                          nil
                          [:inbox/enqueue-all (vec (rseq ids))]))))
 
-;; An episode in the inbox is neither queued nor heard, so one that's
-;; queued or heard now was handled elsewhere since the dismissal
 (defn restorable
-  "The episodes of the dismissal `undo` that are as it left them in the
-  `profile`, in order: out of the inbox, and neither queued nor heard
-  since."
+  "The ids of the dismissal `undo` that are still as it left them in
+  `profile`, in order, without those that are back in the inbox, queued or
+  heard, since they were handled elsewhere."
   [profile {:keys [ids]}]
   (filterv #(not (or (queue/in-inbox? profile %)
                      (queue/queued? profile %)
@@ -83,21 +82,21 @@
            ids))
 
 (defn offered
-  "The undo of the `state`, with only the :ids that it would put back, or
-  nil when there are none, e.g. once another tab queued them."
+  "The undo in `state` with only the :ids that it would put back, or nil
+  when there are none, e.g. once another tab queued them."
   [{:keys [library inbox-undo]}]
   (when-let [ids (some-> library :profile (restorable inbox-undo) not-empty)]
     (assoc inbox-undo :ids ids)))
 
 (defn restore
-  "The `profile` with the episodes of the dismissal `undo` that are as it
-  left them back in the inbox at `at`."
+  "The `profile` with the episodes of the dismissal `undo` back in the
+  inbox at `at`, those that are still as it left them."
   [profile undo at]
   (queue/undismiss-all profile (restorable profile undo) at))
 
 (defn undone
-  "The change of the `state` that undoes the dismissal that it can undo, as
-  far as offered has it, or nil when there's nothing to put back."
+  "The change of `state` that puts back what its undo offers, or nil when
+  there's nothing to put back."
   [{undo :inbox-undo :as state}]
   (when-let [{:keys [ids]} (offered state)]
     (changes/announced :inbox-undo

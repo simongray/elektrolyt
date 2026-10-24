@@ -1,8 +1,6 @@
 (ns dk.simongray.elektrolyt.show.ui-scenes
-  "Scenes of the Show page as its feed arrives in stages, from what a search
-  knew to the whole feed, with the Details of a show that says much of
-  itself, in the colours of its artwork, of a show in another language,
-  and of the ways it can fail."
+  "Scenes of the Show page, as its feed arrives in stages, and in the ways
+  it can fail."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.scenes :refer [artwork lib url]]
             [dk.simongray.elektrolyt.ui :as ui]
@@ -13,7 +11,7 @@
   "917393e3-1b1e-5cef-ace4-edaa54e1f810")
 
 (def known
-  "What the search knew of the show."
+  "What the search found of the show."
   {:title         "Podcasting 2.0"
    :author        "Podcast Index LLC"
    :artwork       artwork
@@ -39,7 +37,7 @@
           :itunes/duration duration})))
 
 (def podcasting
-  "The feed of the scenes' show, which says what the search knew, and no
+  "The feed of the scenes' show, with what the search found and no
   episodes yet."
   {:rss/title     "Podcasting 2.0"
    :itunes/author "Podcast Index LLC"
@@ -94,7 +92,7 @@
 
 (def pc20
   "A feed like that of Podcasting 2.0, with what it says of itself, where
-  it's made and its license, and 20 episodes a week apart."
+  it's made and its licence, and 20 episodes a week apart."
   {:rss/title         "Podcasting 2.0"
    :rss/link          "https://podcastindex.org"
    :rss/description   "<p>The podcast about podcasting, with Podcast Index.</p>"

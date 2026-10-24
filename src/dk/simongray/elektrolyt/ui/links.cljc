@@ -1,18 +1,15 @@
 (ns dk.simongray.elektrolyt.ui.links
-  "Links that leave the app: those to the web, which open in a new tab, so
-  that following one doesn't stop what plays, and those to an email
-  address, which open the listener's email app. An icon after the text of
-  each says where it goes, and so does a note on every page, as its
-  description."
+  "Links that leave the app, to the web or to an email address, marked
+  with an icon and a note that say where they go. A link to the web opens
+  in a new tab, so that following it doesn't stop what plays."
   (:require [clojure.string :as str]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.wary-fetch.url :as url]))
 
 (def notes
-  "The notes on every page that say where a link goes, by its kind, each
-  with its id and its text, which the icon of the link has as its
-  tooltip."
+  "The notes on every page that say where a link goes, by kind, each with
+  its id and its text, which is also the tooltip of the link's icon."
   {:new-tab {:id "new-tab-note" :text "Opens in a new tab"}
    :email   {:id "email-note" :text "Opens your email app"}})
 
@@ -22,25 +19,24 @@
   icons/arrow-square-out)
 
 (defn marked
-  "The link `a`, as Hiccup, with the `icon` after its text, and the note of
-  its `kind` as its description. The text is in a span of its own, so that
-  the icon keeps to the line of its last word (layout.css)."
+  "The link `a`, as Hiccup, with the `icon` after its text and the note of
+  its `kind` as its description. The text gets a span of its own, so that
+  the icon stays on the line of its last word."
   [[tag attrs & children] kind icon]
   (let [{:keys [id text]} (notes kind)]
     [tag (assoc attrs :aria-describedby id)
      (into [:span] children)
      (controls/in-text icon text)]))
 
-;; WCAG 2.2, technique G201: a warning that a link opens a new window, which
-;; shows and which a screen reader reads, as in its example 2: an icon
-;; after the text, and the note as the link's description, so that the
-;; text of the link, and of the show notes that hold it, stays as it was.
-;; Browsers open a link of target=_blank without an opener, so it needs no
-;; rel=noopener.
+;; WCAG 2.2, technique G201, example 2: a visible warning that a link opens
+;; a new window, as an icon after the text and a note as its description,
+;; so that the text of the link and of the show notes around it stays as it
+;; was. Browsers open a target=_blank link without an opener, so it needs
+;; no rel=noopener.
 ;; https://www.w3.org/WAI/WCAG22/Techniques/general/G201
 (defn new-tab
-  "The link `a`, as Hiccup, made to open in a new tab when it goes to the
-  web, and marked with the `icon`, or else new-tab-icon."
+  "The link `a`, made to open in a new tab when it goes to the web, and
+  marked with the `icon`, by default the new-tab one."
   ([a]
    (new-tab a new-tab-icon))
   ([[_ attrs :as a] icon]
@@ -49,21 +45,20 @@
      a)))
 
 ;; Opquast, rule 144: a link that opens other software says so, as one to
-;; an email address opens the email app. JAWS says that a link is one to
-;; an email address, but NVDA and VoiceOver on iOS don't, so it has an
-;; envelope and a note, as a link to the web has its arrow.
+;; an email address opens the email app. JAWS announces a link to an email
+;; address as one, but NVDA and VoiceOver on iOS don't, so it gets an
+;; envelope and a note.
 ;; https://checklists.opquast.com/en/digital-quality/144
 ;; https://lists.w3.org/Archives/Public/w3c-wai-ig/2021JulSep/0089.html
 (defn email
-  "The link `a`, as Hiccup, marked with an envelope when it goes to an
-  email address."
+  "The link `a`, marked with an envelope when it goes to an email address."
   [[_ attrs :as a]]
   (if (some-> (:href attrs) str/lower-case (str/starts-with? "mailto:"))
     (marked a :email icons/envelope-simple)
     a))
 
 (defn leaving
-  "The link `a` of show notes, as Hiccup, made to say where it leaves the
-  app to, as new-tab and email do."
+  "The link `a` from show notes, marked with where it leaves the app to, if
+  it does."
   [a]
   (-> a new-tab email))

@@ -1,10 +1,10 @@
 (ns dk.simongray.elektrolyt.library.queue.ui
-  "The views of the Queue page: the episode that the player has, and the
-  episodes up next, which the listener plays, moves and removes.
+  "The views of the Queue page: what plays now, and the episodes up next,
+  which the listener plays, moves and removes.
 
-  A move or a removal is announced in the page's status line, and the
-  focus stays on the button that did it, or moves to the next row's after
-  a removal, so that a keyboard and a screen reader keep their place."
+  After a move, the focus stays on the button that made it, and after a
+  removal it moves to the next row's, so that keyboard and screen reader
+  users keep their place."
   (:require [dk.simongray.elektrolyt.library.inbox :as inbox]
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
@@ -17,23 +17,22 @@
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 (defn control-id
-  "The id of the button `kind`, e.g. :remove, of the row of the episode
-  `id`, by which the focus finds it again after a change."
+  "The id of the button `kind`, e.g. :remove, in the row of the episode
+  `id`, for moving the focus back to it after a change."
   [id kind]
   (rows/control-id "queue" id kind))
 
 (defn time-left
-  "How long the `episode` of the queue has left, e.g. \"45 min left\", or
-  its duration while it hasn't started."
+  "How long the queued `episode` has left, e.g. \"45 min left\", or its
+  duration while it hasn't started."
   [{:keys [position remaining] :as episode}]
   (when (number? remaining)
     (cond-> (time-ui/duration remaining)
       (pos? position) (conj " left"))))
 
 (defn actions
-  "The buttons of the `episode` at `position` of Up next, of `n` episodes,
-  where the `next-focus` is the id of the button that takes the focus
-  after a removal."
+  "The buttons of the `episode` at `position` of the `n` episodes up next,
+  with `next-focus`, the id of the button to focus after a removal."
   [{:keys [id title] :as episode} position n next-focus]
   [:div.queue-actions
    (rows/button "Play" title {:id    (control-id id :play)
@@ -47,9 +46,9 @@
                                              [:page/focus next-focus]]}})])
 
 (defn row
-  "The `episode` of the queue, its artwork, title, show, time left and the
-  feed it came from when that isn't its show's own, in the `state`, with
-  the `marks` before its show, e.g. \"Now playing\"."
+  "The row of the queued `episode` in `state`, with the `marks` before its
+  show, e.g. \"Now playing\". It has the artwork, title, show and time
+  left, and the feed it came from when that isn't its show's own."
   ([state episode]
    (row state episode nil))
   ([state {:keys [show supplement] :as episode} marks]
@@ -57,7 +56,8 @@
                                                   (facts-ui/source supplement)]))))
 
 (defn now-playing
-  "The section of the episode that the player has, of the `state`."
+  "The Now playing section of the `episode` that the player has in
+  `state`."
   [state episode]
   [:section {:aria-labelledby "now-playing"}
    [:h2#now-playing {:tabindex -1} "Now playing"]
@@ -79,15 +79,15 @@
   "The id of the button that undoes the last change of the queue."
   "queue-undo")
 
-;; A native dialog, opened with showModal: it keeps the focus inside, closes
-;; at Escape, and gives the focus back to the button that opened it. Cancel
-;; has the focus first, since clearing is the change that loses more. The
-;; queue is cleared once the dialog has closed with "clear", since the rest
-;; of the page is inert while it's open, and the focus then goes to Undo.
+;; WAI-ARIA APG, Dialog (Modal): a native dialog, opened with showModal,
+;; keeps the focus inside, closes at Escape, and gives the focus back to
+;; the button that opened it. Cancel has the focus first, since clearing
+;; loses more. The queue is cleared once the dialog has closed with
+;; "clear", since the page is inert while it's open, and the focus then
+;; goes to Undo.
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
 (defn clear-dialog
-  "The dialog that asks before the `n` episodes of Up next leave the
-  queue."
+  "The dialog that confirms clearing the `n` episodes up next."
   [n]
   [:dialog {:id              clear-dialog-id
             :aria-labelledby "clear-queue-title"
@@ -99,12 +99,10 @@
     [:button {:value "cancel" :autofocus true} "Cancel"]
     [:button {:value "clear"} "Clear the queue"]]])
 
-;; AntennaPod's empty queue tells of the new episodes in the inbox, with a
-;; way there
+;; AntennaPod's empty queue points to the new episodes in the inbox
 ;; https://github.com/AntennaPod/AntennaPod/blob/develop/ui/i18n/src/main/res/values/strings.xml
 (defn empty-queue
-  "What an empty queue says in the `state`: where to find episodes for
-  it."
+  "The text of an empty queue in `state`: where to find episodes for it."
   [state]
   (let [new-ones (count (inbox/episodes state))]
     (list
@@ -116,9 +114,9 @@
       "or find shows with " [:a {:href (routes/href :route/search)} "Search"] "."])))
 
 (defn up-next-item
-  "The item of the `episode` at index `i` of the `episodes` up next in the
-  `state`: its row and its buttons, whose Remove gives the focus to the
-  Remove of the row that takes its place, or else to the heading."
+  "The list item of the `episode` at index `i` of the `episodes` up next
+  in `state`, with its buttons. Its Remove moves the focus to the Remove of
+  the row that takes its place, or else to the heading."
   [state episodes i {:keys [id] :as episode}]
   (let [next-one (rows/neighbour episodes i)]
     [:li {:replicant/key (pr-str id)}
@@ -128,8 +126,7 @@
                (if next-one (control-id (:id next-one) :remove) "up-next"))]]))
 
 (defn up-next
-  "The section of the episodes up next of the `state`, with the undo of
-  the last change."
+  "The Up next section in `state`, with the undo of the last removal."
   [state]
   (let [episodes (queue/up-next state)
         n        (count episodes)]
@@ -139,9 +136,10 @@
        (empty-queue state)
        [:p.queue-summary (summary episodes)])
      ;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until
-     ;; the next change, rather than in a toast that times out. The focus
-     ;; goes to the first episode that it puts back, since the button goes,
-     ;; or to the heading once another tab left it nothing to put back.
+     ;; the next change, rather than a toast that times out. The focus goes
+     ;; to the first episode that it puts back, since the button goes, or
+     ;; to the heading when another tab left nothing to put back.
+     ;; https://adrianroselli.com/2020/01/defining-toast-messages.html
      (when-let [{[first-id] :ids :keys [label]} (queue/offered state)]
        [:button {:type         "button"
                  :id           undo-id
@@ -159,18 +157,18 @@
      (clear-dialog n)]))
 
 (def picks-section
-  "The section of the picks at the end of the queue: its heading's id and
-  text, and the lead of its line of why."
+  "The picks section at the end of the queue: its heading's id and text,
+  and the lead of the line of why."
   {:id "after-queue" :heading "More like your queue" :lead "About"})
 
 ;; Apple Music's AutoPlay adds similar songs after the queue, and Apple
-;; Podcasts' Continue Playing has more of a show below it, both apart from
-;; the queue itself
+;; Podcasts' Continue Playing has more of a show below it, both set apart
+;; from the queue itself
 ;; https://support.apple.com/guide/iphone/queue-up-your-music-ipha4521ef7d/ios
 ;; https://support.apple.com/guide/iphone/watch-and-listen-to-podcasts-iph3a22707a5/ios
 (defn content
-  "The content of the Queue page of the `state`, below its heading: what
-  plays, what's up next, and the picks like them."
+  "The content of the Queue page in `state`, below its heading: what plays,
+  what's up next, and picks like them."
   [state]
   (list
    (when-let [episode (queue/current state)]

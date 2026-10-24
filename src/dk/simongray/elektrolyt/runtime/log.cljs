@@ -1,16 +1,13 @@
 (ns ^:runtime dk.simongray.elektrolyt.runtime.log
-  "The logs of the app in a tab or in its web worker, through Telemere:
-  errors and warnings alone in a release build, and the errors and
-  rejected promises that nothing else caught, as :app/uncaught.
+  "Logging in a tab or its web worker with Telemere, including the errors
+  and rejected promises that nothing else caught.
 
-  Each place that logs names its event by an id, with its data, e.g.
-  :library/save-failed, as the error maps of the app and its libraries
-  do."
+  Each event has an id and its data, e.g. :library/save-failed."
   (:require [taoensso.telemere :as tel]))
 
 (defn uncaught-error
-  "The error that the `event` of an error or a rejected promise carries,
-  or else one that holds what was thrown or rejected instead."
+  "The error in `event`, an error or unhandledrejection event, or else an
+  ex-info that holds what was thrown."
   [^js event]
   (let [x (if (= "unhandledrejection" (.-type event))
             (.-reason event)
@@ -21,16 +18,16 @@
                {:value x :message (.-message event)}))))
 
 (defn uncaught!
-  "Log the error of the `event` of an error or a rejected promise that
-  nothing caught."
+  "Log the uncaught error in `event` as :app/uncaught."
   [event]
   (tel/error! {:id :app/uncaught} (uncaught-error event)))
 
-;; The browser still reports what nothing caught, since nothing prevents
-;; it, so that the end-to-end tests, which fail on a page's errors, see it
+;; No preventDefault, so the browser still reports the error and the
+;; end-to-end tests still fail on it
 (defn start!
-  "Log in the global scope `global` of a tab or a worker: errors and
-  warnings alone in a release build, and what nothing else catches."
+  "Start logging in `global`, the global scope of a tab or a worker:
+  errors and warnings alone in a release build, and whatever nothing else
+  catches."
   [^js global]
   (when-not ^boolean goog/DEBUG
     (tel/set-min-level! :warn))
