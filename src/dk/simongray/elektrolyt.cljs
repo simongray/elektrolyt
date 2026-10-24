@@ -200,8 +200,8 @@
       (js/queueMicrotask #(audio/mounted! store node)))))
 
 (nxr/register-effect! :player/unmounted
-  (fn [_ _]
-    (runtime/detach-player!)))
+  (fn [{:keys [dispatch-data]} store]
+    (audio/unmounted! store (:replicant/node dispatch-data))))
 
 (nxr/register-effect! :player/play
   (fn [_ store playable t]
@@ -224,6 +224,10 @@
 (nxr/register-effect! :player/drag
   (fn [_ store details]
     (audio/act! store [:drag details])))
+
+(nxr/register-effect! :player/released
+  (fn [_ store]
+    (swap! store assoc-in [:player :seeking] nil)))
 
 (nxr/register-effect! :player/chapter
   (fn [_ store direction]

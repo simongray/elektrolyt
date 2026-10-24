@@ -261,18 +261,33 @@
     (reload! element))
   (.then (media/play! element) #(answered! store %)))
 
+(def reread-ms
+  "How long a read of an episode's files that failed stands before the
+  files are read again, e.g. once the device is back online."
+  60000)
+
+(defn reread?
+  "Whether the read of an episode's files that the `episode` entry
+  describes failed, wholly or in part, at least reread-ms before `now`."
+  [{:keys [status at error result]} now]
+  (boolean (and (= :read status)
+                (or error (some :error (vals result)))
+                (<= reread-ms (- now at)))))
+
 (defn read-files!
   "Read the files of the episode `id` into the :episodes of `store` once,
-  with `read`, a function that returns a promise of what they hold, e.g.
-  chapters, or nil when there's nothing to read. Update the lock screen if
-  the player has the episode."
+  or again a while after a read that failed, with `read`, a function that
+  returns a promise of what they hold, e.g. chapters, or nil when there's
+  nothing to read. Update the lock screen if the player has the episode."
   [store id read]
-  (when-not (get-in @store [:episodes id :status])
+  (when (let [episode (get-in @store [:episodes id])]
+          (or (nil? (:status episode)) (reread? episode (js/Date.now))))
     (when-let [reading (read)]
       (swap! store update-in [:episodes id] assoc :status :reading :at (js/Date.now))
       (-> reading
           (.then (fn [result]
-                   (swap! store update-in [:episodes id] assoc :status :read :result result)
+                   (swap! store update-in [:episodes id]
+                          #(-> % (assoc :status :read :result result) (dissoc :error)))
                    (when (= id (get-in @store [:player :id]))
                      (lock-screen! store))))
           (.catch #(swap! store update-in [:episodes id] assoc :status :read
@@ -357,8 +372,9 @@
 
 (defn resume!
   "Resume the player in `store` from where it is, or try its file again
-  where it failed."
+  where it failed, and its other files if their read failed."
   [store]
+  (some->> (get-in @store [:player :id]) (read-library-files! store))
   (some->> (element) (play-element! store)))
 
 (defn ended!
@@ -509,11 +525,38 @@
                (command! store (:command message)))
     nil))
 
+;; HTML Living Standard, 9.5: a page in the back/forward cache gets no
+;; messages, so it missed what the other tabs played meanwhile
+;; https://html.spec.whatwg.org/multipage/web-messaging.html#broadcasting-to-other-browsing-contexts
+(defn left-at
+  "The seconds where the library in `state` says the listener left the
+  player's episode, or nil while another tab plays it."
+  [{:keys [player] :as state}]
+  (when-not (player/elsewhere player)
+    (some->> (:id player) (player/playback state) :position)))
+
+(defn shown-again!
+  "Ask the playing tab, if any, for its media state as the back/forward
+  cache shows the page of the player in `store` again. Move this tab's
+  paused element to where the listener left its episode, once the
+  library has caught up, since another tab may have played it."
+  [store]
+  (post! {:type :ask})
+  (-> (app-library/caught-up! store)
+      (.catch (constantly nil))
+      (.then (fn [_]
+               (let [el (element)
+                     t  (left-at @store)]
+                 (when (and el t (.-paused el))
+                   (media/seek! el t)))))))
+
 (defn listen!
   "Handle the other tabs' messages in the player in `store`, and ask the
-  playing tab, if any, for its media state."
+  playing tab, if any, for its media state, also after the back/forward
+  cache shows the page again."
   [store]
   (runtime/on-message! player/channel-name #(heard! store %))
+  (runtime/on-pageshow! #(shown-again! store))
   (post! {:type :ask}))
 
 (defn mounted!
@@ -567,6 +610,20 @@
   [store]
   (when-let [el (playing-element)]
     (tell! store (assoc (media/state el) :paused true))))
+
+;; The player goes when the library loses its episode's show, e.g. as the
+;; listener leaves it, and the browser pauses an element that leaves the
+;; page with no event that a report could follow
+;; https://html.spec.whatwg.org/multipage/media.html#playing-the-media-resource
+(defn unmounted!
+  "Stop following the audio `element` as the player in `store` unmounts
+  it, once its position is reported and the other tabs know it stopped,
+  if it played."
+  [store ^js element]
+  (when (and element (not (.-paused element)))
+    (report! store (media-of element))
+    (tell! store (assoc (media/state element) :paused true)))
+  (runtime/detach-player!))
 
 (defn volume-locked!
   "Note in the player in `store` whether the device locks the volume."

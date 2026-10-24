@@ -51,6 +51,8 @@
              (select-keys (attributes-of "player-position" x) [:min :max :step :value :aria-valuetext])))
       (is (= 600 (:value (attributes-of "player-position" (player-ui/region (state {:seeking 600})))))
           "where it's dragged to, while it is")
+      (is (= [[:player/released]] (get-in (attributes-of "player-position" x) [:on :pointerup]))
+          "until it's let go, though it ends where it began")
       (is (= {:--played (str (double (/ 75 3600)))}
              (:style (second (first (elements :div.player-bar x)))))
           "which draws how much has played")
@@ -69,7 +71,14 @@
              :on    {:click [[:player/press {:action :seekto :seek-time 60}]]}}]
            (map #(select-keys (second %) [:title :style :on]) (elements :span.player-chapter-mark x)))
         "where each chapter after the first begins in the episode, a press to its start")
-    (is (nil? (player-ui/chapter-marks {} chapters)) "and none before the duration is known")))
+    (is (nil? (player-ui/chapter-marks {} chapters)) "and none before the duration is known")
+    (is (nil? (player-ui/chapter-marks {:duration ##Inf} chapters)) "nor for a stream without an end")))
+
+(deftest an-episode-without-a-title
+  (is (= [["Untitled episode" "Untitled episode"]]
+         (map (juxt (comp :title second) last)
+              (take 1 (elements :a (player-ui/now-playing {} 0 "/e" "/s")))))
+      "has a name for its link nonetheless"))
 
 (deftest what-plays-next
   (let [x (player-ui/next-up (queue-test/state true 1 2))]

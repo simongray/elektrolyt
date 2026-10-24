@@ -34,9 +34,10 @@
   `href` and its show's at `show-href`, with the title of its chapter at
   `seconds`."
   [{:keys [title show] :as playback} seconds href show-href]
-  (let [chapter (:title (player/chapter-at playback seconds))]
+  (let [chapter (:title (player/chapter-at playback seconds))
+        label   (or title "Untitled episode")]
     [:div.player-title
-     [:p [:a {:href href :title title} title]]
+     [:p [:a {:href href :title label} label]]
      (facts-ui/line [(when show [:a {:href show-href :title show} show])
                      (when chapter [:span {:title chapter} chapter])])]))
 
@@ -55,10 +56,11 @@
      "Play"]))
 
 (defn fraction
-  "The `seconds` as a fraction of the `duration`, or nil without one. It's
-  a string for a CSS property, since Replicant adds px to a number."
+  "The `seconds` as a fraction of the `duration`, or nil without a finite
+  one, e.g. a live stream's. It's a string for a CSS property, since
+  Replicant adds px to a number."
   [seconds duration]
-  (when (and (number? duration) (pos? duration))
+  (when (and (number? duration) (pos? duration) (not (infinite? duration)))
     (str (double (/ (or seconds 0) duration)))))
 
 ;; The marks are for a pointer alone, since the chapters' buttons and the
@@ -104,10 +106,13 @@
      [:label.visually-hidden {:for "player-position"} "Position"]
      (time-ui/clock current-time)
      [:div.player-bar (when played {:style {:--played played}})
+      ;; a drag that ends where it began fires no change
       [:input (cond-> (merge {:type "range"
                               :id   "player-position"
-                              :on   {:input  [[:player/drag [:event/range-seek]]]
-                                     :change [[:player/press [:event/range-seek]]]}}
+                              :on   {:input         [[:player/drag [:event/range-seek]]]
+                                     :change        [[:player/press [:event/range-seek]]]
+                                     :pointerup     [[:player/released]]
+                                     :pointercancel [[:player/released]]}}
                              attrs)
                 chapter (update :aria-valuetext str ", " chapter))]
       (chapter-marks shown (:chapters (player/chapter-doc playback)))]
