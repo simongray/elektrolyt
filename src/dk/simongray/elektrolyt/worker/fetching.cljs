@@ -1,13 +1,14 @@
 (ns ^:runtime dk.simongray.elektrolyt.worker.fetching
   "Fetching feeds in the app's web worker, for a refresh of the library or
-  for a Show page, and the page's client of that worker.
+  for a Show page, building the search documents of a feed for a
+  subscription, and the page's client of that worker.
 
   The page and the worker exchange EDN. For a refresh, the worker puts the
   documents of the feeds that changed in the library's store and writes
   nothing else, so the page applies the result to the library. Only one
   worker refreshes at a time across the tabs, and the others answer that
-  they're busy. A fetched feed comes back in the library's codec, since
-  EDN reads slower than the feed parses.
+  they're busy. A feed and its search documents go beside the EDN in the
+  library's codec, which the page reads far faster than EDN.
 
   With :alternative-feeds? in a request's options, a feed of DR's own is
   supplemented by its sibling on drpodcast.nu. DR's feeds have no
@@ -38,10 +39,27 @@
               (fn [lock] (if lock (f) (busy))))
     (js/Promise.resolve (f))))
 
+;; HTML, 2.7 Safe passing of structured data: a string is copied as it is,
+;; while reading a feed of 2 MB as EDN took the page 120 ms, against 5 ms
+;; to decode it in the library's codec
+;; https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializeinternal
+(defn packed
+  "The `message` as the page and the worker post it: its EDN, and its
+  :encoded part, a string in the library's codec, beside it."
+  [{:keys [encoded] :as message}]
+  #js {:edn (pr-str (dissoc message :encoded)) :encoded encoded})
+
+(defn unpacked
+  "The message that the page or the worker posted as `data`, with its
+  :encoded part, if any, as the string it is."
+  [^js data]
+  (cond-> (reader/read-string (.-edn data))
+    (.-encoded data) (assoc :encoded (.-encoded data))))
+
 (defn post!
-  "Post the `message` to the page as EDN."
+  "Post the `message` to the page."
   [message]
-  (js/postMessage (pr-str message)))
+  (js/postMessage (packed message)))
 
 (defonce ^{:doc "A promise of drpodcast.nu's slugs by production number, or
   nil until they're fetched."}
@@ -153,15 +171,27 @@
                              (dissoc opts :alternative-feeds?)))
            #((:encode (:codec app-library/options)) (dissoc % :body)))))
 
+(defn documents!
+  "A promise of the search documents of the whole feed `encoded` in the
+  library's codec, fetched from `url`, as podcast-clj builds them for a
+  subscription, encoded in that codec."
+  [encoded url]
+  (let [{:keys [encode decode]} (:codec app-library/options)]
+    ;; in the promise, so that a feed that throws fails this answer alone
+    (.then (js/Promise.resolve encoded)
+           #(encode (:search-documents (library/with-search-documents (decode %) url))))))
+
 (defn answer!
   "Answer the page's `request` with what a refresh found, a fetched feed,
-  :busy? while another worker refreshes, or why it :failed."
-  [{:keys [id due fetch url opts] :as request}]
+  the search documents of a feed, :busy? while another worker refreshes,
+  or why it :failed."
+  [{:keys [id due fetch documents url opts encoded] :as request}]
   (-> (cond
-        due   (when-free refresh-lock
-                         #(.then (found! id due opts) (fn [found] {:id id :found found}))
-                         #(js/Promise.resolve {:id id :busy? true}))
-        fetch (.then (fetched! url opts) (fn [fetched] {:id id :fetched fetched})))
+        due       (when-free refresh-lock
+                             #(.then (found! id due opts) (fn [found] {:id id :found found}))
+                             #(js/Promise.resolve {:id id :busy? true}))
+        fetch     (.then (fetched! url opts) (fn [fetched] {:id id :encoded fetched}))
+        documents (.then (documents! encoded url) (fn [docs] {:id id :encoded docs})))
       (.then post!)
       (.catch (fn [e] (post! {:id id :failed (str e)})))))
 
@@ -170,7 +200,7 @@
   []
   (set! (.-onmessage js/self)
         (fn [^js e]
-          (answer! (reader/read-string (.-data e))))))
+          (answer! (unpacked (.-data e))))))
 
 (defn client
   "A client in the page of the web worker at `url`: a map of the :worker,
@@ -190,13 +220,13 @@
                         (reject e)))))]
     (.addEventListener worker "message"
                        (fn [^js e]
-                         (let [{:keys [id progress fetched failed] :as answer}
-                               (reader/read-string (.-data e))]
+                         (let [{:keys [id progress encoded failed] :as answer}
+                               (unpacked (.-data e))]
                            (cond
                              progress (some-> (get-in @pending [id :on-progress])
                                               (apply [progress]))
                              failed   (settle! id #(throw (js/Error. failed)))
-                             fetched  (settle! id #(decode fetched))
+                             encoded  (settle! id #(decode encoded))
                              :else    (settle! id #(dissoc answer :id))))))
     ;; HTML, sections 10.2.4 and 10.2.5: a worker fires error when its
     ;; script fails to load, and then never runs, or when nothing catches
@@ -232,7 +262,7 @@
     (js/Promise.
      (fn [resolve reject]
        (swap! pending assoc id {:resolve resolve :reject reject :on-progress on-progress})
-       (.postMessage worker (pr-str (assoc request :id id)))))))
+       (.postMessage worker (packed (assoc request :id id)))))))
 
 (defn fetch-due!
   "A promise of what a refresh of the feeds that are `due` found in the
@@ -247,3 +277,13 @@
   the web worker and without the :body. The `opts` must be data."
   [url opts]
   (ask! {:fetch true :url url :opts opts} nil))
+
+;; The page sends the feed it subscribes to, e.g. one from the cache, since
+;; encoding it takes a fraction of the time that building its documents does
+(defn search-documents!
+  "A promise of the search documents of the whole feed `fetched` from
+  `url`, built in the web worker for a subscription, as podcast-clj's
+  library/with-search-documents builds them."
+  [fetched url]
+  (ask! {:documents true :url url :encoded ((:encode (:codec app-library/options)) fetched)}
+        nil))

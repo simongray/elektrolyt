@@ -287,16 +287,28 @@
     (.catch (fetching/fetch! url (whole-opts @store))
             (fn [e] {:error {:message (ex-message e)}}))))
 
+(defn with-search-documents!
+  "A promise of the whole feed `fetched` from `url` with the search
+  documents that the web worker built of it, or of `fetched` as it is when
+  it has no feed or the worker fails, so that the library builds them."
+  [fetched url]
+  (if (:feed fetched)
+    (-> (fetching/search-documents! fetched url)
+        (.then #(assoc fetched :search-documents %))
+        (.catch (constantly fetched)))
+    (js/Promise.resolve fetched)))
+
 (defn subscribe!
   "Subscribe the library in `store` to the show `title` at `url` with its
   whole feed, and save the library. A failed fetch fails the
-  subscription."
+  subscription. The web worker builds the feed's search documents, which
+  would hold the page up for a while."
   [store url title]
   (app-library/persist!)
   (swap! store subscription/subscribing url)
-  ;; the bookmark fills in before the page indexes the feed, which can
-  ;; hold it up for a while
-  (-> (js/Promise.all #js [(whole-feed! store url) (runtime/painted!)])
+  ;; the bookmark fills in before the page indexes the documents
+  (-> (js/Promise.all #js [(.then (whole-feed! store url) #(with-search-documents! % url))
+                           (runtime/painted!)])
       (.then (fn [[fetched]]
                (try
                  (app-library/change! store (subscription/subscribed url title fetched))

@@ -1,6 +1,7 @@
 (ns dk.simongray.elektrolyt.worker.fetching-test
-  (:require [cljs.reader :as reader]
-            [clojure.test :refer [async deftest is]]
+  (:require [clojure.test :refer [async deftest is]]
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]))
 
 (defn stand-in
@@ -14,7 +15,7 @@
           terminated (atom false)]
       (swap! made conj {:listeners listeners :posted posted :terminated terminated})
       #js {:addEventListener (fn [type f] (swap! listeners update type conj f))
-           :postMessage      #(swap! posted conj (reader/read-string %))
+           :postMessage      #(swap! posted conj (fetching/unpacked %))
            :terminate        #(reset! terminated true)})))
 
 (defn fire!
@@ -34,14 +35,57 @@
             another  (second @made)]
         (is @(:terminated (first @made)) "stops")
         (is (= 2 (count @made)) "and the next ask starts another")
-        (fire! another "message" #js {:data (pr-str {:id    (:id (first @(:posted another)))
-                                                     :busy? true})})
+        (fire! another "message" #js {:data (fetching/packed {:id    (:id (first @(:posted another)))
+                                                              :busy? true})})
         (-> failed
             (.then #(is false "the worker that failed answered")
                    #(is (= "The script didn't load" (ex-message %))
                         "which rejects what waited for the one that failed"))
             (.then (fn [_] answered))
             (.then #(is (= {:busy? true} %) "and answers what's asked of it"))
+            (.catch #(is false (str "rejected: " %)))
+            (.finally #(do (reset! fetching/web-worker nil)
+                           (js-delete js/globalThis "Worker")
+                           (done))))))))
+
+(def codec
+  "The library's codec, which a feed and its documents travel in."
+  (:codec app-library/options))
+
+(def show
+  "A whole feed of a show with an episode, as a fetch answers it."
+  {:status 200
+   :feed   {:rss/title "A Show"
+            :rss/items [{:rss/guid        {:content "1"}
+                         :rss/title       "One"
+                         :rss/description "<p>Espresso and <b>grinders</b>.</p>"}]}})
+
+(deftest a-message-between-the-page-and-the-worker
+  (let [encoded ((:encode codec) show)
+        message (fetching/packed {:id 1 :encoded encoded})]
+    (is (= "{:id 1}" (.-edn message)) "in EDN")
+    (is (identical? encoded (.-encoded message)) "but for a feed, which goes beside it as it is")
+    (is (= {:id 1 :encoded encoded} (fetching/unpacked message)))
+    (is (= {:id 2} (fetching/unpacked (fetching/packed {:id 2}))) "or nothing beside it")))
+
+(deftest the-search-documents-of-a-subscription
+  (async done
+    (let [url   "https://example.org/feed.xml"
+          made  (atom [])]
+      (set! (.-Worker js/globalThis) (stand-in made))
+      (reset! fetching/web-worker nil)
+      (let [answered (fetching/search-documents! show url)
+            worker   (first @made)
+            asked    (first @(:posted worker))]
+        (is (= [true url show] [(:documents asked) (:url asked) ((:decode codec) (:encoded asked))])
+            "asks the worker with the page's own feed")
+        (-> (fetching/documents! (:encoded asked) url)
+            (.then (fn [docs]
+                     (fire! worker "message" #js {:data (fetching/packed {:id (:id asked) :encoded docs})})
+                     answered))
+            (.then (fn [docs]
+                     (is (= (:search-documents (library/with-search-documents show url)) docs)
+                         "which builds them as podcast-clj does")))
             (.catch #(is false (str "rejected: " %)))
             (.finally #(do (reset! fetching/web-worker nil)
                            (js-delete js/globalThis "Worker")

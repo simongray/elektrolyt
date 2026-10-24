@@ -109,3 +109,27 @@
                      (is (= "Couldn't subscribe to A Show" (:announcement @store)))))
             (.catch #(is false (str "rejected: " %)))
             (.finally done))))))
+
+(deftest a-subscription-whose-documents-the-worker-built
+  (async done
+    (let [store    (atom {:library (library/make "test" {:config {:search? true}})})
+          asked    (atom [])
+          original fetching/search-documents!]
+      ;; set! rather than with-redefs, since the worker is asked once the
+      ;; feed is fetched; the notes of the episode are ones the feed hasn't
+      (set! fetching/search-documents!
+            (fn [fetched u]
+              (swap! asked conj u)
+              (js/Promise.resolve
+               (-> (library/with-search-documents fetched u)
+                   (assoc-in [:search-documents :documents 1 :fields :description] "Zebras.")
+                   :search-documents))))
+      (with-redefs [fetching/fetch! (fn [_ _] (js/Promise.resolve {:status 200 :feed fed}))]
+        (-> (feeds/subscribe! store url "A Show")
+            (.then (fn [_]
+                     (is (= [url] @asked) "asks the worker for the documents of the feed")
+                     (is (seq (library/search (:library @store) "zebras"))
+                         "which the library indexes rather than building them")))
+            (.catch #(is false (str "rejected: " %)))
+            (.finally #(do (set! fetching/search-documents! original)
+                           (done))))))))

@@ -96,7 +96,7 @@ Between the tabs and the worker
 | The player's channel | The playing tab's media state, a new tab's question, and commands for the playing tab | `player.audio` | `player.audio` |
 | The play lock, a Web Lock | Which tab's element plays; a tab that plays takes it from the others | play-nice's `tabs/attach!`, through `runtime/attach-player!` | play-nice, which pauses the element that lost it |
 | The refresh lock, a Web Lock | That a worker refreshes, so one does at a time | `worker.fetching`, in the worker | `worker.fetching`, which answers that it's busy |
-| The worker's messages | What a refresh or a fetch asks for, and what it found, in EDN | `worker.fetching` | `worker.fetching` |
+| The worker's messages | What a refresh, a fetch or a subscription's search documents ask for, and what they found, in EDN, with a feed or its documents beside it in the library's codec | `worker.fetching` | `worker.fetching` |
 
 
 In the page
