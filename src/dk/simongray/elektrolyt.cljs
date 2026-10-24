@@ -271,6 +271,14 @@
   (fn [_ store]
     (refresh/refresh! store true)))
 
+(nxr/register-effect! :library/save
+  (fn [_ store]
+    (app-library/save! store)))
+
+(nxr/register-effect! :page/reload
+  (fn [_ _]
+    (runtime/reload!)))
+
 (nxr/register-effect! :queue/add
   (fn [_ store {:keys [id] :as playable} title next?]
     (try
@@ -370,7 +378,9 @@
                   (tel/log! {:level :error :id :cache/clear-failed :error e}
                             "The cache wasn't cleared")
                   (swap! store settings/cleared e)))
-        (.then #(app-library/check-storage! store)))))
+        (.then #(app-library/check-storage! store))
+        ;; a save that had no room may go through now
+        (.then #(app-library/save! store)))))
 
 ;; The start
 

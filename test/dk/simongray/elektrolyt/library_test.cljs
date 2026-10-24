@@ -57,17 +57,24 @@
 (deftest a-save-that-failed
   (is (= [5000 10000 20000 300000] (map app-library/retry-ms [1 2 3 9]))
       "is tried again, longer after each failure in a row")
-  (let [retries (atom [])]
-    (with-redefs [runtime/later!  (fn [k ms _] (swap! retries conj [k ms]))
-                  runtime/cancel! (fn [k] (swap! retries conj [k :cancelled]))]
-      (reset! app-library/failures 0)
-      (app-library/retried! (atom {}) {:error {:id :library/save-failed}})
-      (app-library/retried! (atom {}) {:error {:id :library/save-failed}})
-      (app-library/retried! (atom {}) {:version "3"})
+  (let [retries (atom [])
+        warned  (atom [])
+        state   (atom {})]
+    (with-redefs [runtime/later!               (fn [k ms _] (swap! retries conj [k ms]))
+                  runtime/cancel!              (fn [k] (swap! retries conj [k :cancelled]))
+                  runtime/warn-before-leaving! #(swap! warned conj %)]
+      (app-library/retried! state {:error {:id :library/save-failed}})
+      (is (= 1 (get-in @state [:save-status :failures])))
+      (app-library/retried! state {:error {:id :library/save-failed}})
+      (is (= "Your changes aren't saved" (:announcement @state)))
+      (app-library/retried! state {:version "3"})
       (is (= [[::app-library/retry 5000] [::app-library/retry 10000] [::app-library/retry :cancelled]]
              @retries)
           "until a write goes through")
-      (is (zero? @app-library/failures)))))
+      (is (nil? (:save-status @state)))
+      (is (= "Your changes are saved" (:announcement @state)))
+      (is (= [false true false] @warned)
+          "while the browser asks before the page goes, from the second failure until then"))))
 
 (deftest every-new-episode-in-the-inbox
   (async done

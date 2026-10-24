@@ -4,6 +4,7 @@
   (:require [dk.simongray.elektrolyt.episode.ui :as episode-ui]
             [dk.simongray.elektrolyt.library.inbox.ui :as inbox-ui]
             [dk.simongray.elektrolyt.library.queue.ui :as queue-ui]
+            [dk.simongray.elektrolyt.library.saves.ui :as saves-ui]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.library.ui :as library-ui]
@@ -211,6 +212,7 @@
   (let [route   (get-in state [:route :name])
         heading (page-heading state)]
     [:main#main
+     (saves-ui/banner state)
      (when-not (#{:route/show :route/episode} route)
        heading)
      (if (and (library-pages route) (nil? (:library state)))
