@@ -56,6 +56,25 @@
         (.catch #(is false (str "rejected: " %)))
         (.finally done))))
 
+(deftest a-feed-gone-from-the-url-that-the-cache-had
+  (async done
+    (let [gone  {:id :fetch/status :status 404}
+          store (atom {:feeds     {url {:feed fed :whole? true :checked? true}}
+                       :feed-urls {"g" {:url url :from :cache}}})]
+      (with-redefs [feeds/look-up-show! (fn [_ _ _ _])]
+        (feeds/show-failed! store "g" url gone))
+      (is (nil? (get-in @store [:feed-urls "g"])) "asks the Podcast Index again")
+      (is (not (get-in @store [:feeds url :checked?])) "and checks the feed again")
+      ;; the index answers with the same URL
+      (swap! store assoc-in [:feed-urls "g"] {:url url :from :index})
+      (with-redefs [fetching/fetch! (fn [_ _] (js/Promise.resolve {:status 404 :url url :error gone}))]
+        (-> (feeds/load-show! store "g" url false)
+            (.then (fn [_]
+                     (is (= gone (get-in @store [:feeds url :error]))
+                         "where it fails at the same URL, as a fetch of the whole feed does")))
+            (.catch #(is false (str "rejected: " %)))
+            (.finally done))))))
+
 (deftest the-other-shows-of-a-publisher
   (async done
     (let [own     "917393e3-1b1e-5cef-ace4-edaa54e1f810"
