@@ -1,4 +1,4 @@
-(ns dk.simongray.elektrolyt.main
+(ns dk.simongray.elektrolyt
   "The app in the browser: the store of its state, the actions that the
   views dispatch, and the start of the render loop.
 
