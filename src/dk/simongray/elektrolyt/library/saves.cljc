@@ -57,15 +57,8 @@
   :since as `time`, e.g. \"14:32\"."
   [{:keys [cause]} time]
   (case cause
-    :full
-    (str "Your changes since " time " aren't saved, because the browser has "
-         "no room left for this site. Clearing the searches and shows that "
-         "the app keeps makes some, or you can free space on the device.")
-
-    :newer-format
-    (str "Your changes since " time " can't be saved, because another tab "
-         "saved your library with a newer version of Elektrolyt. Reload "
-         "this page to use it. The changes made here since " time " are lost.")
-
-    (str "Your changes since " time " aren't saved yet. The next try comes "
-         "within five minutes.")))
+    :full         (str "Your changes since " time " aren't saved, because the "
+                       "browser has no room left.")
+    :newer-format (str "Your changes since " time " can't be saved, because "
+                       "another tab has a newer version of Elektrolyt.")
+    (str "Your changes since " time " aren't saved yet.")))
