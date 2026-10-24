@@ -34,7 +34,7 @@
                      "Reload" [:span.visually-hidden " the page"]]
       retry)))
 
-(defn banner
+(defn notice
   "The notice in `state` above the page's heading while the changes
   aren't saved, or nil."
   [state]

@@ -21,7 +21,7 @@
        (elements controls/button x)))
 
 (deftest the-notice
-  (let [x (saves-ui/banner (unsaved :other 2))]
+  (let [x (saves-ui/notice (unsaved :other 2))]
     (is (= [:section.notice {:aria-label "Not saved"}] (subvec x 0 2))
         "a region of the page")
     (is (re-find #"aren't saved yet\.$" (text-of (first (elements :p x)))))
@@ -29,15 +29,15 @@
         "whose button says what it tries among the page's others")
     (is (= ["main h1"] (map (comp :data-refocus second) (elements controls/button x)))
         "and gives the focus to the page's heading as the notice goes"))
-  (let [x (saves-ui/banner (unsaved :full 1))]
+  (let [x (saves-ui/notice (unsaved :full 1))]
     (is (= [["/settings#this-browser" "Make room in Settings"]]
            (map (juxt (comp :href second) spoken) (elements :a x)))
         "with a link to where the listener can make room")
     (is (= ["Try again to save your changes"] (map first (buttons x)))))
   (is (= [["Reload the page" icons/arrows-clockwise [[:page/reload]]]]
-         (buttons (saves-ui/banner (unsaved :newer-format 1)))))
-  (is (nil? (saves-ui/banner (unsaved :other 1))) "and none after a single failure")
-  (is (nil? (saves-ui/banner {}))))
+         (buttons (saves-ui/notice (unsaved :newer-format 1)))))
+  (is (nil? (saves-ui/notice (unsaved :other 1))) "and none after a single failure")
+  (is (nil? (saves-ui/notice {}))))
 
 (deftest before-the-pages-heading
   (let [main  (first (elements :main#main (ui/page (unsaved :other 2))))

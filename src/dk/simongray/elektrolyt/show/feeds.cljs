@@ -173,8 +173,8 @@
                      (show/gone? error)
                      (show-failed! store guid url error)
 
-                     ;; a feed that lost every item counts as a failure, as in a
-                     ;; refresh of the library
+                     ;; a feed that lost every item, e.g. during a host's outage,
+                     ;; stays as it was, as a refresh of the library keeps it
                      (and (:feed fetched) (not (feeds/emptied? feed (:feed fetched))))
                      (do (swap! store show/refetched guid url fetched (js/Date.))
                          (keep-show! url fetched))
