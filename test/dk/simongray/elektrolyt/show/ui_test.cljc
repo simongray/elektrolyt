@@ -55,9 +55,14 @@
         "rather than say there's no such show")
     (is (= "Loading the show…" (text-of (show/content (show-page {:requests {[:open url] {}}}) nil)))
         "nor while the cache is read")
-    (is (= "The feed couldn't be fetched. Its server couldn't be reached."
-           (text-of (show/content (show-page {:feeds {url {:error {:id :fetch/unreachable}}}})
-                                  nil))))
+    (let [x (show/content (show-page {:feeds {url {:error {:id :fetch/unreachable}}}}) nil)]
+      (is (= "The feed couldn't be fetched. Its server couldn't be reached."
+             (text-of (first (elements :p (elements :div.notice x)))))
+          "in a notice")
+      (is (= [[[:show/retry "g" url]] "main h1"]
+             ((juxt (comp :click :on second) (comp :data-refocus second))
+              (first (elements controls/button x))))
+          "which fetches it again, and gives the focus to the heading as the button goes"))
     (is (re-find #"isn't in the library"
                  (text-of (show/content (assoc unlinked :feed-urls {"g" {:not-found? true}}) nil))))))
 
@@ -218,7 +223,7 @@
                :feeds   {url {:error {:id :fetch/unreachable}}}}
         x     (show/content state [:h1 "Gone"])]
     (is (re-find #"^The feed couldn't be fetched\." (text-of (first (elements :p x)))))
-    (is (= "Unsubscribe from Gone" (spoken (first (elements controls/button x))))
+    (is (= ["Try again to fetch the feed" "Unsubscribe from Gone"] (map spoken (elements controls/button x)))
         "and the listener can still leave it")
     (is (= "Gone" (ui/page-title state)) "named by the subscription")))
 

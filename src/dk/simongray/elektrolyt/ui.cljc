@@ -19,6 +19,7 @@
             [dk.simongray.elektrolyt.ui.home :as home-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.links :as links]
+            [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
@@ -202,8 +203,12 @@
   #{:route/queue :route/inbox :route/library :route/settings})
 
 (def no-library
-  "The content of a page that needs the library when it couldn't be read."
-  [:p "The library couldn't be read."])
+  "The content of a page that needs the library when it couldn't be read,
+  which a reload may read."
+  (notices/line {:label "Library not read"}
+                "The library couldn't be read."
+                [controls/button {:icon icons/arrows-clockwise :on {:click [[:page/reload]]}}
+                 "Reload" [:span.visually-hidden " the page"]]))
 
 (defn main-content
   "The main content of the page in `state`, under its heading, which a

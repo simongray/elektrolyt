@@ -37,9 +37,10 @@
 ;; WCAG 2.2, SC 3.3.3 Error Suggestion: what went wrong, and what to do
 (def unreadable
   "The status of an import of a file that isn't OPML."
-  {:group :subscriptions
-   :text  (str "That file couldn't be read as OPML. Choose a file that a "
-               "podcast app exported.")})
+  {:group  :subscriptions
+   :error? true
+   :text   (str "That file couldn't be read as OPML. Choose a file that a "
+                "podcast app exported.")})
 
 (defn fetched-count
   "How many of the shows that the library in `state` subscribes to have
@@ -87,7 +88,7 @@
       (.catch (fn [e]
                 (tel/log! {:level :error :id :opml/import-failed :error e}
                           "The OPML file wasn't imported")
-                (swap! store assoc :settings-status unreadable)))))
+                (swap! store assoc :settings-status unreadable :announcement (:text unreadable))))))
 
 (defn export!
   "Download the subscriptions in `state` as an OPML file."

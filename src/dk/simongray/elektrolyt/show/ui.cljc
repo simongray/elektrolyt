@@ -13,10 +13,12 @@
             [dk.simongray.elektrolyt.show.linked :as linked]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.colors :as colors]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.details :as details]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
+            [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
             [dk.simongray.elektrolyt.ui.text :as text]
@@ -157,6 +159,20 @@
          (when newer
            (str " " (text/counted newer "new episode") (if (= 1 newer) " is in." " are in."))))))
 
+;; The button goes as the feed is fetched again, so the focus moves to the
+;; heading at `refocus`
+(defn failure
+  "The notice that the feed of the show in `state` couldn't be fetched, by
+  the `error` of its fetch, with the `n` episodes from before, and a button
+  to try again that gives the focus to the heading at `refocus`."
+  [state n error refocus]
+  (notices/line {}
+                (status-text :failed n error nil)
+                [controls/button {:icon         icons/arrows-clockwise
+                                  :data-refocus refocus
+                                  :on           {:click [[:show/retry (guid state) (:url (source state))]]}}
+                 "Try again" [:span.visually-hidden " to fetch the feed"]]))
+
 ;; A button that lists more, rather than a list that grows as it scrolls,
 ;; whose end a keyboard or a voice can't reach (GitLab's audit of infinite
 ;; scrolling, issue 1196 of gitlab-ui, and Deque on role=feed). New
@@ -184,7 +200,9 @@
         lang                          (text/lang language)]
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
-     [:p {:role "status"} (status-text status (count rows) error newer)]
+     (if (= :failed status)
+       (failure state (count rows) error "#episodes")
+       [:p {:role "status"} (status-text status (count rows) error newer)])
      (when newer
        [:button {:type "button" :data-refocus "#episodes" :on {:click [[:show/newer g]]}}
         (str "Show the " (text/plural newer "new episode"))])
@@ -312,7 +330,7 @@
             (case status
               :looking-up looking-up
               :loading    [:p {:role "status"} "Loading the show…"]
-              :failed     (list [:p {:role "status"} (status-text status 0 (:error (source state)) nil)]
+              :failed     (list (failure state 0 (:error (source state)) "main h1")
                                 (unsubscribe-button state))
               not-found))
       (let [aside (details/aside (details-rows page) (:people page))

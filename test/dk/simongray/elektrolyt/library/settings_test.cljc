@@ -86,4 +86,7 @@
            (settings/cleared state nil))
         "the tab forgets them too")
     (is (= {"pc20" {}} (:searches (settings/cleared state (ex-info "no" {}))))
-        "and keeps them when the cache couldn't be cleared")))
+        "and keeps them when the cache couldn't be cleared")
+    (is (= [true "The searches and shows couldn't be cleared."]
+           ((juxt (comp :error? :settings-status) :announcement) (settings/cleared state (ex-info "no" {}))))
+        "which it announces as a failure")))

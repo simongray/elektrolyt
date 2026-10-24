@@ -155,6 +155,13 @@
   [state request]
   (update state :requests dissoc request))
 
+(defn retried
+  "The `state` before the feed at `url` is fetched again after a failure:
+  without its error, and not yet checked on this visit, so that a cached
+  copy is checked again."
+  [state url]
+  (update-in state [:feeds url] dissoc :error :checked?))
+
 (defn source
   "The feed of the show `guid` for its page in `state`, or nil when its URL
   is unknown.

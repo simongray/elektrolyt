@@ -15,4 +15,13 @@
     (is (= [[:button "Try again"]] (elements :button x)) "and what to do after the words"))
   (let [x (notices/line {:icon icons/info} "Something to know." nil)]
     (is (= :div.notice (first x)) "or no region, among other content")
-    (is (= [icons/info] (map (comp :icon second) (elements controls/icon x))))))
+    (is (= [icons/info] (map (comp :icon second) (elements controls/icon x))))
+    (is (empty? (elements controls/icon-button x)) "which stays until its message goes"))
+  (let [dismiss [[:store/assoc :message nil]]
+        button  #(first (elements controls/icon-button (notices/line % "It failed." nil)))]
+    (is (= [dismiss "main h1" icons/x]
+           ((juxt (comp :click :on second) (comp :data-refocus second) (comp :icon second))
+            (button {:dismiss dismiss})))
+        "or has a Dismiss button, which gives the focus to the page's heading")
+    (is (= "#settings" (:data-refocus (second (button {:dismiss dismiss :refocus "#settings"}))))
+        "or to another heading")))

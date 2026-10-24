@@ -87,7 +87,11 @@
       (is (= :done (show/status done guid)))
       (is (= :checking (show/status (show/requested done [:check url]) guid)))
       (is (= :failed (show/status (assoc-in done [:feeds url :error] {:id :fetch/status :status 410}) guid))
-          "and failed once a check finds it gone from its URL"))
+          "and failed once a check finds it gone from its URL")
+      (is (= :done (show/status (-> (assoc-in done [:feeds url :error] {:id :fetch/status :status 410})
+                                    (show/retried url))
+                                guid))
+          "until it's tried again"))
     (is (= :looking-up (show/status (show/requested {} [:look-up guid]) guid)))))
 
 (deftest where-the-feed-of-a-show-is

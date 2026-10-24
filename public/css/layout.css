@@ -1398,3 +1398,8 @@ main h1,
 .notice > a {
   padding-block: var(--space-1);
 }
+
+/* a notice's Dismiss button at the end of its row */
+.notice-dismiss {
+  margin-inline-start: auto;
+}

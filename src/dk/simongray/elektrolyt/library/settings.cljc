@@ -181,9 +181,10 @@
   colours are worked out again."
   [state error]
   (if error
-    (assoc state :settings-status
-           {:group :this-browser
-            :text  "The searches and shows couldn't be cleared."})
+    (let [text "The searches and shows couldn't be cleared."]
+      (assoc state
+             :settings-status {:group :this-browser :error? true :text text}
+             :announcement    text))
     (-> (dissoc state :searches :feeds :feed-urls :linked :colors)
         (assoc :settings-status {:group :this-browser
                                  :text  "Cleared the searches and shows."}))))
