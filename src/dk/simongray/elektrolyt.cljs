@@ -14,6 +14,7 @@
             [dk.simongray.elektrolyt.library.opml :as opml]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.library.refresh :as refresh]
+            [dk.simongray.elektrolyt.library.saves :as saves]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player.audio :as audio]
             [dk.simongray.elektrolyt.runtime :as runtime]
@@ -281,9 +282,13 @@
   (fn [_ store]
     (refresh/refresh! store true)))
 
+;; The listener's Try again, which says so when it fails again
 (nxr/register-effect! :library/save
   (fn [_ store]
-    (app-library/save! store)))
+    (let [before (:save-status @store)]
+      (.then (app-library/save! store)
+             #(when (:error %)
+                (swap! store saves/tried-again before))))))
 
 (nxr/register-effect! :page/reload
   (fn [_ _]
