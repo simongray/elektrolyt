@@ -76,7 +76,8 @@
       (.catch (fn [e]
                 (tel/log! {:level :warn :id :artwork/colors-failed
                            :data  {:artwork artwork} :error e}
-                          "The colours of the artwork weren't worked out")))
+                          "The colours of the artwork weren't worked out")
+                nil))
       (.then #(swap! store assoc-in [:colors artwork] (or % {:seed nil})))))
 
 (def colors-at-once

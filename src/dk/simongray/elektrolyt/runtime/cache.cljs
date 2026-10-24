@@ -79,18 +79,23 @@
       (.then #(cache/fetch! c k))
       (.catch (constantly nil))))
 
+(defn write!
+  "A promise of keeping the value `v` under the key `k` in the cache `c`
+  now, which logs a write that failed."
+  [c k v]
+  (-> (js/Promise.resolve nil)
+      (.then #(cache/put! c k v))
+      (.catch #(tel/log! {:level :warn :id :cache/write-failed
+                          :data  {:key k} :error %}
+                         "The cache wasn't written"))))
+
 ;; A large feed takes a moment to encode, which waits until the page is
 ;; idle
 (defn put!
   "Keep the value `v` under the key `k` in the cache `c`, once the page is
   idle."
   [c k v]
-  (runtime/idle! 2000 #(-> (js/Promise.resolve nil)
-                           (.then (fn [_] (cache/put! c k v)))
-                           (.catch (fn [e]
-                                     (tel/log! {:level :warn :id :cache/write-failed
-                                                :data  {:key k} :error e}
-                                               "The cache wasn't written"))))))
+  (runtime/idle! 2000 #(write! c k v)))
 
 (defn clear!
   "A promise that every cache is empty."
