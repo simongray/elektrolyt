@@ -293,6 +293,19 @@
         (is (= 200 (:status (h (asked art 64)))) "and fetches the artwork after the while")
         (is (= 2 (count @sent)))))))
 
+(deftest an-error-that-isnt-an-exception
+  (with-temp-dir
+    (fn [dir]
+      (let [sent (atom [])
+            h    (artwork/handler {:cache-dir    (io/file dir "artwork")
+                                   :wait-seconds 1
+                                   :send         (stub sent [(fn [_] (throw (StackOverflowError.)))
+                                                             (fn [_] {:status 200 :headers {} :body (jpeg 200 200)})])})]
+        (is (thrown? StackOverflowError (h (asked art 64))) "goes on up, as an Error")
+        (is (= 200 (:status (h (asked art 64))))
+            "and leaves the artwork free, so that the next request fetches it")
+        (is (= 2 (count @sent)))))))
+
 (deftest jobs-at-most
   (with-temp-dir
     (fn [dir]

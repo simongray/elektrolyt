@@ -355,10 +355,15 @@
         now  (get (swap! running #(if (contains? % k) % (assoc % k mine))) k)
         {:keys [value error]}
         (if (identical? now mine)
-          (let [result (try {:value (f)} (catch Exception e {:error e}))]
-            (swap! running dissoc k)
-            (deliver mine result)
-            result)
+          (try
+            (let [result (try {:value (f)} (catch Exception e {:error e}))]
+              (deliver mine result)
+              result)
+            ;; after an Error too, e.g. out of memory, which goes on up in
+            ;; this thread while the others get nil, so that the key is free
+            (finally
+              (swap! running dissoc k)
+              (deliver mine nil)))
           (deref now ms nil))]
     (if error (throw error) value)))
 
