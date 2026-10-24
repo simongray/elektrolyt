@@ -1,13 +1,10 @@
 (ns dk.simongray.elektrolyt
-  "The app in the browser: the store of its state, the actions that the
-  views dispatch, and the start of the render loop.
+  "The app in the browser: its store, its Nexus actions and effects, and
+  its start.
 
-  The views dispatch actions as data, and the router dispatches one for
-  each navigation. Nexus expands them into effects, which alone change the
-  store, and each change of the store renders the page again. The effects
-  are the functions of the namespaces of their subjects, e.g. the player's
-  in dk.simongray.elektrolyt.player.audio, and this namespace registers
-  them."
+  The views and the router dispatch actions as data. Nexus expands them
+  into effects, which alone change the store, and each change of the
+  store renders the page again."
   (:require [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.podcast-app :as-alias app]
@@ -42,22 +39,22 @@
   (atom {}))
 
 (defn changed!
-  "Make the `change` of operations/changed to the `store`, e.g. of the
-  listener's queue, and save the library, unless the `change` is nil."
+  "Make the `change` to `store` and save the library, unless `change` is
+  nil."
   [store change]
   (when change
     (app-library/change! store change)
     (app-library/save! store)))
 
-;; The app's former name, since a browser keeps the listener's data under it
+;; The app's former name, which existing data is stored under
 (def library-view-key
-  "The key of the listener's choices for the Library page in localStorage,
-  since the layout that suits a screen belongs to this device."
+  "The localStorage key of the Library page's order and layout, kept on
+  the device since a layout suits its screen."
   "dk.simongray.podcast-app.library-view")
 
 (nxr/register-system->state! deref)
 
-;; The values of the event that an action names
+;; Placeholders for values of the DOM event
 
 (nxr/register-placeholder! :form/field
   (fn [{:replicant/keys [dom-event]} field-name]
@@ -162,31 +159,32 @@
   (fn [_ _]
     (feeds/prefetch-cancel!)))
 
-;; the button goes as the list takes the new episodes, so the focus moves
-;; to the heading of the list
+;; The button disappears once the new episodes are shown, so the focus
+;; moves to the list's heading
 (nxr/register-effect! :show/newer
   (fn [_ store guid]
     (swap! store show/newer-shown guid)
     (document/focus! "episodes")))
 
-;; dispatched as the shows that a show links to mount, so it changes the
-;; store once the render is done
+;; Dispatched as the linked shows mount, so the store changes after the
+;; render
 (nxr/register-effect! :show/fetch-linked
   (fn [_ store guid feed url]
     (js/queueMicrotask #(feeds/fetch-linked! store guid feed url))))
 
-;; dispatched as the page of the episode mounts, so it changes the store
-;; once the render is done
+;; Dispatched as the episode's page mounts, so the store changes after the
+;; render
 (nxr/register-effect! :episode/read-files
   (fn [_ store id view]
     (js/queueMicrotask #(feeds/read-files! store id view))))
 
-;; dispatched as the open transcript mounts, as the files are
+;; Dispatched as the open transcript mounts, so the store changes after
+;; the render
 (nxr/register-effect! :episode/read-transcript
   (fn [_ store id view]
     (js/queueMicrotask #(feeds/read-transcript! store id view))))
 
-;; only past the limit, since each change of the store renders the page
+;; Only past the limit, since each change of the store renders the page
 (nxr/register-effect! :episodes/forget
   (fn [_ store]
     (when (< (inc episode/kept-count) (count (:episodes @store)))
@@ -194,8 +192,8 @@
 
 ;; The player
 
-;; dispatched as the player's element mounts, so it changes the store once
-;; the render is done
+;; Dispatched as the player's element mounts, so the store changes after
+;; the render
 (nxr/register-effect! :player/mounted
   (fn [{:keys [dispatch-data]} store]
     (let [node (:replicant/node dispatch-data)]
@@ -213,8 +211,8 @@
   (fn [_ store]
     (audio/resume! store)))
 
-;; the controls act on the playback that the player shows, wherever it
-;; plays (see audio/act!)
+;; The controls act on the playback that the player shows, in whichever
+;; tab it plays
 (nxr/register-effect! :player/pause
   (fn [_ store]
     (audio/act! store [:pause])))
@@ -286,7 +284,8 @@
   (fn [_ store]
     (changed! store (queue/undone @store))))
 
-;; once the dialog has closed, since the page is inert while it's open
+;; Once the dialog has closed, since the rest of the page is inert while
+;; it's open
 (nxr/register-effect! :queue/clear-closed
   (fn [{:keys [dispatch-data]} store focus-id]
     (when-let [dialog (some-> (:replicant/dom-event dispatch-data) .-target)]
@@ -317,8 +316,7 @@
   (fn [_ store k v]
     (when (or (boolean? v) (keyword? v) (js/Number.isFinite v))
       (changed! store (settings/preferred {k v}))
-      ;; DR's own feeds are fetched again at once, with or without the
-      ;; episodes of drpodcast.nu
+      ;; DR's own feeds are stale now, so a refresh fetches them at once
       (when (= ::app/alternative-feeds? k)
         (refresh/refresh-if-due! store)))))
 
@@ -330,8 +328,7 @@
   (fn [_ store source to]
     (changed! store (settings/moved-source @store source to))))
 
-;; the input is emptied, so that choosing the same file again imports it
-;; again
+;; Emptying the input lets the listener import the same file again
 (nxr/register-effect! :opml/import
   (fn [{:keys [dispatch-data]} store]
     (when-let [input (some-> (:replicant/dom-event dispatch-data) .-target)]
@@ -370,16 +367,16 @@
 ;; The start
 
 (defn routed-click?
-  "Whether the `router` takes over the `click` on the `anchor` to `uri`: when
-  reitit would, unless a handler of the app has already prevented the
-  click's default action, as the skip link does."
+  "Whether the `router` takes over the `click` on the `anchor` to `uri`:
+  when reitit would, unless a handler already prevented the click's
+  default action, e.g. the skip link's."
   [router ^goog.events.BrowserEvent click anchor uri]
   (and (not (.. click getBrowserEvent -defaultPrevented))
        (rfh/ignore-anchor-click? router click anchor uri)))
 
 (defn start-router!
-  "Follow the paths of the window's history, which dispatches the navigation
-  to the current one at once."
+  "Follow the window's history and dispatch a navigation to each path,
+  starting with the current one."
   []
   (runtime/follow-history! routes/router
                            (fn [match _]
@@ -389,22 +386,22 @@
                             :ignore-anchor-click? routed-click?}))
 
 (defn restore-library!
-  "Read the library that this browser wrote into the store, which then
-  reads what the other tabs write, as app-library/open! has it.
-
-  A library that doesn't restore stays out of the store rather than be
-  replaced by a new one, which the next save would write over the old."
+  "Read this browser's saved library into the store and follow what the
+  other tabs write. A library that fails to read stays out of the store,
+  rather than be replaced by a new one that the next save would write
+  over the old."
   []
   (-> (app-library/open! store)
-      ;; the title of a show that only the library keeps is known now
+      ;; the path can now carry the slug of a show that only the library
+      ;; has
       (.then #(document/canonicalize! @store))
       (.catch #(tel/log! {:level :error :id :library/restore-failed :error %}
                          "The library didn't restore"))))
 
 (defn load-server-info!
-  "Read what the app's server offers from /api/server into the :server of
-  the store, e.g. whether it signs for the Podcast Index, as a promise that
-  settles either way."
+  "Read what the app's server offers into :server in the store, e.g.
+  whether it signs requests to the Podcast Index. The promise that it
+  returns settles either way."
   []
   (-> (js/fetch "/api/server")
       (.then #(.text %))
@@ -415,26 +412,19 @@
                          "The server didn't say what it offers"))))
 
 (defn ^:dev/after-load reload!
-  "Start the router again with the routes and views that shadow-cljs just
-  reloaded, which renders the page."
+  "Start the router again once shadow-cljs reloads the code, so that the
+  page renders with the new routes and views."
   []
   (start-router!))
 
 (defn ^:export init
-  "Start the app: start its logs, send the actions of the views to Nexus,
-  follow the playback of the other tabs, restore the library, and once
-  the server has said what it offers, put the current episode in the
-  player, render the page at each change of the store and follow the
-  window's history. Tell the library where the player is, and save it,
-  when the page is hidden while it plays, and the other tabs that it
-  stops as it goes.
+  "Start the app in the page.
 
-  The first page waits for both, since what it shows can depend on them,
-  e.g. a search asks the Podcast Index too when the server signs for it,
-  only the Podcast Index finds a show by its guid alone, and a show that
-  the library keeps needs neither the index nor a fetch. It waits for the
-  colours that the cache keeps of its artwork too, so that it opens in
-  them rather than turns to them."
+  The first render waits for the library and for what the server offers,
+  since the first page can depend on both, e.g. a search includes the
+  Podcast Index only when the server signs for it. It waits for the cached
+  colours of the page's artwork too, so that the page opens in them rather
+  than turns to them."
   []
   (log/start! js/window)
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
@@ -443,7 +433,7 @@
   (runtime/on-visible! #(refresh/refresh-if-due! store))
   (runtime/on-pagehide! #(do (audio/hidden! store)
                              (audio/gone! store)))
-  ;; the bar's colour once it has moved to the next one
+  ;; the theme-color follows the bar's colour once its transition ends
   (runtime/on-transitionend! #(when (.. % -classList (contains "shell"))
                                 (document/theme-colored!)))
   (audio/volume-locked! store)

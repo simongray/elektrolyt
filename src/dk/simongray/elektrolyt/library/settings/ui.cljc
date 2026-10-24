@@ -1,15 +1,10 @@
 (ns dk.simongray.elektrolyt.library.settings.ui
-  "The views of the Settings page: the app's colours, how the listener
-  plays, what the recommendations leave out, the directories that a
-  search asks, whether DR's podcasts take episodes from drpodcast.nu, the
-  import and export of their subscriptions, and how this browser keeps the
-  library.
+  "The views of the Settings page.
 
-  Each change applies at once, with no Save button, which NN/g, Microsoft
-  and GNOME advise for settings, and which a field-by-field profile makes
-  natural. The groups are fieldsets whose legends hold their headings, as
-  GOV.UK nests them, so that a screen reader names the group of each
-  control and lists the headings of the page.
+  Each change applies at once with no Save button, following NN/g,
+  Microsoft and GNOME. The groups are fieldsets with their headings in the
+  legends, following GOV.UK, so that a screen reader names each control's
+  group and lists the page's headings.
   https://www.nngroup.com/articles/toggle-switch-guidelines/
   https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings
   https://design-system.service.gov.uk/components/fieldset/"
@@ -22,22 +17,22 @@
             [dk.simongray.elektrolyt.ui.rows :as rows]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
-;; WCAG 2.2, SC 4.1.3 Status Messages: the outcome of an action whose
-;; effect the page doesn't show, e.g. how many shows an import added, in a
-;; status line beside its button, which is there before it says anything
+;; WCAG 2.2, SC 4.1.3 Status Messages: the outcome of an action that the
+;; page doesn't otherwise show, in a status line beside its button. The
+;; line is there before it has any text.
 (defn status
-  "The status line of the group `k` of settings, which says the status of
-  the `state` when it's that group's."
+  "The status line of the settings group `k`, with the status in `state`
+  if it's that group's."
   [state k]
   (let [{:keys [group text]} (:settings-status state)]
     [:p.settings-status {:role "status"} (when (= k group) text)]))
 
-;; Wikipedia's and GOV.UK's contents link to the headings of a page by
-;; their ids, as a link from another page does here, e.g. from the Search
-;; page to its directories. The heading takes the focus, as a page's does.
+;; Wikipedia's and GOV.UK's contents link to a page's headings by their
+;; ids, and so do the links from other pages here. The heading takes the
+;; focus like a page's main heading.
 (defn group
   "A group of settings named `k`, headed `heading`, with the `children`,
-  whose heading has the id that a link to the group names."
+  whose heading has `k` as its id for links to the group."
   [k heading & children]
   [:fieldset.settings-group
    [:legend [:h2 {:id (name k) :tabindex -1} heading]]
@@ -49,17 +44,16 @@
   (routes/href :route/settings nil nil (name k)))
 
 (defn choice
-  "A select of controls-ui/select with the `id`, labelled `label`, of the
-  `options`, with `chosen` selected, whose change dispatches the
-  `action`, in a row of the settings."
+  "A settings row with a select of the `options`, labelled `label`, with
+  the `id`, the `chosen` option selected and the `action` on a change."
   [id label options chosen action]
   [:div.setting
    [:label {:for id} label]
    (controls-ui/select id options chosen action)])
 
 ;; WAI-ARIA APG, switch pattern: a checkbox with role="switch", which every
-;; browser announces as a switch, and which look.css draws as one in every
-;; browser. Its label stays the same as it turns on and off.
+;; browser announces as a switch and the CSS draws as one. Its label stays
+;; the same as it turns on and off.
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/switch/
 ;; https://webkit.org/blog/15054/an-html-switch-control/
 (defn switch
@@ -78,10 +72,8 @@
    [:p {:id (str id "-hint")} hint]])
 
 (defn appearance
-  "The choice of the app's colours in the `state`: light or dark, the
-  contrast, whether the artwork colours the app, whether each page's link
-  in the navigation has a colour of its own, and the size of the player,
-  which sync with the profile as the other preferences do."
+  "The settings of the app's colours in `state`: light or dark, the
+  contrast, colours from artwork and colours in the navigation."
   [state]
   (group :appearance "Appearance"
          (choice "light-or-dark" "Light or dark" settings/appearances
@@ -101,8 +93,7 @@
                  [:settings/prefer ::app/navigation-palette [:event/target-keyword]])))
 
 (defn playback
-  "The settings of how the listener plays, by their preferences in the
-  `state`."
+  "The playback settings in `state`."
   [state]
   (let [{:keys [skip-back skip-forward playback-rate continuous? track-buttons]}
         (settings/preferences state)]
@@ -128,8 +119,7 @@
                    track-buttons [:settings/prefer :track-buttons [:event/target-keyword]]))))
 
 (defn recommendations
-  "The settings of the picks in the `state`: whether they may be explicit
-  episodes anywhere."
+  "The settings of the recommendations in `state`."
   [state]
   (group :recommendations "Recommendations"
          (switch "explicit-picks" "Explicit episodes"
@@ -140,9 +130,8 @@
 
 (defn directory-row
   "The row of the directory `source` at index `i`, `on?` or off, with the
-  buttons that move it among the `n` that are on, and a note where the
-  app's server doesn't sign the requests to the Podcast Index, which
-  `index?` says it does."
+  buttons that move it among the `n` that are on. Unless `index?`, the
+  Podcast Index's row notes that the server doesn't sign its requests."
   [n index? i [source on?]]
   (let [title (search/source-name source)
         id    (str "directory-" (name source))
@@ -164,13 +153,12 @@
         "This server doesn't sign the requests to it, so a search here leaves it out."])]))
 
 ;; Kagi's lenses: only those turned on in the settings appear while
-;; searching. The order of the rows is the order of the lists of the
-;; Search page, which the buttons of the queue rearrange.
+;; searching
 ;; https://help.kagi.com/kagi/settings/lenses.html
 (defn search-directories
-  "The directories that a search asks in the `state`, in the order of
-  their lists, which the listener turns on and off and rearranges, and
-  those that it leaves out."
+  "The directories in `state` that the listener turns on, off and
+  rearranges: those that a search asks, in the order of their results,
+  and then the others."
   [state]
   (let [listed (settings/directory-rows state)
         n      (count (filter second listed))
@@ -182,8 +170,9 @@
             (map-indexed (partial directory-row n index?) listed)])))
 
 (defn dr
-  "Whether DR's podcasts take more episodes from drpodcast.nu in the
-  `state`, and a search finds the programmes that have no podcast there."
+  "The DR setting in `state`: whether DR's podcasts take episodes from
+  drpodcast.nu, and a search finds DR's programmes there that have no
+  podcast."
   [state]
   (group :dr "DR"
          (switch "alternative-feeds" "Episodes from drpodcast.nu"
@@ -193,14 +182,13 @@
                       "publishes no podcast of there too.")
                  (settings/alternative-feeds? state) ::app/alternative-feeds?)))
 
-;; AntennaPod, Pocket Casts and Castro all import and export OPML, the way
-;; a listener brings their shows from one app to another
+;; AntennaPod, Pocket Casts and Castro all import and export OPML
 ;; https://antennapod.org/documentation/
 ;; https://support.pocketcasts.com/article/opml-import/
 ;; https://castro.fm/support/import-subscriptions
 (defn subscriptions
-  "The import and export of the listener's subscriptions as OPML, in the
-  `state`."
+  "The import and export of the listener's subscriptions as OPML, with the
+  status in `state`."
   [state]
   (group :subscriptions "Subscriptions"
          [:div.setting
@@ -222,8 +210,8 @@
 ;; https://storage.spec.whatwg.org/#persistence
 ;; https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate
 (defn this-browser
-  "How this browser keeps the library, as the :storage of the `state`
-  says, and the button that clears what the cache keeps."
+  "How this browser keeps the library, from the :storage in `state`, and
+  the button that clears the cache."
   [{{:keys [supported? persisted? usage] :as storage} :storage :as state}]
   (group :this-browser "This browser"
          [:p "Unlike the rest, this belongs to this browser alone."]
@@ -245,7 +233,7 @@
          (status state :this-browser)))
 
 (defn content
-  "The content of the Settings page of the `state`, below its heading."
+  "The content of the Settings page for `state`, below its heading."
   [state]
   (list
    (appearance state)

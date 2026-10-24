@@ -1,13 +1,16 @@
 (ns dk.simongray.elektrolyt.episode
-  "What the Episode page shows of an episode, from the feed of its show that
-  the library keeps, or that the Show page loaded, whole or its start.
+  "What the Episode page shows of an episode, from its show's feed in the
+  library or the one that the Show page loaded, whole or just its start.
 
-  The page names the episode by the short hash of its guid and the slug of
-  its title, as dk.simongray.elektrolyt.ui.routes has it. The state keeps
-  what the files of an episode say under its id in :episodes, as a map of
-  the :status of their read, :reading or :read, the time in milliseconds
-  when it began, :at, its :result, and the :transcript-status and
-  :transcript once the listener asks for the transcript."
+  The page names the episode by a short hash of its guid and the slug of
+  its title. What's read of an episode's files is kept by its id, as a map
+  of:
+
+  - :status, :reading or :read, and :at, when the read began, in
+    milliseconds
+  - :result, or :error when the read failed
+  - :transcript-status and :transcript, once the listener asks for the
+    transcript"
   (:require [dk.simongray.podcast.app.episode :as episode]
             [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.guid :as guid]
@@ -19,17 +22,17 @@
             [dk.simongray.elektrolyt.ui.routes :as routes]))
 
 (def view-opts
-  "The options of app.episode/view for the page: the headings of the show
-  notes below the page's own h2s, their links marked for where they leave
-  the app to, e.g. a new tab, and neither the notes as text nor links to
-  other apps, which the page doesn't show."
+  "The options of the episode's view for the page: the show notes'
+  headings below the page's h2s, their links marked where they leave the
+  app, and neither the notes as text nor links to other apps, which the
+  page doesn't show."
   {:heading-level 3
    :link-fn       links/leaving
    :except        #{:text :links}})
 
 (defn item-of
-  "The item of `items` that the short `hash` of its guid names, and of two
-  such items the one whose title gives the `slug`, or nil."
+  "The item in `items` whose guid has the short `hash`, and of several such
+  items the one whose title gives the `slug`, or nil."
   [items hash slug]
   (let [matches (guid/matching-items items hash)]
     (or (some #(when (= slug (routes/slug (resolve/title %))) %) matches)
@@ -43,14 +46,15 @@
   (>= 1 (count (into #{} (keep (comp :season resolve/numbering)) (:rss/items feed)))))
 
 (defn page-of
-  "The page of the `item` of the show `guid` in the feed `source`, as
-  show/source gives it. Each time in the show notes is what `time-fn`
-  gives for the page, the seconds and the text of the time.
+  "The page of the `item` of the show `guid` in the show's source, a map of
+  its :feed, :url and library :key, if any. Each time in the show notes is
+  what `time-fn` returns for the page, the seconds and the text of the
+  time.
 
-  The page's link, locations and license are the item's own, since its
-  Details show what's particular to it, and its people and funding are
-  its show's when it has none of its own. Its language is its show's,
-  since an item of RSS names none."
+  The link, locations and license are the item's own, since the page's
+  Details show what's particular to the episode. The people and funding
+  are the show's when the item has none, and the language is the show's,
+  since an RSS item names none."
   [guid {:keys [feed url key]} item time-fn]
   (let [item-guid   (guid/item-guid item)
         title       (resolve/title item)
@@ -89,17 +93,16 @@
             :view          view})))
 
 (defn playable
-  "What the player needs of the episode `page` to play it: its :id, and for
-  an episode that the library doesn't have yet, the :guid of the page of
-  its show, the :url of its feed and its :item-guid, to add it."
+  "What playing the episode `page` takes: its :id, and the :guid of its
+  show, the :url of its feed and its :item-guid, which add it to the
+  library if it isn't there yet."
   [page]
   (select-keys page [:id :guid :url :item-guid]))
 
 (def page-in
-  "The page of an episode in the feed of a source, for page, made again
-  only when the feed or the link changes, since the page renders at every
-  change of the state, and hashing the guids of thousands of items takes
-  a while."
+  "The page of an episode in the feed of a source, made again only when the
+  feed or the link changes, since the page renders at every change of the
+  state and hashing thousands of guids takes a while."
   (memo/remember-last (fn [guid src hash slug time-fn]
                         (when-let [item (item-of (:rss/items (:feed src)) hash slug)]
                           (page-of guid src item time-fn)))
@@ -107,20 +110,19 @@
                         [feed url key guid hash slug time-fn])))
 
 (defn page
-  "The page of the episode `hash` of the show `guid` in the `state`, which
-  the link to it gives the `slug` of, or nil when the feed at hand doesn't
-  have it. The `time-fn` makes the times of the show notes, as page-of has
-  it."
+  "The page of an episode of the show `guid` in `state`, by the short
+  `hash` and the `slug` of its link, or nil when the feed at hand doesn't
+  have it. The `time-fn` makes the times in the show notes."
   [state guid hash slug time-fn]
   (let [src (show/source state guid)]
     (when (:feed src)
       (page-in guid src hash slug time-fn))))
 
 (defn status
-  "Where the Episode page of the show `guid` in the `state` stands while it
-  has no episode to show: :looking-up its show, :loading its feed, or
-  checking the one from the cache again, :failed to, the episode
-  :not-found in it, or :no-show at all."
+  "Where the Episode page of the show `guid` in `state` stands without an
+  episode to show: :looking-up the show, :loading its feed or checking a
+  cached one again, :failed, the episode :not-found in the feed, or
+  :no-show at all."
   [state guid]
   (case (show/status state guid)
     :looking-up          :looking-up
@@ -129,17 +131,17 @@
     :done                :not-found
     :no-show))
 
-;; A tab that plays for days would otherwise keep each transcript that the
-;; listener opened, and an hour's is ten thousand words. The number is
-;; that of the shows outside the library that the cache keeps.
+;; Otherwise a tab that plays for days would keep every transcript that the
+;; listener opened, and an hour's is ten thousand words. The count matches
+;; the cache of shows outside the library.
 (def kept-count
-  "How many episodes' reads the state keeps, besides the one that plays:
+  "How many episodes' reads the state keeps besides the one that plays,
   those that began last."
   20)
 
 (defn kept
-  "The `episodes` whose reads the state keeps, with only the `n` that began
-  last and the episode `playing`."
+  "The `episodes` with only the `n` whose reads began last and the one
+  `playing`."
   [episodes playing n]
   (->> (dissoc episodes playing)
        (sort-by (comp #(or (:at %) 0) val) >)
@@ -148,10 +150,10 @@
        (apply dissoc episodes)))
 
 (defn shown-chapters
-  "The chapters to list for the `page` of an episode, with what its `files`
-  say: those of the chapters file or the media file once they're read, else
-  those of the feed. Chapters that the show notes imply are left out, since
-  the notes show their times already."
+  "The chapters to list for the episode `page` and its `files`: those read
+  from the chapters file or the media file, or else the feed's. Chapters
+  inferred from the show notes are left out, since the notes show their
+  times already."
   [page files]
   (let [{:keys [source document]} (or (get-in files [:result :chapters])
                                       (get-in page [:view :chapters]))]

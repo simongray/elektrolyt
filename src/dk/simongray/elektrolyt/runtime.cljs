@@ -1,20 +1,6 @@
 (ns ^:runtime dk.simongray.elektrolyt.runtime
-  "Every listener, timer, lock and channel of the app in a tab, so that
-  what reaches into the page from outside the store is in one file. The
-  rest of the app asks for them here:
-
-  - timers by name, e.g. :refresh, which replace the timer of the same
-    name, and which timers holds while they wait
-  - the BroadcastChannels by name, on which the tabs of the app post EDN
-  - the listeners on the document, the window, the history and the store
-  - the audio element of the player, which play-nice follows, with the
-    play lock across the tabs, and the lock screen
-
-  The web worker, its messages and its Web Lock are in
-  dk.simongray.elektrolyt.worker.fetching, which is runtime too,
-  localStorage is in dk.simongray.elektrolyt.runtime.local, and the
-  listeners of the logs are in dk.simongray.elektrolyt.runtime.log. What
-  each of them holds and does is in STATE.md."
+  "The app's listeners, timers, locks and channels in a tab, gathered in
+  one place since they reach outside the store."
   (:require [cljs.reader :as reader]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.media :as media]
@@ -24,48 +10,47 @@
 
 ;; Timers
 
-(defonce ^{:doc "The timeouts and intervals that wait, by name, as maps of
-  the :id that the browser gave and whether it's an :interval?."}
+(defonce ^{:doc "The waiting timeouts and intervals by name, each a map of
+  the browser's :id and whether it's an :interval?."}
   timers
   (atom {}))
 
 (defn cancel!
-  "Cancel the timer `k`, if it waits."
+  "Cancel the timer `k`, if it's waiting."
   [k]
   (when-let [{:keys [id interval?]} (get @timers k)]
     (if interval? (js/clearInterval id) (js/clearTimeout id))
     (swap! timers dissoc k)))
 
 (defn later!
-  "Call `f` in `ms` milliseconds as the timer `k`, in place of the timer of
-  that name, if one waits."
+  "Call `f` in `ms` milliseconds as the timer `k`, replacing any timer of
+  that name."
   [k ms f]
   (cancel! k)
   (let [id (js/setTimeout #(do (swap! timers dissoc k) (f)) ms)]
     (swap! timers assoc k {:id id})))
 
 (defn every!
-  "Call `f` every `ms` milliseconds as the timer `k`, in place of the timer
+  "Call `f` every `ms` milliseconds as the timer `k`, replacing any timer
   of that name, until it's cancelled."
   [k ms f]
   (cancel! k)
   (swap! timers assoc k {:id (js/setInterval f ms) :interval? true}))
 
 (defn waiting?
-  "Whether the timer `k` waits."
+  "Whether the timer `k` is waiting."
   [k]
   (contains? @timers k))
 
 (defn soon!
-  "Call `f` once the browser has done what it does now."
+  "Call `f` after the current task."
   [f]
   (js/setTimeout f 0))
 
-;; requestIdleCallback, where the browser has it, with a timeout so that a
-;; busy page gets to it too
 (defn idle!
   "Call `f` once the page is idle, or after `ms` milliseconds at the
-  latest, or soon! where the browser can't say when it's idle."
+  latest, or after the current task in a browser without
+  requestIdleCallback."
   [ms f]
   (if (exists? js/requestIdleCallback)
     (js/requestIdleCallback f #js {:timeout ms})
@@ -79,8 +64,8 @@
   (atom {}))
 
 (defn channel
-  "The BroadcastChannel `name`, opened at its first use, or nil where the
-  browser has none."
+  "The BroadcastChannel `name`, opened at its first use, or nil in a
+  browser without them."
   [name]
   (when (exists? js/BroadcastChannel)
     (or (get @channels name)
@@ -94,9 +79,9 @@
   (some-> ^js (channel name) (.postMessage (pr-str message))))
 
 (defn on-message!
-  "Call `f` with each message that another tab sends on the channel
-  `name`, read as EDN, unless it isn't a map, e.g. a message of another
-  version of the app."
+  "Call `f` with each map that another tab sends as EDN on the channel
+  `name`, ignoring anything else, e.g. a message from another version of
+  the app."
   [name f]
   (some-> ^js (channel name)
           (.addEventListener "message"
@@ -108,9 +93,9 @@
 
 ;; The page
 
-;; Page Lifecycle API: hidden is the last state that a page can count on
-;; seeing, and a page that the back/forward cache restores is shown again
-;; without loading
+;; Page Lifecycle API: the change to hidden is the last event that's sure
+;; to fire, and the back/forward cache shows a page again without loading
+;; it
 ;; https://developer.chrome.com/docs/web-platform/page-lifecycle-api
 (defn on-hidden!
   "Call `f` whenever the page is hidden."
@@ -130,8 +115,8 @@
   (= "visible" js/document.visibilityState))
 
 (defn on-pagehide!
-  "Call `f` as the page goes, e.g. to another site or into the
-  back/forward cache."
+  "Call `f` whenever the page unloads or goes into the back/forward
+  cache."
   [f]
   (.addEventListener js/window "pagehide" (fn [_] (f))))
 
@@ -141,15 +126,13 @@
   (.addEventListener js/window "pageshow" #(when (.-persisted %) (f))))
 
 (defn on-transitionend!
-  "Call `f` with the element whose CSS transition ended, of any element
-  of the document."
+  "Call `f` with each element of the document whose CSS transition ends."
   [f]
   (.addEventListener js/document "transitionend" #(f (.-target %))))
 
 (defn follow-history!
-  "Follow the paths of the window's history with the reitit `router`, which
-  calls `on-navigate` with each match and with the current one at once, as
-  rfe/start! does with the `opts`."
+  "Follow the window's history with the reitit `router` and `opts`,
+  calling `on-navigate` with each match, the current one first."
   [router on-navigate opts]
   (rfe/start! router on-navigate opts))
 
@@ -166,30 +149,30 @@
 
 ;; The player
 
-(defonce ^{:doc "The function that stops following the audio element of
-  the player, or nil."}
+(defonce ^{:doc "The function that stops following the player's audio
+  element, or nil."}
   detach
   (atom nil))
 
 (defn detach-player!
-  "Stop following the audio element of the player, and clear the buttons
-  of the lock screen."
+  "Stop following the player's audio element and clear the lock screen's
+  buttons."
   []
   (when-let [f @detach]
     (reset! detach nil)
     (f)))
 
 (defn attach-player!
-  "Follow the audio `element` of the player, in place of any element before
-  it, with the `opts` below, as play-nice does it: keep its media state,
-  put it on the lock screen, let it pause when another tab takes the play
-  lock, and follow the keys pressed in the player.
+  "Follow the player's audio `element` with play-nice, in place of any
+  element before it: report its media state, put it on the lock screen,
+  pause it when another tab takes the play lock, and follow the keys
+  pressed in the player. It takes these options:
 
-  - :on-media and :on-report, functions called with the media state of
-    the element at each of its events
+  - :on-media and :on-report, functions called with the element's media
+    state at each of its events
   - :lock, the name of the play lock across the tabs
-  - :keys-element, the element of the player whose keys control it, and
-    :handlers, the functions of the keys, as controls/listen! takes them"
+  - :keys-element, the element whose keys control the player, and
+    :handlers, the functions of the keys' actions"
   [element {:keys [on-media on-report lock keys-element handlers]}]
   (detach-player!)
   (let [events {:events (conj media/events :timeupdate)}]
@@ -197,15 +180,15 @@
             (juxt (media/watch! element on-media events)
                   (media/watch! element on-report events)
                   (session/attach! element)
-                  ;; the buttons that lock-screen! set, which attach!
-                  ;; leaves without its own :actions
+                  ;; clears the buttons that lock-screen! set, since
+                  ;; session/attach! clears only the :actions it's given
                   #(session/actions! {})
                   (tabs/attach! element lock)
                   (controls/listen! keys-element element handlers)))))
 
 (defn lock-screen!
-  "Show the `metadata` of the episode on the lock screen, with the
-  `actions`, the handlers of its buttons, as session/actions! takes them."
+  "Show the episode's `metadata` on the lock screen, with `actions` as the
+  handlers of its buttons."
   [metadata actions]
   (session/metadata! metadata)
   (session/actions! actions))

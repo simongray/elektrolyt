@@ -1,11 +1,9 @@
 (ns dk.simongray.elektrolyt.show.ui
-  "The views of the Show page: the show, the button that subscribes to it,
-  its episodes, a page of them at a time, the shows that it links to, and
-  the picks like it.
+  "The views of the Show page: the show and its subscription, its episodes
+  a page at a time, the shows that it links to, and the picks like it.
 
-  The page comes from the best source at hand, as
-  dk.simongray.elektrolyt.show describes it, so it shows what a search
-  knew of the show at once, and its episodes as its feed arrives."
+  The page shows the show's search result at once, and its episodes as
+  its feed arrives."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.spec :as spec]
             [dk.simongray.elektrolyt.library.picks :as picks]
@@ -25,13 +23,12 @@
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 (defn guid
-  "The guid of the show of the Show page of the `state`."
+  "The guid of the show on the Show page in `state`."
   [state]
   (get-in state [:route :path-params :guid]))
 
 (defn source
-  "The feed of the show of the Show page of the `state`, as show/source
-  gives it, or nil."
+  "The feed of the show on the Show page in `state`, or nil."
   [state]
   (show/source state (guid state)))
 
@@ -74,12 +71,12 @@
 
 ;; The order of Apple's Information and Pocket Casts' details: what the
 ;; show is and where to find it first, then when it publishes, and the
-;; fine print last. Wikipedia's infoboxes keep to key facts, and so does
-;; this, with the count of episodes left to the list of them.
+;; fine print last. Like Wikipedia's infoboxes, the rows keep to key
+;; facts, and the count of episodes is left to their list.
 ;; https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Infoboxes
 (defn details-rows
-  "The rows of the Details of the show `page`, whose website and feed the
-  line under its title links to instead."
+  "The rows of the Details of the show `page`, without its website and
+  feed, which the line under its title links to."
   [{:keys [funding categories language latest serial? locations license copyright]
     :as   page}]
   (let [names (distinct (map last categories))]
@@ -94,10 +91,10 @@
      [["License" [(details/license license)]]
       ["Copyright" [copyright]]])))
 
-;; Fewer rows in the Details: a word links to the show's website, and one
+;; Fewer rows in the Details: one word links to the show's website and one
 ;; to its feed, for another app to subscribe to, with the feed icon in
-;; place of the arrow of a new tab. The author stays text, since it's often
-;; the show's own name, which links to the show from its episodes.
+;; place of the new-tab arrow. The author stays text, since it's often the
+;; show's own name, which links to the show from its episodes.
 (defn byline
   "The line under the title of the show `page`, whose feed is at `url`: its
   author, its facts, and links to its website and its feed."
@@ -109,11 +106,9 @@
             (some-> url (details/web-link "Feed" icons/rss))])))
 
 (defn episode-row
-  "An episode in the list of episodes in the `state`, the `row` of its
-  :title, its date of :published, its :duration in seconds and the
-  :supplement it came from, as a row of a list: its artwork, or else the
-  `show`'s, and its title in the language `lang`, both a link to the
-  `href` of its page."
+  "The episode `row` in the list of episodes in `state`: its artwork, or
+  else the `show`'s, and its title in the language `lang`, both linking to
+  `href`, with its date, duration and source."
   [state href {:keys [title published duration supplement] :as row} lang show]
   [:article.show-episode
    (lists-ui/linked-row href (lists-ui/thumbnail state (if (:artwork row) row show))
@@ -123,9 +118,9 @@
                          (facts-ui/source supplement)])])
 
 (defn status-text
-  "What the status line of the episodes says, at the `status` of the load of
-  the feed, with `n` episodes so far, the `error` of a fetch that failed and
-  the count of `newer` episodes that wait."
+  "The text of the episodes' status line for the feed's load `status`, with
+  `n` episodes so far, the `error` of a failed fetch and the count of
+  `newer` episodes that wait."
   [status n error newer]
   (case status
     :loading "Loading episodes…"
@@ -135,18 +130,18 @@
            (str " " (text/counted newer "new episode") (if (= 1 newer) " is in." " are in."))))))
 
 ;; A button that lists more, rather than a list that grows as it scrolls,
-;; which a keyboard or a voice can't reach the end of (GitLab's audit of
-;; infinite scrolling, issue 1196 of gitlab-ui, and Deque on role=feed).
-;; New episodes that arrive while the list shows wait for a button, as the
-;; offline cookbook has it, so that the list doesn't move by itself.
+;; whose end a keyboard or a voice can't reach (GitLab's audit of infinite
+;; scrolling, issue 1196 of gitlab-ui, and Deque on role=feed). New
+;; episodes that arrive while the list shows wait for a button, as in the
+;; offline cookbook, so that the list doesn't move by itself.
 ;; https://web.dev/articles/offline-cookbook#cache-then-network
-;; A show that the library keeps is in it whole, so a load of its feed from
-;; before the subscription, e.g. the preview of a link, says nothing of it
+;;
+;; A show in the library is there whole, so a load of its feed from before
+;; the subscription, e.g. a prefetch, doesn't apply to it
 (defn episodes
-  "The episodes of the show `page` of the Show page of the `state`, as many
-  of them as :episodes-shown says, with the status of the load and a
-  button for the newer episodes that wait. Each title links to the page of
-  its episode."
+  "The episodes of the show `page` in `state`, a page at a time, with the
+  status of the load and buttons for newer episodes that wait and for
+  more."
   [state {rows :episodes :keys [language] :as page}]
   (let [g                             (guid state)
         {:keys [key url error newer]} (source state)
@@ -172,13 +167,13 @@
         "Show more episodes"])]))
 
 (def looking-up
-  "What the page of a show or an episode says while the Podcast Index is
-  asked where the show's feed is."
+  "The status line of a show or an episode page during a lookup in the
+  Podcast Index."
   [:p {:role "status"} "Looking for the show in the Podcast Index…"])
 
 (def not-found
-  "The content of the page of a show that neither the library, the link to
-  it nor the Podcast Index says where to find."
+  "The content of a show's page when neither the library, the link to it
+  nor the Podcast Index gives its feed."
   [:p "This show isn't in the library, and the link to it doesn't say "
    "where its feed is. Find it with "
    [:a {:href (routes/href :route/search)} "Search"]
@@ -190,10 +185,9 @@
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-header-element
 ;; https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
 (defn intro
-  "The header of the article of the show `page` of the Show page of the
-  `state`: its `heading` with its byline below it, its artwork, and beside
-  it its subscription, and its description below, in the show's
-  language."
+  "The header of the article of the show `page` in `state`: the `heading`
+  and byline, the artwork with the subscription beside it, and the
+  description in the show's language."
   [state heading {:keys [title notes language] :as page}]
   (let [url (:url (source state))]
     [:header.show-intro
@@ -215,9 +209,8 @@
 ;; links there too, for a pointer alone, as in the Library's shows
 ;; https://inclusive-components.design/cards/
 (defn show-cards
-  "The list of the show `cards` of linked/card in the `state`, each its
-  artwork, or a blank in its place, and its title, which link to its
-  page."
+  "The list of the show `cards` in `state`, each with its artwork or a
+  blank, and its title, both linking to its page."
   [state cards]
   [:ul.linked-shows {:role "list"}
    (for [{show-guid :guid :keys [title url] :as card} cards]
@@ -232,15 +225,14 @@
 
 ;; Pocket Casts puts a show's podroll first among its recommendations, as
 ;; "Recommended shows by the creator", and Apple Podcasts ends a show's
-;; page with More From its publisher. The shows are fetched as their part
-;; of the page mounts.
+;; page with More From its publisher.
 ;; https://support.pocketcasts.com/knowledge-base/podroll-podcast-recommendations/
 ;; https://podcasts.apple.com/us/podcast/the-daily/id1200361736
 ;; https://podcasting2.org/docs/podcast-namespace/tags/podroll
 (defn linked-shows
-  "The shows that the show of the Show page of the `state`, titled `title`,
-  links to: those of its podroll, and the other shows of its publisher,
-  or nil when its feed `source`, as show/source gives it, links to none."
+  "The shows that the show `title` on the Show page in `state` links to:
+  its podroll, and its publisher's other shows, or nil when its feed
+  `source` links to none."
   [state title {:keys [feed url] :as source}]
   (let [show-guid                   (guid state)
         {:keys [podroll publisher]} (get-in state [:linked show-guid])]
@@ -257,16 +249,16 @@
           (show-cards state (:shows publisher))])])))
 
 (def picks-section
-  "The section of the picks under a show: its heading's id and text, the
-  lead of its line of why, and what it says without picks."
+  "The section of picks under a show: the id and text of its heading, the
+  lead of the line on why they came up, and the text when there are
+  none."
   {:id "show-picks" :heading "More like this show" :lead "About"
    :none "Nothing in your library is like it yet."})
 
 (defn content
-  "The content of the Show page of the `state` under its `heading`: an
-  article, whose header has the heading, with the picks like it after its
-  Details, and the shows that it links to, or else the heading and what
-  became of the show."
+  "The content of the Show page in `state`: the show's article, with the
+  `heading` in its header and the picks after its Details, and the shows
+  that it links to, or else the `heading` and the status of the show."
   [state heading]
   (let [page   (show/page state (guid state))
         status (show/status state (guid state))]

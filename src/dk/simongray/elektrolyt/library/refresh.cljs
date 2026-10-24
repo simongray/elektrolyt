@@ -1,23 +1,15 @@
 (ns dk.simongray.elektrolyt.library.refresh
-  "Keeping the feeds of the library current, as podcast-clj's
-  library/refresh! does it in parts: the page says what's due, the app's
-  web worker fetches it, and the page applies what it found to the
-  library. It runs as the app starts, whenever the library is due again
-  while the page is visible, and when the listener asks.
+  "Keeping the feeds of the library current: the page picks the feeds that
+  are due, the web worker fetches them, and the page applies the result.
 
-  A refresh fetches only the feeds that are due, by each feed's own
-  schedule, and those that answer 304 cost no body. A feed whose server
-  can't answer 304 is checked by its start first, its :head-check?, so
-  that only a feed with something new is fetched whole and parsed.
+  A refresh runs as the app starts, whenever feeds are due while the page
+  is visible, and when the listener asks. Only one tab refreshes at a
+  time, and the others read what it writes.
 
   A feed of DR's own that was fetched before the listener turned the
-  episodes of drpodcast.nu on or off is fetched whole at once, before the
-  feeds that are due, and once a page, so that one whose fetch fails
-  waits for its schedule.
-
-  One refresh runs at a time across the tabs, so a tab whose worker finds
-  another refreshing reads what that one writes. A hidden tab doesn't
-  refresh, so with every tab hidden, nothing does."
+  episodes of drpodcast.nu on or off is stale. It's fetched whole ahead of
+  the feeds that are due, once per page load, so that one whose fetch
+  fails waits for its schedule."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.settings :as settings]
@@ -28,37 +20,34 @@
             [taoensso.telemere :as tel]))
 
 (def max-wait-ms
-  "The longest wait for the next refresh, after which the page asks the
-  library again, e.g. after the computer slept."
+  "The longest wait before the next check for feeds that are due, since a
+  timer pauses while the computer sleeps."
   (* 60 60 1000))
 
-(defonce ^{:doc "The stale feeds that this page refreshed, each a pair of
-  its key and whether DR's own feeds took the episodes of drpodcast.nu
-  then."}
+(defonce ^{:doc "The stale feeds that this page has refreshed, each as a
+  pair of its key and whether the episodes of drpodcast.nu were on."}
   refreshed-stale
   (atom #{}))
 
 (defn stale
-  "The keys of the feeds of the library of the `state` that a fetch would
-  give otherwise now, as drpodcast/stale has them, which this page hasn't
-  refreshed yet."
+  "The keys of the stale feeds in the library of `state` that this page
+  hasn't refreshed yet."
   [{:keys [library] :as state}]
   (when library
     (let [on? (settings/alternative-feeds? state)]
       (remove #(contains? @refreshed-stale [% on?]) (drpodcast/stale library on?)))))
 
 (defn next-one
-  "When the library of the `state` should refresh next, after the last
-  refresh, which waits a while after one that found the device offline, or
-  nil when it has nothing to fetch or the state no library. With stale
-  feeds, it's now."
+  "When the library in `state` should refresh next, or nil when there's
+  nothing to fetch. With stale feeds it's now, and after a refresh that
+  found the device offline it's a while later."
   [{:keys [library refresh-status] :as state}]
   (if (seq (stale state))
     (js/Date.)
     (some-> library (library/next-refresh {:after (:result refresh-status)}))))
 
 (defn due?
-  "Whether the library of the `state` has feeds that are due now."
+  "Whether the library in `state` has feeds that are due now."
   [state]
   (when-let [next-one (next-one state)]
     (<= (inst-ms next-one) (+ (js/Date.now) 1000))))
@@ -66,8 +55,8 @@
 (declare refresh!)
 
 (defn schedule!
-  "Refresh the library of the `store` when it's due next, if the page is
-  visible then."
+  "Refresh the library in `store` when it's next due, if the page is
+  visible by then."
   [store]
   (runtime/cancel! ::next)
   (when-let [next-one (next-one @store)]
@@ -77,15 +66,15 @@
                                      (schedule! store))))))
 
 (defn started
-  "The `state` as a refresh starts, which the listener asked for when
-  `asked?`."
+  "The `state` as a refresh starts, announced when the listener `asked?`
+  for it."
   [state asked?]
   (cond-> (assoc state :refresh-status {:running? true :done 0})
     asked? (assoc :announcement "Checking for new episodes…")))
 
 (defn refreshed
-  "The `state` once the refresh that gave the `result` beside the library
-  is done, which the listener asked for when `asked?`."
+  "The `state` once a refresh is done, with its `result` and a summary to
+  announce if the listener `asked?` for it or it found something new."
   [state result asked?]
   (let [summary (shows/summary result asked?)]
     (cond-> (assoc state :refresh-status {:running? false
@@ -93,23 +82,23 @@
       summary (assoc :announcement summary))))
 
 (defn refreshed!
-  "Apply what the worker `found` to the library of the `store` and save
-  it, as the refresh that the listener asked for when `asked?` ends."
+  "Apply the feeds that a refresh `found` to the library in `store` and
+  save it, given whether the listener `asked?` for the refresh."
   [store found asked?]
   (let [result (app-library/change! store
                                     {:operation [:library/refreshed found]})]
     (swap! store refreshed result asked?)
     (app-library/save! store)))
 
-;; WCAG 2.2, SC 4.1.3 Status Messages: one message as a refresh that the
-;; listener asked for starts, and one with what it found, rather than one
-;; for each feed, which would be too chatty
+;; WCAG 2.2, SC 4.1.3 Status Messages: a refresh that the listener asked
+;; for announces its start and its result, rather than each feed
 (defn refresh!
-  "Refresh the library of the `store` in the worker: the stale feeds, or
-  else the feeds that are due, or, when the listener `asked?`, every feed
-  of a subscription, and wait for the next. Stale feeds are fetched whole,
-  since their start can show nothing new. Nothing starts while a refresh
-  is under way."
+  "Refresh the library in `store` in the web worker, then schedule the
+  next refresh. It fetches every subscribed feed when the listener
+  `asked?`, or else the stale feeds, or else the feeds that are due.
+
+  Stale feeds are fetched whole, since a check of their start would find
+  nothing new. Nothing starts while a refresh is under way."
   [store asked?]
   (let [{:keys [library refresh-status] :as state} @store
         online? (.-onLine js/navigator)
@@ -139,8 +128,8 @@
           (.finally #(schedule! store))))))
 
 (defn refresh-if-due!
-  "Refresh the library of the `store` when feeds are due, e.g. as the app
-  starts or the page becomes visible, and wait for the next otherwise."
+  "Refresh the library in `store` if feeds are due, or else schedule the
+  next refresh."
   [store]
   (if (due? @store)
     (refresh! store false)

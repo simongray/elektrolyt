@@ -1,13 +1,10 @@
 (ns dk.simongray.elektrolyt.server
-  "The app's own server, which serves the app's files, the proxy through
-  which the app fetches feeds, and small thumbnails of artwork, on one
-  origin.
+  "The app's server, which serves the app's files, the proxy through which
+  the app fetches feeds, and thumbnails of artwork, all on one origin.
 
   It listens on localhost alone, since it checks no credentials and the
-  proxy fetches any public URL for whoever reaches it. With the credentials
-  of the Podcast Index in a file of secrets, the proxy signs the requests to
-  it, so that the secret stays on the server. What the server offers, the
-  page reads from /api/server, as transit."
+  proxy fetches any public URL. With the Podcast Index's credentials, the
+  proxy signs the requests to it, so that the secret stays on the server."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as str]
@@ -33,16 +30,14 @@
            [java.util.concurrent Semaphore TimeUnit]))
 
 (defn refused
-  "The answer to a request that the server refuses, with `message`."
+  "The 403 response that refuses a request with `message`."
   [message]
   (ring/text-response 403 message))
 
 (def localhost-only
-  "An interceptor that answers only requests to localhost, with or without
-  a port.
-
-  A web page that points a name of its own at this machine's address (DNS
-  rebinding) gets a 403, since the server checks no credentials."
+  "An interceptor that refuses a request whose Host header names anything
+  but this machine, so that a web page can't reach the server by DNS
+  rebinding."
   (interceptor/interceptor
    {:name  ::localhost-only
     :enter (fn [{:keys [request] :as context}]
@@ -56,8 +51,8 @@
 ;; Fetch Metadata Request Headers, W3C Working Draft of 2021-03-29
 (def same-origin-writes
   "An interceptor that refuses a write from a page of another origin, e.g.
-  a form of another site that posts to this one. Apps that aren't browsers
-  send no Sec-Fetch-Site, so their writes get through."
+  another site's form that posts here. Clients other than browsers send no
+  Sec-Fetch-Site, so their writes get through."
   (interceptor/interceptor
    {:name  ::same-origin-writes
     :enter (fn [{{:keys [headers request-method]} :request :as context}]
@@ -69,9 +64,8 @@
                  context)))}))
 
 (def folders
-  "An interceptor ahead of the router that sends a path that ends in a
-  slash to the index.html of its folder, so that the type of the answer
-  comes from the name of the file."
+  "An interceptor that rewrites a path that ends in a slash to its
+  folder's index.html, so that the content type comes from the file name."
   (interceptor/interceptor
    {:name  ::folders
     :enter (fn [context]
@@ -82,12 +76,13 @@
                            (assoc request :uri index :path-info index))
                          request))))}))
 
-;; the rules of connect-history-api-fallback (webpack's dev server), but
-;; without */*, so that a script that fetches a missing path gets a 404
+;; The rules of connect-history-api-fallback, which webpack's dev server
+;; uses, but without */*, so that a script that fetches a missing path
+;; gets a 404
 (defn client-side-route?
-  "Whether the Ring `request` asks for a page of the app rather than a
-  file: a GET or a HEAD of a path without a file extension, from a client
-  that accepts HTML, e.g. a browser that opens /search?q=x."
+  "Whether the Ring `request` is for a page of the app rather than a file:
+  a GET or a HEAD of a path without a file extension, from a client that
+  accepts HTML."
   [{:keys [request-method uri headers] :as request}]
   (boolean (and (#{:get :head} request-method)
                 (not (re-find #"\.[^/]*$" uri))
@@ -95,8 +90,8 @@
 
 (defn index-fallback
   "An interceptor that answers a request for a page of the app with the
-  index.html of `client-dir`, when nothing else answered it. The app's own
-  router then shows the page, e.g. when the browser reloads /search?q=x."
+  index.html in `client-dir` when nothing else has, so that the app's
+  router can show the page."
   [client-dir]
   (interceptor/interceptor
    {:name  ::index-fallback
@@ -124,10 +119,10 @@
                context))}))
 
 ;; RFC 9111, sections 4.2.2 and 5.2.2.4: without no-cache, a browser may
-;; judge a file fresh by itself and run the code of an older build
+;; judge a file fresh by itself and run an older build's code
 (def revalidated
   "An interceptor that has the browser check with the server before it uses
-  a cached file. The check costs a 304 when the file hasn't changed."
+  a cached file, which costs a 304 when the file hasn't changed."
   (interceptor/interceptor
    {:name  ::revalidated
     :leave (fn [{:keys [response] :as context}]
@@ -136,19 +131,18 @@
                                   "no-cache")))}))
 
 (defn file-tag
-  "The ETag of the bytes of the `file`: the start of their SHA-256, quoted."
+  "The ETag of the bytes in `file`: the start of their SHA-256, quoted."
   [^java.io.File file]
   (let [digest (.digest (MessageDigest/getInstance "SHA-256")
                         (Files/readAllBytes (.toPath file)))]
     (str "\"" (subs (.formatHex (HexFormat/of) digest) 0 32) "\"")))
 
-;; RFC 9110, sections 8.8.3 and 13.2.2: a validator of the file's bytes,
-;; since a Last-Modified counts whole seconds, and a browser that asks
-;; If-Modified-Since gets a 304 for a file that a build wrote again within
-;; the same second as the copy it has, or for an older build put back
+;; RFC 9110, sections 8.8.3 and 13.2.2: Last-Modified counts whole
+;; seconds, so If-Modified-Since would get a 304 for a file rebuilt within
+;; the same second, or for an older build put back
 (defn tagged
-  "An interceptor that gives the answer with a file of `client-dir` an ETag
-  of its bytes in place of its Last-Modified."
+  "An interceptor that gives a response with a file in `client-dir` an
+  ETag of its bytes in place of its Last-Modified."
   [client-dir]
   (interceptor/interceptor
    {:name  ::tagged
@@ -161,13 +155,12 @@
                                  (assoc "ETag" (file-tag file)))))))}))
 
 (defn client-routes
-  "The routes of the app's files in `client-dir`. Each file has the type of
-  its name and an ETag of its bytes, and a 304 when the browser has the
-  same. A dotfile isn't served."
+  "The routes of the app's files in `client-dir`, each served with an ETag
+  of its bytes, though never a dotfile."
   [client-dir]
-  ;; read again on each request, since shadow-cljs rewrites them; the
-  ;; interceptors leave in the opposite order, so the ETag is there before
-  ;; not-modified looks
+  ;; read on each request, since shadow-cljs rewrites the files. The
+  ;; interceptors leave in reverse order, so the ETag is set before
+  ;; not-modified checks it
   (resources/file-routes {:file-root    (.getPath (io/file client-dir))
                           :cache?       false
                           :interceptors [no-dotfiles
@@ -177,9 +170,8 @@
                                          (tagged client-dir)]}))
 
 (defn at-most
-  "The Ring `handler` answering at most `n` requests at once, e.g. so that
-  the proxy holds no more than `n` bodies in memory. A request that waits
-  `seconds` for its turn gets a 503 with a Retry-After."
+  "The Ring `handler` answering at most `n` requests at once. A request
+  that waits `seconds` for its turn gets a 503 with a Retry-After."
   [n seconds handler]
   (let [turns (Semaphore. n true)]
     (fn [request]
@@ -193,9 +185,9 @@
          {"Retry-After" "5"})))))
 
 (defn podcastindex-credentials
-  "The :key and :secret of the Podcast Index under :podcastindex in the EDN
-  file `secrets`, or nil without the file or the key there. The secret is
-  hidden with wary-fetch's secret/hide, so that it prints as #<secret>."
+  "The Podcast Index's :key and :secret under :podcastindex in the EDN file
+  `secrets`, or nil without them. The secret is hidden with wary-fetch, so
+  that it prints as #<secret>."
   [secrets]
   (when (and secrets (.isFile (io/file secrets)))
     (some-> (edn/read-string (slurp secrets))
@@ -211,9 +203,9 @@
     (.toString out "UTF-8")))
 
 (defn server-info
-  "The handler of what the server with the Podcast Index credentials
-  `podcastindex` offers the app, as transit: whether it signs the requests
-  to the Podcast Index, as :podcastindex?."
+  "The handler of what the server offers the app, as transit: whether it
+  has the credentials `podcastindex` to sign requests to the Podcast
+  Index, as :podcastindex?."
   [podcastindex]
   (let [body (transit-json {:podcastindex? (some? podcastindex)})]
     (fn [_]
@@ -222,28 +214,26 @@
        :body    body})))
 
 (defn routes
-  "The routes of the proxy, the thumbnails of artwork and /api/server in
-  Pedestal's set syntax, with the Podcast Index credentials `podcastindex`,
-  or nil, and the thumbnails kept in `artwork-dir`. The proxy fetches four
-  files at once, of 32 MB at most, as podcast-clj's server does, and signs
-  the requests to the Podcast Index. The thumbnails' handler fetches and
-  scales two artworks at once, as artwork/defaults has it, which with the
-  proxy's four fit in a heap of 320 MB."
+  "The routes of the proxy, the thumbnails of artwork and /api/server,
+  with the Podcast Index credentials `podcastindex`, or nil, and the
+  thumbnails kept in `artwork-dir`. The proxy holds up to four bodies of
+  32 MB at once, and the thumbnails' handler scales two artworks, so that
+  together they fit in a heap of 320 MB."
   [podcastindex artwork-dir]
   (let [send       (if podcastindex
                      (podcastindex/sender podcastindex {:send client/send!})
                      client/send!)
         proxy      (at-most 4 30 (proxy/handler {:user-agent client/user-agent
                                                  :send       send}))
-        ;; without at-most, which would hold up the thumbnails of the
-        ;; folder too, since the handler counts its own jobs
+        ;; no at-most, which would hold up the cached thumbnails too, since
+        ;; the handler limits its own jobs
         thumbnails (artwork/handler {:cache-dir artwork-dir})]
     #{["/proxy" :any proxy :route-name ::proxy]
       ["/artwork" :any thumbnails :route-name ::artwork]
       ["/api/server" :get (server-info podcastindex) :route-name ::server-info]}))
 
 (defn connector
-  "A Jetty connector of the server with the `settings` below; not yet
+  "A Jetty connector of the server with the `settings` below, not yet
   started.
 
   - :port, on localhost
@@ -256,9 +246,9 @@
     (-> (conn/default-connector-map "localhost" port)
         (conn/with-interceptors
           [interceptors/not-found
-           ;; scripts from this server only, with eval for the development
-           ;; builds of shadow-cljs; art, media and the rest from any host;
-           ;; and no HSTS on plain HTTP
+           ;; scripts from this server only, with eval for shadow-cljs's
+           ;; development builds; images, media and the rest from any host;
+           ;; no HSTS on plain HTTP
            (secure-headers/secure-headers
             {:content-security-policy-settings policy
              :hsts-settings                    nil})
@@ -279,9 +269,9 @@
 
   - :port, 8400 by default
   - :client-dir, the folder of the app's files, public/ by default
-  - :secrets, an EDN file with the credentials of the Podcast Index under
-    :podcastindex, by default the file that the environment variable
-    PODCAST_APP_SECRETS names, if any
+  - :secrets, an EDN file with the Podcast Index's credentials under
+    :podcastindex, by default the file that PODCAST_APP_SECRETS names, if
+    any
   - :artwork-dir, the folder of the thumbnails of artwork, .cache/artwork
     by default"
   ([]

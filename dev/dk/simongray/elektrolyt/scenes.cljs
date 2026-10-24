@@ -1,7 +1,5 @@
 (ns dk.simongray.elektrolyt.scenes
-  "The fixtures that the scenes share: artwork that needs no network, and
-  a show of four episodes a week apart, its feed, and a library that
-  subscribes to it."
+  "The fixtures that the scenes share, none of which needs the network."
   (:require [dk.simongray.podcast.app.library :as library]))
 
 (def artwork

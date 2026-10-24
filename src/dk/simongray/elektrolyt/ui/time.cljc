@@ -1,7 +1,6 @@
 (ns dk.simongray.elektrolyt.ui.time
-  "Dates, durations and the times of a clock as the pages show them: as
-  text in the page's language, and as time elements, whose datetime a
-  machine reads (HTML, section 4.5.14)."
+  "Dates, durations and clock times as text in the page's language, and as
+  time elements (HTML, section 4.5.14)."
   (:require #?(:clj [clojure.string :as str])
             [dk.simongray.podcast.util.time :as time]
             #?(:cljs [dk.simongray.elektrolyt.ui.text :as text])))

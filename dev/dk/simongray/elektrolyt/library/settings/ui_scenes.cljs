@@ -19,13 +19,12 @@
   (ui/page (settings-page {:storage {:supported? true :persisted? true :usage 12345678}})))
 
 (defscene a-browser-that-may-clear-it
-  "A browser that hasn't agreed to keep the library, with the button that
-  asks it to."
+  "A browser that may clear the library, with the button that asks it to
+  keep the library."
   (ui/page (settings-page {:storage {:supported? true :persisted? false :usage 2345678}})))
 
 (defscene after-clearing-the-searches
-  "The status line of this browser, once the searches and shows that it
-  kept are cleared."
+  "The status line once the cache is cleared."
   (ui/page (settings/cleared
             (settings-page {:storage {:supported? true :persisted? true :usage 12345678}})
             nil)))

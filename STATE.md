@@ -26,7 +26,7 @@ as long as the tab.
 | Key | What it holds | Writers | Readers | Cleared |
 |---|---|---|---|---|
 | `:library` | The listener's library: the profile, the feeds and the search index, with this tab's operations that wait applied to it | `library` (`open!`, `change!`, `written!`, `caught-up!`) | most views, `player.audio`, `library.picks`, `library.refresh` | Replaced when another tab writes, or the page is shown again |
-| `:player` | This tab's player: the episode, the element's media state, the volume, a seek, a wait for data, and what another tab plays | `player.audio`, and `elektrolyt` for `:expanded?` | `player`, the views | Overwritten |
+| `:player` | This tab's player: the episode, the element's media state, the volume, a seek, a wait for data, and what another tab plays | `player.audio` | `player`, the views | Overwritten |
 | `:episodes` | What an episode's files say, by id: chapters, duration, transcript, and when their read began | `player.audio`, `show.feeds` | `player`, `episode.ui` | At a change of page, but for the episode that plays and the 20 whose reads began last (`episode/kept-count`) |
 | `:feeds` | The feeds of shows outside the library, by URL, with their validators and whether this visit checked them | `show.feeds`, through `show` | `show/source` | Clear cache |
 | `:feed-urls` | Where a show's feed is, by guid, from the cache or the Podcast Index | `show.feeds` | `show` | Clear cache, or a 404 or 410 at a URL from the cache |

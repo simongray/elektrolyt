@@ -1,24 +1,17 @@
 (ns dk.simongray.elektrolyt.library
   "The listener's library on this device, kept in IndexedDB between visits
-  and shared by the tabs of the app.
+  and shared by the tabs.
 
-  The library is podcast-clj's, and its requests go through the proxy of
-  the app's server. As podcast-clj's guide has it, the id of the device
-  lives in localStorage apart from the library, so that a save that fails
-  makes no new device at the next visit, and the library has a database of
-  its own, since a write deletes the documents of the library before it.
+  The library has a database of its own, since a write deletes the
+  documents that it no longer needs. The device's id lives in localStorage
+  instead, so that a save that fails makes no new device at the next visit.
 
-  The library's document in IndexedDB is the one library of the device,
-  which every tab changes as it would an atom. A change is an operation of
-  dk.simongray.elektrolyt.library.operations, which the tab applies to its
-  own library at once, for the page. A save writes the operations that
-  wait with library/durable-swap!, on condition of the version of the
-  document that the tab knows, and again onto the stored library when
-  another tab wrote first. Then it tells the other tabs the new version on
-  a BroadcastChannel, so that they read it, as a page does when it's shown
-  again. The app's web worker writes only the documents of the feeds that
-  it fetched, as dk.simongray.elektrolyt.worker.fetching has it. The
-  documents are in Transit, which reads about 30 times faster than EDN."
+  A tab applies each change to its own library at once. A save later
+  writes the waiting operations if the stored version is still the one
+  that the tab knows, or else applies them again to the stored library.
+  Then it tells the other tabs the new version on a BroadcastChannel, so
+  that they read it. The documents are in Transit, which reads about 30
+  times faster than EDN."
   (:require [dk.simongray.like-minded.device :as device]
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
@@ -29,72 +22,69 @@
             [taoensso.telemere :as tel]))
 
 (def send
-  "The function that sends the requests of the library, through the proxy
-  of the app's server."
+  "The function that sends the library's requests through the proxy on the
+  app's server."
   (proxy/sender "/proxy"))
 
-;; The app's former name, since a browser keeps the listener's data under
-;; them
+;; The app's former name, which existing data is stored under
 (def device-key
-  "The key of the id of this browser in localStorage."
+  "The localStorage key of this browser's device id."
   "dk.simongray.podcast-app.device")
 
 (def store
-  "The IndexedDB database of the library, which opens at its first use."
+  "The library's IndexedDB database."
   (indexeddb/store "dk.simongray.podcast-app.library"))
 
-;; The app offers no choice of where new episodes go, so every one of them
-;; arrives in the inbox, though an earlier version of the app, or another
-;; app, chose the queue or nowhere for a show. That choice stays in the
-;; show's settings, for the apps that offer it.
+;; The app offers no choice of where new episodes go, so they all go to the
+;; inbox. A show's own choice from an earlier version or another app stays
+;; in its settings, for the apps that offer one.
 (def config
-  "The config of the library in every tab and the worker of the app."
+  "The library's config, the same in every tab and the worker."
   {:new-episodes :inbox})
 
 (def options
-  "The options of every call to the library in the tabs and the worker of
-  the app, which are functions and so stay out of its config: its requests
-  go through the proxy, and its documents are in Transit."
+  "The options of every call to the library: its requests go through the
+  proxy and its documents are in Transit. They're functions, so they stay
+  out of its config."
   {:send  send
    :codec transit/codec})
 
 (def document-name
-  "The name of the library's own document in the store, as podcast-clj
-  names it in the codec of the options."
+  "The name that podcast-clj gives the library's own document in the store."
   (str "library" (:extension transit/codec)))
 
 (def channel-name
-  "The name of the BroadcastChannel on which the tabs tell each other the
-  version of the library that they wrote."
+  "The name of the BroadcastChannel that carries each version of the
+  library that a tab writes."
   "dk.simongray.elektrolyt.library")
 
-(defonce ^{:doc "The library as this tab last read it from the store or
-  wrote it there, and the version of its document, as library/read! gives
-  them, once open! has read it."}
+(defonce ^{:doc "The library that this tab last read or wrote, and the
+  version of its document, as a map of the :library and the :version, or
+  nil before the first read."}
   known
   (atom nil))
 
-(defonce ^{:doc "The operations that this tab applied to its library and
-  hasn't written yet, in order, each a map of the :operation and the
-  :opts that it was applied with."}
+(defonce ^{:doc "The operations that this tab has applied to its library
+  but not written yet, in order, each a map of the :operation and the
+  :opts it was applied with."}
   waiting
   (atom []))
 
-(defonce ^{:doc "The promise of the last write or read of this tab, and
-  the save that waits its turn after it, if any."}
+(defonce ^{:doc "The promise of this tab's last read or write, and of the
+  save that waits its turn after it, if any."}
   turns
   (atom {:last (js/Promise.resolve nil) :next nil}))
 
 (defn applied
-  "What the `operation` gives of the `library`, applied with the `opts` of
-  operations/applied and the options of the library's calls."
+  "The result of the `operation` on the `library`, applied with the
+  library's options and the `opts`."
   [library operation opts]
   (operations/applied library operation (merge options opts)))
 
 (defn applied-all
-  "The `library` with the `ops`, maps of the :operation and its :opts as
-  waiting holds them, applied in order. An operation that throws on this
-  library, e.g. a subscription that another tab made first, is left out."
+  "The `library` with the `ops` applied in order, each a map of an
+  :operation and its :opts. An operation that throws, e.g. a subscription
+  that another tab made first, is logged and left out."
   [library ops]
   (reduce (fn [lib {:keys [operation opts]}]
             (try
@@ -108,8 +98,8 @@
           ops))
 
 (defn in-turn!
-  "A promise of what `f` gives, called once the writes and reads of this
-  tab before it are done."
+  "A promise of what `f` returns, called once this tab's earlier reads and
+  writes are done."
   [f]
   (let [p (.then (:last @turns) (fn [_] (f)))]
     (swap! turns assoc :last (.catch p (constantly nil)))
@@ -121,12 +111,12 @@
   (runtime/post! channel-name {:version version}))
 
 (defn written!
-  "A promise of the write of the operations that wait in the app `state`,
-  an atom, with library/durable-swap!, or of nil when none wait. The tab's
-  library is the one that it writes, unless another tab wrote first, when
-  it's the stored library with the operations applied again, and those
-  that came meanwhile on top. A write that fails keeps the operations
-  waiting for the next."
+  "A promise of writing this tab's waiting operations to the store, from
+  the library in the `state` atom, or of nil when none wait.
+
+  When another tab wrote first, the operations are applied again to the
+  stored library, which then goes into `state` with any newer operations
+  on top. A write that fails keeps its operations waiting."
   [state]
   (let [ops @waiting
         {:keys [library] :as k} @known]
@@ -152,7 +142,7 @@
                       {:error {:id :library/save-failed :reason (ex-message e)}})))))))
 
 (defn logged!
-  "Log the result `written` of a write when it failed, and give it."
+  "Log the result `written` of a write if it failed, and return it."
   [written]
   (when (:error written)
     (tel/log! {:level :error :id :library/save-failed :data written}
@@ -160,10 +150,9 @@
   written)
 
 (defn save!
-  "A promise of the write of the operations that wait in the app `state`,
-  an atom, once the writes and reads before it are done, as written!
-  gives it, which logged! logs. A save asked for while another waits its
-  turn is that one."
+  "A promise of writing this tab's waiting operations from the `state`
+  atom once its earlier reads and writes are done, which logs a write that
+  fails. A save asked for while another waits its turn joins that one."
   [state]
   (or (:next @turns)
       (let [p (in-turn! #(do (swap! turns assoc :next nil)
@@ -172,13 +161,12 @@
         p)))
 
 (defn change!
-  "Make the `change` of operations/changed to the app `state`, an atom,
-  with the `opts` of operations/applied, and give what its operation gave,
-  as applied gives it, e.g. the :effects of a step beside the library. The
-  time of the change is now, unless the `opts` give its :at. The operation
-  waits for the next save!.
+  "Make the `change` to the `state` atom with the `opts`, and return what
+  its operation returned, e.g. the :effects of a step beside the library.
+  It's applied at the current time unless the `opts` give an :at, and its
+  operation waits for the next save.
 
-  An operation that throws changes nothing, and the throw goes on to the
+  An operation that throws changes nothing, and its error reaches the
   caller."
   ([state change]
    (change! state change {}))
@@ -195,18 +183,18 @@
        given))))
 
 (defn stored-version
-  "A promise of the version of the library's document in the store, from
-  its listing, which reads no bodies."
+  "A promise of the stored version of the library's document, taken from
+  the store's listing so that no document is read."
   []
   (.then ((:list store))
          (fn [listed]
            (some #(when (= document-name (:name %)) (:version %)) listed))))
 
 (defn caught-up!
-  "A promise of the library that another tab wrote, read into the app
-  `state`, an atom, with the operations that wait applied to it, once the
-  writes and reads before are done, when the store holds another version
-  than this tab knows. It reads only what changed."
+  "A promise of reading the library that another tab wrote into the
+  `state` atom, with the waiting operations applied, when the stored
+  version isn't the one this tab knows. It waits for this tab's earlier
+  reads and writes, and reads only what changed."
   [state]
   (in-turn!
    (fn []
@@ -223,11 +211,11 @@
 
 ;; HTML Living Standard, 9.5 Broadcasting to other browsing contexts, and
 ;; Page Lifecycle: a hidden or frozen page, or one in the back/forward
-;; cache, gets no message, so it reads what it missed when it's shown again
+;; cache, gets no messages, so it reads what it missed when it's shown again
 ;; https://developer.chrome.com/docs/web-platform/page-lifecycle-api
 (defn listen!
-  "Read what the other tabs write into the app `state`, an atom, as they
-  tell it, and when the page is visible again or shown from the
+  "Read what the other tabs write into the `state` atom whenever they
+  announce it, and when the page is visible again or comes back from the
   back/forward cache."
   [state]
   (runtime/on-message! channel-name (fn [_] (caught-up! state)))
@@ -235,10 +223,10 @@
   (runtime/on-pageshow! #(caught-up! state)))
 
 (defn open!
-  "A promise of the library of this browser, as the last write left it or
-  a new one, in the :library of the app `state`, an atom, which then reads
-  what the other tabs write. A library that doesn't read leaves the state
-  without one, and the promise fails."
+  "A promise of reading this browser's library, or a new one, into the
+  :library of the `state` atom, and of keeping it up to date with what the
+  other tabs write. If the library can't be read, the promise fails and
+  `state` gets no library."
   [state]
   (.then (library/read! (library/make (device/id! device-key) {:config config :codec transit/codec})
                         store
@@ -249,9 +237,8 @@
            (listen! state)
            read)))
 
-;; Storage Standard, sections 7.1 and 8: a browser can clear a site's
-;; storage when the device runs low, unless the site asks for it to persist.
-;; Firefox asks the user, so the request waits until the listener subscribes.
+;; Storage Standard, sections 7.1 and 8. Firefox asks the user first, so the
+;; request waits until the listener subscribes.
 (defn persist!
   "Ask the browser to keep the site's storage when the device runs low."
   []
@@ -270,7 +257,7 @@
     (js/Promise.resolve {:supported? false})))
 
 (defn check-storage!
-  "A promise that the :storage of the app `state`, an atom, says how the
-  browser keeps the site's storage now, from storage!."
+  "A promise of updating the :storage of the `state` atom with how the
+  browser keeps the site's storage now."
   [state]
   (.then (storage!) #(swap! state assoc :storage %)))

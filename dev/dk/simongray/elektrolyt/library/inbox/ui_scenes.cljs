@@ -35,5 +35,5 @@
     (ui/page (operations/changed state (inbox/all-dismissed state)))))
 
 (defscene nothing-new
-  "An inbox with no episodes, which tells how they get there."
+  "An empty inbox, with how episodes get there."
   (ui/page (arrived)))

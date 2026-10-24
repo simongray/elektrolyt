@@ -1,30 +1,27 @@
 (ns dk.simongray.elektrolyt.ui.document
-  "What the app does to the document itself: renders the page into it,
-  gives the window its title, address and colours, and moves the focus
-  and the scroll."
+  "What the app does to the document: renders the page into it, gives the
+  window its title, address and colours, and moves the focus and the
+  scroll."
   (:require [dk.simongray.colour-coded :as cc]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.ui :as ui]
             [replicant.dom :as r]))
 
-;; The app's former name, since a browser keeps the listener's data under
-;; them
+;; The app's former name, which existing data is stored under
 (def theme-key
-  "The key in localStorage of a copy of the colours that the listener
-  chose, which public/theme.js applies before the page first renders,
-  rather than show the device's until the library is restored."
+  "The localStorage key of a copy of the listener's theme, which
+  public/theme.js applies before the first render."
   "dk.simongray.podcast-app.theme")
 
 (def contrast-key
-  "The key in localStorage of a copy of the contrast that the listener
-  chose, which public/theme.js applies as it does the colours."
+  "The localStorage key of a copy of the listener's contrast, which
+  public/theme.js applies too."
   "dk.simongray.podcast-app.contrast")
 
 (defn attributed!
-  "Give the document's root the attribute `attr` with the value `v`, or
-  else none, and keep a copy of it in this browser under the `key`, as it
-  changes."
+  "Set the attribute `attr` of the document's root to `v`, or remove it for
+  nil, and keep a copy in localStorage under `key` when it changes."
   [attr key v]
   (let [root js/document.documentElement]
     (when (not= v (.getAttribute root attr))
@@ -34,20 +31,19 @@
         (do (.removeAttribute root attr)
             (local/forget! key))))))
 
-;; Without preferences to read, the copies that public/theme.js applied are
-;; the best guess at the listener's choice, so they stay
 (defn themed!
-  "Give the document the colours and the contrast that the listener chose
-  in the `state`, as its data-theme and its data-contrast, or else none,
-  for the device's, once the `state` has preferences to tell them by."
+  "Set the document's data-theme and data-contrast to the listener's
+  choices in `state`, or remove them to follow the device. Without
+  preferences in `state`, the copies from localStorage stay as the best
+  guess."
   [state]
   (when-let [{:keys [theme contrast]} (settings/look state)]
     (attributed! "data-theme" theme-key theme)
     (attributed! "data-contrast" contrast-key contrast)))
 
 (defn bar-color
-  "The colour of the player's bar as the browser computed it, or else the
-  paper's, while nothing plays."
+  "The computed colour of the player's bar, or else of the paper while
+  nothing plays."
   []
   (->> ["#player" "body"]
        (keep #(js/document.querySelector %))
@@ -56,32 +52,26 @@
        (first)))
 
 ;; HTML, the theme-color meta name: a colour for the browser's own bars,
-;; e.g. Chrome's on Android, and for the title bar of an installed app. It
-;; takes no var(), so it gets the bar's colour as the browser computed it,
-;; in hex. Safari on iOS 26 reportedly ignores it.
+;; e.g. Chrome's on Android, and an installed app's title bar. It takes no
+;; var(), so it gets the computed colour in hex. Safari on iOS 26
+;; reportedly ignores it.
 ;; https://html.spec.whatwg.org/multipage/semantics.html#meta-theme-color
 ;; https://benfrain.com/ios26-safari-theme-color-tab-tinting-with-fixed-position-elements/
 (defn theme-colored!
-  "Give the page's theme-color the colour of the player's bar, or of the
-  paper, as it is now."
+  "Set the page's theme-color to the current colour of the player's bar,
+  or else of the paper."
   []
   (when-let [meta (js/document.querySelector "meta[name=theme-color]")]
     (when-let [c (some-> (bar-color) cc/hex)]
       (when (not= c (.-content meta))
         (set! (.-content meta) c)))))
 
-;; WCAG 2.2, SC 2.4.3 Focus Order: an element that a render takes away
-;; while it has the focus leaves the focus on the body, where a keyboard
-;; or a screen reader loses its place, e.g. an Undo that another tab left
-;; nothing to undo
-;; https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html
-;; HTML, the icon link type: the page's icon, which the browser shows in
-;; its tab, and without which it shows its own
+;; HTML, the icon link type: the page's icon in the browser's tab, or else
+;; the browser's own
 ;; https://html.spec.whatwg.org/multipage/links.html#rel-icon
 (defn favicon!
-  "Give the page the icon at `href`, or none for nil, changing the page only
-  when the icon changes, since the page renders every second while it
-  plays."
+  "Set the page's icon to `href`, or remove it for nil. The page changes
+  only when the icon does, since it renders every second during playback."
   [href]
   (let [link (js/document.querySelector "link[rel=icon]")]
     (cond
@@ -92,11 +82,15 @@
                                                         (.setAttribute "href" href)))
       (not= href (.getAttribute link "href")) (.setAttribute link "href" href))))
 
+;; WCAG 2.2, SC 2.4.3 Focus Order: when a render removes the focused
+;; element, the focus falls to the body, where a keyboard or a screen
+;; reader loses its place, e.g. on an Undo that another tab left nothing
+;; to undo
+;; https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html
 (defn render!
-  "Render the page for `state` into the element of the app, and give the
-  window the page's title and icon and the listener's colours. When the
-  render takes away the element with the focus, the element that its
-  data-refocus selector names takes the focus, if it names one."
+  "Render the page for `state`, and give the window its title, icon and
+  colours. When the render removes the focused element, the focus moves
+  to the element that its data-refocus selector names, if any."
   [state]
   (let [^js focused js/document.activeElement]
     (r/render (js/document.getElementById "app") (ui/page state))
@@ -110,11 +104,9 @@
   (theme-colored!))
 
 (defn canonicalize!
-  "Write the canonical path of the page of the `state`, from
-  ui/canonical-path, into the address bar, in place of the URL that the
-  link gave, e.g. without a slug. It replaces the URL in the history, which adds no
-  entry, and leaves the route of the state as it was, so that the focus
-  doesn't move."
+  "Replace the URL in the address bar with the canonical path of the page
+  in `state`, e.g. one with a slug, without a new history entry. The route
+  in `state` stays as it was, so the focus doesn't move."
   [state]
   (when-let [path (ui/canonical-path state)]
     (when (not= path (str js/location.pathname js/location.search))
@@ -130,10 +122,10 @@
   []
   (some-> (js/document.querySelector "main h1") .focus))
 
-;; CSSOM View, scrollIntoView: a heading at the start of a row that
-;; scrolls sideways, which brings its column into view, and at the top of
-;; the page where it's out of sight, e.g. further down a stack, since focus
-;; alone scrolls nothing where a part of the element shows
+;; CSSOM View, scrollIntoView: the heading goes to the start of a row that
+;; scrolls sideways, which brings its column into view, and to the top of
+;; the page when it's out of sight, e.g. further down a stack. Focus alone
+;; scrolls nothing while part of the element shows.
 ;; https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview
 (defn show!
   "Bring the heading `id` into view and move the focus to it."
@@ -145,12 +137,10 @@
                                     :inline "start"})
       (.focus heading #js {:preventScroll true}))))
 
-;; HTML, scroll to the fragment, which a navigation by pushState leaves
-;; undone: the start of the element at the top, as far as the page
-;; scrolls. The focus moves there too, as the skip link moves it. A face
-;; that the page needs only once it's laid out, e.g. the bold of a
-;; heading, loads after the scroll and moves the text above the element,
-;; so it scrolls again once the fonts are in, unless the focus moved on.
+;; HTML, scroll to the fragment, which a pushState navigation doesn't do.
+;; A font face that loads after the scroll, e.g. a heading's bold, can move
+;; the text above the element, so it scrolls again once the fonts are in,
+;; unless the focus has moved on.
 ;; https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-fragid
 ;; https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready
 (defn scroll-to!
@@ -166,25 +156,23 @@
                         (scroll!)))))))
 
 (defn open-dialog!
-  "Open the dialog `id` as a modal one, with no answer yet."
+  "Open the dialog `id` as a modal, with its return value cleared."
   [id]
   (when-let [dialog (js/document.getElementById id)]
     (set! (.-returnValue dialog) "")
     (.showModal dialog)))
 
-;; WCAG 2.2, SC 1.4.13 Content on Hover or Focus: what an element shows on
-;; hover and on focus (layout.css) hides on Escape, without the pointer or
-;; the focus moving, as Video.js hides its volume. It stays hidden until
-;; both have left the element, with the focus on its button, since the
-;; focus mustn't stay in a part that's hidden. The mark of it is an
-;; attribute that the views never set, so that a render keeps it. The
-;; platform's own popover for hover, with interestfor, would do this, but
-;; only Chrome and Edge have it so far.
+;; WCAG 2.2, SC 1.4.13 Content on Hover or Focus: what shows on hover or
+;; focus hides on Escape without the pointer or the focus moving, as
+;; Video.js hides its volume. The focus goes to the element's button, since
+;; it mustn't stay in a hidden part. The mark is an attribute that the
+;; views never set, so that a render keeps it. A popover with interestfor
+;; would do this, but only Chrome and Edge have it so far.
 ;; https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
 ;; https://caniuse.com/wf-interest-invokers
 (defn dismiss-on-escape!
-  "Hide what the element of the keyboard `event` shows on hover and focus,
-  for Escape, with the focus on its button."
+  "Hide what the element of the keyboard `event` shows on hover and focus
+  when the key is Escape, and move the focus to its button."
   [^js event]
   (when (= "Escape" (.-key event))
     (let [element (.-currentTarget event)]

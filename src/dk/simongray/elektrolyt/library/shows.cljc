@@ -1,35 +1,28 @@
 (ns dk.simongray.elektrolyt.library.shows
-  "The Library page: the shows that the listener subscribes to, in the order
-  and the layout they chose, and what a refresh of their feeds found.
-
-  The state keeps the listener's choices for the page as :library-view, a
-  map of its :sort, one of sorts, and its :layout, one of layouts, which
-  this browser keeps, and the refresh under way or done as
-  :refresh-status: a map of whether it's :running?, how many feeds are
-  :done of the :total, and its :result, what library/refreshed gave beside
-  the library, e.g. the counts and the episodes :added."
+  "The shows on the Library page, in the order and layout that the listener
+  chose, and what a refresh of their feeds found."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def sorts
-  "The orders of the shows that the listener can choose, by key, the first
-  the default: the shows with the newest episodes first, as Apple Podcasts'
-  Recently Updated has them, or by title."
+  "The orders that the listener can choose for the shows, by key, with the
+  default first. Newest episode first follows Apple Podcasts' Recently
+  Updated."
   (array-map :newest "Newest episode"
              :title  "Title"))
 
 (def layouts
-  "The layouts of the shows that the listener can choose, by key, the first
-  the default: a list on a phone and a grid of their artwork wider than
-  that, or either at every width."
+  "The layouts that the listener can choose for the shows, by key, with the
+  default first: a list on a phone and a grid on wider screens, or either
+  one at every width."
   (array-map :auto "Automatic"
              :grid "Grid"
              :list "List"))
 
 (defn choice
-  "The listener's choice of `k`, :sort or :layout, in the `state`, or its
+  "The listener's choice of `k`, :sort or :layout, in `state`, or else its
   default."
   [state k]
   (let [options (case k :sort sorts :layout layouts)
@@ -37,13 +30,12 @@
     (if (contains? options chosen) chosen (key (first options)))))
 
 (def all-shows
-  "The shows of a library from library/shows, made again only when its
-  feeds or its profile change, since counting the episodes of every show
-  takes a while."
+  "The shows in a library, worked out again only when its feeds or profile
+  change, since counting every show's episodes takes a while."
   (memo/remember-last library/shows (juxt :feeds :profile)))
 
 (defn sorted
-  "The `shows` in the order `sort`, one of sorts."
+  "The `shows` in the order `sort`."
   [shows sort]
   (case sort
     :title  (sort-by (comp str/lower-case str :title) shows)
@@ -52,8 +44,8 @@
     shows))
 
 (defn counts-text
-  "What the `counts` of a show say, e.g. \"12 unplayed, 3 new\", where the
-  new ones are those in the inbox, or nil when there are none of either."
+  "The text of a show's `counts`, e.g. \"12 unplayed, 3 new\", where new
+  means in the inbox, or nil when there are none of either."
   [{:keys [unplayed inbox] :as counts}]
   (let [parts (cond-> []
                 (pos? (or unplayed 0)) (conj (str unplayed " unplayed"))
@@ -62,16 +54,15 @@
       (str/join ", " parts))))
 
 (defn updated-at
-  "When the feeds of the library `lib` were last fetched, the latest of
-  them, or nil."
+  "The last time that any feed in the library `lib` was fetched, or nil."
   [lib]
   (some->> (seq (keep :fetched-at (vals (:feeds lib))))
            (apply max-key inst-ms)))
 
 (defn summary
-  "What a screen reader hears once a refresh is done, by its `result`: the
-  new episodes and the shows that couldn't be checked. When the listener
-  didn't ask for it, `asked?` false, nothing unless there's something new."
+  "The announcement of a refresh's `result`: how many episodes are new and
+  how many shows couldn't be checked. Unless the listener `asked?` for the
+  refresh, it's nil when nothing is new."
   [{:keys [counts added] :as result} asked?]
   (let [n      (count added)
         failed (:failed counts 0)
