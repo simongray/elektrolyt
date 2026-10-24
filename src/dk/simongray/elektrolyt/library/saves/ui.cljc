@@ -1,6 +1,9 @@
 (ns dk.simongray.elektrolyt.library.saves.ui
-  "The banner that tells the listener that their changes aren't saved."
+  "The line that tells the listener that their changes aren't saved."
   (:require [dk.simongray.elektrolyt.library.saves :as saves]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 (defn status-text
@@ -10,31 +13,34 @@
   (when (saves/shown? status)
     (saves/text status (time-ui/time-text (:since status)))))
 
-;; The banner goes with its buttons once a write goes through, so the focus
+;; The line goes with its button once a write goes through, so the focus
 ;; moves on to the page's heading
 (defn actions
-  "The buttons for the save `status`: Try again now, the fix for its
-  cause, or both."
+  "What the listener can do about the save `status`: try again, after
+  making room in Settings when the browser has none, or reload when
+  another tab has a newer version."
   [{:keys [cause] :as status}]
-  (let [retry [:button {:type "button" :data-refocus "main h1" :on {:click [[:library/save]]}}
-               "Try again now"]]
+  (let [retry [controls/button {:icon         icons/arrows-clockwise
+                                :data-refocus "main h1"
+                                :on           {:click [[:library/save]]}}
+               "Try again"]]
     (case cause
-      :full         (list [:button {:type "button" :data-refocus "main h1" :on {:click [[:cache/clear]]}}
-                           "Clear the searches and shows"]
+      :full         (list [:a {:href (routes/href :route/settings nil nil "this-browser")}
+                           "Make room"]
                           retry)
-      :newer-format [:button {:type "button" :on {:click [[:page/reload]]}} "Reload"]
+      :newer-format [controls/button {:icon icons/arrows-clockwise :on {:click [[:page/reload]]}}
+                     "Reload"]
       retry)))
 
 ;; GOV.UK Design System, notification banner: before the page's heading,
-;; a region labelled by its own heading, one at most, and with nothing to
-;; dismiss it, since it goes once the changes are saved
+;; a region of its own, one at most, and with nothing to dismiss it, since
+;; it goes once the changes are saved. Here it's a single line.
 ;; https://design-system.service.gov.uk/components/notification-banner/
 (defn banner
-  "The banner in `state` while the page tells that the changes aren't
-  saved, or nil."
+  "The line in `state` while the page tells that the changes aren't saved,
+  or nil."
   [state]
   (when-let [text (status-text state)]
-    [:section.save-banner {:aria-labelledby "save-banner"}
-     [:h2#save-banner "Not saved"]
-     [:p text]
-     [:div.save-banner-actions (actions (:save-status state))]]))
+    [:section.save-banner {:aria-label "Not saved"}
+     [:p [controls/icon {:icon icons/warning-circle}] text]
+     (actions (:save-status state))]))

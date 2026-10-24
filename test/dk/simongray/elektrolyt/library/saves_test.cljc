@@ -34,8 +34,8 @@
         "and not for a failure that it doesn't tell of")))
 
 (deftest what-the-page-says
-  (is (= "Your changes since 14:32 aren't saved yet. The next try comes within five minutes."
-         (saves/text {:cause :other} "14:32")))
-  (is (re-find #"no room left for this site" (saves/text {:cause :full} "14:32")))
-  (is (re-find #"Reload this page to use it\. The changes made here since 14:32 are lost\.$"
+  (is (= "Your changes since 14:32 aren't saved yet." (saves/text {:cause :other} "14:32")))
+  (is (= "Your changes since 14:32 aren't saved, because the browser has no room left."
+         (saves/text {:cause :full} "14:32")))
+  (is (re-find #"another tab has a newer version of Elektrolyt\.$"
                (saves/text {:cause :newer-format} "14:32"))))
