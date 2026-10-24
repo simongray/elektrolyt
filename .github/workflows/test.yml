@@ -48,6 +48,15 @@ jobs:
       - name: Server tests
         run: clojure -X:server:test
 
+      # Firefox plays through a sound server, which the runner lacks: without
+      # one, its audio sink fails and so does the element, a moment after it
+      # starts. PulseAudio gives it a silent sink where there's no device.
+      - name: A sound server for Firefox
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+
       # The tests run against the app built into public/, in Playwright's
       # Firefox and the runner's own Chrome, with the libraries of deps.edn
       # rather than checkouts beside this one
