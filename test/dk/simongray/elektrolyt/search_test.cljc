@@ -81,7 +81,15 @@
     (is (= state (search/listed state "q" :apple 1 (search/failed "Didn't answer")))
         "but not from a run that a retry replaced")
     (is (= {} (search/listed {} "q" :apple 2 done))
-        "nor for a search that Clear cache removed")))
+        "nor for a search that Clear cache removed"))
+  (let [link  "example.org"
+        state {:searches {link {:status :searching :results [] :run 2}}}
+        done  {:status :done :results []}]
+    (is (= (assoc done :run 2) (get-in (search/found state link 2 done) [:searches link]))
+        "and so for a search of a link")
+    (is (= state (search/found state link 1 {:status :done :results [] :error {:message "Offline"}}))
+        "which a later search of it replaced")
+    (is (= {} (search/found {} link 2 done)))))
 
 (deftest the-directories-of-a-search
   (is (= [:podcastindex :apple :fyyd :drpodcast] (search/sources {:server {:podcastindex? true}}))

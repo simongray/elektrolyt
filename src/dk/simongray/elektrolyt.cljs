@@ -150,6 +150,10 @@
   (fn [_ store q source run l]
     (swap! store search/listed q source run l)))
 
+(nxr/register-effect! :search/found
+  (fn [_ store q run feeds]
+    (swap! store search/found q run feeds)))
+
 (nxr/register-effect! :show/load
   (fn [_ store guid url preview?]
     (feeds/load-show! store guid url preview?)

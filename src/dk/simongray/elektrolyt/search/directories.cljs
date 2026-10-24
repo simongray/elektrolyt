@@ -102,8 +102,9 @@
   Podcast Index."
   [dispatch q sources index]
   (if (search/link? q)
-    (let [found! #(dispatch [[:store/assoc-in [:searches q] %]])]
-      (found! {:status :searching :results []})
+    (let [run    (random-uuid)
+          found! #(dispatch [[:search/found q run %]])]
+      (dispatch [[:store/assoc-in [:searches q] {:status :searching :results [] :run run}]])
       (-> (discovery/find-feeds! q {:send app-library/send :index index})
           (.then #(found! (search/feeds->search %)))
           (.catch #(found! {:status :done :results [] :error {:message (ex-message %)}}))))
