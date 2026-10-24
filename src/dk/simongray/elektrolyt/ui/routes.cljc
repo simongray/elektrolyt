@@ -31,12 +31,26 @@
     ["/shows/:guid/episodes/:hash"       :route/episode]
     ["/shows/:guid/episodes/:hash/:slug" {:name :route/titled-episode :page :route/episode}]]))
 
+(defn decodes?
+  "Whether the run of percent `escapes` decodes as UTF-8."
+  [escapes]
+  #?(:clj  (let [b (byte-array (map #(unchecked-byte (Integer/parseInt (subs % 1) 16))
+                                    (re-seq #"%.." escapes)))]
+             ;; malformed bytes decode as U+FFFD, which encodes otherwise
+             (= (seq b) (seq (.getBytes (String. b "UTF-8") "UTF-8"))))
+     :cljs (try (js/decodeURIComponent escapes) true
+                (catch :default _ false))))
+
 (defn decodable
-  "The URL `url` with each percent sign that doesn't start an escape
-  escaped itself, e.g. \"/search?q=100%25\" for \"/search?q=100%\", since
-  the router can't decode a stray one."
+  "The URL `url` with each percent sign escaped itself where it doesn't
+  start an escape, e.g. \"/search?q=100%25\" for \"/search?q=100%\", or
+  starts escapes that aren't UTF-8, e.g. \"%25FF\" for \"%FF\", since the
+  router can't decode either."
   [url]
-  (str/replace url #"%(?![0-9A-Fa-f]{2})" "%25"))
+  (-> url
+      (str/replace #"%(?![0-9A-Fa-f]{2})" "%25")
+      (str/replace #"(?:%[0-9A-Fa-f]{2})+"
+                   #(if (decodes? %) % (str/replace % "%" "%25")))))
 
 (defn href
   "The path of the route `route-name` with its `path-params`,
