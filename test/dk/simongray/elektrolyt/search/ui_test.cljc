@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.elektrolyt.search :as app-search]
             [dk.simongray.elektrolyt.search.ui :as search]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui-test :refer [elements text-of]]))
 
 (defn listed
@@ -84,12 +85,13 @@
 
 (deftest a-directory-that-didnt-answer
   (let [x (page "x" (listed [:apple] {:apple (app-search/failed "timeout")}))]
-    (is (re-find #"Didn't answer" (text-of x)))
+    (is (re-find #"Didn't answer" (text-of (first (elements :div.notice x))))
+        "in a notice")
     (is (= [[:search/retry "x" :apple]]
-           (get-in (first (elements :button (elements :section.search-list x))) [1 :on :click]))
+           (get-in (first (elements controls/button (elements :section.search-list x))) [1 :on :click]))
         "which can be asked again")
     (is (= (str "#" (search/list-id :apple))
-           (get-in (first (elements :button (elements :section.search-list x))) [1 :data-refocus]))
+           (get-in (first (elements controls/button (elements :section.search-list x))) [1 :data-refocus]))
         "and gives the focus to the list's heading as the button goes"))
   (let [kept (app-search/stale-list (app-search/failed "timeout")
                                     {:value {:results [{:url "https://a.example/feed.xml" :title "A"}]}

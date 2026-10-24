@@ -7,6 +7,9 @@
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.colors :as colors]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
+            [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
             [dk.simongray.elektrolyt.ui.text :as text]
@@ -193,12 +196,14 @@
   [state q source {:keys [status] :as l}]
   [:section.search-list {:replicant/key source :id (section-id source)}
    [:h2 {:id (list-id source) :tabindex -1} (search/source-name source)]
-   [:p (list-text q l)]
-   (when (= :failed status)
-     [:button {:type         "button"
-               :data-refocus (str "#" (list-id source))
-               :on           {:click [[:search/retry q source]]}}
-      "Try again" [:span.visually-hidden " " (search/source-name source)]])
+   (if (= :failed status)
+     (notices/line {}
+                   (list-text q l)
+                   [controls/button {:icon         icons/arrows-clockwise
+                                     :data-refocus (str "#" (list-id source))
+                                     :on           {:click [[:search/retry q source]]}}
+                    "Try again" [:span.visually-hidden " " (search/source-name source)]])
+     [:p (list-text q l)])
    (results state :h3 (:results l))])
 
 (defn jump-label

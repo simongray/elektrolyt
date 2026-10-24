@@ -14,19 +14,28 @@
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
+            [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.rows :as rows]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 ;; WCAG 2.2, SC 4.1.3 Status Messages: the outcome of an action that the
 ;; page doesn't otherwise show, in a status line beside its button. The
-;; line is there before it has any text.
+;; line is there before it has any text. A failure is a notice that the
+;; listener can dismiss beside it, announced by what failed.
 (defn status
   "The status line of the settings group `k`, with the status in `state`
-  if it's that group's."
+  if it's that group's, or the notice of the group's failure."
   [state k]
-  (let [{:keys [group text]} (:settings-status state)]
-    [:p.settings-status {:role "status"} (when (= k group) text)]))
+  (let [{:keys [group text error?]} (:settings-status state)
+        ours?                       (= k group)]
+    (list
+     [:p.settings-status {:role "status"} (when (and ours? (not error?)) text)]
+     (when (and ours? error?)
+       (notices/line {:dismiss [[:store/assoc :settings-status nil]]
+                      :refocus (str "#" (name k))}
+                     text
+                     nil)))))
 
 ;; Wikipedia's and GOV.UK's contents link to a page's headings by their
 ;; ids, and so do the links from other pages here. The heading takes the

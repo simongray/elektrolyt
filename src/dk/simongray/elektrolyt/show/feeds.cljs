@@ -88,15 +88,16 @@
 
 (defn show-failed!
   "Note in `store` that the whole feed of the show `guid` at `url` failed
-  with `error`, or look the show up in the Podcast Index again when the
-  feed is gone from the URL that the cache had."
+  with `error`, and announce it, or look the show up in the Podcast Index
+  again when the feed is gone from the URL that the cache had."
   [store guid url error]
   (if (show/gone-from-cache? @store guid error)
     (do (swap! store #(-> (show/answered % [:whole url])
                           (update :feed-urls dissoc guid)))
         (look-up-show! store guid false true))
     (swap! store #(-> (show/answered % [:whole url])
-                      (assoc-in [:feeds url :error] error)))))
+                      (assoc-in [:feeds url :error] error)
+                      (assoc :announcement "The feed couldn't be fetched")))))
 
 (defn answered!
   "Note in `store` that the `request` for a feed is answered, apply `f` to

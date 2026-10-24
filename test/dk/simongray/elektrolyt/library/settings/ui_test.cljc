@@ -3,6 +3,7 @@
             [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
+            [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui-test :refer [elements nodes text-of]]))
 
 (defn by-id
@@ -66,6 +67,17 @@
       (is (= [[:settings/prefer ::app/alternative-feeds? [:event/target-checked]]] (get-in attrs [:on :change]))))
     (is (= 2 (count (filter #(= "status" (:role (second %))) (elements :p.settings-status x))))
         "a status line beside the buttons of each group that has them")))
+
+(deftest a-failure-on-settings
+  (let [x (settings-ui/status {:settings-status {:group :subscriptions :error? true :text "No OPML."}}
+                              :subscriptions)]
+    (is (= [nil] (map #(nth % 2 nil) (elements :p.settings-status x)))
+        "leaves the status line empty, though it stays for the next outcome")
+    (is (= "No OPML." (text-of (first (elements :p (elements :div.notice x))))) "for a notice")
+    (is (= [[[:store/assoc :settings-status nil]] "#subscriptions"]
+           ((juxt (comp :click :on second) (comp :data-refocus second))
+            (first (elements controls/icon-button x))))
+        "which the listener can dismiss, and then the group's heading has the focus")))
 
 (deftest the-directories-of-a-search
   (let [x    (settings-ui/search-directories {:library inbox-test/lib})

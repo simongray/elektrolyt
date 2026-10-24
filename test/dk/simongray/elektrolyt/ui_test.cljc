@@ -127,9 +127,13 @@
     (is (nil? (ui/canonical-path {:route route})) "before the title is known")))
 
 (deftest the-library-pages-without-a-library
-  (is (every? #(some #{ui/no-library} (elements :p (ui/main-content {:route {:name %}})))
+  (is (every? #(some #{ui/no-library} (elements :section.notice (ui/main-content {:route {:name %}})))
               ui/library-pages)
-      "each page that needs it says that it couldn't be read"))
+      "each page that needs it says that it couldn't be read")
+  (is (= [:section.notice {:aria-label "Library not read"}] (subvec ui/no-library 0 2))
+      "in a notice, a region of the page")
+  (is (= [[:page/reload]] (some #(get-in % [1 :on :click]) (rest ui/no-library)))
+      "with a button that reloads the page, which may read it"))
 
 (deftest the-icon-of-the-page
   (is (= "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=64" (ui/favicon (player-test/state {})))

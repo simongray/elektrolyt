@@ -159,6 +159,11 @@
     (feeds/load-show! store guid url preview?)
     (document/canonicalize! @store)))
 
+(nxr/register-effect! :show/retry
+  (fn [_ store guid url]
+    (swap! store show/retried url)
+    (feeds/load-show! store guid url false)))
+
 (nxr/register-effect! :show/prefetch-soon
   (fn [_ store guid url]
     (feeds/prefetch-soon! store guid url)))
