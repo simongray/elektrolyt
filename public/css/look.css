@@ -174,9 +174,6 @@ time,
   --accent-ink: var(--on-bar-fill);
   --accent-soft: oklch(from var(--on-bar) l c h / 0.14);
   --focus: var(--on-bar);
-  /* a key's fill, a light so faint that the bar or the deck shows
-     through */
-  --key: oklch(from var(--on-bar) l c h / 0.1);
 }
 
 /* The navigation lies on a paper of its own, as a book's contents would:
@@ -311,8 +308,21 @@ time,
 
 
 /* Controls: one button, one field, and a filled button for the main
-   action of a place, e.g. Play. A plain one is an outline on the paper,
-   and the paper's grain lies over every fill. */
+   action of a place, e.g. Play. A field is an outline on the paper, and
+   the paper's grain lies over every fill.
+   A plain button has no edge, since its words, and its icon where it has
+   one, identify it (WCAG 2.2, SC 1.4.11). NN/g found that weak signifiers
+   cost the reader effort and certainty, so its words are bold, unlike the
+   text around it. Under the pointer or the keyboard's focus it becomes a
+   key that lifts off the paper, and a press sinks the key flat. A touch
+   screen has no hover, so there a key shows only its press. The border
+   stays, transparent, for forced colours, which draw it while they drop
+   every shadow.
+   https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+   https://www.nngroup.com/articles/flat-ui-less-attention-cause-uncertainty/
+   https://developer.mozilla.org/en-US/docs/Web/CSS/@media/hover
+   https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties
+   https://sarahmhigley.com/writing/whcm-quick-tips/ */
 button,
 select,
 input[type="search"],
@@ -328,21 +338,63 @@ input[type="search"],
 button,
 ::file-selector-button {
   font-weight: var(--weight-strong);
+  border-color: transparent;
   cursor: pointer;
 }
 
-button:hover {
-  background: var(--grain) 0 0 / var(--grain-size), var(--accent-soft);
+/* the file's button a key even at rest, since the browser's words for the
+   file follow it and would else run into its own */
+::file-selector-button {
+  background: var(--key);
 }
 
+button:focus-visible {
+  background: var(--key);
+  box-shadow: var(--lift);
+}
+
+@media (hover: hover) {
+  button:hover {
+    background: var(--key);
+    box-shadow: var(--lift);
+  }
+
+  ::file-selector-button:hover {
+    box-shadow: var(--lift);
+  }
+}
+
+button:active {
+  background: var(--key);
+  box-shadow: none;
+}
+
+input[type="file"]:focus-visible::file-selector-button {
+  box-shadow: var(--lift);
+}
+
+::file-selector-button:active {
+  box-shadow: none;
+}
+
+/* A filled button lifts the same way, with its key over its fill. The key
+   shows where the shadow doesn't, on the dark paper and on a touch
+   screen. */
 button.primary {
   color: var(--accent-ink);
   background: var(--grain) 0 0 / var(--grain-size), var(--accent);
   border-color: var(--accent);
 }
 
-button.primary:hover {
-  background: var(--grain) 0 0 / var(--grain-size), color-mix(in oklab, var(--accent), var(--ink) 18%);
+button.primary:focus-visible,
+button.primary:active {
+  background: var(--grain) 0 0 / var(--grain-size), linear-gradient(var(--key), var(--key)), var(--accent);
+}
+
+@media (hover: hover) {
+  button.primary:hover {
+    background: var(--grain) 0 0 / var(--grain-size), linear-gradient(var(--key), var(--key)), var(--accent);
+  }
 }
 
 /* A heading that opens what's below it: its own words, with a caret
@@ -357,7 +409,11 @@ button.disclosure {
 
 button.disclosure:hover {
   color: var(--ink);
+}
+
+button.disclosure:is(:hover, :focus-visible, :active) {
   background: none;
+  box-shadow: none;
 }
 
 button.disclosure::after {
@@ -377,11 +433,17 @@ button.disclosure[aria-expanded="true"]::after {
   transform: rotate(-135deg);
 }
 
+/* a button that can't act yet never lifts, though it keeps the focus */
 button[aria-disabled="true"] {
   color: var(--ink-3);
-  border-color: var(--rule-soft);
+  border-color: transparent;
   background: transparent;
   cursor: default;
+}
+
+button[aria-disabled="true"]:is(:hover, :focus-visible, :active) {
+  background: transparent;
+  box-shadow: none;
 }
 
 input[type="search"] {
@@ -511,9 +573,9 @@ img {
 }
 
 /* Artwork that links where the title after it does is a little brighter
-   under the pointer, as a button's soft fill lightens it, and the title
-   is underlined as it is under the pointer itself. A keyboard and a
-   screen reader skip the artwork for the title (ui/artwork.cljc). */
+   under the pointer, and the title is underlined as it is under the
+   pointer itself. A keyboard and a screen reader skip the artwork for
+   the title (ui/artwork.cljc). */
 .artwork-link:hover img {
   filter: brightness(1.12);
 }
@@ -628,33 +690,20 @@ hgroup > p {
   outline: 0;
 }
 
-/* The player's buttons are their icons, with neither an outline nor a
-   fill. Under the pointer or the keyboard's focus, each becomes a key
-   that lifts like the volume's panel, lit faintly so that it shows on
-   the bar and on the deck alike. A press sinks the key flat and keeps
-   its light. A touch screen has no hover, so there a key shows only its
-   press and doesn't stay lifted after a tap.
-   https://developer.mozilla.org/en-US/docs/Web/CSS/@media/hover */
-#player .icon-button {
-  border-color: transparent;
-  background: none;
-}
-
-#player .icon-button:focus-visible,
+/* the speed a key like the player's buttons (Controls), though it's a
+   menu */
 #player-speed:focus-visible {
   background: var(--key);
   box-shadow: var(--lift);
 }
 
 @media (hover: hover) {
-  #player .icon-button:hover,
   #player-speed:hover {
     background: var(--key);
     box-shadow: var(--lift);
   }
 }
 
-#player .icon-button:active,
 #player-speed:active {
   background: var(--key);
   box-shadow: none;
@@ -860,7 +909,8 @@ search p {
 
 /* More contrast, as tokens.css has it: the bar's secondary text and the
    edges of its controls lighter, the links and the labels on the paper
-   further from it, and the links' underlines in their full colour */
+   further from it, the links' underlines in their full colour, and the
+   paper's plain buttons outlined again, in the stronger rule */
 @media (prefers-contrast: more) {
   :root:not([data-contrast="standard"]) .player-next,
   :root:not([data-contrast="standard"]) .shell {
@@ -874,6 +924,15 @@ search p {
 
   :root:not([data-contrast="standard"]) a {
     text-decoration-color: currentColor;
+  }
+
+  :root:not([data-contrast="standard"]) .shell > main button:not(.disclosure, .primary, [aria-disabled="true"]),
+  :root:not([data-contrast="standard"]) .shell > main ::file-selector-button {
+    border-color: var(--rule);
+  }
+
+  :root:not([data-contrast="standard"]) .shell > main button[aria-disabled="true"] {
+    border-color: var(--rule-soft);
   }
 
   :root:not([data-contrast="standard"]) .shell[data-palette="pages"] > nav,
@@ -899,6 +958,15 @@ search p {
 
 :root[data-contrast="more"] a {
   text-decoration-color: currentColor;
+}
+
+:root[data-contrast="more"] .shell > main button:not(.disclosure, .primary, [aria-disabled="true"]),
+:root[data-contrast="more"] .shell > main ::file-selector-button {
+  border-color: var(--rule);
+}
+
+:root[data-contrast="more"] .shell > main button[aria-disabled="true"] {
+  border-color: var(--rule-soft);
 }
 
 :root[data-contrast="more"] .shell[data-palette="pages"] > nav,
@@ -940,13 +1008,18 @@ search p {
 
   button,
   select,
-  a {
+  a,
+  ::file-selector-button {
     transition: background-color 0.15s, box-shadow 0.15s, text-decoration-color 0.33s, text-decoration-thickness 0.15s;
   }
 
   /* a press shows at once, since a tap can be shorter than the fade */
-  #player .icon-button:active,
+  button:active,
   #player-speed:active {
+    transition-duration: 0s;
+  }
+
+  ::file-selector-button:active {
     transition-duration: 0s;
   }
 }

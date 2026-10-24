@@ -15,13 +15,14 @@
    :margin      "0 0 1rem"})
 
 (def buttons
-  "The buttons, with words and with an icon alone."
+  "The buttons, with words and with an icon alone, one of them disabled."
   (list
    [:div {:style row}
     [controls/button {:icon icons/play :class "primary"} "Play"]
     [controls/button {:icon icons/rows-plus-bottom} "Play last"]
     [controls/button {:icon icons/x} "Dismiss all"]
-    [controls/button {:icon icons/upload-simple} "Import"]]
+    [controls/button {:icon icons/upload-simple} "Import"]
+    [controls/button {:icon icons/arrow-up :aria-disabled "true"} "Move up"]]
    [:div {:style row}
     [controls/icon-button {:icon icons/play :class "primary"} "Play"]
     [controls/icon-button {:icon icons/pause} "Pause"]

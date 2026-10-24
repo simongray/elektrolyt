@@ -135,9 +135,15 @@
   --ink-3: light-dark(oklch(62% 0.004 80), oklch(56% 0.004 80));
   --rule: light-dark(oklch(56% 0.005 80), oklch(60% 0.005 80));
   --rule-soft: light-dark(oklch(90% 0.003 80), oklch(30% 0.004 80));
-  /* a field or a button is an outline on the paper, through which the
-     paper's grain and tint show */
+  /* a field, or a button at rest, through which the paper's grain and
+     tint show */
   --field: transparent;
+  /* A key, the fill of a button under the pointer or the keyboard's
+     focus: the colour of its own words, so faint that the paper, the bar
+     or a filled button's fill still shows through. Material 3 calls it a
+     state layer, and gives a press and the focus 10%.
+     https://m3.material.io/foundations/interaction/states/state-layers */
+  --key: color-mix(in srgb, currentColor 10%, transparent);
   /* the line of an hr */
   --divider: light-dark(oklch(80% 0.004 80), oklch(40% 0.004 80));
 

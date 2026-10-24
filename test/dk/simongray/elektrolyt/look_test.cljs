@@ -175,6 +175,34 @@
       (is (<= 4.5 (least-specked-ratio (nth (tokens main "--accent-ink") i) accent seeds)) "a filled button's label")
       (is (<= 4.5 (least-specked-ratio accent (nth (tokens main "--accent-soft") i) seeds)) "links on a soft fill"))))
 
+(def key-share
+  "The share of a button's own words in the colour of its key (tokens.css),
+  which lies over the paper, the bar or a filled button's fill."
+  (-> (re-find #"currentColor (\d+)%" (get root "--key"))
+      second
+      js/parseFloat
+      (/ 100)))
+
+(defn least-keyed-ratio
+  "The least contrast ratio of the `text` on its key over the `ground`,
+  tokens or colours, plain and under the grain's strongest specks, over
+  every seed of `xs`, mapped and clipped."
+  [text ground xs]
+  (apply min (for [s xs clip? [false true] specks? [false true]
+                   :let [t (colour text s clip?)
+                         g (mix/mix (colour ground s clip?) t key-share :srgb)]]
+               (contrast/ratio t (cond-> g specks? (specked t))))))
+
+(deftest the-words-contrast-on-a-key
+  (let [[on-bar] (tokens shell "--on-bar")]
+    (doseq [ground ["--bar" "--bar-deck"]]
+      (is (<= 4.5 (least-keyed-ratio on-bar (first (tokens shell ground)) seeds)) (str "--on-bar on a key over " ground))))
+  (doseq [[i mode] [[0 "light"] [1 "dark"]]
+          :let [accent (nth (tokens shell "--seed-accent") i)]]
+    (testing (str "on the " mode " paper")
+      (is (<= 4.5 (least-keyed-ratio (nth (tokens root "--ink") i) (nth paper i) [nil])) "a plain button's words")
+      (is (<= 4.5 (least-keyed-ratio (nth (tokens main "--accent-ink") i) accent seeds)) "a filled button's words"))))
+
 (def rail-tone
   "How much of the colour of the label of the navigation's page tones its
   paper."
