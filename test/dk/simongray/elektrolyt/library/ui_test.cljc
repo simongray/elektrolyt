@@ -1,9 +1,9 @@
 (ns dk.simongray.elektrolyt.library.ui-test
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.elektrolyt.library.queue-test :as queue-test]
             [dk.simongray.elektrolyt.library.ui :as library-ui]
             [dk.simongray.elektrolyt.player.ui-test :refer [buttons]]
-            [dk.simongray.elektrolyt.queue-test :as queue-test]
             [dk.simongray.elektrolyt.ui-test :refer [elements text-of]]))
 
 (defn attributes [tag x]

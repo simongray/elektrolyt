@@ -14,7 +14,7 @@
             [dk.simongray.elektrolyt.library.refresh :as refresh]
             [dk.simongray.elektrolyt.player.audio :as audio]
             [dk.simongray.elektrolyt.runtime :as runtime]
-            [dk.simongray.elektrolyt.text :as text]))
+            [dk.simongray.elektrolyt.ui.text :as text]))
 
 (defn subscribed-count
   "How many shows the library of the `state` subscribes to."

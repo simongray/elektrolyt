@@ -11,25 +11,25 @@
   (:require [cognitect.transit :as transit]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.podcast-app :as-alias app]
-            [dk.simongray.elektrolyt.artwork.colors :as artwork-colors]
-            [dk.simongray.elektrolyt.cache :as app-cache]
             [dk.simongray.elektrolyt.episode :as episode]
-            [dk.simongray.elektrolyt.inbox :as inbox]
             [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.inbox :as inbox]
             [dk.simongray.elektrolyt.library.opml :as opml]
+            [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.library.refresh :as refresh]
-            [dk.simongray.elektrolyt.page :as page]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player.audio :as audio]
-            [dk.simongray.elektrolyt.queue :as queue]
-            [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.runtime :as runtime]
+            [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.search.directories :as directories]
-            [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.feeds :as feeds]
+            [dk.simongray.elektrolyt.ui.artwork.colors :as artwork-colors]
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
+            [dk.simongray.elektrolyt.ui.document :as document]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [nexus.registry :as nxr]
             [reitit.frontend.easy :as rfe]
             [reitit.frontend.history :as rfh]
@@ -111,31 +111,31 @@
 
 (nxr/register-effect! :page/focus-heading
   (fn [_ _]
-    (page/focus-heading!)))
+    (document/focus-heading!)))
 
 (nxr/register-effect! :page/focus
   (fn [_ _ id]
-    (page/focus! id)))
+    (document/focus! id)))
 
 (nxr/register-effect! :page/show
   (fn [_ _ id]
-    (page/show! id)))
+    (document/show! id)))
 
 (nxr/register-effect! :page/scroll-to
   (fn [_ _ id]
-    (page/scroll-to! id)))
+    (document/scroll-to! id)))
 
 (nxr/register-effect! :dialog/open
   (fn [_ _ id]
-    (page/open-dialog! id)))
+    (document/open-dialog! id)))
 
 (nxr/register-effect! :hover/dismiss-on-escape
   (fn [{:keys [dispatch-data]} _]
-    (page/dismiss-on-escape! (:replicant/dom-event dispatch-data))))
+    (document/dismiss-on-escape! (:replicant/dom-event dispatch-data))))
 
 (nxr/register-effect! :hover/restore-on-leave
   (fn [{:keys [dispatch-data]} _]
-    (page/restore-on-leave! (:replicant/dom-event dispatch-data))))
+    (document/restore-on-leave! (:replicant/dom-event dispatch-data))))
 
 ;; Searches and shows
 
@@ -150,7 +150,7 @@
 (nxr/register-effect! :show/load
   (fn [_ store guid url preview?]
     (feeds/load-show! store guid url preview?)
-    (page/canonicalize! @store)))
+    (document/canonicalize! @store)))
 
 (nxr/register-effect! :show/prefetch-soon
   (fn [_ store guid url]
@@ -165,7 +165,7 @@
 (nxr/register-effect! :show/newer
   (fn [_ store guid]
     (swap! store show/newer-shown guid)
-    (page/focus! "episodes")))
+    (document/focus! "episodes")))
 
 ;; dispatched as the shows that a show links to mount, so it changes the
 ;; store once the render is done
@@ -290,7 +290,7 @@
       (when (= "clear" (.-returnValue dialog))
         (set! (.-returnValue dialog) "")
         (changed! store (queue/cleared @store))
-        (page/focus! focus-id)))))
+        (document/focus! focus-id)))))
 
 (nxr/register-effect! :inbox/dismiss
   (fn [_ store id]
@@ -393,7 +393,7 @@
   []
   (-> (app-library/open! store)
       ;; the title of a show that only the library keeps is known now
-      (.then #(page/canonicalize! @store))
+      (.then #(document/canonicalize! @store))
       (.catch #(js/console.error "The library didn't restore" %))))
 
 (defn load-server-info!
@@ -437,14 +437,14 @@
                              (audio/gone! store)))
   ;; the bar's colour once it has moved to the next one
   (runtime/on-transitionend! #(when (.. % -classList (contains "shell"))
-                                (page/theme-colored!)))
+                                (document/theme-colored!)))
   (audio/volume-locked! store)
   (swap! store assoc :library-view (local/stored-edn library-view-key))
   (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
       (.finally #(audio/restored! store))
       (.then #(artwork-colors/kept-colors! store) #(artwork-colors/kept-colors! store))
       (.finally (fn []
-                  (runtime/watch! store ::render (fn [_ state] (page/render! state)))
+                  (runtime/watch! store ::render (fn [_ state] (document/render! state)))
                   (runtime/watch! store ::colors (fn [_ state] (artwork-colors/colored! store state)))
                   (start-router!)
                   (refresh/refresh-if-due! store)))))

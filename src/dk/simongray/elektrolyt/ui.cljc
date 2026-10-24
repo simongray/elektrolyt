@@ -8,25 +8,25 @@
   has. It holds the listener's library from podcast-clj as :library, once
   it's restored, and the last thing to tell a screen reader as
   :announcement."
-  (:require [dk.simongray.elektrolyt.artwork :as sized]
-            [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.episode.ui :as episode-ui]
-            [dk.simongray.elektrolyt.inbox.ui :as inbox-ui]
+  (:require [dk.simongray.elektrolyt.episode.ui :as episode-ui]
+            [dk.simongray.elektrolyt.library.inbox.ui :as inbox-ui]
+            [dk.simongray.elektrolyt.library.queue.ui :as queue-ui]
+            [dk.simongray.elektrolyt.library.settings :as settings]
+            [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.library.ui :as library-ui]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.player.ui :as player-ui]
-            [dk.simongray.elektrolyt.queue.ui :as queue-ui]
-            [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.search.ui :as search-ui]
-            [dk.simongray.elektrolyt.settings :as settings]
-            [dk.simongray.elektrolyt.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.ui :as show-ui]
-            [dk.simongray.elektrolyt.text :as text]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
+            [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.home :as home-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
-            [dk.simongray.elektrolyt.ui.links :as links]))
+            [dk.simongray.elektrolyt.ui.links :as links]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def app-name
   "The name of the app, as Home's heading and the window's title show it."
@@ -111,7 +111,7 @@
   player shows, or nil while it shows nothing."
   [state]
   (when-let [artwork (:artwork (player/shown-playback state))]
-    (sized/smallest {:artwork artwork} 32)))
+    (artwork/smallest {:artwork artwork} 32)))
 
 (defn canonical-path
   "The path that the Show page or the Episode page of the `state` should

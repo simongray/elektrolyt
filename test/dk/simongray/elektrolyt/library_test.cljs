@@ -5,8 +5,8 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
-            [dk.simongray.elektrolyt.inbox-test :as inbox-test]
-            [dk.simongray.elektrolyt.library :as app-library]))
+            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]))
 
 (def at #inst "2026-10-20T12:00:00Z")
 

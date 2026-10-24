@@ -14,7 +14,7 @@
 
   With :alternative-feeds? among the options of a request, a feed of DR's
   own comes supplemented by its sibling on drpodcast.nu, as
-  dk.simongray.elektrolyt.drpodcast has it. The supplemented feed has
+  dk.simongray.elektrolyt.search.drpodcast has it. The supplemented feed has
   only DR's validators, i.e. none, so the library goes on checking it by
   its start, which is supplemented too.
 
@@ -25,8 +25,8 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.discovery :as discovery]
-            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
-            [dk.simongray.elektrolyt.library :as app-library]))
+            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
 
 (def refresh-lock
   "The Web Lock that a refresh holds, by the name that podcast-clj's

@@ -5,7 +5,7 @@
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.operations :as operations]
-            [dk.simongray.elektrolyt.settings :as settings]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
 

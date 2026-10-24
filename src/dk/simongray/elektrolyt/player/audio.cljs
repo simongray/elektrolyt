@@ -27,11 +27,11 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.elektrolyt.library :as app-library]
-            [dk.simongray.elektrolyt.picks :as picks]
+            [dk.simongray.elektrolyt.library.picks :as picks]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.local :as local]
-            [dk.simongray.elektrolyt.settings :as settings]
             [dk.simongray.elektrolyt.show :as show]))
 
 (defn element

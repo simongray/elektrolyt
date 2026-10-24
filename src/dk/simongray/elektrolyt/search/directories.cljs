@@ -9,10 +9,10 @@
   keeps of each search."
   (:require [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
-            [dk.simongray.elektrolyt.cache :as app-cache]
-            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.library :as app-library]
-            [dk.simongray.elektrolyt.search :as search]))
+            [dk.simongray.elektrolyt.runtime.cache :as app-cache]
+            [dk.simongray.elektrolyt.search :as search]
+            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
 
 (def drpodcast-limit
   "How many series at most a search finds on drpodcast.nu, each of which

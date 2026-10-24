@@ -13,7 +13,7 @@
             [dk.simongray.podcast.format.image :as image]
             [dk.simongray.podcast.util.client :as client]
             [dk.simongray.podcast.util.ring :as ring]
-            [dk.simongray.elektrolyt.artwork :as artwork]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.wary-fetch :as http]
             [dk.simongray.wary-fetch.headers :as headers]
             [dk.simongray.wary-fetch.proxy :as proxy]

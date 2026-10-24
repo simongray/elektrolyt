@@ -4,7 +4,7 @@
   machine reads (HTML, section 4.5.14)."
   (:require #?(:clj [clojure.string :as str])
             [dk.simongray.podcast.util.time :as time]
-            #?(:cljs [dk.simongray.elektrolyt.text :as text])))
+            #?(:cljs [dk.simongray.elektrolyt.ui.text :as text])))
 
 (defn date-text
   "The date of the instant `inst` in the language of the page, e.g. \"16

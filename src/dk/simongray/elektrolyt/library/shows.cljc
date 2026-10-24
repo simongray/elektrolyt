@@ -10,8 +10,8 @@
   the library, e.g. the counts and the episodes :added."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.elektrolyt.memo :as memo]
-            [dk.simongray.elektrolyt.text :as text]))
+            [dk.simongray.elektrolyt.ui.memo :as memo]
+            [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def sorts
   "The orders of the shows that the listener can choose, by key, the first

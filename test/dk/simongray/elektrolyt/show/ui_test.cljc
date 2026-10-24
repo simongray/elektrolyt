@@ -1,6 +1,6 @@
 (ns dk.simongray.elektrolyt.show.ui-test
   (:require [clojure.test :refer [deftest is testing]]
-            [dk.simongray.elektrolyt.inbox-test :as inbox-test]
+            [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.show.ui :as show]
             [dk.simongray.elektrolyt.ui :as ui]
             [dk.simongray.elektrolyt.ui.controls :as controls]

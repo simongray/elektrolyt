@@ -1,7 +1,7 @@
 (ns dk.simongray.elektrolyt.ui.home-test
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.elektrolyt.queue-test :refer [state]]
+            [dk.simongray.elektrolyt.library.queue-test :refer [state]]
             [dk.simongray.elektrolyt.ui.home :as home]
             [dk.simongray.elektrolyt.ui-test :refer [elements nodes text-of]]))
 

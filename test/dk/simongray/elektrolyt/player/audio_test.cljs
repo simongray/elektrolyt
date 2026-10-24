@@ -5,10 +5,10 @@
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.podcast-app :as-alias app]
             [dk.simongray.elektrolyt.library.operations :as operations]
-            [dk.simongray.elektrolyt.picks-test :as picks-test]
+            [dk.simongray.elektrolyt.library.picks-test :as picks-test]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player :as player]
-            [dk.simongray.elektrolyt.player.audio :as audio]
-            [dk.simongray.elektrolyt.settings :as settings]))
+            [dk.simongray.elektrolyt.player.audio :as audio]))
 
 (def url "https://example.org/feed.xml")
 

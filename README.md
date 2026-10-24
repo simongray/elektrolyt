@@ -51,24 +51,35 @@ How to work on the app
 Namespaces
 ----------
 
-The namespaces are grouped by subject, e.g. the queue, a show or the
-player:
+The namespaces are grouped by what they're about, so that a new one has
+an obvious place:
 
-- `queue`, `show` and `player` hold what the state keeps of each subject
-  and what the pages show of it, as pure functions.
-- `queue.ui`, `show.ui` and `player.ui` hold the views of each subject.
-- Namespaces such as `player.audio` and `show.feeds` hold the effects of
-  their subject, which the root namespace registers.
-- Namespaces such as `show.linked` and `library.refresh` hold a part of
-  their subject.
+- **Where the app runs.** The root namespace, `dk.simongray.elektrolyt`,
+  starts the app in the page, `worker` starts its web worker, and `server`
+  is the app's server, on the JVM.
+- **What the listener keeps,** in `library`: the library on this device,
+  its operations, refresh and OPML, and the Library page, the queue, the
+  inbox, the picks and the settings.
+- **What plays,** in `player`.
+- **The pages of a show and of an episode,** in `show` and `episode`.
+- **The search for shows,** in `search`, which asks the directories and
+  drpodcast.nu.
+- **What every page shares,** in `ui`: the page around the views, Home,
+  the views that several pages use, the paths of the pages, their words
+  and colours, and the artwork.
+- **What reaches outside the store,** in `runtime`: the listeners, timers,
+  channels, localStorage and the caches.
 
-The views that several subjects share, e.g. the controls and the icons,
-are in the namespaces of `ui`, and `ui` itself is the page around them.
-The root namespace, `dk.simongray.elektrolyt`, starts the app in the page,
-`worker` starts its web worker, and `server` runs on the JVM. A test
-checks that only the namespaces marked as
-runtime reach outside the store, and [STATE.md](STATE.md) lists every
-place where the app keeps something.
+Within a group, a subject's model, effects and views sit together, e.g.
+`library.queue` holds what the state keeps of the queue, `library.queue.ui`
+its views, and `player.audio` the player's effects, which the root
+namespace registers. A new feature goes into the group it belongs to, e.g.
+playlists into `library` or comments into `episode`, and a new group is
+only for a new domain, as podcast-clj has `value` for payments.
+
+A test checks that every namespace that uses listeners, timers, locks,
+channels or localStorage is marked as runtime, so that they stay few, and
+[STATE.md](STATE.md) lists every place where the app keeps something.
 
 
 Development

@@ -8,20 +8,20 @@
   knew of the show at once, and its episodes as its feed arrives."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.spec :as spec]
-            [dk.simongray.elektrolyt.artwork.ui :as artwork]
-            [dk.simongray.elektrolyt.colors :as colors]
-            [dk.simongray.elektrolyt.picks :as picks]
-            [dk.simongray.elektrolyt.picks.ui :as picks-ui]
-            [dk.simongray.elektrolyt.routes :as routes]
+            [dk.simongray.elektrolyt.library.picks :as picks]
+            [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.linked :as linked]
-            [dk.simongray.elektrolyt.text :as text]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
+            [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.details :as details]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
+            [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 (defn guid

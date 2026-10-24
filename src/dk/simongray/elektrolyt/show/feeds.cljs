@@ -12,18 +12,18 @@
             [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
-            [dk.simongray.elektrolyt.cache :as app-cache]
-            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.library :as app-library]
-            [dk.simongray.elektrolyt.page :as page]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player.audio :as audio]
-            [dk.simongray.elektrolyt.routes :as routes]
             [dk.simongray.elektrolyt.runtime :as runtime]
+            [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.search :as search]
-            [dk.simongray.elektrolyt.settings :as settings]
+            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.linked :as linked]
             [dk.simongray.elektrolyt.show.subscription :as subscription]
+            [dk.simongray.elektrolyt.ui.document :as document]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]
             [reitit.frontend.easy :as rfe]))
 
@@ -87,7 +87,7 @@
   "Put the whole feed at `url` that the worker `fetched` into the :feeds
   of the `store`, and keep it in the cache."
   [store url fetched]
-  (page/canonicalize! (swap! store #(-> (show/answered % [:whole url])
+  (document/canonicalize! (swap! store #(-> (show/answered % [:whole url])
                                         (show/whole url fetched (js/Date.) true))))
   (keep-show! url fetched))
 
@@ -104,7 +104,7 @@
       (swap! store show/requested [:head url])
       (-> (discovery/fetch-head! url {:items show/page-size :send app-library/send})
           (.then (fn [{:keys [feed]}]
-                   (page/canonicalize! (swap! store #(cond-> (show/answered % [:head url])
+                   (document/canonicalize! (swap! store #(cond-> (show/answered % [:head url])
                                                        feed (show/arrived url feed))))))
           (.catch #(swap! store show/answered [:head url]))))
     (when-not (or preview? whole? (asked? :whole) (asked? :open))
@@ -164,7 +164,7 @@
                (let [fresh? (and (show/fresh? fetched (:at kept) (js/Date.))
                                  (drpodcast/fetched-as? (:feed fetched) url
                                                         (settings/alternative-feeds? @store)))]
-                 (page/canonicalize! (swap! store #(-> (show/answered % [:open url])
+                 (document/canonicalize! (swap! store #(-> (show/answered % [:open url])
                                                        (show/whole url fetched (:at kept) fresh?))))
                  (when whole?
                    (check-show! store guid url)))
@@ -232,7 +232,7 @@
                @store))
       ;; a show subscribed to from its page loses the URL of its feed from
       ;; the address bar, since the library knows it now
-      (.then #(do (page/canonicalize! %) %))
+      (.then #(do (document/canonicalize! %) %))
       (.then (fn [_] (app-library/save! store)))
       (.then #(when (:error %)
                 (js/console.error "The library wasn't saved" (clj->js %))))))

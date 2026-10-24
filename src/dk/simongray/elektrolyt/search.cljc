@@ -26,8 +26,8 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.profile :as profile]
-            [dk.simongray.elektrolyt.drpodcast :as drpodcast]
-            [dk.simongray.elektrolyt.settings :as settings]))
+            [dk.simongray.elektrolyt.library.settings :as settings]
+            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
 
 (defn link?
   "Whether the query `q` reads as a link, i.e. the URL of a feed, a domain,
