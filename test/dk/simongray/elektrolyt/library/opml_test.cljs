@@ -3,7 +3,8 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
             [dk.simongray.elektrolyt.library.operations :as operations]
-            [dk.simongray.elektrolyt.library.opml :as opml]))
+            [dk.simongray.elektrolyt.library.opml :as opml]
+            [dk.simongray.elektrolyt.show :as show]))
 
 (defn imported [state list]
   (operations/changed state (opml/imported state list)))
@@ -26,10 +27,19 @@
 
 (deftest the-marks-wait-for-the-feeds
   (let [s       (imported {:library inbox-test/lib} subscription-list)
-        fetched (update s :library library/subscribe "https://other.example/feed.xml" inbox-test/feed)]
-    (is (= 1 (opml/fetched-count s)) "only the show that the library had")
-    (is (opml/arrived? s fetched) "so the marks come once another feed has arrived")
-    (is (= 2 (opml/fetched-count fetched) (opml/subscribed-count fetched)))
-    (is (not (opml/arrived? s (assoc s :refresh-status {:running? false :result {:counts {}}})))
-        "and not with a refresh that fetched none, e.g. offline")
-    (is (not (opml/arrived? fetched (update fetched :library library/unsubscribe (key (first (:feeds inbox-test/lib)))))))))
+        other   (first (:subscriptions subscription-list))
+        fetched (update s :library library/subscribe (:xml-url other) inbox-test/feed)]
+    (is (= {:subscriptions [other]} (opml/waiting s subscription-list))
+        "those of the shows without their feeds, not the one that the library had")
+    (is (nil? (opml/waiting fetched subscription-list)) "until every show has its feed")
+    (is (nil? (opml/waiting (update s :library library/unsubscribe
+                                    (show/subscribed-key (:library s) (:xml-url other)))
+                            subscription-list))
+        "or the listener leaves the shows that have none")))
+
+(deftest the-marks-that-wait
+  (let [episodes [{:enclosure-url "https://other.example/1.mp3" :played "1"}]]
+    (is (= {:subscriptions [{:xml-url "https://other.example/feed.xml" :episodes episodes}]}
+           (opml/marked (assoc-in subscription-list [:subscriptions 0 :episodes] episodes)))
+        "are those of the shows that mark episodes, with their feed URLs and episodes alone")
+    (is (nil? (opml/marked subscription-list)) "or none")))

@@ -419,7 +419,8 @@
   (-> (app-library/open! store)
       ;; the path can now carry the slug of a show that only the library
       ;; has
-      (.then #(document/canonicalize! @store))
+      (.then #(do (document/canonicalize! @store)
+                  (opml/resume! store)))
       (.catch #(tel/log! {:level :error :id :library/restore-failed :error %}
                          "The library didn't restore"))))
 
