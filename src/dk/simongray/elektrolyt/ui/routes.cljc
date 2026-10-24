@@ -62,7 +62,7 @@
 (def foldings
   "How a slug spells the letters that have no accent to take off, e.g. o
   for ø."
-  {"ø" "o" "æ" "ae" "œ" "oe" "ß" "ss" "đ" "d" "ł" "l" "þ" "th"})
+  {"ø" "o" "æ" "ae" "œ" "oe" "ß" "ss" "đ" "d" "ł" "l" "þ" "th" "ı" "i"})
 
 (defn slug
   "The words of `title` as lower-case letters and digits between hyphens,
@@ -71,11 +71,12 @@
       (slug \"Podcasting 2.0\")  ; => \"podcasting-2-0\"
       (slug \"Mørkeland\")       ; => \"morkeland\""
   [title]
-  (let [words (-> (str/lower-case (str title))
-                  (decomposed)
+  ;; decomposed first, since NFKD turns letters such as 𝐓 and ℌ into capitals
+  (let [words (-> (decomposed (str title))
+                  (str/lower-case)
                   ;; the combining accents that NFKD splits off the letters
                   (str/replace #"[̀-ͯ]" "")
-                  (str/replace #"[øæœßđłþ]" foldings)
+                  (str/replace #"[øæœßđłþı]" foldings)
                   (str/replace #"[^a-z0-9]+" "-"))]
     (-> (subs words 0 (min 60 (count words)))
         (str/replace #"^-+|-+$" "")

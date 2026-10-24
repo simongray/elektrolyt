@@ -146,6 +146,10 @@
   (fn [{:keys [dispatch]} store q source]
     (directories/search-directory! dispatch q source (search/index-credentials @store) true)))
 
+(nxr/register-effect! :search/listed
+  (fn [_ store q source run l]
+    (swap! store search/listed q source run l)))
+
 (nxr/register-effect! :show/load
   (fn [_ store guid url preview?]
     (feeds/load-show! store guid url preview?)

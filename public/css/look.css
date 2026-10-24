@@ -571,6 +571,12 @@ hgroup > p {
   text-wrap: pretty;
 }
 
+/* A link's text in the notes is often its URL, where a hyphen at the end
+   of a line would read as part of it */
+.show-notes a {
+  hyphens: manual;
+}
+
 .show-notes > p:first-of-type::first-line {
   font-variant-caps: small-caps;
   letter-spacing: 0.03em;

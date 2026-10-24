@@ -1346,6 +1346,16 @@ main h1,
   margin: 0;
 }
 
+/* On a phone, a select's label goes above it, as in GOV.UK's forms,
+   rather than above some selects and beside others by its length
+   https://design-system.service.gov.uk/components/select/ */
+@media (width < 37.5em) {
+  .setting:has(> select) {
+    flex-direction: column;
+    align-items: start;
+  }
+}
+
 .setting select,
 .setting input[type=file],
 .setting button,
