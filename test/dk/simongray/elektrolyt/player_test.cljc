@@ -100,7 +100,7 @@
   (is (= {:paused false :current-time 12.5 :id [:feed "ep"] :tab "t" :at 1000 :changed 1000}
          (player/told {:paused false :seeking false :current-time 12.5 :buffered [[0 20]]}
                       [:feed "ep"] "t" 1000))
-      "its told-keys, and when, for tabs/position and tabs/newest")
+      "its told-keys, and when, for playback/position and playback/newest")
   (is (true? (:paused (player/told {:paused false :status :error :error {:code :network}}
                                    [:feed "ep"] "t" 1000)))
       "and paused once its element failed, which HTML leaves unpaused"))
