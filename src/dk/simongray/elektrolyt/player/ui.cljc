@@ -187,7 +187,7 @@
   listener's preference."
   [{:keys [playback-rate] :as media}]
   [:div.player-speed
-   (controls-ui/select "player-speed" player/speed-options (or playback-rate 1)
+   (controls-ui/select "player-speed" (player/speed-options playback-rate) (or playback-rate 1)
                        [:player/rate [:event/target-number]]
                        {:title "Speed"})
    [controls-ui/icon {:icon icons/caret-down}]])

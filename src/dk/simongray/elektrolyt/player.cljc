@@ -21,7 +21,8 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.util.time :as time]
             [dk.simongray.elektrolyt.ui.memo :as memo]
-            [dk.simongray.wary-fetch.proxy :as proxy]))
+            [dk.simongray.wary-fetch.proxy :as proxy]
+            [dk.simongray.wary-fetch.url :as url]))
 
 (def element-name
   "The name of the lock that lets one tab's player play at a time."
@@ -37,9 +38,12 @@
   Plyr's."
   [0.5 0.75 1 1.25 1.5 1.75 2 2.25 2.5 2.75 3])
 
-(def speed-options
-  "The speeds that the player offers, each with its label, e.g. 1.5×."
-  (for [s speeds] [s (str s "×")]))
+(defn speed-options
+  "The speeds that the player offers, each with its label, e.g. 1.5×, with
+  the listener's `current` one among them, e.g. one that another app set."
+  [current]
+  (for [s (sort (distinct (cond-> speeds (and (number? current) (pos? current)) (conj current))))]
+    [s (str s "×")]))
 
 ;; The profile can count a gap of more than 30 seconds between two reports
 ;; as a pause, and each report writes the library, so the player reports
@@ -80,12 +84,16 @@
   other tabs."
   [:paused :ended :current-time :duration :playback-rate :volume :muted :status])
 
+;; HTML leaves an element that failed unpaused, e.g. at a dead file or a
+;; network failure, but it doesn't play
 (defn told
   "The media state that the tab `tab` posts to the others: the told-keys
   of its element's `media` state, with the episode `id`, the tab, and
-  `now` in milliseconds as both :at and :changed."
+  `now` in milliseconds as both :at and :changed. An element that failed
+  counts as paused."
   [media id tab now]
-  (assoc (select-keys media told-keys) :id id :tab tab :at now :changed now))
+  (cond-> (assoc (select-keys media told-keys) :id id :tab tab :at now :changed now)
+    (:error media) (assoc :paused true)))
 
 (defn heard
   "The newer at `now` of the media state `kept` from another tab and the
@@ -127,7 +135,8 @@
     media))
 
 ;; Every Play or Pause button uses this, so that a page's button, the
-;; player's and its status line agree while another tab plays
+;; player's and its status line agree while another tab plays. An element
+;; that failed doesn't play, though HTML leaves it unpaused.
 (defn playing
   "Where the `player` has the episode `id` playing: :here, :elsewhere in
   another tab, or nil."
@@ -137,7 +146,7 @@
       (= id (:id (elsewhere player)))
       :elsewhere
 
-      (and (= id (:id player)) (false? (:paused media)))
+      (and (= id (:id player)) (false? (:paused media)) (not (:error media)))
       :here)))
 
 (defn whole-seconds
@@ -147,11 +156,20 @@
   [media]
   (update media :current-time #(when (number? %) (Math/floor %))))
 
+(defn data-url?
+  "Whether `s` is a data URL, e.g. of a chapter's image in the media file."
+  [s]
+  (boolean (and (string? s) (re-find #"(?i)^data:" s))))
+
 (defn proxied
   "The `url` through the app's proxy, e.g. for a chapter's image, so that
-  its site can't see who looks at the page."
+  its site can't see who looks at the page. A data URL needs no fetch, so
+  it stays as it is. For any other URL that isn't http or https, it
+  returns nil."
   [url]
-  (:url (proxy/proxied "/proxy" {:url url})))
+  (cond
+    (url/web-url? url) (:url (proxy/proxied "/proxy" {:url url}))
+    (data-url? url)    url))
 
 ;; Podcasting 2.0 JSON chapters: what a chapters file links to can track
 ;; the listener
@@ -166,16 +184,39 @@
                     (update chapter :artwork #(mapv (fn [image] (update image :src proxied)) %)))
                   chapters))))
 
+(defn playback-opts
+  "The options that library/playback takes for the episode `id` in
+  `state`: what's been read of its files, e.g. a chapters file, if
+  anything."
+  [{:keys [episodes] :as state} id]
+  (if-let [read (get-in episodes [id :result])]
+    {:read read}
+    {}))
+
 (defn playback
   "The playback of the episode `id` in `state`, with what's been read of
   its files, e.g. a chapters file, and its chapters' artwork through the
   app's proxy, or nil."
-  [{:keys [library episodes] :as state} id]
+  [{:keys [library] :as state} id]
   (when (and library id)
-    (some-> (library/playback library id (if-let [read (get-in episodes [id :result])]
-                                           {:read read}
-                                           {}))
+    (some-> (library/playback library id (playback-opts state id))
             (update :metadata with-proxied-chapters))))
+
+;; A start at the end or past it, e.g. from a link's t, would only end the
+;; episode and mark it played
+(defn start-time
+  "The seconds `t` to start the `playback` at, or nil when it's at or past
+  the playback's known duration."
+  [playback t]
+  (let [duration (:duration playback)]
+    (when-not (and (number? t) (number? duration) (<= duration t))
+      t)))
+
+(defn moved-on?
+  "Whether the `effects` of a library step stop the episode that played or
+  play another, after which the events meant for it no longer apply."
+  [effects]
+  (boolean (some (comp #{:stop :play} first) effects)))
 
 (def shown-playback
   "The playback of the episode that the player in a state shows. It's made
