@@ -4,7 +4,43 @@ Elektrolyt
 A podcast app for the browser, built on
 [podcast-clj](https://github.com/simongray/podcast-clj) and
 [play-nice](https://github.com/simongray/play-nice), and rendered with
-[Replicant](https://replicant.fun).
+[Replicant](https://replicant.fun). The app runs in the browser, and a small
+server on the JVM serves it, together with a proxy for its requests and
+thumbnails of artwork.
+
+
+Running the app
+---------------
+
+You need Java, the [Clojure CLI](https://clojure.org/guides/install_clojure)
+and Node with npm. CI uses Java 25 and Node 24. Install the npm packages
+once:
+
+```bash
+npm install
+```
+
+Then start the server and the shadow-cljs watch in one JVM:
+
+```bash
+clojure -M:cljs:server:serve
+```
+
+The app is at http://localhost:8400, and its views are at
+http://localhost:8402, in [Portfolio](https://github.com/cjohansen/portfolio),
+with a scene for each state of each view.
+
+The server listens on localhost alone, since it has no login yet and its
+proxy fetches any public URL for whoever reaches it. It also makes small
+thumbnails of artwork at `/artwork`, since most feeds name a single artwork
+of 3000 pixels, and keeps them in `.cache/artwork`, at most 200 MB.
+
+To search the Podcast Index too, and to find a show by its guid alone, put
+the [credentials of the Podcast Index](https://api.podcastindex.org) in an
+EDN file of secrets, as `{:podcastindex {:key "…" :secret "…"}}`. The
+server signs the requests to the Podcast Index with them, so the secret
+never reaches the page. Name the file in `PODCAST_APP_SECRETS`, or put it at
+`../secrets.edn`, beside the checkout.
 
 
 Principles
@@ -48,114 +84,99 @@ How to work on the app
   a candidate for a library of its own.
 
 
-Namespaces
-----------
+The code
+--------
 
-The namespaces are grouped by what they're about, so that a new one has
-an obvious place:
+The app is in `src/dk/simongray/elektrolyt/`, the Portfolio scenes are in
+`dev/`, and the tests are in `test/`. The namespaces are grouped by what
+they're about, so that a new one has an obvious place:
 
 - **Where the app runs.** The root namespace, `dk.simongray.elektrolyt`,
   starts the app in the page, `worker` starts its web worker, and `server`
-  is the app's server, on the JVM.
-- **What the listener keeps,** in `library`: the library on this device,
-  its operations, refresh and OPML, and the Library page, the queue, the
-  inbox, the picks and the settings.
-- **What plays,** in `player`.
-- **The pages of a show and of an episode,** in `show` and `episode`.
-- **The search for shows,** in `search`, which asks the directories and
-  drpodcast.nu.
+  is the server.
+- **The listener's library,** in `library`: the library on this device,
+  the changes to it, its refresh and OPML, the Library, Queue, Inbox and
+  Settings pages, and the picks.
+- **Playback,** in `player`.
+- **The Show and Episode pages,** in `show` and `episode`.
+- **Search,** in `search`, which asks the directories and drpodcast.nu.
 - **What every page shares,** in `ui`: the page around the views, Home,
-  the views that several pages use, the paths of the pages, their words
-  and colours, and the artwork.
+  the views that several pages use, the routes, the app's words and
+  colours, and the artwork.
 - **What reaches outside the store,** in `runtime`: the listeners, timers,
-  channels, localStorage, the caches and the logs.
+  channels, localStorage, caches and logs.
 
 Within a group, a subject's model, effects and views sit together, e.g.
-`library.queue` holds what the state keeps of the queue, `library.queue.ui`
-its views, and `player.audio` the player's effects, which the root
-namespace registers. A new feature goes into the group it belongs to, e.g.
-playlists into `library` or comments into `episode`, and a new group is
-only for a new domain, as podcast-clj has `value` for payments.
+`library.queue` is the queue's model, `library.queue.ui` its views, and
+`player.audio` the player's effects. A new feature goes into the group it
+belongs to, e.g. playlists into `library` or comments into `episode`. A new
+group is only for a new domain, as podcast-clj has `value` for payments.
 
-A test checks that every namespace that uses listeners, timers, locks,
-channels or localStorage is marked as runtime, so that they stay few, and
+A test checks that only the namespaces marked as runtime use listeners,
+timers, locks, channels or localStorage, so that they stay few.
 [STATE.md](STATE.md) lists every place where the app keeps something.
 
 
 Development
 -----------
 
-Install the npm packages once, then start the app's server and the watch in
-one JVM:
-
-```bash
-npm install
-clojure -M:cljs:server:local:serve
-```
-
-- The app is at http://localhost:8400, together with the proxy through
-  which it fetches feeds. The server listens on localhost alone, since it
-  has no login yet and the proxy fetches any public URL for whoever
-  reaches it.
-- The server also makes small thumbnails of artwork at `/artwork`, since
-  most feeds name a single artwork of 3000 pixels. It keeps them in
-  `.cache/artwork`, at most 200 MB.
-- The page, its web worker and the server log with
-  [Telemere](https://github.com/taoensso/telemere). Each event has an id
-  and data, e.g. `:library/save-failed`, and a release build logs errors
-  and warnings alone.
-- The views are at http://localhost:8402, in
-  [Portfolio](https://github.com/cjohansen/portfolio), with a scene for each
-  state of each view. The scenes live in the `-scenes` namespaces of `dev/`.
-
-To search the Podcast Index too, and to find a show by its guid alone, put
-the [credentials of the Podcast Index](https://api.podcastindex.org) in an
-EDN file of secrets, as `{:podcastindex {:key "…" :secret "…"}}`. The
-server signs the requests to the Podcast Index with them, so the secret
-never reaches the page. In development, the file is `../secrets.edn`,
-beside the checkouts. Otherwise, name it in `PODCAST_APP_SECRETS`.
-
-From an editor, start a REPL with the `:cljs`, `:server` and `:local`
-aliases instead and evaluate `(start!)` in the `user` namespace. After you
-reload the server's namespace, `(restart!)` starts it again with the new
+To work from an editor, start a REPL with the `:cljs` and `:server` aliases
+rather than `:serve`, and evaluate `(start!)` in the `user` namespace. After
+you reload the server's namespace, `(restart!)` starts it again with the new
 handlers.
 
-The `:local` alias takes podcast-clj, play-nice and colour-coded from the
-checkouts beside this one, `../podcast-clj`, `../play-nice` and
-`../colour-coded`, and like-minded, mind-meld and wary-fetch below
-podcast-clj too, so that a fix in any of them shows in the app at once.
-Without it, they come from the versions in `deps.edn`.
+The watch starts an nREPL server of its own, whose port is in
+`.shadow-cljs/nrepl.port`. Evaluate `(shadow.cljs.devtools.api/repl :app)`
+there to reach the app in an open tab. The `:serve` alias starts another
+one, whose port is in `.nrepl-port`.
 
-The watch starts an nREPL server, whose port is in `.shadow-cljs/nrepl.port`.
-Evaluate `(shadow.cljs.devtools.api/repl :app)` there to reach the app in an
-open tab. The `:serve` alias starts another one, whose port is in
-`.nrepl-port`.
+To work on the libraries at the same time, add the `:local` alias, e.g.
+`clojure -M:cljs:server:local:serve`. It takes podcast-clj, play-nice,
+colour-coded, like-minded, mind-meld and wary-fetch from checkouts beside
+this one, e.g. `../podcast-clj`, so that a fix in any of them shows in the
+app at once.
+
+The page, its web worker and the server log with
+[Telemere](https://github.com/taoensso/telemere). Each event has an id and
+data, e.g. `:library/save-failed`, and a release build logs only errors and
+warnings.
 
 The icons are the Light weight of [Phosphor Icons](https://phosphoricons.com),
 from the npm package `@phosphor-icons/core`. Each icon's path is a def of its
-own in the `ui.icons` namespace, named as Phosphor names it, so a release
-build keeps only the icons that the views use. After you update the package,
-evaluate `(write-icons! "light")` in the `dk.simongray.elektrolyt.phosphor`
-namespace to write them again. Phosphor's licence, MIT, is at the top of that
-file.
+own in the `ui.icons` namespace, so a release build keeps only the icons that
+the views use. After you update the package, evaluate `(write-icons! "light")`
+in the `dk.simongray.elektrolyt.phosphor` namespace to write them again.
+Phosphor's licence, MIT, is at the top of that file.
+
+
+Tests
+-----
 
 To run the tests in Node:
 
 ```bash
-clojure -M:cljs:local compile test
+clojure -M:cljs compile test
 ```
 
 To run the server's tests on the JVM:
 
 ```bash
-clojure -X:server:local:test
+clojure -X:server:test
 ```
 
-To run the end-to-end tests in Firefox and your installed Chrome, install
-Playwright's Firefox once, and then run them against the app that the watch
-built into `public/`. They start a server of their own on a free port.
+The end-to-end tests run in Firefox and your installed Chrome, against the
+app that the watch built into `public/`, with a server of their own on a
+free port. Install Playwright's Firefox once:
 
 ```bash
 npx playwright install firefox
-npm run e2e
 ```
+
+Then run them. Their server takes the `:server` and `:local` aliases unless
+`E2E_ALIASES` names others, so without the checkouts, name `:server` alone:
+
+```bash
+E2E_ALIASES=:server npm run e2e
+```
+
+CI runs all three, and lints `src`, `test` and `dev` with clj-kondo first.
