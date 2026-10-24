@@ -7,6 +7,7 @@
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player-test :as player-test]
             [dk.simongray.elektrolyt.ui :as ui]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.ui.controls :as controls]))
 
 (defn nodes
@@ -139,3 +140,11 @@
   (is (= "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=64" (ui/favicon (player-test/state {})))
       "a small thumbnail of the artwork of what the player shows")
   (is (nil? (ui/favicon {:route {:name :route/home}})) "and none while it shows nothing"))
+
+(deftest an-announcement-that-repeats
+  (let [line #(ui/announcer (announcement/announced % "The feed couldn't be fetched"))
+        once (line {})]
+    (is (= "The feed couldn't be fetched" (text-of once)))
+    (is (not= (get-in once [2 1 :replicant/key])
+              (get-in (line (announcement/announced {} "The feed couldn't be fetched")) [2 1 :replicant/key]))
+        "is a new element each time, so that a screen reader reads out the same message again")))

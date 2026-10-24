@@ -11,6 +11,7 @@
   - :place, the words for where they go back, e.g. \"queue\"
   - :operation, the operation that puts them back"
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (defn announced
@@ -19,7 +20,8 @@
   `undo-key`."
   [undo-key announcement undo operation]
   {:operation operation
-   :ui        #(assoc % :announcement announcement undo-key undo)})
+   :ui        #(-> (announcement/announced % announcement)
+                   (assoc undo-key undo))})
 
 (defn offered
   "The undo in `state` with only the :ids that it would put back by the

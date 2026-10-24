@@ -38,7 +38,7 @@ as long as the tab.
 | `:refresh-status` | The refresh under way, and what the last one found, or when it failed or found another tab refreshing, which holds back the next | `library.refresh` | `library.refresh`, `library.ui` | Overwritten |
 | `:route` | The page | `ui.routes`, at each navigation | `ui`, `show`, `ui.colors` | Overwritten |
 | `:server` | What the app's server offers | `elektrolyt`, once | `search`, `library.settings.ui` | Never |
-| `:announcement` | The last status message for a screen reader | `library.changes`, `show`, `show.feeds`, `library.refresh`, `show.subscription`, `library.saves`, `library.settings`, `library.opml` | `ui` | Overwritten |
+| `:announcement`, `:announcements` | The last status message for a screen reader, and how many there were, which makes each a new element so that a repeat is heard too | `library.changes`, `show`, `show.feeds`, `library.refresh`, `show.subscription`, `library.saves`, `library.settings`, `library.opml`, through `ui.announcement/announced` but for `show`'s count of episodes | `ui` | Overwritten |
 | `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone, which undoes only what's still as it left it | `library.changes`, through `library.queue` and `library.inbox` | `library.queue`, `library.inbox`, the views, which offer it while there's something to put back | This tab's next change |
 | `:subscribing`, `:subscribe-errors` | The subscriptions under way, and those that failed, by URL | `show.subscription` | `ui.subscription` | Per URL, once it's done |
 | `:settings-status` | The last outcome on Settings | `elektrolyt`, `library.settings`, `library.opml` | `library.settings.ui` | Overwritten |

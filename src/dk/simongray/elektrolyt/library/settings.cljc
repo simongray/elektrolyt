@@ -2,6 +2,7 @@
   "The listener's settings, as the Settings page shows and changes them.
   They're preferences in the profile, so that they sync with it."
   (:require [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]
             ;; the app's former name, which existing profiles keep the
             ;; preferences under
             [dk.simongray.podcast-app :as-alias app]))
@@ -182,9 +183,8 @@
   [state error]
   (if error
     (let [text "The searches and shows couldn't be cleared."]
-      (assoc state
-             :settings-status {:group :this-browser :error? true :text text}
-             :announcement    text))
+      (-> (assoc state :settings-status {:group :this-browser :error? true :text text})
+          (announcement/announced text)))
     (-> (dissoc state :searches :feeds :feed-urls :linked :colors)
         (assoc :settings-status {:group :this-browser
                                  :text  "Cleared the searches and shows."}))))

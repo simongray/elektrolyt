@@ -1,7 +1,8 @@
 (ns dk.simongray.elektrolyt.show.subscription
   "Subscribing to a show and unsubscribing from it, as changes to the
   library and the state."
-  (:require [dk.simongray.elektrolyt.show :as show]))
+  (:require [dk.simongray.elektrolyt.show :as show]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]))
 
 (defn subscribing
   "The `state` while the feed at `url` is fetched for a subscription."
@@ -14,7 +15,7 @@
   [url title error]
   {:ui #(-> (update % :subscribing disj url)
             (assoc-in [:subscribe-errors url] error)
-            (assoc :announcement (str "Couldn't subscribe to " title)))})
+            (announcement/announced (str "Couldn't subscribe to " title)))})
 
 (defn subscribed
   "The change once the feed at `url` is `fetched` for a subscription to the
@@ -26,7 +27,7 @@
     {:operation [:library/subscribe url fetched]
      :ui        #(-> (update % :subscribing disj url)
                      (update :subscribe-errors dissoc url)
-                     (assoc :announcement (str "Subscribed to " title)))}))
+                     (announcement/announced (str "Subscribed to " title)))}))
 
 (defn unsubscribed
   "The change once the listener unsubscribes from the show `title` at
@@ -34,4 +35,4 @@
   [state url title]
   (when-let [k (some-> (:library state) (show/subscribed-key url))]
     {:operation [:library/unsubscribe k]
-     :ui        #(assoc % :announcement (str "Unsubscribed from " title))}))
+     :ui        #(announcement/announced % (str "Unsubscribed from " title))}))
