@@ -13,7 +13,8 @@
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.elektrolyt.library :as app-library]
-            [dk.simongray.elektrolyt.runtime :as runtime]))
+            [dk.simongray.elektrolyt.runtime :as runtime]
+            [taoensso.telemere :as tel]))
 
 ;; The app's former name, since a browser keeps the listener's data under it
 (def store
@@ -86,7 +87,10 @@
   [c k v]
   (runtime/idle! 2000 #(-> (js/Promise.resolve nil)
                            (.then (fn [_] (cache/put! c k v)))
-                           (.catch (fn [e] (js/console.warn "The cache wasn't written" e))))))
+                           (.catch (fn [e]
+                                     (tel/log! {:level :warn :id :cache/write-failed
+                                                :data  {:key k} :error e}
+                                               "The cache wasn't written"))))))
 
 (defn clear!
   "A promise that every cache is empty."

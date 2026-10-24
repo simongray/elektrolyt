@@ -13,7 +13,8 @@
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.refresh :as refresh]
             [dk.simongray.elektrolyt.runtime :as runtime]
-            [dk.simongray.elektrolyt.ui.text :as text]))
+            [dk.simongray.elektrolyt.ui.text :as text]
+            [taoensso.telemere :as tel]))
 
 (defn subscribed-count
   "How many shows the library of the `state` subscribes to."
@@ -91,7 +92,8 @@
                  (-> (app-library/save! store)
                      (.then #(refresh/refresh! store false))))))
       (.catch (fn [e]
-                (js/console.error "The OPML file wasn't imported" e)
+                (tel/log! {:level :error :id :opml/import-failed :error e}
+                          "The OPML file wasn't imported")
                 (swap! store assoc :settings-status unreadable)))))
 
 (defn export!

@@ -32,7 +32,8 @@
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.local :as local]
-            [dk.simongray.elektrolyt.show :as show]))
+            [dk.simongray.elektrolyt.show :as show]
+            [taoensso.telemere :as tel]))
 
 (defn element
   "The audio element of the player, or nil before anything plays."
@@ -303,7 +304,8 @@
     (step! store [:play id])
     (play-id! store id t)
     (catch :default e
-      (js/console.error "The episode didn't play" e))))
+      (tel/log! {:level :error :id :player/play-failed :data {:id id} :error e}
+                "The episode didn't play"))))
 
 (defn resume!
   "Play the episode in the player of the `store` from where it is."

@@ -2,8 +2,8 @@
 
  ;; podcast-clj for the feeds and the listener's library, play-nice for the
  ;; playing, colour-coded for the colours of the artwork, Replicant for the
- ;; rendering, Nexus for the actions that the views dispatch, and reitit for
- ;; the routes.
+ ;; rendering, Nexus for the actions that the views dispatch, reitit for the
+ ;; routes, and Telemere for the logs of the page, its worker and the server.
  ;;
  ;; Replicant comes from the commit of its PR #83 too, which fixes issue #81:
  ;; a keyed child that moves to the front and changes keeps its old vdom, so
@@ -18,6 +18,7 @@
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
          metosin/reitit-frontend  {:mvn/version "0.11.0"}
+         com.taoensso/telemere    {:mvn/version "1.4.0"}
          ;; the caches of searches and shows and the id of the browser, and
          ;; the cache mode of their requests, which the app requires itself
          dk.simongray/like-minded {:mvn/version "0.9.0"}
@@ -34,14 +35,14 @@
           :main-opts   ["-m" "shadow.cljs.devtools.cli"]}
 
   ;; The app's own server, for its files and the proxy, on the same Pedestal
-  ;; as podcast-clj's server. It logs to stderr through slf4j-simple, and
-  ;; tells the page what it offers as transit. Its namespaces are in src
-  ;; with the rest of the app, and this alias adds the libraries that they
-  ;; need on the JVM.
+  ;; as podcast-clj's server. What Pedestal logs through SLF4J reaches
+  ;; Telemere through telemere-slf4j, and the server tells the page what it
+  ;; offers as transit. Its namespaces are in src with the rest of the app,
+  ;; and this alias adds the libraries that they need on the JVM.
   :server {:extra-deps {org.clojure/clojure          {:mvn/version "1.12.6"}
                         io.pedestal/pedestal.service {:mvn/version "0.8.2"}
                         io.pedestal/pedestal.jetty   {:mvn/version "0.8.2"}
-                        org.slf4j/slf4j-simple       {:mvn/version "2.0.20"}
+                        com.taoensso/telemere-slf4j  {:mvn/version "1.4.0"}
                         com.cognitect/transit-clj    {:mvn/version "1.1.363"}}}
 
   ;; the server and the watch in one JVM, with an nREPL server (see

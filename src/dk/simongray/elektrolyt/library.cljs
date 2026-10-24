@@ -25,7 +25,8 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.runtime :as runtime]
-            [dk.simongray.wary-fetch.proxy :as proxy]))
+            [dk.simongray.wary-fetch.proxy :as proxy]
+            [taoensso.telemere :as tel]))
 
 (def send
   "The function that sends the requests of the library, through the proxy
@@ -99,8 +100,9 @@
             (try
               (:library (applied lib operation opts))
               (catch :default e
-                (js/console.warn "An operation didn't apply to the stored library"
-                                 (clj->js operation) e)
+                (tel/log! {:level :warn :id :library/operation-failed
+                           :data  {:operation operation} :error e}
+                          "An operation didn't apply to the stored library")
                 lib)))
           library
           ops))
@@ -153,7 +155,8 @@
   "Log the result `written` of a write when it failed, and give it."
   [written]
   (when (:error written)
-    (js/console.error "The library wasn't saved" (clj->js written)))
+    (tel/log! {:level :error :id :library/save-failed :data written}
+              "The library wasn't saved"))
   written)
 
 (defn save!

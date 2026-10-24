@@ -24,7 +24,8 @@
             [io.pedestal.http.secure-headers :as secure-headers]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.service.interceptors :as interceptors]
-            [io.pedestal.service.resources :as resources])
+            [io.pedestal.service.resources :as resources]
+            [taoensso.telemere :as tel])
   (:import [java.io ByteArrayOutputStream]
            [java.nio.file Files]
            [java.security MessageDigest]
@@ -296,8 +297,10 @@
                                                :client-dir   client-dir
                                                :podcastindex podcastindex
                                                :artwork-dir  artwork-dir})))
-       (println (str "The app is on http://localhost:" port "/"
-                     (when podcastindex ", with the Podcast Index")))))
+       (tel/log! {:level :info :id :server/started
+                  :data  {:port port :podcastindex? (some? podcastindex)}}
+                 (str "The app is on http://localhost:" port "/"
+                      (when podcastindex ", with the Podcast Index")))))
    @server))
 
 (defn stop!
