@@ -13,6 +13,9 @@ function shell(page) {
 test('the rail keeps its width from page to page, so the content stays put', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
+  // the app renders the shell after the page has loaded, which on a slow
+  // runner comes after the font
+  await expect(page.getByRole('main')).toBeVisible();
   // Charis, in place of the Charter that stands in while it loads, whose
   // small caps the browser makes up narrower; fonts.ready alone can come
   // before Firefox asks for it
