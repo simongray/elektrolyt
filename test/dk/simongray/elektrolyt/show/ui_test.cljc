@@ -89,8 +89,8 @@
     (is (re-find #"^/shows/g/episodes/\w+/episode-0\?url=" href)
         "each title links to the page of its episode, with the URL of the feed")
     (is (= [[:show/more "g" 45]] (get-in button [1 :on :click])))
-    (is (= "ol.episodes > li:nth-child(21) h3 a" (get-in button [1 :data-refocus]))
-        "which gives the focus to the first episode that it lists, once it goes")
+    (is (= "ol.episodes > li:nth-child(21) :is(h3 a, h3[tabindex])" (get-in button [1 :data-refocus]))
+        "which gives the focus to the first episode that it lists, once it goes, by its link or its title")
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
                     (show/episodes (show-page {:episodes-shown {"g" 45}}) {:episodes rows})))
         "no button once they're all listed")))
@@ -102,7 +102,9 @@
     (is (= 0 (get-in item [1 :replicant/key])) "keyed by its place in the list")
     (is (= "Nameless" (text-of (elements :h3 item))))
     (is (empty? (elements :a item))
-        "but not linked, since an item with neither a guid nor an enclosure has no page")))
+        "but not linked, since an item with neither a guid nor an enclosure has no page")
+    (is (= -1 (get-in (first (elements :h3 item)) [1 :tabindex]))
+        "so its title takes the focus instead")))
 
 (deftest an-episode-beside-its-artwork
   (let [src #(:src (second (first (elements :img (show/episode-row {} "/e" % nil {:artwork "https://example.org/show.jpg"})))))]
