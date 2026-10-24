@@ -67,7 +67,9 @@
   [state]
   (case (get-in state [:route :name])
     :route/home    app-name
-    :route/show    (or (:title (show/page state (show-ui/guid state))) "Show")
+    :route/show    (or (:title (show/page state (show-ui/guid state)))
+                       (some-> (:library state) (show/subscription-of (show-ui/guid state)) :title)
+                       "Show")
     :route/episode (or (:title (episode-ui/route-page state)) "Episode")
     (get titles (get-in state [:route :name]) "Page not found")))
 

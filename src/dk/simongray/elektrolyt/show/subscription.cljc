@@ -32,6 +32,6 @@
   "The change once the listener unsubscribes from the show `title` at
   `url` in `state`, or nil when the library isn't subscribed to it."
   [state url title]
-  (when-let [k (some-> (:library state) (show/library-key nil url))]
+  (when-let [k (some-> (:library state) (show/subscribed-key url))]
     {:operation [:library/unsubscribe k]
      :ui        #(assoc % :announcement (str "Unsubscribed from " title))}))

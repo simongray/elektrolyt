@@ -1,6 +1,7 @@
 (ns dk.simongray.elektrolyt.show.subscription-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.show.subscription :as subscription]))
@@ -24,3 +25,10 @@
         (is (= error (get-in done [:subscribe-errors url])))
         (is (not (search/subscribed? (search/subscribed-urls (:library done)) url)))
         (is (= "Couldn't subscribe to Podcasting 2.0" (:announcement done)))))))
+
+(deftest unsubscribing-from-a-feed-that-never-came
+  (let [url "https://example.org/dead.xml"
+        lib (library/update-profile (library/make "test") profile/subscribe "dead" {:url url :title "Dead"})]
+    (is (= [:library/unsubscribe "dead"]
+           (:operation (subscription/unsubscribed {:library lib} url "Dead"))))
+    (is (nil? (subscription/unsubscribed {:library lib} "https://example.org/other.xml" "Other")))))

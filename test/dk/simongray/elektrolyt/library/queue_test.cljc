@@ -123,7 +123,10 @@
   (let [heard-first (elsewhere (state true 1 2 3) profile/mark-played (id 2))]
     (is (= ["Episode 2" "Episode 3"]
            (titles (changed queue/undone (changed queue/removed heard-first (id 2)))))
-        "but one that was heard before the change comes back")))
+        "but one that was heard before the change comes back"))
+  (let [removed (changed queue/removed (state true 1 2 3) (id 2))
+        left    (update removed :library library/unsubscribe k)]
+    (is (nil? (queue/offered left)) "and nothing of a show that the listener left")))
 
 (deftest adding
   (testing "at the end, or after the episode that plays"

@@ -278,6 +278,18 @@
           [:h2#publisher (str "More from " (or (:title publisher) "its publisher"))]
           (show-cards state (:shows publisher))])])))
 
+;; A subscription whose feed can't be fetched has no page, but the
+;; listener can still leave it
+(defn unsubscribe-button
+  "The button that unsubscribes from the show on the Show page in `state`,
+  or nil unless the library is subscribed to the feed of the page."
+  [state]
+  (let [lib (:library state)
+        url (:url (source state))]
+    (when-let [k (when (and lib url) (show/subscribed-key lib url))]
+      [:div.show-subscription
+       (subscription/button :subscribed url (or (:title (show/subscription-of lib k)) url) true)])))
+
 (def picks-section
   "The section of picks under a show: the id and text of its heading, the
   lead of the line on why they came up, and the text when there are
@@ -297,7 +309,8 @@
             (case status
               :looking-up looking-up
               :loading    [:p {:role "status"} "Loading the show…"]
-              :failed     [:p {:role "status"} (status-text status 0 (:error (source state)) nil)]
+              :failed     (list [:p {:role "status"} (status-text status 0 (:error (source state)) nil)]
+                                (unsubscribe-button state))
               not-found))
       (let [aside (details/aside (details-rows page) (:people page))
             src   (source state)]

@@ -78,7 +78,10 @@
   (let [dismissed (changed inbox/dismissed (state 1 2) (id 2))
         queued    (update dismissed :library library/update-profile profile.queue/enqueue (id 2))]
     (is (nil? (inbox/offered queued)))
-    (is (nil? (inbox/undone queued)) "and nothing when there's nothing to put back")))
+    (is (nil? (inbox/undone queued)) "and nothing when there's nothing to put back"))
+  (let [dismissed (changed inbox/dismissed (state 1 2) (id 2))]
+    (is (nil? (inbox/offered (update dismissed :library library/unsubscribe k)))
+        "nor of a show that the listener left")))
 
 (deftest all-at-once
   (let [dismissed (changed inbox/all-dismissed (state 1 2 3))]

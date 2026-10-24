@@ -122,6 +122,21 @@
         (when (and k (feed? k))
           k)))))
 
+(defn subscription-of
+  "The subscription to the show `guid` in the library `lib`, whether or not
+  the library has its feed, e.g. one whose feed was never fetched, or nil."
+  [lib guid]
+  (get (profile/subscriptions (:profile lib)) guid))
+
+(defn subscribed-key
+  "The key of the subscription at `url` in the library `lib`, whether or
+  not the library has its feed, or nil."
+  [lib url]
+  (let [profile (:profile lib)
+        k       (get (profile/by-url profile) (guid/normal-url url))]
+    (when (profile/subscribed? profile k)
+      k)))
+
 (def library-page
   "The page of the show under a key in a library, made again only when its
   feed or the profile changes, since sorting thousands of episodes takes a
@@ -153,14 +168,16 @@
 
   A feed in the library is a map of its :url, its :key in the library, the
   :feed and :whole?. Any other is the entry in :feeds at the URL from the
-  link to the page, the cache or the Podcast Index, with the :url and,
-  once it has arrived, the :feed."
+  link to the page, the cache, the Podcast Index or a subscription whose
+  feed the library doesn't have, with the :url and, once it has arrived,
+  the :feed."
   [state guid]
   (let [lib                                (:library state)
         {:keys [path-params query-params]} (:route state)
         url                                (or (when (= guid (:guid path-params))
                                                  (:url query-params))
-                                               (get-in state [:feed-urls guid :url]))
+                                               (get-in state [:feed-urls guid :url])
+                                               (some-> lib (subscription-of guid) :url))
         k                                  (some-> lib (library-key guid url))]
     (cond
       k   {:url    (get-in lib [:feeds k :url])
