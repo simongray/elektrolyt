@@ -1,0 +1,369 @@
+n,title,feed,domain,language,sources,items,transcript,timed_transcript,person,comment_thread,location,chapters_file,podlove_chapters,chapters_in_notes,update_frequency,podping,value,soundbite,serial,medium,funding,trailer,prefixes
+1,Mørkeland,https://rss.podplaystudio.com/1032.xml,rss.podplaystudio.com,da-DK,Apple dk 1; Apple dk True Crime 1,403,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+2,Genstart,https://api.dr.dk/podcasts/v1/feeds/genstart.xml?format=podcast,api.dr.dk,da,Apple dk 2; Apple dk News 1; DR 1,903,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+3,Adfærd,https://www.spreaker.com/show/2892033/episodes/feed,www.spreaker.com,da,Apple dk 3,164,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+4,Langt fra løgnen,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/ef4988a6-bd27-432c-af66-b39900b38278/7d5c52ff-2f88-45c2-a2e8-b39900b38693/podcast.rss,www.omnycontent.com,da,Apple dk 4; Apple dk Comedy 1,65,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+5,Third Ear,https://feeds.acast.com/public/shows/62a1d88513e14d0011ebc309,feeds.acast.com,da,Apple dk 5,173,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+6,Et kapitel for sig,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/51e8702e-5649-4ff8-9681-ad4800b0bb22/2eff567a-f3db-43fe-82be-ad4800b0bb2c/podcast.rss,www.omnycontent.com,da,Apple dk 6,335,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+7,Millionærklubben,https://www.omnycontent.com/d/playlist/1283f5f4-2508-4981-a99f-acb500e64dcf/27dfeb66-f61a-4fcc-aa6d-ad0800b05139/dc61232c-7e07-438e-981a-ad0800b05142/podcast.rss,www.omnycontent.com,da,Apple dk 7,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+8,Borgerlig Tabloid,https://www.omnycontent.com/d/playlist/1283f5f4-2508-4981-a99f-acb500e64dcf/a8df889a-1ef0-40fd-94bb-af1e00cff416/89869564-4bca-4df0-bca3-af1e00d05284/podcast.rss,www.omnycontent.com,da,Apple dk 8; Apple dk News 2,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+9,Only in America,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/b672af00-1456-4b2e-b3c2-afbe0083aba4/e0d94ab6-e7d9-4aaa-94dd-afbe008b0d0a/podcast.rss,www.omnycontent.com,da,Apple dk 9,231,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+10,Fantino og Bonde,https://rss.podplaystudio.com/1130.xml,rss.podplaystudio.com,da-DK,Apple dk 10,249,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+11,Sagen Genåbnet,https://feeds.simplecast.com/a9oRWwkE,feeds.simplecast.com,da,Apple dk 11; Apple dk True Crime 2,224,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+12,Dybt Go' Nat DK,https://feeds.simplecast.com/BHMUcDf_,feeds.simplecast.com,da,Apple dk 12; Apple dk Comedy 2,150,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+13,Nationens Mareridt,https://rss.podplaystudio.com/1134.xml,rss.podplaystudio.com,da-DK,Apple dk 13; Apple dk True Crime 3,99,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+14,Sørine & Livskraften,https://audioboom.com/channels/5115932.rss,audioboom.com,da,Apple dk 14,68,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+15,BorgenUdenFilter,https://feeds.simplecast.com/OvoXT1qQ,feeds.simplecast.com,da,Apple dk 15,90,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+16,True Story,https://feeds.simplecast.com/C_m_vVz2,feeds.simplecast.com,da,Apple dk 16; Apple dk True Crime 4,337,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+17,Mediano,https://www.spreaker.com/show/6169233/episodes/feed,www.spreaker.com,da,Apple dk 17,1000,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+18,Stjerner og striber,https://api.dr.dk/podcasts/v1/feeds/stjerner-og-striber-podcast.xml?format=podcast,api.dr.dk,da,Apple dk 18; Apple dk News 3; DR 31,27,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+19,Vanvittig Verdenshistorie,https://feeds.simplecast.com/7hwPKtA1,feeds.simplecast.com,da,Apple dk 19; Apple dk Comedy 3,475,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+20,En ven af familien,https://www.omnycontent.com/d/playlist/87e48115-d0ce-4e9b-83f0-ae5b01244e0a/43961839-8c91-4353-8c1f-b4740066013e/b38bc1d6-788b-4885-8bad-b47400660537/podcast.rss,www.omnycontent.com,da,Apple dk 20; Apple dk True Crime 5,8,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+21,Avistid,https://www.omnycontent.com/d/playlist/1283f5f4-2508-4981-a99f-acb500e64dcf/fb3a977a-4990-43b8-a721-ad0800b112ce/e0860d64-3c50-4ea3-8817-ad0800b112e1/podcast.rss,www.omnycontent.com,da,Apple dk 21; Apple dk News 4,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+22,Afhørt,https://www.omnycontent.com/d/playlist/87e48115-d0ce-4e9b-83f0-ae5b01244e0a/6681eac1-37f8-4dea-8521-b11100826c48/47e35b0e-39bc-43d7-87ca-b11100826f6f/podcast.rss,www.omnycontent.com,da,Apple dk 22,518,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+23,Magtfuld,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/da2c3abe-ae37-4c83-bae0-b29500896504/bf710267-fe14-48e8-82f5-b29500896988/podcast.rss,www.omnycontent.com,da,Apple dk 23,89,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+24,Damerne først,https://api.dr.dk/podcasts/v1/feeds/damerne-foerst.xml?format=podcast,api.dr.dk,da,Apple dk 24,22,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+25,Børsen Morgenbriefing,https://feed.pod.space/borsenmorgenbriefing,feed.pod.space,da,Apple dk 25; Apple dk News 5,361,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+26,BorgenUnplugged,https://feeds.soundcloud.com/users/soundcloud:users:154832827/sounds.rss,feeds.soundcloud.com,da,Apple dk 26; Apple dk News 6,500,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+27,Danske Drabssager,https://rss.podplaystudio.com/1103.xml,rss.podplaystudio.com,da-DK,Apple dk 27; Apple dk True Crime 6,228,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+28,God bless America,https://www.omnycontent.com/d/playlist/1283f5f4-2508-4981-a99f-acb500e64dcf/eba3f5d3-81d5-4888-a16a-af0f00c3f443/a0a52975-7374-4eef-9a9e-af0f00c496b9/podcast.rss,www.omnycontent.com,da,Apple dk 28; Apple dk News 7,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+29,Det sidste måltid,https://api.dr.dk/podcasts/v1/feeds/det-sidste-maaltid.xml?format=podcast,api.dr.dk,da,Apple dk 29,199,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+30,Sig det' løgn,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/5dc13326-10a9-4001-a42a-ae89005d1415/ec5db2e9-c7c2-4115-b6a7-ae89005efd15/podcast.rss,www.omnycontent.com,da,Apple dk 30,232,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+31,The Daily,https://feeds.simplecast.com/Sl5CSM3S,feeds.simplecast.com,en,Apple us 1; Apple us News 1,67,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,5
+32,Crime Junkie,https://feeds.simplecast.com/qm_9xx0g,feeds.simplecast.com,en,Apple us 2; Apple us True Crime 1,534,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,3
+33,The Joe Rogan Experience,https://feeds.megaphone.fm/GLT1412515089,feeds.megaphone.fm,en,Apple us 3; Apple us Comedy 1,2770,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+34,Dateline NBC,https://podcastfeeds.nbcnews.com/HL4TzgYC,podcastfeeds.nbcnews.com,en,Apple us 4; Apple us True Crime 2,875,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,3
+35,The Builders,https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/8adeeef5-b6c0-4cfa-b6cc-b4c0011490b1/51d9281c-e886-4139-b940-b4c0011494bc/podcast.rss,www.omnycontent.com,en-US,Apple us 5,8,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+36,Pod Save America,https://audioboom.com/channels/5166624.rss,audioboom.com,en,Apple us 6; Apple us News 2,1200,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,5
+37,Love Trapped,https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/20968bfe-1a62-450f-a762-b3de0110281c/1c0ae3b2-ec1e-4a0c-a144-b3de01102fb1/podcast.rss,www.omnycontent.com,en-US,Apple us 7; Apple us True Crime 3,34,1,1,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,1
+38,Up First from NPR,https://feeds.npr.org/510318/podcast.xml,feeds.npr.org,en-us,Apple us 8; Apple us News 3,500,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,1,0,2
+39,The Ezra Klein Show,https://feeds.simplecast.com/kEKXbjuJ,feeds.simplecast.com,en,Apple us 9,5,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,5
+40,Morbid,https://feeds.simplecast.com/ohmVlJZQ,feeds.simplecast.com,en,Apple us 10; Apple us True Crime 4,899,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+41,20/20,https://feeds.megaphone.fm/ESP3456903052,feeds.megaphone.fm,en,Apple us 11; Apple us True Crime 5,60,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,3
+42,Mick Unplugged,https://feeds.megaphone.fm/YAP1844984381,feeds.megaphone.fm,en,Apple us 12; Apple us Education 1,314,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+43,Good Hang with Amy Poehler,https://feeds.megaphone.fm/good-hang-with-amy-poehler,feeds.megaphone.fm,en,Apple us 13; Apple us Comedy 2,87,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+44,Pardon My Take,https://mcsorleys.barstoolsports.com/feed/pardon-my-take,mcsorleys.barstoolsports.com,,Apple us 14,910,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+45,REAL AF with Andy Frisella,https://rss.libsyn.com/shows/67940/destinations/278377.xml,rss.libsyn.com,en,Apple us 15,1395,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+46,METRO with Sarah Koenig,https://feeds.simplecast.com/R9ZBMPFj,feeds.simplecast.com,en,Apple us 16,3,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+47,Betrayal Season 6,https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/7b1f0895-f595-4c38-afb6-ae6001531610/f1aae979-82f6-402c-8906-ae6001537b33/podcast.rss,www.omnycontent.com,en-US,Apple us 17; Apple us True Crime 6,185,1,1,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,1
+48,The Dylan Gemelli Podcast,https://feed.podbean.com/dylangemelli/feed.xml,feed.podbean.com,en,Apple us 18,181,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+49,The Bill Simmons Podcast,https://feeds.megaphone.fm/the-bill-simmons-podcast,feeds.megaphone.fm,en,Apple us 19,1646,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+50,Unblinded with Sean Callagy,https://anchor.fm/s/10a340624/podcast/rss,anchor.fm,en,Apple us 20,23,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+51,Proven Podcast,https://rss.libsyn.com/shows/526583/destinations/4528548.xml,rss.libsyn.com,en-us,Apple us 21,86,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+52,The Mel Robbins Podcast,https://feeds.simplecast.com/UCwaTX1J,feeds.simplecast.com,en,Apple us 22; Apple us Education 2; Apple dk Education 2,450,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+53,48 Hours,https://rss.amperwave.net/v2/feed/audacynetwork/496099a4061493caac75b71a6c26b8fb,rss.amperwave.net,en,Apple us 23; Apple us True Crime 7,1140,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+54,The Learning Leader Show With Ryan Hawk,https://rss.libsyn.com/shows/65162/destinations/259291.xml,rss.libsyn.com,en,Apple us 24,711,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+55,Young and Profiting (YAP) with Hala Taha: Entrepreneurship and Self-Improvement Podcast,https://feeds.megaphone.fm/yap,feeds.megaphone.fm,en,Apple us 25,803,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,6
+56,Coffeez with Joe Shalaby,https://feeds.captivate.fm/coffeez-with-joe-shalaby/,feeds.captivate.fm,en,Apple us 26,154,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+57,The Megyn Kelly Show,https://feeds.simplecast.com/RV1USAfC,feeds.simplecast.com,en,Apple us 27; Apple us News 4,1997,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,6
+58,Habits and Hustle,https://rss.libsyn.com/shows/624375/destinations/5495160.xml,rss.libsyn.com,en,Apple us 28,300,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+59,Notes from the Edge,https://rss.art19.com/notes-from-the-edge,rss.art19.com,en,Apple us 29,142,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+60,The Level Up Podcast w/ Paul Alex,https://media.rss.com/the-level-up-podcast/feed.xml,media.rss.com,en,Apple us 30,1265,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+61,The Rest Is Entertainment,https://feeds.megaphone.fm/GLT2052042801,feeds.megaphone.fm,en,Apple gb 1,325,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+62,The Rest Is History,https://feeds.megaphone.fm/GLT4787413333,feeds.megaphone.fm,en,Apple gb 2; Apple us History 1; Apple dk History 2,734,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+63,The News Agents,https://feeds.captivate.fm/the-news-agents/,feeds.captivate.fm,en,Apple gb 3,1252,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+64,The Rest Is Politics,https://feeds.megaphone.fm/GLT9190936013,feeds.megaphone.fm,en,Apple gb 4,626,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+65,The Romesh Ranganathan Show,https://feeds.megaphone.fm/romesh,feeds.megaphone.fm,en,Apple gb 5,113,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+66,The Louis Theroux Podcast,https://feeds.megaphone.fm/GLT1948741183,feeds.megaphone.fm,en,Apple gb 6,76,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+67,Parenting Hell with Rob Beckett and Josh Widdicombe,https://feeds.megaphone.fm/GLT9881106244,feeds.megaphone.fm,en,Apple gb 7,643,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+68,The High Performance Podcast,https://access.acast.com/rss/3d30295e-f7fb-5af1-b618-30a8763cc75a,access.acast.com,en,Apple gb 8,778,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+69,The Rest Is Politics: US,https://feeds.megaphone.fm/GLT5336643697,feeds.megaphone.fm,en,Apple gb 9,260,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+70,The Trial of Russell Brand,https://feeds.acast.com/public/shows/62a879162610040012f1c7a3,feeds.acast.com,en,Apple gb 10,94,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+71,Bear Hunt,https://feeds.megaphone.fm/GLT6357967095,feeds.megaphone.fm,en,Apple gb 11,9,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+72,Wolf & Owl with Romesh Ranganathan and Tom Davis,https://feeds.megaphone.fm/GLT9487939818,feeds.megaphone.fm,en,Apple gb 12,372,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+73,No Such Thing As A Fish,https://audioboom.com/channels/2399216.rss,audioboom.com,en,Apple gb 13,737,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+74,Off Menu with Ed Gamble and James Acaster,https://feeds.acast.com/public/shows/b19ac1f5-6adf-4c8b-aa1a-2af2160f99e4,feeds.acast.com,en,Apple gb 14,404,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+75,My Therapist Ghosted Me,https://feeds.captivate.fm/my-therapist-ghosted-me/,feeds.captivate.fm,en,Apple gb 15,473,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+76,The Rest Is Science,https://feeds.megaphone.fm/GLT6907573392,feeds.megaphone.fm,en,Apple gb 16,99,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+77,Rosebud with Gyles Brandreth,https://feeds.acast.com/public/shows/6835e960944c948b9a623f10,feeds.acast.com,en,Apple gb 17,282,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+78,The Diary Of A CEO with Steven Bartlett,https://rss2.flightcast.com/xmsftuzjjykcmqwolaqn6mdn,rss2.flightcast.com,en,Apple gb 18,901,1,1,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,6
+79,Sh**ged Married Annoyed,https://feeds.megaphone.fm/sma,feeds.megaphone.fm,en,Apple gb 19,464,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+80,The Amol Rajan Connection,https://feeds.megaphone.fm/theamolrajanconnection,feeds.megaphone.fm,en,Apple gb 20,4,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+81,Newscast,https://podcasts.files.bbci.co.uk/p05299nl.rss,podcasts.files.bbci.co.uk,en,Apple gb 21,2000,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+82,The Martin Lewis Podcast,https://podcasts.files.bbci.co.uk/p02pc9xt.rss,podcasts.files.bbci.co.uk,en,Apple gb 22,237,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+83,We Need To Talk with Paul C. Brunson,https://feeds.megaphone.fm/weneedtotalk,feeds.megaphone.fm,en,Apple gb 23,178,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,3
+84,Casefile True Crime,https://feeds.acast.com/public/shows/679acff465f74095106abfaa,feeds.acast.com,en,Apple gb 24,427,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+85,Begin Again with Davina McCall,https://feeds.megaphone.fm/beginagain,feeds.megaphone.fm,en,Apple gb 25,146,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,3
+86,Elis James and John Robins,https://feeds.acast.com/public/shows/698b89c05e0cb52f15bcde20,feeds.acast.com,en,Apple gb 26,594,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+87,The Rest Is Classified,https://feeds.megaphone.fm/therestisclassified,feeds.megaphone.fm,en,Apple gb 27,222,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+88,Fin vs History,https://feeds.megaphone.fm/finvshistory,feeds.megaphone.fm,en,Apple gb 28,196,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,2
+89,RedHanded,https://audioboom.com/channels/5166531.rss,audioboom.com,en,Apple gb 29,670,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,3
+90,Hanging Out With Ant & Dec,https://feeds.megaphone.fm/GLT8294332136,feeds.megaphone.fm,en,Apple gb 30,76,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+91,RONZHEIMER.,https://ronzheimer.podigee.io/feed/mp3,ronzheimer.podigee.io,de,Apple de 1; Apple de News 1,869,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+92,Lanz + Precht,https://cdn.julephosting.de/podcasts/1355-lanz-precht/feed.rss,cdn.julephosting.de,de,Apple de 2; Apple de News 2,271,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+93,Apokalypse & Filterkaffee,https://apokalypse-und-filterkaffee.podigee.io/feed/mp3,apokalypse-und-filterkaffee.podigee.io,de,Apple de 3; Apple de News 3,1949,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+94,{ungeskriptet} - Der Meinungsfreiheit verpflichtet.,https://feeds.megaphone.fm/UNGESKRIPTETMEDIAGMBH9200557996,feeds.megaphone.fm,de,Apple de 4; Apple de Education 1,369,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+95,Baywatch Berlin,https://baywatch-berlin.podigee.io/feed/mp3,baywatch-berlin.podigee.io,de,Apple de 5; Apple de Comedy 1,358,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+96,Machtwechsel,https://machtwechsel.podigee.io/feed/mp3,machtwechsel.podigee.io,de,Apple de 6; Apple de News 4,79,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+97,Mordlust,https://mordlust-podcast.podigee.io/feed/mp3,mordlust-podcast.podigee.io,de,Apple de 7; Apple de True Crime 1,267,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+98,Dear Britain - die politische Unterhaltungssendung über das Vereinigte Königreich,https://feeds.lagedernation.org/feeds/dbt-mp3.xml,feeds.lagedernation.org,de,Apple de 8; Apple de News 5,1,0,0,1,0,0,1,0,0,0,0,0,0,0,podcast,1,0,1
+99,Hotel Matze,https://hotelmatze.podigee.io/feed/mp3,hotelmatze.podigee.io,de,Apple de 9,564,1,1,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+100,MORD AUF EX,https://mordaufex.podigee.io/feed/mp3,mordaufex.podigee.io,de,Apple de 10; Apple de True Crime 2,340,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+101,Kaulitz Hills - Senf aus Hollywood,https://feeds.megaphone.fm/GLT9787442816,feeds.megaphone.fm,de,Apple de 11; Apple de Comedy 2,260,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+102,Gemischtes Hack,https://feeds.megaphone.fm/GLT8390938385,feeds.megaphone.fm,de,Apple de 12; Apple de Comedy 3,383,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+103,Was jetzt?,https://feeds.simplecast.com/Xtqjn37O,feeds.simplecast.com,de,Apple de 13; Apple de News 6,2000,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+104,TRUE CRIME 187,https://feeds.megaphone.fm/truecrime187,feeds.megaphone.fm,de,Apple de 14; Apple de True Crime 3,57,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+105,Eine Stunde History - Deutschlandfunk Nova,https://www.deutschlandfunknova.de/podcast/eine-stunde-history,www.deutschlandfunknova.de,de-DE,Apple de 15; Apple de Education 2,100,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+106,Lage der Nation - der Politik-Podcast aus Berlin,https://feeds.lagedernation.org/feeds/ldn-mp3.xml,feeds.lagedernation.org,de-DE,Apple de 16; Apple de News 7,502,1,1,1,0,0,1,1,0,0,0,0,0,0,podcast,1,0,1
+107,Was bisher geschah - Geschichtspodcast,https://feeds.acast.com/public/shows/68935df5eef665d629ba5e4c,feeds.acast.com,de,Apple de 17; Apple de History 1,179,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+108,Geschichten aus der Geschichte,https://geschichten-aus-der-geschichte.podigee.io/feed/mp3,geschichten-aus-der-geschichte.podigee.io,de,Apple de 18; Apple de History 2,612,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+109,Fest & Flauschig,https://feeds.megaphone.fm/GLT4060321204,feeds.megaphone.fm,de,Apple de 19; Apple de Comedy 4,717,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+110,Tech Bro Topia,https://www.deutschlandfunk.de/tech-bro-topia-104.xml,www.deutschlandfunk.de,de-DE,Apple de 20,9,0,0,0,0,0,0,0,1,0,0,0,0,1,podcast,0,0,0
+111,Dein Ernst,https://dein-ernst.podigee.io/feed/mp3,dein-ernst.podigee.io,de,Apple de 21,5,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+112,Alles auf Aktien – Die täglichen Finanzen-News,https://allesaufaktien.podigee.io/feed/mp3,allesaufaktien.podigee.io,de,Apple de 22,1729,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+113,Im Visier – Verbrecherjagd in Berlin und Brandenburg,https://www.rbb-online.de/podcasts/im-visier/index.xml/feed=podcast.xml,www.rbb-online.de,de,Apple de 23; Apple de True Crime 4,167,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+114,Verbrechen von nebenan: True Crime aus der Nachbarschaft,https://cdn.audiorella.com/podcasts/1756-verbrechen-von-nebenan-true-crime-aus-der-nachbarschaft/feed.rss,cdn.audiorella.com,de,Apple de 24; Apple de True Crime 5,207,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+115,Talk ohne Gast,https://www.fritz.de/programm/podcasts/talk-ohne-gast.xml/feed=podcast.xml,www.fritz.de,de,Apple de 25; Apple de Comedy 5,295,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+116,Wissen mit Johnny,https://anchor.fm/s/f8b3e284/podcast/rss,anchor.fm,de,Apple de 26; Apple de Education 3,105,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+117,Verbrechen,https://feeds.simplecast.com/dnJhzmyN,feeds.simplecast.com,de,Apple de 27; Apple de True Crime 6,292,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+118,Hobbylos,https://feeds.megaphone.fm/GLT8915357524,feeds.megaphone.fm,de,Apple de 28; Apple de Comedy 6,258,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+119,CheckPod - Der Podcast mit Checker Tobi,https://feeds.br.de/checkpod-der-podcast-mit-checker-tobi/feed.xml,feeds.br.de,de-DE,Apple de 29,139,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+120,"Handelsblatt Morning Briefing - News aus Wirtschaft, Politik und Finanzen",https://handelsblatt-morningbriefing.podigee.io/feed/mp3,handelsblatt-morningbriefing.podigee.io,de,Apple de 30,2181,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+121,Alex & Sigges podcast,https://feed.pod.space/alexosigge,feed.pod.space,sv,Apple se 1,760,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+122,Wahlgren & Wistam,https://feed.pod.space/wahlgrenwistam,feed.pod.space,sv,Apple se 3,604,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+123,Håll Käften Podcast,https://feed.pod.space/hallkaftenpodcast,feed.pod.space,sv,Apple se 4,156,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+124,Kansli - med Jessica & Sebastian,https://feeds.acast.com/public/shows/69ca78328fc1c62479f6e5ce,feeds.acast.com,sv,Apple se 5,211,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+125,Fallen jag aldrig glömmer,https://rss.podplaystudio.com/1477.xml,rss.podplaystudio.com,sv-SE,Apple se 6,246,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+126,Kafferepet,https://feeds.acast.com/public/shows/69ca7bb3e44b28321e3e615d,feeds.acast.com,sv,Apple se 7,479,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+127,Flashback Forever,https://feed.pod.space/flashbackforever,feed.pod.space,sv,Apple se 8,347,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+128,Fördomspodden,https://feeds.acast.com/public/shows/69ca673ae44b28321e37b297,feeds.acast.com,sv,Apple se 9,321,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+129,Rättegångspodden,https://feeds.acast.com/public/shows/67574d18-1814-47f9-9acb-e04766b06b5f,feeds.acast.com,sv,Apple se 10,215,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+130,Svenska fall podcast,https://feeds.acast.com/public/shows/69ca7e74cb79a114e29fc90a,feeds.acast.com,sv,Apple se 11,80,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+131,Krimrummet,https://feed.pod.space/krimrummet,feed.pod.space,sv,Apple se 12,287,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+132,Spöktimmen,https://feeds.acast.com/public/shows/1dc963a6-d284-44e0-a083-c6074c2d33d3,feeds.acast.com,sv,Apple se 13,438,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+133,Historiepodden,https://feeds.acast.com/public/shows/3544984e-0e49-4fcd-9bfd-f10a04b60e71,feeds.acast.com,sv,Apple se 14,814,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+134,Svenska brott,https://feeds.acast.com/public/shows/62d1f29df280fb0013f8a8a5,feeds.acast.com,sv,Apple se 15,115,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+135,Schyffert & Sundin - Är det här nåt?,https://feeds.acast.com/public/shows/69cc076403f0e15830709143,feeds.acast.com,sv,Apple se 17,32,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+136,Fråga Anders och Måns,https://feeds.acast.com/public/shows/9760d2f2-0092-402b-b106-377cd9e8630e,feeds.acast.com,sv,Apple se 18,306,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+137,Förhörsrummet,https://feeds.acast.com/public/shows/621f70b457ff390012aceef5,feeds.acast.com,sv,Apple se 19,251,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+138,Bathinas skilda möten,https://feed.pod.space/bathinasskildamoten,feed.pod.space,sv,Apple se 20,425,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+139,ursäkta,https://feed.pod.space/ursakta,feed.pod.space,sv,Apple se 21,354,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+140,Brott och Straff,https://rss.podplaystudio.com/4246.xml,rss.podplaystudio.com,sv-SE,Apple se 22,4,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+141,Fredagspodden,https://feeds.acast.com/public/shows/69ca734c98052f52e8b34a04,feeds.acast.com,sv,Apple se 23,793,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+142,Mer än bara morsa!,https://feeds.acast.com/public/shows/mer-an-bara-morsa,feeds.acast.com,sv,Apple se 26,247,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+143,Filip & Fredrik podcast,https://feeds.acast.com/public/shows/69ca709b98052f52e8b24339,feeds.acast.com,sv,Apple se 27,929,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+144,Måndagsvibe med Hanna och Lojsan,https://feed.pod.space/mandagsvibemedhannaochlojsan,feed.pod.space,sv,Apple se 28,698,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+145,VAFALLS,https://feeds.acast.com/public/shows/6824b278a9ce4d3694122eab,feeds.acast.com,sv,Apple se 29,76,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+146,Hör Här!,https://feeds.acast.com/public/shows/650d5bce9c246900115be443,feeds.acast.com,sv,Apple se 30,264,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+147,Les Grosses Têtes,https://feeds.audiomeans.fr/feed/d7c6111b-04c1-46bc-b74c-d941a90d37fb.xml,feeds.audiomeans.fr,fr,Apple fr 1,102,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+148,LEGEND,https://feeds.acast.com/public/shows/646cbb0bb160e00011df3980,feeds.acast.com,fr,Apple fr 2,758,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+149,Small Talk - Konbini,https://feeds.audiomeans.fr/feed/f57a29ac-5ce1-423d-8ca2-82369d9ca230.xml,feeds.audiomeans.fr,fr,Apple fr 3,113,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+150,Tout Contre,https://feeds.acast.com/public/shows/6acf83f46203da9f282d1fc9,feeds.acast.com,fr,Apple fr 4,1,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+151,Entrez dans l'Histoire,https://feeds.audiomeans.fr/feed/971b31f2-42d6-4d41-95ee-1c0554528483.xml,feeds.audiomeans.fr,fr,Apple fr 5,101,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+152,L'After Foot,https://feeds.simplecast.com/VVMraBM_,feeds.simplecast.com,fr,Apple fr 7,2000,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+153,L'Heure Du Crime,https://feeds.audiomeans.fr/feed/de5ba943-e720-4988-a518-40404f231ff3.xml,feeds.audiomeans.fr,fr,Apple fr 9,101,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+154,C dans l'air,https://api.octopus.saooti.com/rss/playlist/500.rss,api.octopus.saooti.com,fr,Apple fr 10,200,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+155,Hondelatte Raconte,https://feeds.audiomeans.fr/feed/7773697e-dd5d-4650-808b-158712520883.xml,feeds.audiomeans.fr,fr,Apple fr 11,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+156,Les grands dossiers de l'Histoire par Franck Ferrand,https://feeds.audiomeans.fr/feed/1e1146ca-6d5d-4a7c-a1a2-0735872d9b07.xml,feeds.audiomeans.fr,fr,Apple fr 12,2000,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+157,HugoDécrypte - Actus et interviews,https://feeds.acast.com/public/shows/95497e34-ecc2-596a-b910-bb3342918621,feeds.acast.com,fr,Apple fr 13,1976,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+158,"UNBX, le podcast de la réussite",https://feeds.acast.com/public/shows/6aaba7448577b7eb504cf325,feeds.acast.com,fr,Apple fr 14,9,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+159,La dernière,https://feeds.audiomeans.fr/feed/9f8626d5-a57f-475d-8c0b-43c20fa2e696.xml,feeds.audiomeans.fr,fr,Apple fr 16,827,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+160,La riposte,https://feeds.audiomeans.fr/feed/e7e41b26-3a4e-4a58-a4b9-222ff1cdbf51.xml,feeds.audiomeans.fr,fr,Apple fr 17,409,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+161,Enquêtes criminelles,https://feeds.audiomeans.fr/feed/5acd2982-4c2c-495f-a3a8-5a25d79cf0b4.xml,feeds.audiomeans.fr,fr,Apple fr 18,100,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+162,"Métamorphose, éveille ta conscience !",https://feeds.acast.com/public/shows/b47f5d26-e558-472e-9760-61ac69de0a9e,feeds.acast.com,fr,Apple fr 21,1533,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+163,Crime story,https://feeds.acast.com/public/shows/638f63106c074700101c2e1f,feeds.acast.com,fr,Apple fr 22,388,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+164,Transfert,https://feeds.audiomeans.fr/feed/f02d124c-01fa-4ddc-a6fe-9363f52c58bc.xml,feeds.audiomeans.fr,fr,Apple fr 23,600,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+165,Les Lueurs,https://feeds.podcastics.com/podcastics/podcasts/rss/5697_a59f1749b640068f2d54338141e262a0.rss,feeds.podcastics.com,fr,Apple fr 24,186,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+166,En apparence,https://feeds.acast.com/public/shows/6992e4438dc5f2047a71d132,feeds.acast.com,fr,Apple fr 25,37,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+167,Super Moscato Show,https://feeds.simplecast.com/8bxI9MLf,feeds.simplecast.com,fr,Apple fr 26,2000,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+168,L'Heure du Monde,https://feeds.acast.com/public/shows/68db9d2509b1c365e44318ca,feeds.acast.com,fr,Apple fr 27,1359,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+169,"C'est pas toi, c'est moi.",https://feeds.audiomeans.fr/feed/c1c51120-9a81-4899-9df2-1246f84df442.xml,feeds.audiomeans.fr,fr,Apple fr 28,65,0,0,1,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+170,Les nuits du Cazarre enchaîné,https://feeds.simplecast.com/qk1PjxaZ,feeds.simplecast.com,fr,Apple fr 29,2000,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+171,"Passages, le podcast d'histoires vraies de Louie Media",https://feeds.acast.com/public/shows/a7277f6f-bb0c-49df-ac44-80cf3167a59b,feeds.acast.com,fr,Apple fr 30,213,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+172,The Tucker Carlson Show,https://feeds.megaphone.fm/RSV1597324942,feeds.megaphone.fm,en,Apple us News 5,460,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,6
+173,The Bulwark Daily,https://audioboom.com/channels/5114286.rss,audioboom.com,en-us,Apple us News 6,500,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,3
+174,NPR News Now,https://feeds.npr.org/500005/podcast.xml,feeds.npr.org,en-us,Apple us News 7,4,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,1,0,2
+175,Pivot,https://feeds.megaphone.fm/pivot,feeds.megaphone.fm,en,Apple us News 9,821,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,4
+176,The MeidasTouch Podcast,https://rss.amperwave.net/v2/feed/audacynetwork/16aa3c6bf526fae9db63070c73cad09f,rss.amperwave.net,en,Apple us News 10,4568,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+177,Machine Gods,https://feeds.npr.org/g-s1-143588/podcast.xml,feeds.npr.org,en,Apple us Technology 1; Apple de Technology 2; Apple dk Technology 5,3,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,1,0,2
+178,"Tomorrow, Today",https://feeds.simplecast.com/tj_igLD4,feeds.simplecast.com,en-us,Apple us Technology 2,42,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+179,"All-In with Chamath, Jason, Sacks & Friedberg",https://rss.libsyn.com/shows/254861/destinations/1928300.xml,rss.libsyn.com,en,Apple us Technology 3; Apple de Technology 10; Apple dk Technology 4,440,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+180,Acquired,https://feeds.transistor.fm/acquired,feeds.transistor.fm,en,Apple us Technology 4,218,1,1,1,0,0,1,0,1,0,1,0,0,0,podcast,0,1,1
+181,"Inside AsembleAI: DeepTech, AI & Science",https://media.rss.com/asemble-mac-and-sam/feed.xml,media.rss.com,en,Apple us Technology 5,79,0,0,0,0,1,0,0,0,0,0,0,0,0,podcast,0,0,0
+182,No Priors: Artificial Intelligence | Technology | Startups,https://feeds.megaphone.fm/nopriors,feeds.megaphone.fm,en,Apple us Technology 6,185,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+183,Hard Fork,https://feeds.simplecast.com/6HKOhNgS,feeds.simplecast.com,en,Apple us Technology 7,3,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,5
+184,The Room Podcast,https://feeds.simplecast.com/aPz9Qkq6,feeds.simplecast.com,en,Apple us Technology 8,149,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+185,Bourbon with Brad,https://feeds.redcircle.com/0014bf0e-8db3-483e-b385-a3c2293d71aa,feeds.redcircle.com,en-US,Apple us Technology 9,36,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+186,Search Engine,https://rss.amperwave.net/v2/feed/audacynetwork/search-engine,rss.amperwave.net,en,Apple us Technology 10,146,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,3
+187,"MrBallen Podcast: Strange, Dark & Mysterious Stories",https://feeds.simplecast.com/dloY8UYJ,feeds.simplecast.com,en,Apple us True Crime 8,565,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+188,My Favorite Murder with Karen Kilgariff and Georgia Hardstark,https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/bdde8bb3-169d-43b1-91d3-b24c0047969c/f450d41f-16bc-4ecd-8f6c-b24c004796e2/podcast.rss,www.omnycontent.com,en,Apple us True Crime 9,1235,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+189,In The Dark,https://feeds.megaphone.fm/CNE3915766304,feeds.megaphone.fm,en-us,Apple us True Crime 10,29,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,1
+190,The Team House,https://www.spreaker.com/show/5960890/episodes/feed,www.spreaker.com,en,Apple us History 2,661,1,1,0,0,0,0,0,1,0,0,0,0,0,podcast,1,0,3
+191,World War II with Tom Hanks,https://rss.amperwave.net/v2/feed/audacynetwork/cc2b59fa44d0151fa8987e1b01e424bc,rss.amperwave.net,en,Apple us History 3,23,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,1
+192,History's Greatest Mysteries,https://rss.art19.com/historys-greatest-mysteries,rss.art19.com,en,Apple us History 4,11,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,5
+193,The Ancients,https://access.acast.com/rss/f2925f7a-eb08-471a-9958-387cb5ee6353,access.acast.com,en,Apple us History 5,669,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+194,Lore,https://rss.libsyn.com/shows/65267/destinations/259905.xml,rss.libsyn.com,en,Apple us History 6,500,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,5
+195,American Scandal,https://rss.art19.com/american-scandal,rss.art19.com,en,Apple us History 7,169,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+196,Throughline,https://feeds.npr.org/510333/podcast.xml,feeds.npr.org,en-us,Apple us History 8,471,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,1,0,3
+197,American History Tellers,https://rss.art19.com/american-history-tellers,rss.art19.com,en,Apple us History 9,502,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+198,In Our Time,https://podcasts.files.bbci.co.uk/b006qykl.rss,podcasts.files.bbci.co.uk,en,Apple us History 10,1115,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+199,Wait Wait... Don't Tell Me!,https://feeds.npr.org/344098539/podcast.xml,feeds.npr.org,en,Apple us Comedy 3,300,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,1,0,3
+200,Giggly Squad,https://feeds.simplecast.com/6J0Ivoq9,feeds.simplecast.com,en,Apple us Comedy 4,359,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+201,Armchair Expert with Dax Shepard,https://rss.art19.com/armchair-expert,rss.art19.com,en,Apple us Comedy 5,1116,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+202,The Toast,https://feeds.megaphone.fm/DEARMEDIALLC7892434789,feeds.megaphone.fm,en,Apple us Comedy 6,1367,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,6
+203,SmartLess,https://feeds.simplecast.com/hNaFxXpO,feeds.simplecast.com,en,Apple us Comedy 7,381,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+204,This Past Weekend w/ Theo Von,https://feeds.megaphone.fm/thispastweekend,feeds.megaphone.fm,en,Apple us Comedy 8,588,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,7
+205,Conan O’Brien Needs A Friend,https://feeds.simplecast.com/dHoohVNH,feeds.simplecast.com,en-us,Apple us Comedy 9,742,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,4
+206,The Tim Dillon Show,https://audioboom.com/channels/5093219.rss,audioboom.com,en-us,Apple us Comedy 10,376,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,3
+207,We!,https://rss.buzzsprout.com/2547586.rss,rss.buzzsprout.com,en-us,Apple us Education 3,67,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+208,The Jamie Kern Lima Show,https://feeds.megaphone.fm/LIFEISLOVELLC4342849321,feeds.megaphone.fm,en,Apple us Education 4,120,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+209,Makes Sense - with Dr. JC Doornick,https://feeds.simplecast.com/NQa_M9Ny,feeds.simplecast.com,en,Apple us Education 5,226,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,3
+210,IMO with Michelle Obama and Craig Robinson,https://rss.art19.com/hga-imo,rss.art19.com,en,Apple us Education 6,118,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,4
+211,Law of Attraction SECRETS,https://feeds.simplecast.com/ii63dDXi,feeds.simplecast.com,en,Apple us Education 7,451,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+212,Becoming UnDone® with Dr. Toby Brooks,https://feeds.simplecast.com/B3LEO0KQ,feeds.simplecast.com,en-us,Apple us Education 8,170,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+213,Ready For Love with Hilary Silver,https://feeds.megaphone.fm/CTL7202879289,feeds.megaphone.fm,en,Apple us Education 9,143,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+214,Life is an Inside Job with Coach Mike Basevic,https://rss2.flightcast.com/a4uhmdooosc09pcyl2h1gfw2.xml,rss2.flightcast.com,en,Apple us Education 10,18,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+215,The Pioneer Morning Briefing - Nachrichten aus Politik und Wirtschaft,https://dasmorningbriefing.podigee.io/feed/mp3,dasmorningbriefing.podigee.io,de,Apple de News 8,500,0,0,0,0,0,1,0,1,0,0,0,0,0,podcast,0,1,0
+216,0630 - der News-Podcast,https://www1.wdr.de/mediathek/audio/wdr/0630bywdraktuell/0630bywdraktuell-100.podcast,www1.wdr.de,de,Apple de News 9,365,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+217,Politik mit Anne Will,https://feeds.megaphone.fm/WMG5916123897,feeds.megaphone.fm,de,Apple de News 10,201,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+218,c't 4004 – der c't-3003-Podcast,https://ct-3003.podigee.io/feed/mp3,ct-3003.podigee.io,de,Apple de Technology 1,44,1,1,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+219,Darknet Diaries Deutsch,https://darknet-diaries-deutsch.podigee.io/feed/mp3,darknet-diaries-deutsch.podigee.io,de,Apple de Technology 3,29,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+220,c’t uplink - der IT-Podcast aus Nerdistan,https://ct-uplink.podigee.io/feed/mp3,ct-uplink.podigee.io,de,Apple de Technology 4,670,1,1,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+221,Apfelfunk,https://feeds.soundcloud.com/users/soundcloud:users:201768667/sounds.rss,feeds.soundcloud.com,de,Apple de Technology 5,500,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+222,"Tech, KI & Schmetterlinge",https://tech-ki.podigee.io/feed/mp3,tech-ki.podigee.io,de,Apple de Technology 6,79,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+223,Flugforensik - ein Absturz und seine Geschichte,https://anchor.fm/s/6a1a5da0/podcast/rss,anchor.fm,de,Apple de Technology 7,50,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+224,heiseshow,https://heiseshow.podigee.io/feed/mp3,heiseshow.podigee.io,de,Apple de Technology 8,527,1,1,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+225,Mac & i - der Apple-Podcast,https://mac-and-i.podigee.io/feed/mp3,mac-and-i.podigee.io,de,Apple de Technology 9,133,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+226,House of Block,https://feeds.simplecast.com/55iO2e64,feeds.simplecast.com,de-de,Apple de True Crime 7,5,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+227,Aktenzeichen XY… Unvergessene Verbrechen,https://cdn.julephosting.de/podcasts/1353-aktenzeichen-xy-unvergessene-verbrechen/feed.rss,cdn.julephosting.de,de,Apple de True Crime 8,117,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+228,ARD Crime Time – Der True Crime Podcast,https://www.mdr.de/nachrichten/podcast/spurdertaeter/spurdertaeter-104.xml,www.mdr.de,de,Apple de True Crime 9,175,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+229,PLOT HOUSE,https://plot-house.podigee.io/feed/mp3,plot-house.podigee.io,de,Apple de True Crime 10,61,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+230,WDR Zeitzeichen,https://www1.wdr.de/mediathek/audio/zeitzeichen/zeitzeichen-podcast-100.podcast,www1.wdr.de,de,Apple de History 3,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+231,Alles Geschichte - Der History-Podcast,https://feeds.br.de/alles-geschichte-history-von-radiowissen/feed.xml,feeds.br.de,de-DE,Apple de History 4,535,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+232,Eine kurze Geschichte über...,https://feeds.acast.com/public/shows/68b05f12674c25e0eaf41765,feeds.acast.com,de,Apple de History 5,94,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+233,Verbrechen der Vergangenheit,https://cdn.audiorella.com/podcasts/1695-verbrechen-der-vergangenheit/feed.rss,cdn.audiorella.com,de,Apple de History 6; fyyd de 16,152,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+234,Tatort Geschichte - True Crime meets History,https://feeds.br.de/tatort-geschichte-true-crime-meets-history/feed.xml,feeds.br.de,de-DE,Apple de History 7,143,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+235,Einschlafen mit Geschichte,https://einschlafen-geschichte.podigee.io/feed/mp3,einschlafen-geschichte.podigee.io,de,Apple de History 8,475,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+236,Terra X History - Der Podcast,https://cdn.julephosting.de/podcasts/1357-terra-x-history-der-podcast/feed.rss,cdn.julephosting.de,de,Apple de History 9,97,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+237,Amerika verstehen. Mit Volker Depkat,https://www.deutschlandfunk.de/amerika-verstehen-mit-volker-depkat-100.xml,www.deutschlandfunk.de,de-DE,Apple de History 10,41,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+238,Mit den Waffeln einer Frau,https://waffelneinerfrau-itunes.podigee.io/feed/mp3,waffelneinerfrau-itunes.podigee.io,de,Apple de Comedy 7,386,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+239,Edeltalk - mit Dominik & Kevin,https://feeds.nexx.cloud/12381/PNPAN7FYIU0ZBFW,feeds.nexx.cloud,de-DE,Apple de Comedy 8,424,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+240,Dick & Doof,https://cdn.audiorella.com/podcasts/1750-dick-doof/feed.rss,cdn.audiorella.com,de,Apple de Comedy 9,262,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+241,5 Minuten Harry Podcast von Coldmirror,https://rss.nexx.cloud/QBKHY4RQMECBNN0,rss.nexx.cloud,de-DE,Apple de Comedy 10,31,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+242,Einschlafen mit Wikipedia,https://einschlafen-mit-wikipedia.podigee.io/feed/mp3,einschlafen-mit-wikipedia.podigee.io,de,Apple de Education 4,751,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,1,0
+243,ICONS,https://rss.podscribe.ai/p/https://icons-podcast.podigee.io/feed/mp3,rss.podscribe.ai,de,Apple de Education 5,5,1,1,0,0,0,1,1,0,0,0,0,0,0,podcast,0,0,1
+244,Easy German: Learn German with native speakers | Deutsch lernen mit Muttersprachlern,https://proxyfeed.svmaudio.com/feeds/easygerman/feed.xml,proxyfeed.svmaudio.com,de,Apple de Education 6,731,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+245,Hörsaal - Deutschlandfunk Nova,https://www.deutschlandfunknova.de/podcast/hoersaal-der-podcast,www.deutschlandfunknova.de,de-DE,Apple de Education 7,100,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+246,Frag für 'ne Freundin,https://feeds.megaphone.fm/fragfuernefreundin,feeds.megaphone.fm,de,Apple de Education 8,6,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+247,Hopf & Kettner,https://feed.podbean.com/hopfundkettner/feed.xml,feed.podbean.com,en,Apple de Education 9,69,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+248,Wissen mit Zoé,https://anchor.fm/s/10a3b23a0/podcast/rss,anchor.fm,de,Apple de Education 10,51,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+249,Tiden,https://api.dr.dk/podcasts/v1/feeds/tiden.xml?format=podcast,api.dr.dk,da,Apple dk News 8; DR 14,106,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+250,B.T. Valgkamp,https://www.omnycontent.com/d/playlist/1283f5f4-2508-4981-a99f-acb500e64dcf/9bb41e53-28fa-4a3d-899b-ad0800ae3d37/00ad7c08-8a51-46d7-8e8f-ad0800ae3d41/podcast.rss,www.omnycontent.com,da,Apple dk News 9,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+251,#dkpol,https://feeds.acast.com/public/shows/61a5eeac54ee100013a59fc1,feeds.acast.com,da,Apple dk News 10,268,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+252,Jagten på det evige liv,https://api.dr.dk/podcasts/v1/feeds/jagten-paa-det-evige-liv.xml?format=podcast,api.dr.dk,da,Apple dk Technology 1; DR 22,57,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+253,Prompt,https://api.dr.dk/podcasts/v1/feeds/prompt.xml?format=podcast,api.dr.dk,da,Apple dk Technology 2; DR 35,25,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+254,Brinkmanns briks,https://api.dr.dk/podcasts/v1/feeds/brinkmanns-briks.xml?format=podcast,api.dr.dk,da,Apple dk Technology 3; DR 4,239,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+255,Teknisk set,https://feeds.fireside.fm/transformator/rss,feeds.fireside.fm,da,Apple dk Technology 6,396,0,0,0,0,0,0,0,0,0,1,0,0,0,podcast,0,0,0
+256,AI Revolutionen,https://rss.buzzsprout.com/2162583.rss,rss.buzzsprout.com,da,Apple dk Technology 7,85,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+257,Vildt Naturligt,https://api.dr.dk/podcasts/v1/feeds/vildt-naturligt.xml?format=podcast,api.dr.dk,da,Apple dk Technology 8,21,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+258,Verdens navle,https://api.dr.dk/podcasts/v1/feeds/verdens-navle.xml?format=podcast,api.dr.dk,da,Apple dk Technology 9; DR 38,23,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+259,Flyvende tallerken,https://api.dr.dk/podcasts/v1/feeds/flyvende-tallerken.xml?format=podcast,api.dr.dk,da,Apple dk Technology 10; DR 7,132,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+260,Station IIII,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/ba817502-00ef-4a30-a661-b1e000d86d41/2db04a75-66a0-46a3-a869-b1e000dfe1ad/podcast.rss,www.omnycontent.com,da,Apple dk True Crime 7,214,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+261,Krimiland,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/14a56dcd-916d-49f6-9f69-ad4800e69178/132a6534-d359-4aa6-977b-ad4800e69182/podcast.rss,www.omnycontent.com,da,Apple dk True Crime 8,454,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+262,Når lyset slukker,https://anchor.fm/s/1177f6058/podcast/rss,anchor.fm,da,Apple dk True Crime 9,9,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+263,Bag om forbrydelsen,https://feeds.acast.com/public/shows/655731ba5c5f6900125c4184,feeds.acast.com,da,Apple dk True Crime 10,169,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+264,Gennembrud,https://feeds.simplecast.com/fbFZ8Wdv,feeds.simplecast.com,da,Apple dk History 1,10,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+265,Kærlighedshistorie,https://www.spreaker.com/show/5835234/episodes/feed,www.spreaker.com,da,Apple dk History 3,24,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+266,Alletiders Fest,https://www.spreaker.com/show/5775020/episodes/feed,www.spreaker.com,da,Apple dk History 4,31,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+267,Varbergs Danmarkshistorier,https://www.spreaker.com/show/5419871/episodes/feed,www.spreaker.com,da,Apple dk History 5,50,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+268,Det amerikanske mareridt,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/037a74fc-2a91-468d-b5d6-b38a00ac4cd0/16c675c0-27a0-450b-bf7b-b38a00ac50f0/podcast.rss,www.omnycontent.com,da,Apple dk History 6,15,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+269,Kampen om historien,https://api.dr.dk/podcasts/v1/feeds/kampen-om-historien-3.xml?format=podcast,api.dr.dk,da,Apple dk History 7; DR 8,126,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+270,Den yderste grænse,https://www.spreaker.com/show/4467947/episodes/feed,www.spreaker.com,da,Apple dk History 8,211,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+271,Kongeland,https://feeds.acast.com/public/shows/6ab0e499eec8edc6b4b8fc17,feeds.acast.com,da,Apple dk History 9,106,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+272,Bag om København,https://feed.podbean.com/bagomkbh/feed.xml,feed.podbean.com,da,Apple dk History 10,155,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+273,Op med humøret - med Mathias Helt,https://www.omnycontent.com/d/playlist/414edbb4-4b91-4960-8650-ad4000dbc027/ad004ce7-93d5-4253-814d-b0de00e4c9e5/5ce4dab5-d3b0-4199-b796-b0de00ed4d57/podcast.rss,www.omnycontent.com,da,Apple dk Comedy 4,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+274,Schøtministeriet,https://feeds.simplecast.com/tbysLDaY,feeds.simplecast.com,da,Apple dk Comedy 5,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+275,r8Dio - Undskyld vi roder,https://www.omnycontent.com/d/playlist/504fd940-e457-44cf-9019-abca00be97ea/aa9b1acb-fc7d-48f6-b067-abca00beaa16/6af053db-da47-47dc-aee5-abca00c013d7/podcast.rss,www.omnycontent.com,da,Apple dk Comedy 6,348,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+276,Så har vi balladen,https://feeds.simplecast.com/U6zl1nxo,feeds.simplecast.com,da,Apple dk Comedy 7,170,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+277,CYKLEN,https://anchor.fm/s/116022440/podcast/rss,anchor.fm,da,Apple dk Comedy 8,11,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+278,Elefanten i rummet,https://feeds.simplecast.com/MEAJzB69,feeds.simplecast.com,da,Apple dk Comedy 9,144,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+279,Bagstiv - Sidste censurfri zone,https://feeds.simplecast.com/7bDXOWbk,feeds.simplecast.com,en,Apple dk Comedy 10,234,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+280,Ramt Af Stjernerne,https://anchor.fm/s/c7fa6c44/podcast/rss,anchor.fm,da,Apple dk Education 1,103,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+281,Bliv fri af psykisk vold,https://www.spreaker.com/show/5510156/episodes/feed,www.spreaker.com,da,Apple dk Education 3,51,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,1,0,1
+282,Pædagogisk kvarter,https://www.spreaker.com/show/5645127/episodes/feed,www.spreaker.com,da,Apple dk Education 4,195,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+283,Sjakket,https://feed.podbean.com/sjakketpod/feed.xml,feed.podbean.com,en,Apple dk Education 5,34,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+284,Følsom tonser med Karina von d'Ahé,https://anchor.fm/s/f5931188/podcast/rss,anchor.fm,da,Apple dk Education 6,66,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+285,Universitetsjura,https://feeds.simplecast.com/caNRMQnS,feeds.simplecast.com,da,Apple dk Education 7,1,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,0
+286,Forunderlige Børn,https://anchor.fm/s/e093e6f4/podcast/rss,anchor.fm,da,Apple dk Education 8,49,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+287,Dansk i ørerne,https://feeds.simplecast.com/XsKiWFa9,feeds.simplecast.com,da,Apple dk Education 9,117,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+288,Filosoffens Podcast,https://www.spreaker.com/show/5718234/episodes/feed,www.spreaker.com,da,Apple dk Education 10,276,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+289,EPO Church,https://epochurch.podcaster.de/epo-church__podcast_.rss,epochurch.podcaster.de,de,fyyd de 1,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+290,Alle Zeit der Welt,https://media.rss.com/allezeitderwelt/feed.xml,media.rss.com,de,fyyd de 2,159,1,1,0,0,1,0,0,1,0,0,1,0,0,podcast,1,0,0
+291,HSV - Meine Frau,https://hsvmeinefrau.podigee.io/feed/mp3,hsvmeinefrau.podigee.io,de,fyyd de 3,463,1,1,0,0,0,1,1,0,0,0,0,0,0,podcast,0,0,0
+292,Des Reisenden erste Wahl,https://dsa.podcaster.de/des-reisenden-erste-wahl.rss,dsa.podcaster.de,de,fyyd de 4,73,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+293,Überall Geschichte!,https://letscast.fm/podcasts/ueberall-geschichte-eee38da4/feed,letscast.fm,de,fyyd de 5,116,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+294,Menschenrechte: nachgefragt! - Der Interview-Podcast rund ums Thema Menschenrechte,https://die-politische-meinung.podigee.io/feed/mp3,die-politische-meinung.podigee.io,de,fyyd de 6,112,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+295,Arbeitsphilosophen - Die Zukunft der Arbeit,https://feeds.acast.com/public/shows/64902e722e16ba001119c23d,feeds.acast.com,de,fyyd de 7,186,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+296,Risikobasierter Ansatz (MP3 Feed),https://mth-datenschutz.de/feed/mp3/,mth-datenschutz.de,de-DE,fyyd de 8,436,1,1,1,0,0,1,1,0,0,0,0,0,0,podcast,0,0,0
+297,4 Schwestern,https://cdn.audiorella.com/podcasts/1746-4-schwestern/feed.rss,cdn.audiorella.com,de,fyyd de 9,55,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+298,"Nerd, Nerd, Nerd & Uli",https://nnnuu.de/feed/mp3/,nnnuu.de,de-DE,fyyd de 10,330,0,0,0,0,0,1,1,0,0,0,0,0,0,podcast,0,0,0
+299,Ein Glas mit Lars,https://podcast.zgo.de/@EinGlasMitLars/feed.xml,podcast.zgo.de,de,fyyd de 11,117,0,0,0,1,1,0,0,0,0,0,0,0,0,podcast,0,0,1
+300,Walk-Män-Podcast – Gesund leben in Bewegung / mit Ralf Baumgarten,https://letscast.fm/podcasts/walk-maen-podcast-gesund-leben-in-bewegung-mit-ralf-baumgarten-38bc0e76/feed,letscast.fm,de,fyyd de 12,268,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,2
+301,Entspannt einschlafen - Meditation & Achtsamkeit für die Nacht,https://entspannteinschlafen.podcaster.de/jetzt.rss,entspannteinschlafen.podcaster.de,de,fyyd de 13,4094,1,1,1,0,0,1,0,0,0,0,0,1,0,podcast,1,0,1
+302,CNV News-Podcast,https://cnv-medien.podigee.io/feed/mp3,cnv-medien.podigee.io,de,fyyd de 14,1554,1,1,0,0,0,1,1,0,0,0,0,0,0,podcast,0,0,0
+303,Der Wochenbericht – Wirtschaftsforschung aus Berlin,https://www.diw.de/de/rss_podcast_wochenbericht.xml,www.diw.de,de-de,fyyd de 15,341,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+304,DÖF.,https://anchor.fm/s/f8215bf8/podcast/rss,anchor.fm,de,fyyd de 17,273,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+305,Power-Wrestling Podcast,https://feeds.megaphone.fm/COMG8863761676,feeds.megaphone.fm,de,fyyd de 18,752,0,0,0,0,0,0,0,1,0,0,0,0,0,podcast,0,0,1
+306,Mission Energiewende – Der Klima-Podcast,https://feedpress.me/detektorfm_mission-energiewende,feedpress.me,de,fyyd de 19,443,1,1,0,1,0,0,0,0,0,0,0,0,0,podcast,1,0,1
+307,Aktuelle Wirtschaftsnews aus dem Radio,http://www.was-audio.de/aafeed/news.xml,www.was-audio.de,de-de,fyyd de 20,158,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+308,Musik-Interviews,http://www.radioeins.de/archiv/podcast/interviews.xml/feed=podcast.xml,www.radioeins.de,de,fyyd de 21,57,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+309,Esel und Teddy,https://www.esel-und-teddy.de/feed/mp3/,www.esel-und-teddy.de,de-DE,fyyd de 22,825,0,0,0,0,0,1,0,0,0,0,0,0,0,podcast,0,0,0
+310,Four Piece | One Piece Podcast,https://feed.podbean.com/fourpiece/feed.xml,feed.podbean.com,de-at,fyyd de 23,219,0,0,0,0,0,0,0,1,0,0,0,0,1,podcast,0,0,0
+311,Kriminalhörspiel,https://www.hoerspielundfeature.de/krimi-hoerspiel-100.xml,www.hoerspielundfeature.de,de-DE,fyyd de 24,92,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+312,Verbrechen für Weicheier - True Crime ohne Mord,https://feeds.acast.com/public/shows/685d689fe36cea9c161707da,feeds.acast.com,de,fyyd de 25,279,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+313,Leicester City FC | Leicester till I Die,https://feeds.acast.com/public/shows/63ce673aa0216b001006de81,feeds.acast.com,en,Podcast Index en 1,1373,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+314,Fluent Fiction - Italian,https://www.spreaker.com/show/5755084/episodes/feed,www.spreaker.com,en,Podcast Index en 2,340,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+315,FluentFiction - Finnish,https://www.spreaker.com/show/6005815/episodes/feed,www.spreaker.com,en,Podcast Index en 3,340,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+316,BRIGHT SIDE,https://www.spreaker.com/show/7310481/episodes/feed,www.spreaker.com,en,Podcast Index en 4,209,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,1,0,1
+317,The Revive Stronger Podcast,https://feeds.megaphone.fm/RSL5592678638,feeds.megaphone.fm,en,Podcast Index en 5,542,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+318,Honest Health,https://vigilante.tv/feeds/podcast/videos.xml?videoChannelId=1097,vigilante.tv,en,Podcast Index en 6,20,1,1,1,1,1,0,0,0,1,1,1,0,0,video,1,0,0
+319,MLB Morning Lineup Podcast,https://feeds.megaphone.fm/CAD5154456756,feeds.megaphone.fm,en,Podcast Index en 7,610,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+320,DragonRand100 Audiobooks- Breath of the Wild/Tears of the Kingdom Edition,https://anchor.fm/s/e1718108/podcast/rss,anchor.fm,en,Podcast Index en 8,82,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+321,New Books in British Studies,https://feeds.simplecast.com/7OOMeE2J,feeds.simplecast.com,en,Podcast Index en 9,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+322,New Books in Religion,https://feeds.simplecast.com/EmW8YM55,feeds.simplecast.com,en,Podcast Index en 10,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+323,Mind of a Football Coach,https://feeds.megaphone.fm/RRTET4649221629,feeds.megaphone.fm,en,Podcast Index en 11,560,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+324,New Books in History,https://feeds.simplecast.com/f8VZJ2I_,feeds.simplecast.com,en,Podcast Index en 12,556,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+325,Gunsmoke | OTRWesterns.com,http://feeds.feedburner.com/OTRWesterns-Gunsmoke,feeds.feedburner.com,en,Podcast Index en 13,120,0,0,0,0,1,0,0,0,0,1,0,0,0,podcast,0,0,0
+326,New Books in South Asian Studies,https://feeds.simplecast.com/syjC5VoO,feeds.simplecast.com,en,Podcast Index en 14,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+327,Meditation for Women,https://feeds.megaphone.fm/meditationforwomen,feeds.megaphone.fm,en,Podcast Index en 15,2481,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,1
+328,Tribe Sober - inspiring an alcohol free life!,https://feed.podbean.com/janetgourand4/feed.xml,feed.podbean.com,en,Podcast Index en 16,343,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+329,The Billion Dollar Podcast,https://rss.libsyn.com/shows/280280/destinations/2149415.xml,rss.libsyn.com,en,Podcast Index en 17,271,1,1,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+330,New Books in Communications,https://feeds.simplecast.com/0zGMcAXQ,feeds.simplecast.com,en,Podcast Index en 18,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+331,The Podcast by KevinMD,https://rss.libsyn.com/shows/273920/destinations/2093345.xml,rss.libsyn.com,en,Podcast Index en 19,2291,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+332,Purple Pants Podcast with Brice Izyah,https://feeds.feedburner.com/PurplePantsPodcast,feeds.feedburner.com,en,Podcast Index en 20,666,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+333,Days of Praise Podcast,https://www.icr.org/rss/daysofpraise_podcast.xml,www.icr.org,en,Podcast Index en 21,210,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+334,New Books Network,https://feeds.simplecast.com/OuTJEAhS,feeds.simplecast.com,en,Podcast Index en 22,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+335,The A Show on RNC RADIO,https://feeds.transistor.fm/rnc-radio-2879a4aa-3ad2-49f2-9ceb-7983530fc70a,feeds.transistor.fm,en,Podcast Index en 23,930,0,0,0,0,0,0,0,0,0,1,0,0,0,podcast,0,0,0
+336,NBN Book of the Day,https://feeds.simplecast.com/OKqzbtyy,feeds.simplecast.com,en,Podcast Index en 24,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+337,New Books in Biography & Memoir,https://feeds.simplecast.com/kcllBJDV,feeds.simplecast.com,en,Podcast Index en 25,600,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+338,K-Live,https://api.dr.dk/podcasts/v1/feeds/kulturen-pa-p1.xml?format=podcast,api.dr.dk,da,DR 2,538,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+339,Sara & Monopolet - podcast,https://api.dr.dk/podcasts/v1/feeds/mads-monopolet-podcast.xml?format=podcast,api.dr.dk,da,DR 3,256,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+340,P1 Debat,https://api.dr.dk/podcasts/v1/feeds/p1-debat.xml?format=podcast,api.dr.dk,da,DR 5,190,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+341,Djævlen i detaljen,https://api.dr.dk/podcasts/v1/feeds/djaevlen-i-detaljen.xml?format=podcast,api.dr.dk,da,DR 6,141,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+342,P1 Orientering,https://api.dr.dk/podcasts/v1/feeds/p1-orientering.xml?format=podcast,api.dr.dk,da,DR 9,126,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+343,Galt nok,https://api.dr.dk/podcasts/v1/feeds/galt-nok.xml?format=podcast,api.dr.dk,da,DR 10,127,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+344,Radioavisen,https://api.dr.dk/podcasts/v1/feeds/radioavisen.xml?format=podcast,api.dr.dk,da,DR 11,105,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+345,Akkurat med Clement,https://api.dr.dk/podcasts/v1/feeds/akkurat-med-clement.xml?format=podcast,api.dr.dk,da,DR 12,110,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+346,Hjerteflimmer for voksne,https://api.dr.dk/podcasts/v1/feeds/hjerteflimmer-for-voksne.xml?format=podcast,api.dr.dk,da,DR 13,104,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+347,Hjernekassen på P1,https://api.dr.dk/podcasts/v1/feeds/hjernekassen-pa-p1.xml?format=podcast&limit=100,api.dr.dk,da,DR 15,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+348,P1 Morgen,https://api.dr.dk/podcasts/v1/feeds/p1-morgen.xml?format=podcast&limit=100,api.dr.dk,da,DR 16,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+349,Morgenandagten,https://api.dr.dk/podcasts/v1/feeds/morgenandagten.xml?format=podcast&limit=100,api.dr.dk,da,DR 17,100,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+350,Ubegribeligt,https://api.dr.dk/podcasts/v1/feeds/ubegribeligt.xml?format=podcast,api.dr.dk,da,DR 18,79,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+351,Du kender typen,https://api.dr.dk/podcasts/v1/feeds/du-kender-typen.xml?format=podcast,api.dr.dk,da,DR 19,66,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+352,Fængsel,https://api.dr.dk/podcasts/v1/feeds/faengsel.xml?format=podcast,api.dr.dk,da,DR 20,63,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+353,Det' en klassiker,https://api.dr.dk/podcasts/v1/feeds/det-en-klassiker.xml?format=podcast,api.dr.dk,da,DR 21,57,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+354,Ibens Harem - 18 år efter,https://api.dr.dk/podcasts/v1/feeds/ibens-harem-18-aar-efter.xml?format=podcast,api.dr.dk,da,DR 23,54,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+355,Tyvstart,https://api.dr.dk/podcasts/v1/feeds/tyvstart.xml?format=podcast,api.dr.dk,da,DR 24,44,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+356,Genstart Dox,https://api.dr.dk/podcasts/v1/feeds/genstart-dox.xml?format=podcast,api.dr.dk,da,DR 25,37,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+357,Sorte tal,https://api.dr.dk/podcasts/v1/feeds/foelg-pengene.xml?format=podcast,api.dr.dk,da,DR 26,32,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+358,Under Radaren,https://api.dr.dk/podcasts/v1/feeds/under-radaren.xml?format=podcast,api.dr.dk,da,DR 27,31,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+359,Udsyn,https://api.dr.dk/podcasts/v1/feeds/orientering.xml?format=podcast&limit=100,api.dr.dk,da,DR 28,30,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+360,Tyran,https://api.dr.dk/podcasts/v1/feeds/tyran.xml?format=podcast,api.dr.dk,da,DR 29,29,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+361,Magten,https://api.dr.dk/podcasts/v1/feeds/slotsholmen.xml?format=podcast,api.dr.dk,da,DR 30,29,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+362,Svingdøren,https://api.dr.dk/podcasts/v1/feeds/svingdoeren.xml?format=podcast,api.dr.dk,da,DR 32,27,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+363,Hemmeligheder,https://api.dr.dk/podcasts/v1/feeds/hemmeligheder-2.xml?format=podcast,api.dr.dk,da,DR 33,27,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+364,Elskovspony,https://api.dr.dk/podcasts/v1/feeds/elskovspony.xml?format=podcast,api.dr.dk,da,DR 34,25,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+365,Bibelen Leth fortalt,https://api.dr.dk/podcasts/v1/feeds/bibelen-leth-fortalt.xml?format=podcast,api.dr.dk,da,DR 36,24,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+366,KUP,https://api.dr.dk/podcasts/v1/feeds/kup.xml?format=podcast,api.dr.dk,da,DR 37,26,0,0,0,0,0,0,0,0,0,0,0,0,1,podcast,0,0,0
+367,Lyssky,https://api.dr.dk/podcasts/v1/feeds/lyssky.xml?format=podcast,api.dr.dk,da,DR 39,22,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
+368,Første række,https://api.dr.dk/podcasts/v1/feeds/4-division.xml?format=podcast,api.dr.dk,da,DR 40,21,0,0,0,0,0,0,0,0,0,0,0,0,0,podcast,0,0,0
