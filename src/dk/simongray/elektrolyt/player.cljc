@@ -5,7 +5,8 @@
   The player is a map of:
 
   - :id, the episode, as [feed-guid item-guid]
-  - :media, the audio element's media state, to the whole second
+  - :media, the audio element's media state, to the whole second and
+    without the ranges it buffered
   - :seeking, the seconds that the seek bar is dragged to, while it's
     dragged
   - :volume, the level of the volume slider, and :volume-locked?, whether
@@ -152,12 +153,22 @@
       (and (= id (:id player)) (false? (:paused media)) (not (:error media)))
       :here)))
 
+(defn whole-ranges
+  "The time `ranges` with their starts and ends to the whole second."
+  [ranges]
+  (mapv (fn [[start end]] [(Math/floor start) (Math/floor end)]) ranges))
+
+;; Nothing reads the ranges that the element buffered, which change as its
+;; file loads
 (defn whole-seconds
-  "The `media` state with its position to the whole second, so that the
-  page renders once a second while it plays rather than at every
-  timeupdate."
+  "The `media` state with its position and the ranges it played to the
+  whole second, so that the page renders once a second while it plays
+  rather than at every timeupdate. It leaves out the ranges it buffered."
   [media]
-  (update media :current-time #(when (number? %) (Math/floor %))))
+  (-> media
+      (update :current-time #(when (number? %) (Math/floor %)))
+      (update :played whole-ranges)
+      (dissoc :buffered)))
 
 (defn proxied
   "The `url` through the app's proxy, e.g. for a chapter's image, so that

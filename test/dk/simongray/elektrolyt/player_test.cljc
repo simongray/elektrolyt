@@ -55,8 +55,15 @@
         "nor after the seek of a paused element, e.g. as it loads an episode that another tab plays")))
 
 (deftest a-render-a-second
-  (is (= {:current-time 12.0 :paused false} (player/whole-seconds {:current-time 12.7 :paused false})))
-  (is (= {:current-time nil} (player/whole-seconds {:current-time nil}))))
+  (is (= {:current-time 12.0 :paused false :played [[0.0 12.0]]}
+         (player/whole-seconds {:current-time 12.7 :paused false :played [[0 12.7]] :buffered [[0 80.4]]})))
+  (is (= (player/whole-seconds {:current-time 12.1 :paused false :played [[0 12.1]] :buffered [[0 80.4]]})
+         (player/whole-seconds {:current-time 12.4 :paused false :played [[0 12.4]] :buffered [[0 83.9]]}))
+      "so two states a few hundred milliseconds apart are equal")
+  (is (= [[0.0 300.0] [600.0 612.0]]
+         (:played (player/whole-seconds {:current-time 612.4 :played [[0 300.2] [600.5 612.4]]})))
+      "and a seek leaves a gap between the ranges played")
+  (is (= {:current-time nil :played []} (player/whole-seconds {:current-time nil :played []}))))
 
 (deftest the-images-of-chapters-through-the-proxy
   (is (= {:title        "E"
