@@ -495,4 +495,7 @@
                   (runtime/watch! store ::picks (fn [_ state] (picks-finding/found! store state)))
                   (runtime/watch! store ::lock-screen (audio/lock-screen-watch store))
                   (start-router!)
-                  (refresh/refresh-if-due! store)))))
+                  ;; after the first page paints, which a refresh's status
+                  ;; would else render again first
+                  (.then (runtime/painted!)
+                         #(runtime/idle! 2000 (fn [] (refresh/refresh-if-due! store))))))))
