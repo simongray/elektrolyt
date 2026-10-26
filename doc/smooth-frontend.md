@@ -109,6 +109,42 @@ Done, with the commit of each:
   subscriptions change: 0.006 ms rather than 0.24 a time with 57 of them.
 - #27 (0302830): a result's or a card's artwork, and a focus that rests on a
   title, fetch the start of a show's feed ahead, as a hover on a title did.
+- #28 (b14e34e): drpodcast.nu's slugs.json comes through the HTTP cache, and
+  DR's answer for each series is kept for a day. Two overlapping searches
+  asked DR about 12 series, and then 3.
+- #29 (f198811): the lock screen gets the server's thumbnails of 256 and
+  512 px rather than the original artwork.
+- #30 (88df8de): a row's thumbnails, slug and short hash are kept for the
+  last 2,000 strings. An Inbox of 99 episodes renders in 57–62 ms rather
+  than 75–76.
+- #31 (14d8932): a Show page makes its rows only as far as it lists them. A
+  show of 4575 episodes makes its page in 19–20 ms rather than 41–44. The
+  sort in podcast-clj's `resolve/episodes` stays as it is: it takes 15 ms
+  for those episodes, and working out each key once would save about 3,
+  since a feed's items usually come in order.
+- #32 (0fd1dd8): the server fetches four artworks at a time and scales two.
+  A cold grid of 54 artworks fills in about 3.1 s rather than 4.3–5.4.
+- #33, measured in the app rather than in podcast-clj's bench: with its
+  documents built in the worker, which takes 2.2 s, subscribing to a show of
+  4575 episodes takes the page 1.1 s in the library of 53 shows, and 0.38 s
+  in an empty one. The difference is drop-in-search merging the index's
+  segments, four into two, which #41 targets. Without built documents,
+  subscribing takes 3.6 s, and unsubscribing takes 40 ms.
+- #34 (2d1adf6): Unsubscribe empties the bookmark before the library lets
+  the show go, and the page keeps the episodes from the library's copy
+  while it checks the feed again. The click's frame comes after 16 ms
+  rather than 120, and the page no longer says "Loading the show…" for
+  about 3 s.
+- #35 (d17234d): a short line moves under the status of a load that lasts
+  past a second, four times at most.
+- #36 (like-minded 2359a21, 8c6bb05): the artwork colours read at start
+  come from one listing of the cache. With a full cache of 1,220 entries,
+  the Library page's 56 colours take 11–17 ms rather than 351–378.
+- #37 (podcast-clj 81a7585, 0ab5f17): an outside show's picks work out the
+  runs that its notes repeat once per feed, so the picks of a show of 1,200
+  episodes are made again in 115–194 ms rather than 347–634. In the worker,
+  as the item planned, the runs held up every Show page's whole feed by
+  0.55 s, though More like this starts folded.
 
 Two costs that the ranking lacked, both fixed:
 
@@ -137,9 +173,9 @@ New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
 writes the index's segments. #22 only moves it after the paint.
 
-The commits in podcast-clj and drop-in-search aren't released, so the app has
-them only with the `:local` alias, which now takes drop-in-search from its
-checkout too.
+The commits in podcast-clj, drop-in-search and like-minded aren't released,
+so the app has them only with the `:local` alias, which now takes
+drop-in-search from its checkout too.
 
 
 ## The ranking
@@ -173,16 +209,16 @@ checkout too.
 | 25 | [Update the lock screen's buttons when the listener's track-buttons choice changes](#25-update-the-lock-screens-buttons-when-the-listeners-track-buttons-choice-changes) | Perceived | 3 | 2 | 8 | high | Done |
 | 26 | [Memoize the subscription lookups that every Show and Episode render repeats](#26-memoize-the-subscription-lookups-that-every-show-and-episode-render-repeats) | Rendering | 3 | 2 | 8 | medium | Done |
 | 27 | [Prefetch a show's feed start from its artwork and card links, and on focus](#27-prefetch-a-shows-feed-start-from-its-artwork-and-card-links-and-on-focus) | Network | 3 | 2 | 8 | medium | Done |
-| 28 | [Keep drpodcast.nu's slugs.json and DR's feed checks between searches](#28-keep-drpodcastnus-slugsjson-and-drs-feed-checks-between-searches) | Network | 3 | 2 | 8 | medium |  |
-| 29 | [Give the lock screen the server's artwork thumbnails, not the original](#29-give-the-lock-screen-the-servers-artwork-thumbnails-not-the-original) | Network | 3 | 2 | 8 | medium |  |
-| 30 | [Cache what rows derive from URLs and ids: thumbnails, srcsets, hashes, slugs](#30-cache-what-rows-derive-from-urls-and-ids-thumbnails-srcsets-hashes-slugs) | Rendering | 3 | 2 | 8 | low |  |
-| 31 | [Build the Show page's episode rows lazily, only for the episodes it lists](#31-build-the-show-pages-episode-rows-lazily-only-for-the-episodes-it-lists) | Rendering | 3 | 2 | 8 | low |  |
-| 32 | [Fetch artwork 4 at a time and scale it 2 at a time](#32-fetch-artwork-4-at-a-time-and-scale-it-2-at-a-time) | Network | 3 | 2 | 8 | low |  |
-| 33 | [Time a subscription's indexing stages in podcast-clj's browser bench](#33-time-a-subscriptions-indexing-stages-in-podcast-cljs-browser-bench) | Measurement | 3.5 | 2 | 8 | high |  |
-| 34 | [Unsubscribe after the paint, and keep the page's feed in view](#34-unsubscribe-after-the-paint-and-keep-the-pages-feed-in-view) | Perceived | 3.5 | 2 | 8 | medium |  |
-| 35 | [Draw a short, delayed busy line under the status of slow loads](#35-draw-a-short-delayed-busy-line-under-the-status-of-slow-loads) | Perceived | 3.5 | 2 | 8 | medium |  |
-| 36 | [List the cache database once for the artwork colours read at start](#36-list-the-cache-database-once-for-the-artwork-colours-read-at-start) | Startup | 3.5 | 2 | 8 | medium |  |
-| 37 | [Find an outside show's repeated runs in the worker for its picks](#37-find-an-outside-shows-repeated-runs-in-the-worker-for-its-picks) | Main thread | 4 | 2 | 8 | medium |  |
+| 28 | [Keep drpodcast.nu's slugs.json and DR's feed checks between searches](#28-keep-drpodcastnus-slugsjson-and-drs-feed-checks-between-searches) | Network | 3 | 2 | 8 | medium | Done |
+| 29 | [Give the lock screen the server's artwork thumbnails, not the original](#29-give-the-lock-screen-the-servers-artwork-thumbnails-not-the-original) | Network | 3 | 2 | 8 | medium | Done |
+| 30 | [Cache what rows derive from URLs and ids: thumbnails, srcsets, hashes, slugs](#30-cache-what-rows-derive-from-urls-and-ids-thumbnails-srcsets-hashes-slugs) | Rendering | 3 | 2 | 8 | low | Done |
+| 31 | [Build the Show page's episode rows lazily, only for the episodes it lists](#31-build-the-show-pages-episode-rows-lazily-only-for-the-episodes-it-lists) | Rendering | 3 | 2 | 8 | low | Done |
+| 32 | [Fetch artwork 4 at a time and scale it 2 at a time](#32-fetch-artwork-4-at-a-time-and-scale-it-2-at-a-time) | Network | 3 | 2 | 8 | low | Done |
+| 33 | [Time a subscription's indexing stages in podcast-clj's browser bench](#33-time-a-subscriptions-indexing-stages-in-podcast-cljs-browser-bench) | Measurement | 3.5 | 2 | 8 | high | Measured |
+| 34 | [Unsubscribe after the paint, and keep the page's feed in view](#34-unsubscribe-after-the-paint-and-keep-the-pages-feed-in-view) | Perceived | 3.5 | 2 | 8 | medium | Done |
+| 35 | [Draw a short, delayed busy line under the status of slow loads](#35-draw-a-short-delayed-busy-line-under-the-status-of-slow-loads) | Perceived | 3.5 | 2 | 8 | medium | Done |
+| 36 | [List the cache database once for the artwork colours read at start](#36-list-the-cache-database-once-for-the-artwork-colours-read-at-start) | Startup | 3.5 | 2 | 8 | medium | Done |
+| 37 | [Find an outside show's repeated runs in the worker for its picks](#37-find-an-outside-shows-repeated-runs-in-the-worker-for-its-picks) | Main thread | 4 | 2 | 8 | medium | Done |
 | 38 | [Hold the Show and Episode pages' shape with delayed skeleton rows while a feed loads](#38-hold-the-show-and-episode-pages-shape-with-delayed-skeleton-rows-while-a-feed-loads) | Perceived | 4 | 2 | 8 | medium |  |
 | 39 | [Keep the refresh's indexing from holding up the listener's worker requests](#39-keep-the-refreshs-indexing-from-holding-up-the-listeners-worker-requests) | Main thread | 4 | 2 | 8 | medium |  |
 | 40 | [Let the browser skip off-screen rows, and lazy-load the Library tiles past the first dozen](#40-let-the-browser-skip-off-screen-rows-and-lazy-load-the-library-tiles-past-the-first-dozen) | Rendering | 4 | 2 | 8 | low |  |
