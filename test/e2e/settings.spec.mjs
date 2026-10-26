@@ -112,6 +112,8 @@ function linkColour(page) {
 test('more contrast follows the device, or the listener, and darkens the labels', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light', contrast: 'no-preference' });
   await page.goto('/settings');
+  // the frame as the app starts has a navigation of its own, which goes
+  await expect(page.getByRole('main')).not.toHaveAttribute('aria-busy', 'true');
   const standard = await linkColour(page);
 
   // before a reload, since Firefox's emulation doesn't restyle a page that
