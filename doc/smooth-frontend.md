@@ -29,8 +29,8 @@ didn't hold.
 - Measurement items have a gain of 1 or 2, since they smooth nothing by
   themselves, so they rank low, and the items that wait for them follow them
   down.
-- **Status** says which items are done, only measured, deferred, left for
-  later or declined by you, and "Where it stands" gives the measurements
+- **Status** says which items are done, only measured, planned, deferred,
+  left for later or declined by you, and "Where it stands" gives the measurements
   and reasons behind each.
 - Paths start below each project's `src/dk/simongray/` folder, e.g.
   `elektrolyt/show.cljc:133` in the app, `podcast/app/library.cljc:2182` in
@@ -315,7 +315,8 @@ Later, with the item they need:
 
 - #74 with #10, #83, #88, #97 and #100 with #8's release on the same
   origin, #55, #90 and #91 with runs on phones, and #59, which is polish.
-  #98 and #99 aren't started.
+  #98 isn't started, and #99 has a plan of its own in
+  [search-index-plan.md](search-index-plan.md).
 
 Your calls, made on 26 October:
 
@@ -570,7 +571,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low | Deferred |
 | 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Later |
 | 98 | [Warm the next episode's redirect chain with a HEAD request before the end](#98-warm-the-next-episodes-redirect-chain-with-a-head-request-before-the-end) | Network | 6.5 | 1 | 3 | low |  |
-| 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low |  |
+| 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low | Planned |
 | 100 | [Cache the release build's app shell in a service worker](#100-cache-the-release-builds-app-shell-in-a-service-worker) | Load | 14 | 1 | 2 | medium | Later |
 
 
