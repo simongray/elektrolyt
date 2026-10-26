@@ -272,6 +272,18 @@
   (or @web-worker
       (reset! web-worker (client "/js/worker.js" #(reset! web-worker nil)))))
 
+;; A worker takes a quarter of a second to load and start, which a request
+;; that starts it waits for, e.g. the whole feed of the session's first new
+;; show. One that runs unused takes a heap of its own, which on a phone can
+;; make the browser drop background tabs sooner, so it starts only where a
+;; request is near.
+(defn warm!
+  "Start the web worker, unless it runs, so that it's ready for a request
+  that's near."
+  []
+  (web-worker!)
+  nil)
+
 (defn ask!
   "A promise of the web worker's answer to `request`, calling `on-progress`
   with each report of progress. It rejects when the worker fails."

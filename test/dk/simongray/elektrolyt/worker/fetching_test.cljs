@@ -53,6 +53,21 @@
                            (js-delete js/globalThis "Worker")
                            (done))))))))
 
+(deftest a-worker-started-ahead
+  (let [made (atom [])]
+    (set! (.-Worker js/globalThis) (stand-in made))
+    (reset! fetching/web-worker nil)
+    (try
+      (fetching/warm!)
+      (fetching/warm!)
+      (is (= 1 (count @made)) "is started once")
+      (fetching/fetch-due! [] {} nil)
+      (is (= 1 (count @made)) "and takes the next request")
+      (is (= 1 (count @(:posted (first @made)))))
+      (finally
+        (reset! fetching/web-worker nil)
+        (js-delete js/globalThis "Worker")))))
+
 (deftest a-worker-that-failed
   (async done
     (let [made (atom [])]
