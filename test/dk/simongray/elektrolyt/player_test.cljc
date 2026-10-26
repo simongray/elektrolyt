@@ -80,6 +80,16 @@
   (is (nil? (player/proxied "//example.org/1.jpg")) "nor a URL that isn't http or https")
   (is (nil? (player/proxied nil))))
 
+(deftest the-artwork-of-the-lock-screen
+  (is (= [{:src "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=256" :sizes "256x256"}
+          {:src "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=512" :sizes "512x512"}]
+         (:artwork (player/with-thumbnail-artwork {:artwork [{:src "https://example.org/a.jpg"}]})))
+      "is the server's thumbnails, rather than an original of often 3000 pixels")
+  (is (= [{:src "data:image/png;base64,iVBORw0K"}]
+         (:artwork (player/with-thumbnail-artwork {:artwork [{:src "data:image/png;base64,iVBORw0K"}]})))
+      "but for one in a data URL, which needs no fetch")
+  (is (= {:title "E"} (player/with-thumbnail-artwork {:title "E"})) "and none for none"))
+
 (deftest the-chapter-at-a-time
   (let [pb {:chapters {:document {:chapters [{:start-time 0 :title "A"} {:start-time 60 :title "B"}]}}}]
     (is (= "B" (:title (player/chapter-at pb 75))))

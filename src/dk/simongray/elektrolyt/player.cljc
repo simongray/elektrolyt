@@ -21,6 +21,7 @@
             [dk.simongray.podcast.format.chapters :as chapters]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.util.time :as time]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.wary-fetch.proxy :as proxy]
             [dk.simongray.wary-fetch.url :as url]))
@@ -209,6 +210,32 @@
                     (update chapter :artwork #(mapv (fn [image] (update image :src proxied)) %)))
                   chapters))))
 
+;; Media Session, MediaMetadata's artwork: the platform picks the size that
+;; fits. Most feeds name a single artwork of 3000 pixels, which the lock
+;; screen would fetch whole at each Play, from the artwork's own host,
+;; while the episode's first bytes load.
+;; https://w3c.github.io/mediasession/#dom-mediametadata-artwork
+(def lock-screen-widths
+  "The widths of the server's thumbnails that the lock screen gets."
+  [256 512])
+
+(defn with-thumbnail-artwork
+  "The Media Session `metadata` with each artwork at an http or https URL
+  as the server's thumbnails of it, which are square."
+  [metadata]
+  (cond-> metadata
+    (:artwork metadata)
+    (update :artwork
+            (fn [images]
+              (into []
+                    (mapcat (fn [{:keys [src] :as image}]
+                              (if (url/web-url? src)
+                                (for [width lock-screen-widths]
+                                  {:src   (artwork/thumbnail-url artwork/thumbnails-path src width)
+                                   :sizes (str width "x" width)})
+                                [image])))
+                    images)))))
+
 (defn playback-opts
   "The options that library/playback takes for the episode `id` in
   `state`: what's been read of its files, e.g. a chapters file, or nil."
@@ -217,12 +244,12 @@
 
 (defn playback
   "The playback of the episode `id` in `state`, with what's been read of
-  its files, e.g. a chapters file, and its chapters' artwork through the
-  app's proxy, or nil."
+  its files, e.g. a chapters file, its artwork as the server's thumbnails
+  and its chapters' artwork through the app's proxy, or nil."
   [{:keys [library] :as state} id]
   (when (and library id)
     (some-> (library/playback library id (playback-opts state id))
-            (update :metadata with-proxied-chapters))))
+            (update :metadata (comp with-proxied-chapters with-thumbnail-artwork)))))
 
 ;; A start at the end or past it, e.g. from a link's t, would only end the
 ;; episode and mark it played

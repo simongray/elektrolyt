@@ -1,4 +1,4 @@
-import { test, expect, showPath } from './fixtures.mjs';
+import { test, expect, episodePath, episodes, showPath } from './fixtures.mjs';
 
 // A PNG of 2 by 2 pixels, all blue
 const png = Buffer.from(
@@ -43,4 +43,15 @@ test('a screen of twice the density takes the thumbnail of twice the width', asy
   await expect.poll(() => row.evaluate(img => img.complete)).toBe(true);
   expect(new URL(await row.evaluate(img => img.currentSrc)).searchParams.get('w')).toBe('128');
   await context.close();
+});
+
+test("the lock screen takes the server's thumbnails of the artwork, not the original", async ({ page, show }) => {
+  show.artwork = { url: 'https://art.example/show.png', type: 'image/png', body: png };
+  await page.goto(episodePath(episodes[0]));
+  await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => navigator.mediaSession.metadata?.artwork.map(a => a.sizes)))
+    .toEqual(['256x256', '512x512']);
+  const src = new URL(await page.evaluate(() => navigator.mediaSession.metadata.artwork[0].src));
+  expect(src.pathname).toBe('/artwork');
+  expect(src.searchParams.get('url')).toBe(show.artwork.url);
 });
