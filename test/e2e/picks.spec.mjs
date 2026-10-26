@@ -195,3 +195,21 @@ test('a show recommends the shows of its podroll, and asks again for those that 
   await expect(titles).toHaveText([brew.title, flaky.title]);
   await expect(podroll.getByRole('link', { name: brew.title })).toHaveAttribute('href', /22222222/);
 });
+
+test('a show opened from a podroll has its title at once, before its feed arrives', async ({ page, context }) => {
+  await serve(context, [host, brew, flaky]);
+  await page.goto(showPath(host));
+  const main = page.getByRole('main');
+  const podroll = main.getByRole('region', { name: `Recommended by ${host.title}` });
+  await expect(podroll.getByRole('heading', { level: 3 })).toHaveText([brew.title, flaky.title]);
+
+  // the linked show's feed is held from now on, as on a slow network
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  await context.route(url => url.pathname === '/proxy' && url.searchParams.get('url') === brew.url,
+                      async route => { await held; await route.fallback(); });
+  await podroll.getByRole('link', { name: brew.title }).click();
+  await expect(main.getByRole('heading', { level: 1, name: brew.title })).toBeVisible();
+  release();
+  await expect(main.getByRole('heading', { level: 2, name: 'Episodes' })).toBeVisible();
+});

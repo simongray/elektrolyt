@@ -205,6 +205,36 @@
           (some #(when (= guid (:guid %)) %) (search/results-of search)))
         (vals (:searches state))))
 
+(defn linked-card
+  "The card of the show `guid` in the podroll or among the publisher's
+  shows of any show in the :linked of `state`, or nil."
+  [state guid]
+  (some (fn [{:keys [podroll publisher]}]
+          (some #(when (= guid (:guid %)) %) (concat podroll (:shows publisher))))
+        (vals (:linked state))))
+
+;; NN/g, response times: the page shows at once what the link that led to
+;; it knew, its title and artwork, rather than a blank until the feed comes
+;; https://www.nngroup.com/articles/response-times-3-important-limits/
+(defn known-result
+  "What a search in the `state`, or the card of a show that links to it,
+  says of the show `guid`, or nil."
+  [state guid]
+  (or (search-result state guid) (linked-card state guid)))
+
+;; instant.page: a pointer that rests on a link for 65 ms clicks it about
+;; half the time, and leaves some 300 ms to fetch what the page needs. Only
+;; the start of the feed is fetched, which parses in a moment.
+;; https://instant.page/
+(defn prefetching
+  "The actions of a link to the page of the show `guid` at `url`, which
+  fetch the start of its feed when a pointer rests on the link or presses
+  it."
+  [guid url]
+  {:mouseenter  [[:show/prefetch-soon guid url]]
+   :mouseleave  [[:show/prefetch-cancel]]
+   :pointerdown [[:show/load guid url true]]})
+
 (defn with-sized-artwork
   "The `page` of a feed, with the artwork of the earlier page `known` when
   the feed has a single size, often of 3000 pixels, and `known` has
@@ -227,10 +257,10 @@
 
 (defn page
   "The page of the show `guid` in `state`, from its feed or else from a
-  search result, or nil when there's neither."
+  search result or the card that linked to it, or nil when there's none."
   [state guid]
   (let [{:keys [url key feed]} (source state guid)
-        result                 (search-result state guid)]
+        result                 (known-result state guid)]
     (cond
       key    (library-page (:library state) key)
       feed   (feed-page url feed result)

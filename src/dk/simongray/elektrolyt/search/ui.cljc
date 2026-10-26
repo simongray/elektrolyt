@@ -5,6 +5,7 @@
             [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
+            [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.controls :as controls]
@@ -102,17 +103,12 @@
   [q search]
   [:p {:role "status"} (status-text q search)])
 
-;; instant.page: a pointer that rests on a link for 65 ms clicks it about
-;; half the time, and leaves some 300 ms to fetch what the page needs. Only
-;; the start of the feed is fetched, which parses in a moment.
 (defn show-link
   "The link to the page of the show in the search `result`, which fetches
   the start of its feed when a pointer rests on it."
   [{:keys [url guid title] :as result}]
   [:a {:href (routes/show-href guid title url)
-       :on   {:mouseenter  [[:show/prefetch-soon guid url]]
-              :mouseleave  [[:show/prefetch-cancel]]
-              :pointerdown [[:show/load guid url true]]}}
+       :on   (show/prefetching guid url)}
    title])
 
 ;; A site often has several feeds of one show, e.g. in MP3 and in Opus, so a

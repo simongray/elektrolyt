@@ -273,7 +273,9 @@
            (or (artwork/linked href label (artwork/img card 96 (merge {:loading "lazy"}
                                                                       (colors/placeholder state card))))
                [:div.no-artwork])
-           [:h3 (cond->> [:a {:href href} label]
+           [:h3 (cond->> [:a (cond-> {:href href}
+                               url (assoc :on (show/prefetching show-guid url)))
+                          label]
                   (= :subscribed (subscription/status state subscribed url show-guid))
                   (subscription/marked))]]]))]))
 

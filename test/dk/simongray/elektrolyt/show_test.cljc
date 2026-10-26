@@ -144,6 +144,19 @@
         "the feed once it has arrived")
     (is (nil? (show/page {} guid)) "a show that nothing knows")))
 
+(deftest a-show-from-the-card-that-linked-to-it
+  (let [card  {:guid "linked" :title "Linked" :url url :artwork "https://example.org/l.jpg"}
+        state (-> (on-page "linked")
+                  (assoc :linked {"other" {:status :done :podroll [card]}}))]
+    (is (= ["Linked" "https://example.org/l.jpg" []]
+           ((juxt :title :artwork :episodes) (show/page state "linked")))
+        "has its title and artwork before its feed arrives")
+    (is (= "Linked" (:title (show/page (assoc state :linked {"other" {:publisher {:shows [card]}}})
+                                       "linked")))
+        "also among the publisher's shows")
+    (is (= "From the feed" (:title (show/page (show/arrived state url (feed "From the feed")) "linked")))
+        "until its feed arrives")))
+
 (deftest a-show-that-the-library-keeps
   (let [lib (library/subscribe (library/make "test") url (feed "Kept" "One"))
         k   (key (first (library/subscriptions lib)))]
