@@ -130,12 +130,21 @@
         (some->> url (subscribed-key lib))]
        (some #(when (get-in lib [:feeds % :feed]) %))))
 
+;; library/show reads the whole profile only for an order of the
+;; listener's own, e.g. by when they last heard each episode. Otherwise a
+;; report of the position or a change to the queue leaves the page as it is.
 (def library-page
   "The page of the show under a key in a library, made again only when its
-  feed or the profile changes, since sorting thousands of episodes takes a
-  while."
+  feed, subscription or settings change, since sorting thousands of
+  episodes takes a while. With an order of the listener's own, any change
+  of the profile makes it again."
   (memo/remember-last (fn [lib k] (view->page (library/show lib k view-opts)))
-                      (fn [lib k] [(get-in lib [:feeds k]) (:profile lib) k])))
+                      (fn [{:keys [profile] :as lib} k]
+                        [(get-in lib [:feeds k])
+                         (get-in profile [:settings k])
+                         (get-in profile [:subscriptions k])
+                         (when (:order (profile/settings profile k)) profile)
+                         k])))
 
 (defn requested?
   "Whether the `request` is in flight in the `state`."

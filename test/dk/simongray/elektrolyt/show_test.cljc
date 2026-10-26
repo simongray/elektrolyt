@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.elektrolyt.show :as show]))
 
 (def url "https://example.org/feed.xml")
@@ -152,6 +153,26 @@
     (is (= "Kept" (:title (show/page {:library lib} k))))
     (is (= [url k true] ((juxt :url :key :whole?) (show/source {:library lib} k))))
     (is (= :done (show/status {:library lib} k)))))
+
+(deftest the-page-of-a-show-that-plays
+  (let [lib     (library/subscribe (library/make "test") url (feed "Kept" "One" "Two"))
+        k       (key (first (library/subscriptions lib)))
+        page    (show/library-page lib k)
+        played  (-> lib
+                    (library/update-profile profile/progress [k "One"] 100 600)
+                    (library/update-profile profile.queue/enqueue [k "Two"]))
+        titled  (library/update-profile played profile/configure k {:custom-title "Mine"})
+        ordered (library/update-profile played profile/configure k {:order :recent})]
+    (is (= (show/view->page (library/show lib k show/view-opts)) page))
+    (is (identical? page (show/library-page played k))
+        "is made once while its episodes play and the queue changes")
+    (is (= "Mine" (:title (show/library-page titled k)))
+        "and again for the listener's own title")
+    (is (= (show/view->page (library/show ordered k show/view-opts)) (show/library-page ordered k))
+        "or order")
+    (is (not (identical? (show/library-page ordered k)
+                         (show/library-page (library/update-profile ordered profile/progress [k "Two"] 5 600) k)))
+        "which reads the whole profile")))
 
 (deftest a-subscription-whose-feed-never-came
   (let [lib (library/update-profile (library/make "test") profile/subscribe "dead" {:url url :title "Dead"})]
