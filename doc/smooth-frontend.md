@@ -257,6 +257,12 @@ Done, with the commit of each:
   those fixed and the store keeping five feeds, the heap on Home after ten
   outside shows is 59.5 MB rather than 141.6. The library of 53 shows holds
   274 MB once started. An hour of play isn't measured.
+- #95, measured (1e15f47): `bench/startup.mjs` traces a release's load. On
+  a hot load with an empty library at 4x throttling, shared.js evaluates in
+  265 ms and main.js, with init, in 290 ms, and V8 compiles them off the
+  main thread. A CPU profile puts most of it in cljs.core and V8 itself,
+  and no namespace of the app's in more than a few milliseconds, so nothing
+  is worth splitting off by the 50 ms rule.
 
 Two costs that the ranking lacked, both fixed:
 
@@ -290,6 +296,9 @@ Deferred, by what was measured:
 - #86: IndexedDB's reads span 150–200 ms, so decoding the feeds as they
   arrive saves at most that of 2.2 s, and it reaches into `read!`'s rules
   for retries, beside your own work in podcast-clj.
+- #96: of the tables built at load, only podcast-clj's zone for UTC
+  showed, 32 ms at 4x, as its first Intl formatter with a time zone loads
+  the zone data, which formatting any date loads anyway.
 - #92: in Chrome 152, each artwork's multiply makes a layer of its own, 69
   for 61 images against 7 without it, and isolating main leaves 69, so the
   fix doesn't work. The multiply on the intro's artwork alone would change
@@ -297,8 +306,9 @@ Deferred, by what was measured:
 
 Later, with the item they need:
 
-- #74 with #10, #83 and #88 with #8's release on the same origin, #55, #90
-  and #91 with runs on phones, and #59, which is polish.
+- #74 with #10, #83, #88 and #100 with #8's release on the same origin,
+  #55, #90 and #91 with runs on phones, and #59, which is polish. #98 and
+  #99 aren't started.
 
 Your call:
 
@@ -309,6 +319,7 @@ Your call:
   state.
 - #89: a page before the whole library is read, against init's choice to
   open it complete.
+- #97: which of its two ways to version the release's scripts.
 
 New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
@@ -422,12 +433,12 @@ drop-in-search from its checkout too.
 | 92 | [Isolate main so each artwork's multiply stays in its scrolling layer](#92-isolate-main-so-each-artworks-multiply-stays-in-its-scrolling-layer) | Rendering | 4 | 2 | 8 | medium | Measured |
 | 93 | [Measure the heap at start, after ten outside shows and after an hour of play](#93-measure-the-heap-at-start-after-ten-outside-shows-and-after-an-hour-of-play) | Measurement | 5 | 1 | 3 | high | Measured |
 | 94 | [Keep only the last few outside shows' whole feeds in the store](#94-keep-only-the-last-few-outside-shows-whole-feeds-in-the-store) | Main thread | 5 | 1 | 3 | low | Done |
-| 95 | [Measure each script's compile and evaluate time and coverage before splitting](#95-measure-each-scripts-compile-and-evaluate-time-and-coverage-before-splitting) | Measurement | 5.5 | 1 | 3 | high |  |
-| 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low |  |
-| 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low |  |
+| 95 | [Measure each script's compile and evaluate time and coverage before splitting](#95-measure-each-scripts-compile-and-evaluate-time-and-coverage-before-splitting) | Measurement | 5.5 | 1 | 3 | high | Measured |
+| 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low | Deferred |
+| 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Your call |
 | 98 | [Warm the next episode's redirect chain with a HEAD request before the end](#98-warm-the-next-episodes-redirect-chain-with-a-head-request-before-the-end) | Network | 6.5 | 1 | 3 | low |  |
 | 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low |  |
-| 100 | [Cache the release build's app shell in a service worker](#100-cache-the-release-builds-app-shell-in-a-service-worker) | Load | 14 | 1 | 2 | medium |  |
+| 100 | [Cache the release build's app shell in a service worker](#100-cache-the-release-builds-app-shell-in-a-service-worker) | Load | 14 | 1 | 2 | medium | Later |
 
 
 ## The first ten
