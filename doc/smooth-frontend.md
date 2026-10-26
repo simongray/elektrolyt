@@ -29,8 +29,9 @@ didn't hold.
 - Measurement items have a gain of 1 or 2, since they smooth nothing by
   themselves, so they rank low, and the items that wait for them follow them
   down.
-- **Status** says which items are done, only measured, deferred or left for
-  later, and "Where it stands" gives the measurements behind each.
+- **Status** says which items are done, only measured, deferred, left for
+  later or waiting for your call, and "Where it stands" gives the
+  measurements behind each.
 - Paths start below each project's `src/dk/simongray/` folder, e.g.
   `elektrolyt/show.cljc:133` in the app, `podcast/app/library.cljc:2182` in
   podcast-clj and `drop_in_search/indexing.cljc:79` in drop-in-search, and
@@ -167,6 +168,95 @@ Done, with the commit of each:
 - #42 (drop-in-search e36838c, podcast-clj 632108f): a tab that catches up
   with another tab's write reads only the segments it lacks. After another
   tab's subscription, that takes 97 ms rather than 2196.
+- #43 (ce28a20): a benchmark, `test/e2e/bench/bench.mjs`, times the app
+  with 50 shows of podcast-clj's sweep corpus, 27,575 episodes, served
+  offline. Home appeared after 2.27–2.37 s, and subscribing to Garage Logic
+  had a longest task of 443–458 ms.
+- #45 (0e147df): the picks are found after the page paints and kept in the
+  store by place, so a change of the queue on Home renders in 4–9 ms.
+- #46 (fc8b0a2, podcast-clj e412da5): the worker keeps only the notes that
+  the app reads. The feeds encode to 90 million characters rather than 140,
+  and decode in 262 ms rather than 380. The first refresh after it writes
+  every feed once.
+- #48, its first stage (bfa1c93): an episode's other files are read once
+  it plays steadily rather than in the Play click, and a restored episode's
+  at idle.
+- #49, its first part (5db7027): Play skips the add of an episode that the
+  library has, so a click's processing took 21 ms rather than 36.
+- #50 (eba33db): index.html preloads the three stylesheets that app.css
+  imports.
+- #51 (617c072): the people of a show or an episode show as the server's
+  thumbnails of 48 px.
+- #52 (e0755e1): a render of the same state as the last is skipped, the
+  title is set only when it changes, and the theme colour is read once
+  after the paint.
+- #54 (4303e8d): the server hashes each file once per version, by its
+  modification time, its length and its ctime.
+- #56 (6753cef): the web worker starts at idle once a show's start is
+  fetched ahead, rather than at the first request, which waited 257–287 ms
+  for a cold worker.
+- #57 (3915b8d): the e2e tests run with reduced motion, and a unit test
+  checks that the CSS gates every transition and animation.
+- #58 (2dda6df), #60 (b40d090), #61 (c2d0c4f) and #62 (1ca871a): the
+  bookmark drops in and pulses three times at most while a subscription
+  works, a dialog eases in, a jump from Search's row glides to a
+  directory's list, and the button for new episodes takes the status
+  line's place, so the list moves less than 8 px rather than 36.
+- #63 (f24aea2): the first refresh starts at idle once the first page has
+  painted.
+- #64 (8659b31): evaluating `(sizes/check!)` builds a release snapshot,
+  writes shadow-cljs's report and fails over the budgets in
+  `dev/sizes.edn`, and CI runs it too. The page is 1.97 MB of script, 531
+  kB gzipped, and its largest parts are cljs.core, whatwg-url, xmldom,
+  podcast-clj's diagnostics, webvtt-clj and feed.spec.
+- #65 (f3dffb5): the proxy and the thumbnails send their waits as
+  Server-Timing. A thumbnail of 1,006 ms was 907 ms of fetching and 70 of
+  scaling, and three others waited about 210 ms for another request's
+  fetch of the same artwork.
+- #66 (a06510e): the caret, the switch's knob, the volume panel and hovered
+  artwork ease, while the volume panel still shows at once and hides at
+  once on Escape.
+- #67 (9888f6b): a fetched feed is cached as the string that the worker
+  sent, which skips an encode of 23 ms for a feed of 3.7 million
+  characters, and of 127 ms for 20.8 million.
+- #68 (bfc4fa6): the icons' namespace holds only the 34 icons that the code
+  uses, which takes the dev build's main.js from about 3.4 MB to 1.3 MB.
+- #69 (2eb1a85): the worker reaches none of the page's namespaces, which a
+  JVM test checks. That moved 34.7 kB, 9.7 kB gzipped, from shared.js to
+  main.js.
+- #71 (436be31): User Timing marks each stage from a Play to the element
+  playing, and `:player/started` logs them. On a phone, read the log
+  through remote debugging of the dev build.
+- #73, measured (17980ae): with `bench.mjs colours`, the 0.6 s transition
+  of the seeds made no frame over 20 ms at 1x and 4x CPU throttling, and
+  one at 6x, as changing them at once did, so it stays.
+- #78 (f4cb654): the Library's artwork moves as Show as or Sort by changes,
+  and a change of light or dark or of the contrast cross-fades the page.
+  Midway, the artwork had the colour it has after, so the multiply holds.
+- #79 (8ecc247), #82 (8a2bf69), #84 (14a0661) and #87 (e6789a7): the
+  runtime.perf namespace measures the renders, the dispatches, the
+  library's operations and the codec on a DevTools track in dev, marks the
+  stages of the start in every build, and logs slow interactions and long
+  frames, keeping the worst for `report`. With 53 shows, IndexedDB took
+  150–200 ms and the decoding after it 1.7 s. At 4x throttling, the
+  library's read blocked one frame for 1.8 s, and a click into the Library
+  took 656 ms.
+- #80 (10da984): with an hour's transcript open, a render took 14 ms more,
+  and now takes 0.8–1.7 ms, as with it closed.
+- #81, its shows (podcast-clj 4ffb8ba): a screen of shows keeps what it
+  takes of each feed, and counts the statuses from the episodes that the
+  profile holds marks of. For 54 shows of 27,831 episodes, it's made again
+  in 4.9 ms rather than 91 after each change of the profile, e.g. each
+  report of a position while the Library shows. The queue's lookups take
+  up to 6.9 ms for 50 queued episodes, so their index waits.
+- #93, measured, and #94 (6eac94d): ten outside shows held about 110 MB of
+  heap, and none of it went. Besides the store, two leaks held them:
+  `memo/remember-recent` dropped its oldest result with a subvec, which
+  kept every result it had made (e2a4a0d), and drop-in-search's merges
+  kept the segments they replaced beneath the index's (31b74e4). With
+  those fixed and the store keeping five feeds, the heap on Home after ten
+  outside shows is 59.5 MB rather than 141.6. The library of 53 shows holds
+  274 MB once started. An hour of play isn't measured.
 
 Two costs that the ranking lacked, both fixed:
 
@@ -190,10 +280,44 @@ Deferred, by what was measured:
 - #10, for later: after #85, the page is blank only while its scripts run,
   0.3 s in dev. It's worth doing if a phone shows that gap.
 - The rest of #8: a release now opens Home only about 0.35 s sooner.
+- #44: a render while only the clock ticks takes 0.30 ms, and the lock
+  screen's case needs playback with sound to measure.
+- #47, with #18: the contention it targets measured small.
+- #53: WebKit fetched /api/server twice with a preload.
+- #76: the Library's content for 54 shows builds in 2.7 ms and its sort
+  takes 0.07 ms, so a memo and aliases would save a few milliseconds a
+  render.
+- #86: IndexedDB's reads span 150–200 ms, so decoding the feeds as they
+  arrive saves at most that of 2.2 s, and it reaches into `read!`'s rules
+  for retries, beside your own work in podcast-clj.
+- #92: in Chrome 152, each artwork's multiply makes a layer of its own, 69
+  for 61 images against 7 without it, and isolating main leaves 69, so the
+  fix doesn't work. The multiply on the intro's artwork alone would change
+  the look.
+
+Later, with the item they need:
+
+- #74 with #10, #83 and #88 with #8's release on the same origin, #55, #90
+  and #91 with runs on phones, and #59, which is polish.
+
+Your call:
+
+- #70: a cap on the episodes that a feed retains drops those that the
+  listener never touched.
+- #72 or #75: fade the rows that arrive, or each new page, but not both.
+- #77: a snapshot of the last page, against views as pure functions of the
+  state.
+- #89: a page before the whole library is read, against init's choice to
+  open it complete.
 
 New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
 writes the index's segments. #22 only moves it after the paint.
+
+Also new: opening the Library and then the Queue made 104 renders, one for
+each artwork colour as it arrived, 246 ms in all, besides 106 ms in the
+colours' watch. #12's batching would cut that, and so would applying the
+colours that arrive in one frame together.
 
 The commits in podcast-clj, drop-in-search and like-minded aren't released,
 so the app has them only with the `:local` alias, which now takes
@@ -246,58 +370,58 @@ drop-in-search from its checkout too.
 | 40 | [Let the browser skip off-screen rows, and lazy-load the Library tiles past the first dozen](#40-let-the-browser-skip-off-screen-rows-and-lazy-load-the-library-tiles-past-the-first-dozen) | Rendering | 4 | 2 | 8 | low | Lazy tiles done |
 | 41 | [Measure drop-in-search's merges, then cap them so one add never rewrites the whole index](#41-measure-drop-in-searchs-merges-then-cap-them-so-one-add-never-rewrites-the-whole-index) | Main thread | 6 | 2 | 6 | low | Done |
 | 42 | [Read only new index segments when catching up with another tab](#42-read-only-new-index-segments-when-catching-up-with-another-tab) | Main thread | 7 | 2 | 6 | medium | Done |
-| 43 | [Build a benchmark library of 50 shows for repeatable profiling](#43-build-a-benchmark-library-of-50-shows-for-repeatable-profiling) | Measurement | 7 | 2 | 6 | medium |  |
-| 44 | [While hidden, skip clock-only renders, render once per task, and catch up when shown](#44-while-hidden-skip-clock-only-renders-render-once-per-task-and-catch-up-when-shown) | Rendering | 7 | 2 | 6 | medium |  |
-| 45 | [Find the picks after the paint and keep them in the store](#45-find-the-picks-after-the-paint-and-keep-them-in-the-store) | Main thread | 8 | 2 | 6 | medium |  |
-| 46 | [Keep only the notes field that resolve/description shows, as the worker parses](#46-keep-only-the-notes-field-that-resolvedescription-shows-as-the-worker-parses) | Rendering | 8 | 2 | 6 | medium |  |
-| 47 | [Keep two of the proxy's four slots for the listener's own requests](#47-keep-two-of-the-proxys-four-slots-for-the-listeners-own-requests) | Network | 8 | 2 | 6 | low |  |
-| 48 | [Read an episode's MP3 tags without their artwork, after the element plays](#48-read-an-episodes-mp3-tags-without-their-artwork-after-the-element-plays) | Network | 11 | 3 | 6 | medium |  |
-| 49 | [Move the library's play step and the no-op add out of a Play click's task](#49-move-the-librarys-play-step-and-the-no-op-add-out-of-a-play-clicks-task) | Main thread | 4.5 | 2 | 6 | low |  |
-| 50 | [Preload the three @imported stylesheets so CSS loads in one round trip](#50-preload-the-three-imported-stylesheets-so-css-loads-in-one-round-trip) | Load | 0.75 | 1 | 5 | high |  |
-| 51 | [Show podcast:person pictures as the server's 64–128 px thumbnails](#51-show-podcastperson-pictures-as-the-servers-64128-px-thumbnails) | Network | 1 | 1 | 5 | high |  |
-| 52 | [Skip identical renders, guard the title, and read the theme colour after paint](#52-skip-identical-renders-guard-the-title-and-read-the-theme-colour-after-paint) | Rendering | 1 | 1 | 5 | medium |  |
-| 53 | [Preload /api/server from index.html so it arrives while the scripts evaluate](#53-preload-apiserver-from-indexhtml-so-it-arrives-while-the-scripts-evaluate) | Startup | 1 | 1 | 5 | low |  |
-| 54 | [Hash each served file once per version, not on every request](#54-hash-each-served-file-once-per-version-not-on-every-request) | Load | 1.5 | 1 | 4 | high |  |
-| 55 | [Tally timeupdates, store changes and renders per minute while hidden, in dev](#55-tally-timeupdates-store-changes-and-renders-per-minute-while-hidden-in-dev) | Measurement | 1.5 | 1 | 4 | medium |  |
-| 56 | [Start the web worker at idle after the first paint](#56-start-the-web-worker-at-idle-after-the-first-paint) | Startup | 1.5 | 1 | 4 | low |  |
-| 57 | [Run the e2e tests with reduced motion and check that all motion stays gated](#57-run-the-e2e-tests-with-reduced-motion-and-check-that-all-motion-stays-gated) | Measurement | 2 | 1 | 4 | high |  |
-| 58 | [Pulse the bookmark while a subscription works, and stop within 5 s](#58-pulse-the-bookmark-while-a-subscription-works-and-stop-within-5-s) | Motion | 3 | 2 | 8 | medium |  |
-| 59 | [Glide queue, inbox and Library rows to their new places with a FLIP hook](#59-glide-queue-inbox-and-library-rows-to-their-new-places-with-a-flip-hook) | Motion | 7 | 2 | 6 | medium |  |
-| 60 | [Ease the Clear the queue dialog and its backdrop in, and leave its exit instant](#60-ease-the-clear-the-queue-dialog-and-its-backdrop-in-and-leave-its-exit-instant) | Motion | 1 | 1 | 5 | high |  |
-| 61 | [Scroll smoothly to a directory's list from Search's jump row](#61-scroll-smoothly-to-a-directorys-list-from-searchs-jump-row) | Motion | 1.5 | 1 | 4 | medium |  |
-| 62 | [Show 'Show the new episodes' in the status line's place, so the list stays put](#62-show-show-the-new-episodes-in-the-status-lines-place-so-the-list-stays-put) | Motion | 2 | 1 | 4 | medium |  |
-| 63 | [Start the first refresh after the first paint, at idle time](#63-start-the-first-refresh-after-the-first-paint-at-idle-time) | Startup | 2 | 1 | 4 | medium |  |
-| 64 | [Report what's in the release bundles, and fail CI over a size budget](#64-report-whats-in-the-release-bundles-and-fail-ci-over-a-size-budget) | Measurement | 2.5 | 1 | 4 | high |  |
-| 65 | [Measure proxy and thumbnail waits with Server-Timing before tuning them](#65-measure-proxy-and-thumbnail-waits-with-server-timing-before-tuning-them) | Measurement | 2.5 | 1 | 4 | high |  |
-| 66 | [Ease the caret, the switch's knob, the volume panel and the artwork hover](#66-ease-the-caret-the-switchs-knob-the-volume-panel-and-the-artwork-hover) | Motion | 2.5 | 1 | 4 | high |  |
-| 67 | [Cache the worker's encoded feed as it is, without encoding it again](#67-cache-the-workers-encoded-feed-as-it-is-without-encoding-it-again) | Main thread | 2.5 | 1 | 4 | medium |  |
-| 68 | [Write only the icons the code uses, if listening stays on the dev build](#68-write-only-the-icons-the-code-uses-if-listening-stays-on-the-dev-build) | Load | 2.5 | 1 | 4 | medium |  |
-| 69 | [Give the worker the library's options without the page's library namespace](#69-give-the-worker-the-librarys-options-without-the-pages-library-namespace) | Startup | 2.5 | 1 | 4 | medium |  |
-| 70 | [Cap the episodes a feed retains after its host drops them, with :max-items](#70-cap-the-episodes-a-feed-retains-after-its-host-drops-them-with-max-items) | Load | 2.5 | 1 | 4 | low |  |
-| 71 | [Mark each stage from a Play click to the element's 'playing' event](#71-mark-each-stage-from-a-play-click-to-the-elements-playing-event) | Measurement | 3 | 1 | 4 | high |  |
-| 72 | [Fade in what arrives after the page: more episodes, results, opened sections](#72-fade-in-what-arrives-after-the-page-more-episodes-results-opened-sections) | Motion | 3 | 1 | 4 | medium |  |
-| 73 | [Profile the 0.6 s seed transition, and narrow it if it drops frames](#73-profile-the-06-s-seed-transition-and-narrow-it-if-it-drops-frames) | Motion | 3 | 1 | 4 | low |  |
-| 74 | [Keep copies of the palette, bar seed, player height and theme-color](#74-keep-copies-of-the-palette-bar-seed-player-height-and-theme-color) | Startup | 4 | 1 | 4 | medium |  |
-| 75 | [Fade each new page in, with main keyed by page and the announcer outside it](#75-fade-each-new-page-in-with-main-keyed-by-page-and-the-announcer-outside-it) | Motion | 4 | 1 | 4 | low |  |
-| 76 | [Make list rows Replicant aliases so unchanged rows aren't expanded](#76-make-list-rows-replicant-aliases-so-unchanged-rows-arent-expanded) | Rendering | 10 | 2 | 4 | low |  |
-| 77 | [Show the last session's page from a saved snapshot until the app renders](#77-show-the-last-sessions-page-from-a-saved-snapshot-until-the-app-renders) | Perceived | 12 | 2 | 4 | low |  |
-| 78 | [Morph the Library's tiles between list and grid, and cross-fade the theme](#78-morph-the-librarys-tiles-between-list-and-grid-and-cross-fade-the-theme) | Motion | 4.5 | 1 | 3 | medium |  |
-| 79 | [Time renders, library operations and worker codec work with User Timing](#79-time-renders-library-operations-and-worker-codec-work-with-user-timing) | Measurement | 5 | 1 | 3 | high |  |
-| 80 | [Build an open transcript's and chapter list's Hiccup once, not every render](#80-build-an-open-transcripts-and-chapter-lists-hiccup-once-not-every-render) | Rendering | 3 | 2 | 8 | low |  |
-| 81 | [Make the queue, inbox and shows cheap to recompute at each progress report](#81-make-the-queue-inbox-and-shows-cheap-to-recompute-at-each-progress-report) | Rendering | 6 | 2 | 6 | low |  |
-| 82 | [Time each Nexus dispatch and count its renders in dev](#82-time-each-nexus-dispatch-and-count-its-renders-in-dev) | Measurement | 2 | 1 | 4 | high |  |
-| 83 | [Profile a release build, with the listener's library, not the dev build](#83-profile-a-release-build-with-the-listeners-library-not-the-dev-build) | Measurement | 3 | 1 | 4 | medium |  |
-| 84 | [Mark each startup stage and log the time to the first render](#84-mark-each-startup-stage-and-log-the-time-to-the-first-render) | Measurement | 3.5 | 1 | 4 | high |  |
+| 43 | [Build a benchmark library of 50 shows for repeatable profiling](#43-build-a-benchmark-library-of-50-shows-for-repeatable-profiling) | Measurement | 7 | 2 | 6 | medium | Done |
+| 44 | [While hidden, skip clock-only renders, render once per task, and catch up when shown](#44-while-hidden-skip-clock-only-renders-render-once-per-task-and-catch-up-when-shown) | Rendering | 7 | 2 | 6 | medium | Deferred |
+| 45 | [Find the picks after the paint and keep them in the store](#45-find-the-picks-after-the-paint-and-keep-them-in-the-store) | Main thread | 8 | 2 | 6 | medium | Done |
+| 46 | [Keep only the notes field that resolve/description shows, as the worker parses](#46-keep-only-the-notes-field-that-resolvedescription-shows-as-the-worker-parses) | Rendering | 8 | 2 | 6 | medium | Done |
+| 47 | [Keep two of the proxy's four slots for the listener's own requests](#47-keep-two-of-the-proxys-four-slots-for-the-listeners-own-requests) | Network | 8 | 2 | 6 | low | Deferred |
+| 48 | [Read an episode's MP3 tags without their artwork, after the element plays](#48-read-an-episodes-mp3-tags-without-their-artwork-after-the-element-plays) | Network | 11 | 3 | 6 | medium | Stage 1 done |
+| 49 | [Move the library's play step and the no-op add out of a Play click's task](#49-move-the-librarys-play-step-and-the-no-op-add-out-of-a-play-clicks-task) | Main thread | 4.5 | 2 | 6 | low | Part done |
+| 50 | [Preload the three @imported stylesheets so CSS loads in one round trip](#50-preload-the-three-imported-stylesheets-so-css-loads-in-one-round-trip) | Load | 0.75 | 1 | 5 | high | Done |
+| 51 | [Show podcast:person pictures as the server's 64–128 px thumbnails](#51-show-podcastperson-pictures-as-the-servers-64128-px-thumbnails) | Network | 1 | 1 | 5 | high | Done |
+| 52 | [Skip identical renders, guard the title, and read the theme colour after paint](#52-skip-identical-renders-guard-the-title-and-read-the-theme-colour-after-paint) | Rendering | 1 | 1 | 5 | medium | Done |
+| 53 | [Preload /api/server from index.html so it arrives while the scripts evaluate](#53-preload-apiserver-from-indexhtml-so-it-arrives-while-the-scripts-evaluate) | Startup | 1 | 1 | 5 | low | Deferred |
+| 54 | [Hash each served file once per version, not on every request](#54-hash-each-served-file-once-per-version-not-on-every-request) | Load | 1.5 | 1 | 4 | high | Done |
+| 55 | [Tally timeupdates, store changes and renders per minute while hidden, in dev](#55-tally-timeupdates-store-changes-and-renders-per-minute-while-hidden-in-dev) | Measurement | 1.5 | 1 | 4 | medium | Later |
+| 56 | [Start the web worker at idle after the first paint](#56-start-the-web-worker-at-idle-after-the-first-paint) | Startup | 1.5 | 1 | 4 | low | Done |
+| 57 | [Run the e2e tests with reduced motion and check that all motion stays gated](#57-run-the-e2e-tests-with-reduced-motion-and-check-that-all-motion-stays-gated) | Measurement | 2 | 1 | 4 | high | Done |
+| 58 | [Pulse the bookmark while a subscription works, and stop within 5 s](#58-pulse-the-bookmark-while-a-subscription-works-and-stop-within-5-s) | Motion | 3 | 2 | 8 | medium | Done |
+| 59 | [Glide queue, inbox and Library rows to their new places with a FLIP hook](#59-glide-queue-inbox-and-library-rows-to-their-new-places-with-a-flip-hook) | Motion | 7 | 2 | 6 | medium | Later |
+| 60 | [Ease the Clear the queue dialog and its backdrop in, and leave its exit instant](#60-ease-the-clear-the-queue-dialog-and-its-backdrop-in-and-leave-its-exit-instant) | Motion | 1 | 1 | 5 | high | Done |
+| 61 | [Scroll smoothly to a directory's list from Search's jump row](#61-scroll-smoothly-to-a-directorys-list-from-searchs-jump-row) | Motion | 1.5 | 1 | 4 | medium | Done |
+| 62 | [Show 'Show the new episodes' in the status line's place, so the list stays put](#62-show-show-the-new-episodes-in-the-status-lines-place-so-the-list-stays-put) | Motion | 2 | 1 | 4 | medium | Done |
+| 63 | [Start the first refresh after the first paint, at idle time](#63-start-the-first-refresh-after-the-first-paint-at-idle-time) | Startup | 2 | 1 | 4 | medium | Done |
+| 64 | [Report what's in the release bundles, and fail CI over a size budget](#64-report-whats-in-the-release-bundles-and-fail-ci-over-a-size-budget) | Measurement | 2.5 | 1 | 4 | high | Done |
+| 65 | [Measure proxy and thumbnail waits with Server-Timing before tuning them](#65-measure-proxy-and-thumbnail-waits-with-server-timing-before-tuning-them) | Measurement | 2.5 | 1 | 4 | high | Done |
+| 66 | [Ease the caret, the switch's knob, the volume panel and the artwork hover](#66-ease-the-caret-the-switchs-knob-the-volume-panel-and-the-artwork-hover) | Motion | 2.5 | 1 | 4 | high | Done |
+| 67 | [Cache the worker's encoded feed as it is, without encoding it again](#67-cache-the-workers-encoded-feed-as-it-is-without-encoding-it-again) | Main thread | 2.5 | 1 | 4 | medium | Done |
+| 68 | [Write only the icons the code uses, if listening stays on the dev build](#68-write-only-the-icons-the-code-uses-if-listening-stays-on-the-dev-build) | Load | 2.5 | 1 | 4 | medium | Done |
+| 69 | [Give the worker the library's options without the page's library namespace](#69-give-the-worker-the-librarys-options-without-the-pages-library-namespace) | Startup | 2.5 | 1 | 4 | medium | Done |
+| 70 | [Cap the episodes a feed retains after its host drops them, with :max-items](#70-cap-the-episodes-a-feed-retains-after-its-host-drops-them-with-max-items) | Load | 2.5 | 1 | 4 | low | Your call |
+| 71 | [Mark each stage from a Play click to the element's 'playing' event](#71-mark-each-stage-from-a-play-click-to-the-elements-playing-event) | Measurement | 3 | 1 | 4 | high | Done |
+| 72 | [Fade in what arrives after the page: more episodes, results, opened sections](#72-fade-in-what-arrives-after-the-page-more-episodes-results-opened-sections) | Motion | 3 | 1 | 4 | medium | Your call |
+| 73 | [Profile the 0.6 s seed transition, and narrow it if it drops frames](#73-profile-the-06-s-seed-transition-and-narrow-it-if-it-drops-frames) | Motion | 3 | 1 | 4 | low | Measured |
+| 74 | [Keep copies of the palette, bar seed, player height and theme-color](#74-keep-copies-of-the-palette-bar-seed-player-height-and-theme-color) | Startup | 4 | 1 | 4 | medium | Later |
+| 75 | [Fade each new page in, with main keyed by page and the announcer outside it](#75-fade-each-new-page-in-with-main-keyed-by-page-and-the-announcer-outside-it) | Motion | 4 | 1 | 4 | low | Your call |
+| 76 | [Make list rows Replicant aliases so unchanged rows aren't expanded](#76-make-list-rows-replicant-aliases-so-unchanged-rows-arent-expanded) | Rendering | 10 | 2 | 4 | low | Deferred |
+| 77 | [Show the last session's page from a saved snapshot until the app renders](#77-show-the-last-sessions-page-from-a-saved-snapshot-until-the-app-renders) | Perceived | 12 | 2 | 4 | low | Your call |
+| 78 | [Morph the Library's tiles between list and grid, and cross-fade the theme](#78-morph-the-librarys-tiles-between-list-and-grid-and-cross-fade-the-theme) | Motion | 4.5 | 1 | 3 | medium | Done |
+| 79 | [Time renders, library operations and worker codec work with User Timing](#79-time-renders-library-operations-and-worker-codec-work-with-user-timing) | Measurement | 5 | 1 | 3 | high | Done |
+| 80 | [Build an open transcript's and chapter list's Hiccup once, not every render](#80-build-an-open-transcripts-and-chapter-lists-hiccup-once-not-every-render) | Rendering | 3 | 2 | 8 | low | Done |
+| 81 | [Make the queue, inbox and shows cheap to recompute at each progress report](#81-make-the-queue-inbox-and-shows-cheap-to-recompute-at-each-progress-report) | Rendering | 6 | 2 | 6 | low | Part done |
+| 82 | [Time each Nexus dispatch and count its renders in dev](#82-time-each-nexus-dispatch-and-count-its-renders-in-dev) | Measurement | 2 | 1 | 4 | high | Done |
+| 83 | [Profile a release build, with the listener's library, not the dev build](#83-profile-a-release-build-with-the-listeners-library-not-the-dev-build) | Measurement | 3 | 1 | 4 | medium | Later |
+| 84 | [Mark each startup stage and log the time to the first render](#84-mark-each-startup-stage-and-log-the-time-to-the-first-render) | Measurement | 3.5 | 1 | 4 | high | Done |
 | 85 | [Render the page's frame at init, before the library is read](#85-render-the-pages-frame-at-init-before-the-library-is-read) | Startup | 4.5 | 2 | 6 | low | Done |
-| 86 | [Decode each feed document as its fetch resolves in podcast-clj's read!](#86-decode-each-feed-document-as-its-fetch-resolves-in-podcast-cljs-read) | Startup | 3 | 1 | 4 | low |  |
-| 87 | [Log slow interactions and long frames with PerformanceObserver](#87-log-slow-interactions-and-long-frames-with-performanceobserver) | Measurement | 4 | 1 | 4 | medium |  |
-| 88 | [Add performance budgets to the end-to-end tests for the key flows](#88-add-performance-budgets-to-the-end-to-end-tests-for-the-key-flows) | Measurement | 9 | 2 | 4 | medium |  |
-| 89 | [Read the first page's feeds first and load the rest of the library after](#89-read-the-first-pages-feeds-first-and-load-the-rest-of-the-library-after) | Startup | 18 | 2 | 4 | low |  |
-| 90 | [Measure long-list scrolling on phones in Chrome, Firefox and Safari](#90-measure-long-list-scrolling-on-phones-in-chrome-firefox-and-safari) | Measurement | 4.5 | 1 | 3 | high |  |
-| 91 | [Print main's grain on a page wrapper instead of a local background](#91-print-mains-grain-on-a-page-wrapper-instead-of-a-local-background) | Rendering | 5 | 3 | 9 | medium |  |
-| 92 | [Isolate main so each artwork's multiply stays in its scrolling layer](#92-isolate-main-so-each-artworks-multiply-stays-in-its-scrolling-layer) | Rendering | 4 | 2 | 8 | medium |  |
-| 93 | [Measure the heap at start, after ten outside shows and after an hour of play](#93-measure-the-heap-at-start-after-ten-outside-shows-and-after-an-hour-of-play) | Measurement | 5 | 1 | 3 | high |  |
-| 94 | [Keep only the last few outside shows' whole feeds in the store](#94-keep-only-the-last-few-outside-shows-whole-feeds-in-the-store) | Main thread | 5 | 1 | 3 | low |  |
+| 86 | [Decode each feed document as its fetch resolves in podcast-clj's read!](#86-decode-each-feed-document-as-its-fetch-resolves-in-podcast-cljs-read) | Startup | 3 | 1 | 4 | low | Deferred |
+| 87 | [Log slow interactions and long frames with PerformanceObserver](#87-log-slow-interactions-and-long-frames-with-performanceobserver) | Measurement | 4 | 1 | 4 | medium | Done |
+| 88 | [Add performance budgets to the end-to-end tests for the key flows](#88-add-performance-budgets-to-the-end-to-end-tests-for-the-key-flows) | Measurement | 9 | 2 | 4 | medium | Later |
+| 89 | [Read the first page's feeds first and load the rest of the library after](#89-read-the-first-pages-feeds-first-and-load-the-rest-of-the-library-after) | Startup | 18 | 2 | 4 | low | Your call |
+| 90 | [Measure long-list scrolling on phones in Chrome, Firefox and Safari](#90-measure-long-list-scrolling-on-phones-in-chrome-firefox-and-safari) | Measurement | 4.5 | 1 | 3 | high | Later |
+| 91 | [Print main's grain on a page wrapper instead of a local background](#91-print-mains-grain-on-a-page-wrapper-instead-of-a-local-background) | Rendering | 5 | 3 | 9 | medium | Later |
+| 92 | [Isolate main so each artwork's multiply stays in its scrolling layer](#92-isolate-main-so-each-artworks-multiply-stays-in-its-scrolling-layer) | Rendering | 4 | 2 | 8 | medium | Measured |
+| 93 | [Measure the heap at start, after ten outside shows and after an hour of play](#93-measure-the-heap-at-start-after-ten-outside-shows-and-after-an-hour-of-play) | Measurement | 5 | 1 | 3 | high | Measured |
+| 94 | [Keep only the last few outside shows' whole feeds in the store](#94-keep-only-the-last-few-outside-shows-whole-feeds-in-the-store) | Main thread | 5 | 1 | 3 | low | Done |
 | 95 | [Measure each script's compile and evaluate time and coverage before splitting](#95-measure-each-scripts-compile-and-evaluate-time-and-coverage-before-splitting) | Measurement | 5.5 | 1 | 3 | high |  |
 | 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low |  |
 | 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low |  |
