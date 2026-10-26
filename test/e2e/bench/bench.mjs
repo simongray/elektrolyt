@@ -6,6 +6,9 @@
 //   node test/e2e/bench/bench.mjs seed           import shows.opml into a new profile
 //   node test/e2e/bench/bench.mjs open 5         open Home 5 times
 //   node test/e2e/bench/bench.mjs subscribe 3    subscribe to the first show 3 times
+//   node test/e2e/bench/bench.mjs colours 5      time the frames as the Library's
+//                                                colours change 5 times, with CPU
+//                                                throttling, or a show's with show
 //
 // BENCH_URL is the app, http://localhost:8400 by default, and BENCH_CORPUS
 // the folder of the corpus's feeds, ../podcast-clj/dev-resources/corpus/sweep
@@ -64,6 +67,30 @@ const tasks = long => ({
   longest: Math.max(0, ...long.map(([, d]) => d)),
   total: long.reduce((sum, [, d]) => sum + d, 0),
 });
+
+/** The milliseconds of each frame for 800 ms after the shell's seeds change,
+    with their transition when `moving`, or at once otherwise. */
+async function fade({ moving, i }) {
+  const shell = document.querySelector('.shell');
+  const seeds = ['oklch(55% 0.15 30)', 'oklch(45% 0.12 250)'];
+  const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+  shell.style.transition = moving ? '' : 'none';
+  let last = await frame();
+  const end = last + 800;
+  shell.style.setProperty('--seed', seeds[i % 2]);
+  shell.style.setProperty('--bar-seed', seeds[(i + 1) % 2]);
+  const frames = [];
+  const seen = new Set();
+  while (last < end) {
+    const now = await frame();
+    frames.push(now - last);
+    seen.add(getComputedStyle(shell).getPropertyValue('--seed'));
+    last = now;
+  }
+  shell.style.transition = '';
+  await new Promise(resolve => setTimeout(resolve, 400));
+  return { frames, colours: seen.size, elements: document.querySelectorAll('.shell *').length };
+}
 
 /** Whether the refresh in the page's store has its result. */
 const refreshed = () => {
@@ -132,8 +159,40 @@ try {
       const long = await page.evaluate(t => window.__bench.long.filter(([s]) => s >= t), t0);
       console.log(JSON.stringify({ run: i, show: title, ...tasks(long) }));
     }
+  } else if (mode === 'colours') {
+    const page = await context.newPage();
+    await page.goto(`${base}/library`);
+    await page.waitForFunction(() => window.__bench.page, null, { timeout: 120_000 });
+    // the show with the most episodes, whose page lists the most rows
+    if (process.argv[4] === 'show') {
+      const title = /text="([^"]*)"/.exec(opml.toString())[1].replaceAll('&amp;', '&');
+      await page.getByRole('main').getByRole('link', { name: title, exact: true }).click();
+      await page.getByRole('main').getByText(/^\d+ episodes?\.$/).waitFor({ timeout: 120_000 });
+    }
+    await sleep(5000);
+    const cdp = await context.newCDPSession(page);
+    for (const rate of [1, 4, 6]) {
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate });
+      for (const moving of [true, false]) {
+        const frames = [];
+        let colours = 0;
+        let elements = 0;
+        for (let i = 0; i < Number(n); i++) {
+          const run = await page.evaluate(fade, { moving, i });
+          frames.push(...run.frames);
+          colours += run.colours;
+          elements = run.elements;
+        }
+        console.log(JSON.stringify({
+          rate, moving, elements, colours, frames: frames.length,
+          longest: Math.round(Math.max(...frames)),
+          over20: frames.filter(ms => ms > 20).length,
+          mean: Math.round(frames.reduce((a, b) => a + b, 0) / frames.length * 10) / 10,
+        }));
+      }
+    }
   } else {
-    console.log('A mode: seed, open or subscribe');
+    console.log('A mode: seed, open, subscribe or colours');
   }
 } finally {
   await context.close();
