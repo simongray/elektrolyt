@@ -47,6 +47,16 @@
     (is (= 1 (get-in (restored {:library played} nil) [:player :volume]))
         "or all of it")))
 
+(deftest an-episode-added-as-it-plays
+  (let [lib  (library/add-episode (library/make "test") url two-feed "one")
+        one  [(first (keys (:feeds lib))) "one"]
+        two  [(first (keys (:feeds lib))) "two"]
+        play (fn [id item-guid] {:id id :guid (first one) :url url :item-guid item-guid})]
+    (is (= :episode/add (first (:operation (audio/added {:library lib} (play two "two")))))
+        "joins the library")
+    (is (nil? (audio/added {:library lib} (play one "one")))
+        "unless it's there already, which changes nothing")))
+
 (deftest the-moments-of-a-report
   (let [reports (atom [])
         store   (atom {:library (library/make "test") :player {:id ["feed" "one"]}})

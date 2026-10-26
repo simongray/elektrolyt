@@ -401,11 +401,14 @@
                                     (:playback-rate there))]
     (some->> el (play-element! store))))
 
+;; library.change! does nothing with nil, rather than queue an operation
+;; that changes nothing and render the page again in the click
 (defn added
   "The change of `state` that adds the `playable` episode to the library,
-  unless it's there already."
-  [state {:keys [id guid url item-guid]}]
-  {:operation [:episode/add id url (:feed (show/source state guid)) item-guid]})
+  or nil when it's there already."
+  [{:keys [library] :as state} {:keys [id guid url item-guid]}]
+  (when-not (some-> library (library/playback id))
+    {:operation [:episode/add id url (:feed (show/source state guid)) item-guid]}))
 
 (defn play!
   "Play the `playable` episode in the player in `store`, from `t` seconds
