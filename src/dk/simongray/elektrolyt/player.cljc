@@ -159,6 +159,15 @@
   [{:keys [buffering?] :as player} id]
   (boolean (and buffering? (= :here (playing player id)))))
 
+(defn content-facts
+  "What the views of the main content may read of the `player`, which
+  playing, shown-id and waiting? give: its episode and the one that it
+  shows, whether it's paused, failed or waits for data, and the episode
+  that another tab plays. They leave out the clock."
+  [{:keys [media buffering?] :as player}]
+  [(:id player) (shown-id player) (:paused media) (boolean (:error media)) (boolean buffering?)
+   (:id (elsewhere player))])
+
 (def shown-keys
   "The keys of an element's media state that the page reads: the told-keys,
   and whether it seeks or failed."

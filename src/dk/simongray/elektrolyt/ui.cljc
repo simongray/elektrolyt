@@ -19,6 +19,7 @@
             [dk.simongray.elektrolyt.ui.home :as home-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.links :as links]
+            [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.text :as text]))
@@ -212,32 +213,43 @@
                 [controls/button {:icon icons/arrows-clockwise :on {:click [[:page/reload]]}}
                  "Reload" [:span.visually-hidden " the page"]]))
 
-(defn main-content
+;; While an episode plays, the store changes every second for the player's
+;; clock alone. Replicant compares the Hiccup of an element with = before
+;; it looks inside, so main as it was costs it almost nothing.
+;; https://replicant.fun/top-down/
+(def main-content
   "The main content of the page in `state`, under its heading, which a
-  Show or Episode page puts in its article instead."
-  [state]
-  (let [route   (get-in state [:route :name])
-        heading (page-heading state)]
-    [:main#main
-     (saves-ui/notice state)
-     (when-not (#{:route/show :route/episode} route)
-       heading)
-     (if (and (library-pages route) (nil? (:library state)))
-       no-library
-       (case route
-         nil             not-found
-         :route/home     (home-ui/content state)
-         :route/queue    (queue-ui/content state)
-         :route/inbox    (inbox-ui/content state)
-         :route/library  (library-ui/content state)
-         :route/search   (search-ui/content state)
-         :route/settings (settings-ui/content state)
-         :route/show     (show-ui/content state heading)
-         :route/episode  (episode-ui/content state heading)
-         nil))
-     (announcer state)
-     (for [{:keys [id text]} (vals links/notes)]
-       [:p.visually-hidden {:id id} text])]))
+  Show or Episode page puts in its article instead. It's made again only
+  when the state changes beyond the player's clock, as the content-facts
+  of the player tell."
+  (memo/remember-last
+   (fn [state]
+     (let [route   (get-in state [:route :name])
+           heading (page-heading state)]
+       [:main#main
+        (saves-ui/notice state)
+        (when-not (#{:route/show :route/episode} route)
+          heading)
+        (if (and (library-pages route) (nil? (:library state)))
+          no-library
+          (case route
+            nil             not-found
+            :route/home     (home-ui/content state)
+            :route/queue    (queue-ui/content state)
+            :route/inbox    (inbox-ui/content state)
+            :route/library  (library-ui/content state)
+            :route/search   (search-ui/content state)
+            :route/settings (settings-ui/content state)
+            :route/show     (show-ui/content state heading)
+            :route/episode  (episode-ui/content state heading)
+            nil))
+        (announcer state)
+        (for [{:keys [id text]} (vals links/notes)]
+          [:p.visually-hidden {:id id} text])]))
+   (fn [{:keys [player] :as state}]
+     [(dissoc state :player) (player/content-facts player)])
+   (fn [[state facts] [last-state last-facts]]
+     (and (= facts last-facts) (memo/same-entries? state last-state)))))
 
 (defn shell-attrs
   "The attributes of the page's shell in `state`: the navigation palette

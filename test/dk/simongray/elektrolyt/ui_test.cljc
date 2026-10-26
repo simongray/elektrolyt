@@ -147,3 +147,26 @@
     (is (not= (get-in once [2 1 :replicant/key])
               (get-in (line (announcement/announced {} "The feed couldn't be fetched")) [2 1 :replicant/key]))
         "is a new element each time, so that a screen reader reads out the same message again")))
+
+(def queue-page
+  "The route of the Queue page."
+  {:name :route/queue :path-params {} :query-params {}})
+
+(deftest main-as-the-clock-ticks
+  (let [main     #(ui/main-content (assoc (player-test/state %) :route queue-page))
+        new?     #(not (identical? (main %1) (main %2)))
+        playing  {:media {:paused false :current-time 75 :duration 3600}}
+        ticking  (main playing)]
+    (is (identical? ticking (main (assoc-in playing [:media :current-time] 76)))
+        "is the same while only the player's clock moves")
+    (is (identical? ticking (main (assoc playing :now 1000 :seeking 600 :volume 0.5)))
+        "or the seek bar, another tab's clock or the volume")
+    (is (new? playing (assoc-in playing [:media :paused] true)) "and made again at a pause")
+    (is (new? playing (assoc-in playing [:media :error] {:code :network})) "a failure")
+    (is (new? playing (assoc playing :buffering? true)) "a wait for data")
+    (is (new? playing (assoc playing :id ["other" "x"])) "another episode")
+    (is (not (identical? (main playing)
+                         (ui/main-content (assoc (player-test/state playing)
+                                                 :route queue-page
+                                                 :library (library/make "other")))))
+        "or any other change of the state")))
