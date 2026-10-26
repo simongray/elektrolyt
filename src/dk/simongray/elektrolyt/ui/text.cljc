@@ -17,6 +17,35 @@
      :cljs (or (some-> js/globalThis .-document .-documentElement .-lang not-empty)
                default-language)))
 
+;; Making an Intl formatter took 40-70 µs in Chrome, many times what using
+;; one takes, and the rows of a long list format a date and a duration
+;; each, at every render. Intl.Collator in library.shows is kept the same
+;; way.
+;; https://v8.dev/blog/intl
+#?(:cljs
+   (def formatters
+     "The Intl formatters that the views have used, by their kind, language
+     and options."
+     (atom {})))
+
+#?(:cljs
+   (defn formatter
+     "The Intl formatter of the `kind` for the page's language and the
+     `options`, made once by `make`, a function of the language and the
+     options as a JavaScript object."
+     [kind options make]
+     (let [k [kind (language) options]]
+       (or (get @formatters k)
+           (let [made (make (language) (clj->js options))]
+             (swap! formatters assoc k made)
+             made)))))
+
+#?(:cljs
+   (defn list-formatter
+     "The Intl.ListFormat of a conjunction in the page's language."
+     []
+     (formatter :list {:type "conjunction"} #(js/Intl.ListFormat. %1 %2))))
+
 ;; The app's words are English, so Intl.PluralRules, which only names the
 ;; category of a count, would add nothing until they're translated
 (defn plural
@@ -38,8 +67,7 @@
   #?(:clj  (if (next xs)
              (str (str/join ", " (butlast xs)) " and " (last xs))
              (str (first xs)))
-     :cljs (.format (js/Intl.ListFormat. (language) #js {:type "conjunction"})
-                    (into-array xs))))
+     :cljs (.format (list-formatter) (into-array xs))))
 
 ;; ECMA-402, Intl.ListFormat.prototype.formatToParts
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/formatToParts
@@ -56,8 +84,7 @@
                   (apply concat)
                   vec))
      :cljs (mapv (fn [^js part] [(keyword (.-type part)) (.-value part)])
-                 (.formatToParts (js/Intl.ListFormat. (language) #js {:type "conjunction"})
-                                 (into-array xs)))))
+                 (.formatToParts (list-formatter) (into-array xs)))))
 
 ;; ECMA-402, Intl.DisplayNames
 (defn language-name
@@ -66,7 +93,8 @@
   [tag]
   #?(:clj  tag
      :cljs (try
-             (.of (js/Intl.DisplayNames. #js [(language)] #js {:type "language"}) tag)
+             (.of (formatter :language-names {:type "language"} #(js/Intl.DisplayNames. #js [%1] %2))
+                  tag)
              (catch :default _ tag))))
 
 ;; HTML, the lang attribute: an element without one is in its parent's
@@ -101,11 +129,12 @@
                                   (to-array [(double n)]))]
              (str (cond-> s (< min-digits max-digits) (str/replace #"\.?0+$" ""))
                   " " (unit-symbols unit)))
-     :cljs (.format (js/Intl.NumberFormat. (language) #js {:style                 "unit"
-                                                          :unit                  unit
-                                                          :unitDisplay           "short"
-                                                          :minimumFractionDigits min-digits
-                                                          :maximumFractionDigits max-digits})
+     :cljs (.format (formatter :number {:style                 "unit"
+                                        :unit                  unit
+                                        :unitDisplay           "short"
+                                        :minimumFractionDigits min-digits
+                                        :maximumFractionDigits max-digits}
+                               #(js/Intl.NumberFormat. %1 %2))
                     n)))
 
 (defn size-text

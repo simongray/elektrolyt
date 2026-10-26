@@ -10,7 +10,8 @@
   Oct 2026\"."
   [inst]
   #?(:clj  (str inst)
-     :cljs (.toLocaleDateString inst (text/language) #js {:dateStyle "medium"})))
+     :cljs (.format (text/formatter :date {:dateStyle "medium"} #(js/Intl.DateTimeFormat. %1 %2))
+                    inst)))
 
 (defn date-attribute
   "The instant `inst` as the datetime of a time element."
@@ -28,7 +29,8 @@
   \"14:32\"."
   [inst]
   #?(:clj  (str inst)
-     :cljs (.toLocaleTimeString inst (text/language) #js {:timeStyle "short"})))
+     :cljs (.format (text/formatter :time {:timeStyle "short"} #(js/Intl.DateTimeFormat. %1 %2))
+                    inst)))
 
 (defn duration-parts
   "The `seconds` of an episode to the minute, as hours and minutes, or as
@@ -55,9 +57,10 @@
                                                    :when (pos? (k parts 0))]
                                                (str (k parts) unit))))
                    "0s")
-         :cljs (.format (js/Intl.DurationFormat. (text/language)
-                                                 #js {:style          "narrow"
-                                                      :secondsDisplay (if (:seconds parts) "always" "auto")})
+         :cljs (.format (text/formatter :duration
+                                        {:style          "narrow"
+                                         :secondsDisplay (if (:seconds parts) "always" "auto")}
+                                        #(js/Intl.DurationFormat. %1 %2))
                         (clj->js parts))))))
 
 (defn duration-attribute

@@ -28,3 +28,12 @@
   (is (= ["1 MB" "1 GB"] (map text/size-text [999600 999700000])) "never 1,000 of a unit")
   (is (= "12.3 MB" (text/megabytes 12345678)))
   (is (= "0.0 MB" (text/megabytes 0))))
+
+#?(:cljs
+   (deftest one-formatter-of-each-kind-for-each-language
+     (let [british (text/list-formatter)]
+       (is (identical? british (text/list-formatter)) "made once")
+       (with-redefs [text/language (constantly "da")]
+         (is (not (identical? british (text/list-formatter))) "and again in another language")
+         (is (= "fyyd, Apple Podcasts og gpodder.net"
+                (text/listing ["fyyd" "Apple Podcasts" "gpodder.net"])))))))
