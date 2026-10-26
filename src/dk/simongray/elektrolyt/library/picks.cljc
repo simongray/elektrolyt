@@ -101,22 +101,18 @@
    (some-> library :profile profile.queue/queue pr-str)
    (settings/explicit-picks? state)])
 
-(def home
+(defn home
   "Home's picks in `state`: like the episodes the listener heard last, and
   explicit only when the listener chose explicit picks."
-  (memo/remember-last
-   (fn [{:keys [library] :as state}]
-     (some-> library (recommended nil (opts state :home false))))
-   library-key))
+  [{:keys [library] :as state}]
+  (some-> library (recommended nil (opts state :home false))))
 
-(def after-queue
+(defn after-queue
   "The picks at the end of the queue in `state`, like every episode in it,
   or nil when it's empty."
-  (memo/remember-last
-   (fn [{:keys [library] :as state}]
-     (when-let [ids (some->> library queue/view :episodes (mapv :id) not-empty)]
-       (recommended library ids (opts state :queue (explicit-in? library ids)))))
-   library-key))
+  [{:keys [library] :as state}]
+  (when-let [ids (some->> library queue/view :episodes (mapv :id) not-empty)]
+    (recommended library ids (opts state :queue (explicit-in? library ids)))))
 
 (defn after-episode
   "The picks in `state` to follow the episode `id` once it ends with
@@ -152,17 +148,14 @@
                                                         :url      url
                                                         :repeated (repeated-runs feed)}})))
 
-(def like-episode
+(defn like-episode
   "The picks under the episode `page` in `state`, like that episode."
-  (memo/remember-last
-   (fn [{:keys [library] :as state} {:keys [id guid] :as page}]
-     (let [source (show/source state guid)]
-       (when (and library (:feed source))
-         (recommended library [id]
-                      (outside (opts state :episode (explicit-in? library [id] (outside {} source)))
-                               source)))))
-   (fn [state {:keys [id guid]}]
-     (conj (library-key state) (pr-str id) (:feed (show/source state guid))))))
+  [{:keys [library] :as state} {:keys [id guid] :as page}]
+  (let [source (show/source state guid)]
+    (when (and library (:feed source))
+      (recommended library [id]
+                   (outside (opts state :episode (explicit-in? library [id] (outside {} source)))
+                            source)))))
 
 (def heard-count
   "The most episodes of a show that its picks start from."
@@ -203,21 +196,106 @@
                    nil]
       :else       [(newest-in-feed feed url) nil])))
 
-(def like-show
+(defn like-show
   "The picks under the Show page of the show `guid` in `state`, like its
   episodes that the listener heard, or else its newest. They may be
   explicit when the show or those episodes are. A show without episodes
   has no picks, and nil means they aren't known yet."
-  (memo/remember-last
-   (fn [{:keys [library] :as state} guid]
-     (let [{:keys [feed] :as source} (show/source state guid)]
-       (when (and library feed)
-         (let [[ids weights] (show-seeds library source)
-               explicit?     (or (resolve/explicit? feed)
-                                 (explicit-in? library ids (outside {} source)))]
-           (if (seq ids)
-             (recommended library ids (cond-> (outside (opts state :show explicit?) source)
-                                        weights (assoc :weight-fn weights)))
-             {:episodes [] :terms []})))))
-   (fn [state guid]
-     (conj (library-key state) guid (:feed (show/source state guid))))))
+  [{:keys [library] :as state} guid]
+  (let [{:keys [feed] :as source} (show/source state guid)]
+    (when (and library feed)
+      (let [[ids weights] (show-seeds library source)
+            explicit?     (or (resolve/explicit? feed)
+                              (explicit-in? library ids (outside {} source)))]
+        (if (seq ids)
+          (recommended library ids (cond-> (outside (opts state :show explicit?) source)
+                                     weights (assoc :weight-fn weights)))
+          {:episodes [] :terms []})))))
+
+;; Finding the picks takes tens of milliseconds, more with a long history,
+;; so they're found after the page paints and kept in :picks by place,
+;; e.g. after a Play on Home, which moves the queue, rather than in the
+;; render of the click
+;; https://web.dev/articles/inp
+(defn shown-places
+  "The places of the picks that the page in `state` shows: [:home],
+  [:queue] while the queue has episodes, and [:show guid] or [:episode id
+  guid] while the listener has their picks open, where `episode` is the
+  page of the episode that the page shows, if any."
+  [state episode]
+  (let [route (when (:library state) (get-in state [:route :name]))
+        open? #(get-in state [:open (into [:picks] %)])]
+    (case route
+      :route/home    [[:home]]
+      :route/queue   (when (seq (some-> (:library state) :profile profile.queue/queue))
+                       [[:queue]])
+      :route/show    (let [place [:show (get-in state [:route :path-params :guid])]]
+                       (when (open? place) [place]))
+      :route/episode (when-let [{:keys [id guid]} episode]
+                       (let [place [:episode id guid]]
+                         (when (open? place) [place])))
+      nil)))
+
+(defn place-key
+  "What the picks at `place` in `state` change with, as library-key gives
+  it, and the show's feed for a show's or an episode's."
+  [state [kind a b :as place]]
+  (case kind
+    (:home :queue) (library-key state)
+    :show          (conj (library-key state) a (:feed (show/source state a)))
+    :episode       (conj (library-key state) (pr-str a) (:feed (show/source state b)))))
+
+(defn found
+  "The picks at `place` in `state`, found now."
+  [state [kind a b :as place]]
+  (case kind
+    :home    (home state)
+    :queue   (after-queue state)
+    :show    (like-show state a)
+    :episode (like-episode state {:id a :guid b})))
+
+(defn same-key?
+  "Whether the keys `a` and `b` of a place are the same, by memo/same? of
+  their parts."
+  [a b]
+  (and (= (count a) (count b))
+       (every? true? (map memo/same? a b))))
+
+(defn kept
+  "The picks at `place` in `state` as they were last found, which may be
+  of an earlier key, or nil before they were found."
+  [state place]
+  (get-in state [:picks place]))
+
+(defn fresh
+  "The picks at `place` in `state` while they're those of its key, or nil."
+  [state place]
+  (let [{:keys [key picks]} (kept state place)]
+    (when (same-key? key (place-key state place))
+      picks)))
+
+(defn stale?
+  "Whether the picks at `place` in `state` are to be found again, for the
+  key `k`."
+  [state place k]
+  (not (same-key? k (:key (kept state place)))))
+
+(defn with-found
+  "The `state` with the `picks` found at `place` for the key `k`. A show's
+  or an episode's picks go once another's are found, so that only the
+  last open section's are kept."
+  [state place k picks]
+  (update state :picks
+          #(-> (into {} (filter (comp #{:home :queue} ffirst)) %)
+               (assoc place {:key k :picks picks}))))
+
+(defn filled
+  "The `state` with the picks of the places that it shows found, with the
+  page of the `episode` that it shows, if any, e.g. for a scene or a test."
+  ([state]
+   (filled state nil))
+  ([state episode]
+   (reduce (fn [s place]
+             (with-found s place (place-key s place) (found s place)))
+           state
+           (shown-places state episode))))

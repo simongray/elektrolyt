@@ -361,6 +361,6 @@
           [(intro state heading page)
            (episodes state page)]
           aside
-          (picks-ui/folded state picks-section [:show (guid state)] #(picks/like-show state (guid state))))
+          (picks-ui/folded state picks-section [:show (guid state)] #(picks/fresh state [:show (guid state)])))
          (when (:feed src)
            (linked-shows state (:title page) src)))))))

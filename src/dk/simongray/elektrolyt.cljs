@@ -11,6 +11,7 @@
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.inbox :as inbox]
             [dk.simongray.elektrolyt.library.opml :as opml]
+            [dk.simongray.elektrolyt.library.picks.finding :as picks-finding]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.library.refresh :as refresh]
             [dk.simongray.elektrolyt.library.saves :as saves]
@@ -491,6 +492,7 @@
       (.finally (fn []
                   (runtime/watch! store ::render (fn [_ state] (document/render! state)))
                   (runtime/watch! store ::colors (fn [_ state] (artwork-colors/colored! store state)))
+                  (runtime/watch! store ::picks (fn [_ state] (picks-finding/found! store state)))
                   (runtime/watch! store ::lock-screen (audio/lock-screen-watch store))
                   (start-router!)
                   (refresh/refresh-if-due! store)))))

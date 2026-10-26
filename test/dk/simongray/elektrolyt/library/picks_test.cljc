@@ -112,16 +112,42 @@
       (is (seq (titles (picks/like-show (state clean) k))))
       (is (not (explicit? (picks/like-show (state clean) k))))
       (is (explicit? (picks/like-show (state marked) k))))
-    (testing "remembered while what they change with stays the same"
-      (let [s (state clean)]
-        (is (identical? (picks/like-episode s page) (picks/like-episode s page)))
-        (is (identical? (picks/like-show s k) (picks/like-show s k)))
-        (is (explicit? (picks/like-episode (preferring s {::settings/explicit-picks? true}) page))
+    (testing "kept by place while what they change with stays the same"
+      (let [s        (state clean)
+            place    [:show k]
+            kept     (picks/with-found s place (picks/place-key s place) (picks/found s place))
+            explicit (preferring kept {::settings/explicit-picks? true})]
+        (is (= (picks/like-show s k) (picks/fresh kept place)))
+        (is (nil? (picks/fresh explicit place))
             "but found again once the listener chose explicit picks")
-        (is (explicit? (picks/like-show (preferring s {::settings/explicit-picks? true}) k)))
-        (is (not= (titles (picks/like-episode s page))
-                  (titles (picks/like-episode s (assoc page :id grinders))))
+        (is (picks/stale? explicit place (picks/place-key explicit place)))
+        (is (explicit? (picks/found explicit place)))
+        (is (not (picks/same-key? (picks/place-key s [:episode [k "0"] k])
+                                  (picks/place-key s [:episode grinders k])))
             "or for another episode")))))
+
+(deftest the-places-that-a-page-shows
+  (let [home {:library lib :route {:name :route/home}}
+        show {:library lib :route {:name :route/show :path-params {:guid "g"}}}]
+    (is (= [[:home]] (picks/shown-places home nil)))
+    (is (nil? (picks/shown-places (assoc home :route {:name :route/queue}) nil))
+        "but not the end of an empty queue")
+    (is (= [[:queue]] (picks/shown-places {:library (library/update-profile lib profile.queue/enqueue grinders)
+                                           :route   {:name :route/queue}}
+                                          nil)))
+    (is (nil? (picks/shown-places show nil)) "nor a show's until the listener opens them")
+    (is (= [[:show "g"]] (picks/shown-places (assoc show :open {[:picks :show "g"] true}) nil)))
+    (is (= [[:episode grinders "g"]]
+           (picks/shown-places {:library lib
+                                :route   {:name :route/episode}
+                                :open    {[:picks :episode grinders "g"] true}}
+                               {:id grinders :guid "g"})))
+    (is (= #{[:home] [:show "b"]}
+           (set (keys (:picks (-> home
+                                  (picks/with-found [:home] [] {:episodes []})
+                                  (picks/with-found [:show "a"] [] {:episodes []})
+                                  (picks/with-found [:show "b"] [] {:episodes []}))))))
+        "and only the last show's or episode's picks are kept")))
 
 (deftest picks-like-an-episode
   (let [state {:library lib}

@@ -59,7 +59,7 @@
   (let [lists (when library
                 [:div.home-lists
                  (up-next state)
-                 (picks-ui/section state picks-section (picks/home state))])]
+                 (picks-ui/kept-section state picks-section (picks/kept state [:home]))])]
     ;; the subscriptions alone, since the Library page's shows count every
     ;; episode, and the profile changes at each position report
     (if (empty? (some-> library :profile profile/subscriptions))

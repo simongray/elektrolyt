@@ -32,6 +32,7 @@ as long as the tab.
 | `:episodes-shown` | How many episodes a Show page lists, by guid | `show` (`:show/more`) | `show.ui` | Never |
 | `:searches` | The searches by query, each directory's results | `search.directories`, `search.ui` | `ui.routes`, `search`, `show`, `search.ui` | Clear cache |
 | `:linked` | The shows that a show links to, by guid | `show.feeds` | `show.ui` | Clear cache |
+| `:picks` | The picks of each place that the page shows, e.g. Home or an open More like this, with the key that they were found for, found after the page paints | `library.picks.finding` | `library.picks`, the views, `ui.colors` | Overwritten, and a show's or an episode's go once another's are found |
 | `:colors` | The colours of artwork, by URL | `ui.artwork.colors` | `ui.colors`, the views | Clear cache |
 | `:refresh-status` | The refresh under way, and what the last one found, or when it failed or found another tab refreshing, which holds back the next | `library.refresh` | `library.refresh`, `library.ui` | Overwritten |
 | `:route` | The page | `ui.routes`, at each navigation | `ui`, `show`, `ui.colors` | Overwritten |
@@ -61,7 +62,8 @@ In the tab, outside the store
 | `worker.fetching/web-worker` | The web worker, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `worker.fetching/in-flight` | The promises of the worker's fetches of feeds in flight, by URL and options, which an equal fetch waits for, e.g. a subscription's while the Show page fetches the whole feed | `worker.fetching` | `worker.fetching`, for `show.feeds` | Until each settles |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
-| `ui.memo` slots | The last result of a view that takes a while, e.g. the queue or the picks, the last four of a show's or an episode's page, and the runs of words that the notes of the last four feeds outside the library repeat, for their picks | the views, `library.picks` | the views | Until its arguments change, or four others are made after it |
+| `ui.memo` slots | The last result of a view that takes a while, e.g. the queue, the last four of a show's or an episode's page, and the runs of words that the notes of the last four feeds outside the library repeat, for their picks | the views, `library.picks` | the views | Until its arguments change, or four others are made after it |
+| `library.picks.finding/pending` | The key that each place's picks are being found for, so that a change of the state meanwhile doesn't find them twice | `library.picks.finding` | `library.picks.finding` | Until they're found |
 | `ui.memo/remember-each` maps | What each row derives from a string: the server's thumbnails of artwork by URL, and an episode's slug by its title and short hash by its guid | `ui.artwork`, `ui.routes` | the views, `ui.rows` | The tab, but each forgets the first of its strings past 2,000 |
 | `ui.text/formatters` | The Intl formatters of dates, durations, lists, sizes and language names, by kind, language and options | `ui.text` | `ui.text`, `ui.time` | The tab |
 | Telemere's handlers and minimum level | Its console handler, and the minimum level, which is `:warn` in a release build | `runtime.log/start!` | Telemere | The tab, or the worker |

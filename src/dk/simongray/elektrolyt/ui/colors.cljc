@@ -72,9 +72,9 @@
   (when library
     (case (get-in state [:route :name])
       :route/home    (concat (:episodes (queue/view library))
-                             (:episodes (picks/home state)))
+                             (:episodes (:picks (picks/kept state [:home]))))
       :route/queue   (concat (:episodes (queue/view library))
-                             (:episodes (picks/after-queue state)))
+                             (:episodes (:picks (picks/kept state [:queue]))))
       :route/inbox   (inbox/episodes state)
       :route/library (concat (inbox/episodes state) (shows/all-shows library))
       nil)))

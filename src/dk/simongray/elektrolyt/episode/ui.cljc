@@ -326,5 +326,6 @@
          (when (:transcript view)
            (transcript state page files))]
         aside
-        (picks-ui/folded state picks-section [:episode id] #(picks/like-episode state page)))))
+        (let [place [:episode id (:guid page)]]
+          (picks-ui/folded state picks-section place #(picks/fresh state place))))))
     (list heading (missing state))))

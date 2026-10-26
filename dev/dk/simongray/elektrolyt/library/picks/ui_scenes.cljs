@@ -5,6 +5,8 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
+            [dk.simongray.elektrolyt.episode.ui :as episode-ui]
+            [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
 
@@ -99,33 +101,40 @@
 (defscene home
   "The start of the queue, what plays marked, beside the picks like what
   the listener heard last on a wide screen, and About."
+  (ui/page (picks/filled listener)))
+
+(defscene home-while-its-picks-are-found
+  "The start of the queue beside the heading of the picks, in the frame
+  before they're found."
   (ui/page listener))
 
 (defscene home-for-a-new-listener
   "About first, for a listener with no shows yet."
-  (ui/page {:route {:name :route/home} :library (library/make "scenes")}))
+  (ui/page (picks/filled {:route {:name :route/home} :library (library/make "scenes")})))
 
 (defscene after-the-queue
   "The picks at the end of the queue, like what's in it, of its shows too."
-  (ui/page (assoc listener :route {:name :route/queue})))
+  (ui/page (picks/filled (assoc listener :route {:name :route/queue}))))
 
 (defscene under-an-episode
   "The picks like an episode, after its Details, once the listener opened
   them."
-  (let [[k item-guid :as episode-id] (id :podnews 0)]
-    (ui/page (assoc listener
-                    :route {:name        :route/episode
-                            :path-params {:guid k :hash (guid/short-hash item-guid)}}
-                    :open  {[:picks :episode episode-id] true}))))
+  (let [[k item-guid :as episode-id] (id :podnews 0)
+        state (assoc listener
+                     :route {:name        :route/episode
+                             :path-params {:guid k :hash (guid/short-hash item-guid)}}
+                     :open  {[:picks :episode episode-id k] true})]
+    (ui/page (picks/filled state (episode-ui/route-page state)))))
 
 (defscene under-a-show
   "The shows that a show recommends in its podroll, and the episodes of
   other shows like it, once the listener opened them."
   (let [k (keys-by-title "Podnews Weekly Review")]
-    (ui/page (assoc listener
-                    :route  {:name :route/show :path-params {:guid k}}
-                    :open   {[:picks :show k] true}
-                    :linked {k {:status  :done
-                                :podroll [{:guid "fountain" :title "Fountain Radio" :artwork (art "#d35400")}
-                                          {:guid "citadel" :title "Citadel Dispatch" :artwork (art "#c0392b")}
-                                          {:guid "boostagram-ball" :title "Boostagram Ball"}]}}))))
+    (ui/page (picks/filled
+              (assoc listener
+                     :route  {:name :route/show :path-params {:guid k}}
+                     :open   {[:picks :show k] true}
+                     :linked {k {:status  :done
+                                 :podroll [{:guid "fountain" :title "Fountain Radio" :artwork (art "#d35400")}
+                                           {:guid "citadel" :title "Citadel Dispatch" :artwork (art "#c0392b")}
+                                           {:guid "boostagram-ball" :title "Boostagram Ball"}]}})))))

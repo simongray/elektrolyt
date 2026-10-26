@@ -179,4 +179,5 @@
    (when-let [episode (queue/current state)]
      (now-playing state episode))
    (up-next state)
-   (picks-ui/section state picks-section (picks/after-queue state))))
+   (when (seq (some-> (:library state) queue/view :episodes))
+     (picks-ui/kept-section state picks-section (picks/kept state [:queue])))))

@@ -52,6 +52,20 @@
      [:h2 {:id id :tabindex -1} heading]
      (picks-list state lead none picks)]))
 
+;; The picks are found after the page paints, so a section shows the last
+;; ones while the next are found, and before the first, its heading over a
+;; line that says they're on the way
+(defn kept-section
+  "The `picks-section` in `state` of the picks `kept` there, as picks/kept
+  gives them, as section shows them, or else its heading over a line that
+  says they're on the way."
+  [state {:keys [id heading] :as picks-section} kept]
+  (if kept
+    (section state picks-section (:picks kept))
+    [:section.picks {:aria-labelledby id :aria-busy "true"}
+     [:h2 {:id id :tabindex -1} heading]
+     [:p.busy "Looking for episodes…"]]))
+
 (defn folded
   "The `section` in `state` of the picks at `place`, e.g. [:show guid],
   folded until the listener opens it, and only then filled by `picks-fn`."
