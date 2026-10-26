@@ -30,8 +30,8 @@ didn't hold.
   themselves, so they rank low, and the items that wait for them follow them
   down.
 - **Status** says which items are done, only measured, deferred, left for
-  later or waiting for your call, and "Where it stands" gives the
-  measurements behind each.
+  later or declined by you, and "Where it stands" gives the measurements
+  and reasons behind each.
 - Paths start below each project's `src/dk/simongray/` folder, e.g.
   `elektrolyt/show.cljc:133` in the app, `podcast/app/library.cljc:2182` in
   podcast-clj and `drop_in_search/indexing.cljc:79` in drop-in-search, and
@@ -313,20 +313,35 @@ Deferred, by what was measured:
 
 Later, with the item they need:
 
-- #74 with #10, #83, #88 and #100 with #8's release on the same origin,
-  #55, #90 and #91 with runs on phones, and #59, which is polish. #98 and
-  #99 aren't started.
+- #74 with #10, #83, #88, #97 and #100 with #8's release on the same
+  origin, #55, #90 and #91 with runs on phones, and #59, which is polish.
+  #98 and #99 aren't started.
 
-Your call:
+Your calls, made on 26 October:
 
-- #70: a cap on the episodes that a feed retains drops those that the
-  listener never touched.
-- #72 or #75: fade the rows that arrive, or each new page, but not both.
-- #77: a snapshot of the last page, against views as pure functions of the
-  state.
-- #89: a page before the whole library is read, against init's choice to
-  open it complete.
-- #97: which of its two ways to version the release's scripts.
+- #70, declined for now: a cap drops episodes that a host no longer serves
+  and the listener never touched, while Apple Podcasts and Pocket Casts keep
+  all they've seen. Neither library measured here is old enough to have
+  kept many, so what a cap would save is unknown.
+- #72 and #75, both declined: either is barely noticeable, and while
+  something fades, its artwork's multiply switches off and snaps back at
+  the end. If motion is wanted there after all, #72 is the one.
+- #77, declined: with #85, the frame shows after 0.3 s and Home after about
+  1.85 s. A snapshot would fill only the page's content in that time, with
+  a copy that ignores taps and can jump when the page replaces it, and it
+  keeps every fact on the page a second time, outside the state.
+- #89, declined: it reads first only the feeds that a page needs, but most
+  of the read is the search index, which the picks on Home, Show and
+  Episode pages need too. The feeds took about 0.3 s of it before the
+  leaning, so a deep link would gain a few hundred milliseconds, for a
+  partly loaded state and the risk that a missed path cuts unloaded feeds
+  to their URLs, whose documents the next save deletes. A big library's
+  start is in the index, for #99 or a change of its format.
+- #97, later, by its second way: keep the names that shadow-cljs gives, and
+  have a release step copy each file to a name hashed by its content and
+  rewrite the importScripts string in worker.js, so that no code ships
+  twice. It waits for #8's release on the same origin, and it goes if #100
+  is built, whose versioned cache does the same.
 
 New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
@@ -526,14 +541,14 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 67 | [Cache the worker's encoded feed as it is, without encoding it again](#67-cache-the-workers-encoded-feed-as-it-is-without-encoding-it-again) | Main thread | 2.5 | 1 | 4 | medium | Done |
 | 68 | [Write only the icons the code uses, if listening stays on the dev build](#68-write-only-the-icons-the-code-uses-if-listening-stays-on-the-dev-build) | Load | 2.5 | 1 | 4 | medium | Done |
 | 69 | [Give the worker the library's options without the page's library namespace](#69-give-the-worker-the-librarys-options-without-the-pages-library-namespace) | Startup | 2.5 | 1 | 4 | medium | Done |
-| 70 | [Cap the episodes a feed retains after its host drops them, with :max-items](#70-cap-the-episodes-a-feed-retains-after-its-host-drops-them-with-max-items) | Load | 2.5 | 1 | 4 | low | Your call |
+| 70 | [Cap the episodes a feed retains after its host drops them, with :max-items](#70-cap-the-episodes-a-feed-retains-after-its-host-drops-them-with-max-items) | Load | 2.5 | 1 | 4 | low | Declined |
 | 71 | [Mark each stage from a Play click to the element's 'playing' event](#71-mark-each-stage-from-a-play-click-to-the-elements-playing-event) | Measurement | 3 | 1 | 4 | high | Done |
-| 72 | [Fade in what arrives after the page: more episodes, results, opened sections](#72-fade-in-what-arrives-after-the-page-more-episodes-results-opened-sections) | Motion | 3 | 1 | 4 | medium | Your call |
+| 72 | [Fade in what arrives after the page: more episodes, results, opened sections](#72-fade-in-what-arrives-after-the-page-more-episodes-results-opened-sections) | Motion | 3 | 1 | 4 | medium | Declined |
 | 73 | [Profile the 0.6 s seed transition, and narrow it if it drops frames](#73-profile-the-06-s-seed-transition-and-narrow-it-if-it-drops-frames) | Motion | 3 | 1 | 4 | low | Measured |
 | 74 | [Keep copies of the palette, bar seed, player height and theme-color](#74-keep-copies-of-the-palette-bar-seed-player-height-and-theme-color) | Startup | 4 | 1 | 4 | medium | Later |
-| 75 | [Fade each new page in, with main keyed by page and the announcer outside it](#75-fade-each-new-page-in-with-main-keyed-by-page-and-the-announcer-outside-it) | Motion | 4 | 1 | 4 | low | Your call |
+| 75 | [Fade each new page in, with main keyed by page and the announcer outside it](#75-fade-each-new-page-in-with-main-keyed-by-page-and-the-announcer-outside-it) | Motion | 4 | 1 | 4 | low | Declined |
 | 76 | [Make list rows Replicant aliases so unchanged rows aren't expanded](#76-make-list-rows-replicant-aliases-so-unchanged-rows-arent-expanded) | Rendering | 10 | 2 | 4 | low | Deferred |
-| 77 | [Show the last session's page from a saved snapshot until the app renders](#77-show-the-last-sessions-page-from-a-saved-snapshot-until-the-app-renders) | Perceived | 12 | 2 | 4 | low | Your call |
+| 77 | [Show the last session's page from a saved snapshot until the app renders](#77-show-the-last-sessions-page-from-a-saved-snapshot-until-the-app-renders) | Perceived | 12 | 2 | 4 | low | Declined |
 | 78 | [Morph the Library's tiles between list and grid, and cross-fade the theme](#78-morph-the-librarys-tiles-between-list-and-grid-and-cross-fade-the-theme) | Motion | 4.5 | 1 | 3 | medium | Done |
 | 79 | [Time renders, library operations and worker codec work with User Timing](#79-time-renders-library-operations-and-worker-codec-work-with-user-timing) | Measurement | 5 | 1 | 3 | high | Done |
 | 80 | [Build an open transcript's and chapter list's Hiccup once, not every render](#80-build-an-open-transcripts-and-chapter-lists-hiccup-once-not-every-render) | Rendering | 3 | 2 | 8 | low | Done |
@@ -545,7 +560,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 86 | [Decode each feed document as its fetch resolves in podcast-clj's read!](#86-decode-each-feed-document-as-its-fetch-resolves-in-podcast-cljs-read) | Startup | 3 | 1 | 4 | low | Deferred |
 | 87 | [Log slow interactions and long frames with PerformanceObserver](#87-log-slow-interactions-and-long-frames-with-performanceobserver) | Measurement | 4 | 1 | 4 | medium | Done |
 | 88 | [Add performance budgets to the end-to-end tests for the key flows](#88-add-performance-budgets-to-the-end-to-end-tests-for-the-key-flows) | Measurement | 9 | 2 | 4 | medium | Later |
-| 89 | [Read the first page's feeds first and load the rest of the library after](#89-read-the-first-pages-feeds-first-and-load-the-rest-of-the-library-after) | Startup | 18 | 2 | 4 | low | Your call |
+| 89 | [Read the first page's feeds first and load the rest of the library after](#89-read-the-first-pages-feeds-first-and-load-the-rest-of-the-library-after) | Startup | 18 | 2 | 4 | low | Declined |
 | 90 | [Measure long-list scrolling on phones in Chrome, Firefox and Safari](#90-measure-long-list-scrolling-on-phones-in-chrome-firefox-and-safari) | Measurement | 4.5 | 1 | 3 | high | Later |
 | 91 | [Print main's grain on a page wrapper instead of a local background](#91-print-mains-grain-on-a-page-wrapper-instead-of-a-local-background) | Rendering | 5 | 3 | 9 | medium | Later |
 | 92 | [Isolate main so each artwork's multiply stays in its scrolling layer](#92-isolate-main-so-each-artworks-multiply-stays-in-its-scrolling-layer) | Rendering | 4 | 2 | 8 | medium | Measured |
@@ -553,7 +568,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 94 | [Keep only the last few outside shows' whole feeds in the store](#94-keep-only-the-last-few-outside-shows-whole-feeds-in-the-store) | Main thread | 5 | 1 | 3 | low | Done |
 | 95 | [Measure each script's compile and evaluate time and coverage before splitting](#95-measure-each-scripts-compile-and-evaluate-time-and-coverage-before-splitting) | Measurement | 5.5 | 1 | 3 | high | Measured |
 | 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low | Deferred |
-| 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Your call |
+| 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Later |
 | 98 | [Warm the next episode's redirect chain with a HEAD request before the end](#98-warm-the-next-episodes-redirect-chain-with-a-head-request-before-the-end) | Network | 6.5 | 1 | 3 | low |  |
 | 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low |  |
 | 100 | [Cache the release build's app shell in a service worker](#100-cache-the-release-builds-app-shell-in-a-service-worker) | Load | 14 | 1 | 2 | medium | Later |
