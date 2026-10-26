@@ -95,6 +95,20 @@ Done, with the commit of each:
   to a show of 4576 episodes took 92 ms, and now nothing.
 - #19 (5467808): a subscription shares the Show page's fetch of the whole
   feed in flight.
+- #20 (podcast-clj deebd62): Apple's artwork comes in WebP at 64 to 512 px
+  too. A result of 64 px at 2x loads 6 kB rather than the JPEG of 80 kB.
+- #21 (51661b7): Charis Bold is preloaded, and the fonts are kept for a year
+  in a folder named for Charis 7.000.
+- #23 (126e30b): a Show or Episode page's artwork shows the small copy that
+  a row or a result loaded until the large one arrives.
+- #24 (4268684): a show opened from a podroll or publisher card shows the
+  card's title and artwork at once.
+- #25 (00d4598): the lock screen's Next and Previous follow a change of the
+  choice of track buttons, in this tab or another.
+- #26 (fba524b): a show's subscription is looked up once until the
+  subscriptions change: 0.006 ms rather than 0.24 a time with 57 of them.
+- #27 (0302830): a result's or a card's artwork, and a focus that rests on a
+  title, fetch the start of a show's feed ahead, as a hover on a title did.
 
 Two costs that the ranking lacked, both fixed:
 
@@ -113,6 +127,8 @@ Deferred, by what was measured:
 - #18: during a refresh of the 53 shows, the page's own request through the
   proxy took 188–558 ms, against 192–380 ms when nothing else ran. A cap of 3
   feeds in flight would slow every refresh by about a third.
+- #22: after Play next, the frame came 14–15 ms after the click, with no long
+  task, so the save doesn't hold up a click's frame.
 - #10, for later: after #85, the page is blank only while its scripts run,
   0.3 s in dev. It's worth doing if a phone shows that gap.
 - The rest of #8: a release now opens Home only about 0.35 s sooner.
@@ -149,14 +165,14 @@ checkout too.
 | 17 | [Keep the last few pages' views in ui.memo, not only the last](#17-keep-the-last-few-pages-views-in-uimemo-not-only-the-last) | Rendering | 2 | 2 | 8 | low | Done |
 | 18 | [Cap a refresh's feeds in flight below the proxy's four slots](#18-cap-a-refreshs-feeds-in-flight-below-the-proxys-four-slots) | Network | 2.5 | 2 | 8 | medium | Deferred |
 | 19 | [Let a subscription share the Show page's whole-feed fetch in flight](#19-let-a-subscription-share-the-show-pages-whole-feed-fetch-in-flight) | Network | 2.5 | 2 | 8 | medium | Done |
-| 20 | [Offer Apple's artwork at 64–512 px in WebP in the srcset](#20-offer-apples-artwork-at-64512-px-in-webp-in-the-srcset) | Network | 2.5 | 2 | 8 | medium |  |
-| 21 | [Preload Charis Bold and cache the fonts under a versioned path](#21-preload-charis-bold-and-cache-the-fonts-under-a-versioned-path) | Load | 2.5 | 2 | 8 | medium |  |
-| 22 | [Encode and write the library after the next paint, not in the click's frame](#22-encode-and-write-the-library-after-the-next-paint-not-in-the-clicks-frame) | Main thread | 2.5 | 2 | 8 | low |  |
-| 23 | [Show the row's small artwork under a Show or Episode page's large one while it loads](#23-show-the-rows-small-artwork-under-a-show-or-episode-pages-large-one-while-it-loads) | Perceived | 2.5 | 2 | 8 | low |  |
-| 24 | [Open a linked show's page at once from the card that linked to it](#24-open-a-linked-shows-page-at-once-from-the-card-that-linked-to-it) | Perceived | 3 | 2 | 8 | high |  |
-| 25 | [Update the lock screen's buttons when the listener's track-buttons choice changes](#25-update-the-lock-screens-buttons-when-the-listeners-track-buttons-choice-changes) | Perceived | 3 | 2 | 8 | high |  |
-| 26 | [Memoize the subscription lookups that every Show and Episode render repeats](#26-memoize-the-subscription-lookups-that-every-show-and-episode-render-repeats) | Rendering | 3 | 2 | 8 | medium |  |
-| 27 | [Prefetch a show's feed start from its artwork and card links, and on focus](#27-prefetch-a-shows-feed-start-from-its-artwork-and-card-links-and-on-focus) | Network | 3 | 2 | 8 | medium |  |
+| 20 | [Offer Apple's artwork at 64–512 px in WebP in the srcset](#20-offer-apples-artwork-at-64512-px-in-webp-in-the-srcset) | Network | 2.5 | 2 | 8 | medium | Done |
+| 21 | [Preload Charis Bold and cache the fonts under a versioned path](#21-preload-charis-bold-and-cache-the-fonts-under-a-versioned-path) | Load | 2.5 | 2 | 8 | medium | Done |
+| 22 | [Encode and write the library after the next paint, not in the click's frame](#22-encode-and-write-the-library-after-the-next-paint-not-in-the-clicks-frame) | Main thread | 2.5 | 2 | 8 | low | Deferred |
+| 23 | [Show the row's small artwork under a Show or Episode page's large one while it loads](#23-show-the-rows-small-artwork-under-a-show-or-episode-pages-large-one-while-it-loads) | Perceived | 2.5 | 2 | 8 | low | Done |
+| 24 | [Open a linked show's page at once from the card that linked to it](#24-open-a-linked-shows-page-at-once-from-the-card-that-linked-to-it) | Perceived | 3 | 2 | 8 | high | Done |
+| 25 | [Update the lock screen's buttons when the listener's track-buttons choice changes](#25-update-the-lock-screens-buttons-when-the-listeners-track-buttons-choice-changes) | Perceived | 3 | 2 | 8 | high | Done |
+| 26 | [Memoize the subscription lookups that every Show and Episode render repeats](#26-memoize-the-subscription-lookups-that-every-show-and-episode-render-repeats) | Rendering | 3 | 2 | 8 | medium | Done |
+| 27 | [Prefetch a show's feed start from its artwork and card links, and on focus](#27-prefetch-a-shows-feed-start-from-its-artwork-and-card-links-and-on-focus) | Network | 3 | 2 | 8 | medium | Done |
 | 28 | [Keep drpodcast.nu's slugs.json and DR's feed checks between searches](#28-keep-drpodcastnus-slugsjson-and-drs-feed-checks-between-searches) | Network | 3 | 2 | 8 | medium |  |
 | 29 | [Give the lock screen the server's artwork thumbnails, not the original](#29-give-the-lock-screen-the-servers-artwork-thumbnails-not-the-original) | Network | 3 | 2 | 8 | medium |  |
 | 30 | [Cache what rows derive from URLs and ids: thumbnails, srcsets, hashes, slugs](#30-cache-what-rows-derive-from-urls-and-ids-thumbnails-srcsets-hashes-slugs) | Rendering | 3 | 2 | 8 | low |  |
