@@ -178,7 +178,8 @@ Done, with the commit of each:
   the app reads. The feeds encode to 90 million characters rather than 140,
   and decode in 262 ms rather than 380. Only a feed that changes is written
   leaned, though: one whose server answers 304 keeps its stored copy, so 29
-  of the 54 feeds in your library still hold the notes twice (below).
+  of the 54 feeds in the in-app browser's stand-in library still hold the
+  notes twice (below).
 - #48, its first stage (bfa1c93): an episode's other files are read once
   it plays steadily rather than in the Play click, and a restored episode's
   at idle.
@@ -341,8 +342,9 @@ would cut.
 
 Found, and waiting for your call: the heap after the start holds the notes
 of many episodes twice, as `:content/encoded` and `:rss/description`, since
-#46's leaning reaches only the feeds that change. In your library that's
-12,984 of 27,833 episodes, in 29 of 54 feeds, and 13.9 million characters.
+#46's leaning reaches only the feeds that change. In the in-app browser's
+stand-in library that's 12,984 of 27,833 episodes, in 29 of 54 feeds, and
+13.9 million characters.
 Leaning each feed as podcast-clj reads it would drop them, and rewrite
 those feeds' documents once.
 
