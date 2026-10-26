@@ -206,6 +206,11 @@
     (when (< (inc episode/kept-count) (count (:episodes @store)))
       (swap! store update :episodes episode/kept (get-in @store [:player :id]) episode/kept-count))))
 
+;; A swap that forgets nothing gives the same state, which renders nothing
+(nxr/register-effect! :feeds/forget
+  (fn [_ store]
+    (swap! store show/forgotten)))
+
 ;; The player
 
 ;; Dispatched as the player's element mounts, so the store changes after

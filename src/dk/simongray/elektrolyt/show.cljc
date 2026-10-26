@@ -419,6 +419,44 @@
     [[:store/assoc-in [:episodes-shown guid] shown]
      [:store/assoc :announcement (str "Showing " shown " of " total " episodes")]]))
 
+;; Ten outside shows held about 110 MB of the tab's heap until the cache
+;; was cleared, while the cache keeps the last 20 for a quick reopen
+(def kept-feeds
+  "How many whole feeds of shows outside the library the state keeps
+  besides those that the page and the requests need, those fetched last."
+  5)
+
+(defn forgotten
+  "The `state` without the feeds of shows outside the library that it no
+  longer needs, or the same `state` when it needs them all.
+
+  It keeps the page's own feed, those that a request in flight or a
+  subscription or unsubscription under way needs, and the kept-feeds
+  whole feeds fetched last. A kept feed that waits as :newer takes the
+  place of the one it updates, unless it's the page's own."
+  [{:keys [feeds requests subscribing unsubscribing route] :as state}]
+  (let [page    (some->> (get-in route [:path-params :guid]) (source state) :url)
+        needed  (-> #{page}
+                    (into (map second) (keys requests))
+                    (into subscribing)
+                    (into unsubscribing))
+        fetched #(or (some-> % val :fetched-at inst-ms) 0)
+        kept    (->> feeds
+                     (remove (comp needed key))
+                     (filter (comp :whole? val))
+                     (sort-by fetched >)
+                     (take kept-feeds)
+                     (map key)
+                     (into needed))]
+    (if (every? kept (keys feeds))
+      state
+      (reduce (fn [state [url {:keys [newer]}]]
+                (cond-> state
+                  (and newer (not= url page))
+                  (whole url (:fetched newer) (:fetched-at newer) true)))
+              (assoc state :feeds (select-keys feeds kept))
+              (select-keys feeds kept)))))
+
 (defn whole-feed
   "The whole feed at `url` in `state`, as a fetch returns it with its
   validators, where it moved to and its hubs, or nil. A :newer feed that

@@ -183,11 +183,13 @@
                               (not (same-page? route (:route state))))
          restore?        (and new-page? (some? scroll))]
      (cond-> [[:store/assoc :route route]]
-       ;; forget the reads of episodes' files only on a new page, since an
-       ;; Episode page reads its own again as it mounts
+       ;; forget the reads of episodes' files and the feeds of other shows
+       ;; only on a new page, since an Episode page reads its own again as
+       ;; it mounts
        new-page?
        (conj (if restore? [:page/restore-scroll scroll] [:page/focus-heading])
-             [:episodes/forget])
+             [:episodes/forget]
+             [:feeds/forget])
 
        (and (= :route/search (:name route))
             (not (str/blank? q))

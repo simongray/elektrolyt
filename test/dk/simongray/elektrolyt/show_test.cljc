@@ -300,3 +300,34 @@
   (is (= [[:store/assoc-in [:episodes-shown "g"] 45]
           [:store/assoc :announcement "Showing 45 of 45 episodes"]]
          (show/more-shown {:episodes-shown {"g" 40}} "g" 45))))
+
+(deftest feeds-that-the-state-no-longer-needs
+  (let [feed-url #(str "https://example.org/" % ".xml")
+        fetched  [#inst "2026-10-01" #inst "2026-10-02" #inst "2026-10-03" #inst "2026-10-04"
+                  #inst "2026-10-05" #inst "2026-10-06" #inst "2026-10-07" #inst "2026-10-08"]
+        state    {:feeds (into {} (map-indexed (fn [i at]
+                                                 [(feed-url i) {:feed       (feed (str i))
+                                                                :whole?     true
+                                                                :fetched-at at}])
+                                               fetched))}
+        kept     #(set (keys (:feeds %)))]
+    (is (= (set (map feed-url [3 4 5 6 7])) (kept (show/forgotten state)))
+        "the five fetched last")
+    (is (= (set (map feed-url [0 1 3 4 5 6 7]))
+           (kept (show/forgotten (-> state
+                                     (assoc :route {:name         :route/show
+                                                    :path-params  {:guid "g"}
+                                                    :query-params {:url (feed-url 0)}})
+                                     (show/requested [:check (feed-url 1)])))))
+        "and the page's own, and one with a request in flight")
+    (is (= (set (map feed-url [2 3 4 5 6 7]))
+           (kept (show/forgotten (assoc state :subscribing #{(feed-url 2)}))))
+        "or a subscription under way")
+    (let [few (assoc state :feeds (select-keys (:feeds state) (map feed-url [3 4])))]
+      (is (identical? few (show/forgotten few))
+          "and the same state when it needs them all, which renders nothing"))
+    (let [newer  {:fetched {:feed (feed "7" "New")} :fetched-at #inst "2026-10-09" :count 1}
+          folded (show/forgotten (assoc-in state [:feeds (feed-url 7) :newer] newer))]
+      (is (= (feed "7" "New") (get-in folded [:feeds (feed-url 7) :feed]))
+          "with new episodes that wait in place of the old ones, off the page")
+      (is (nil? (get-in folded [:feeds (feed-url 7) :newer]))))))
