@@ -4,6 +4,7 @@
   scroll."
   (:require [dk.simongray.colour-coded :as cc]
             [dk.simongray.elektrolyt.library.settings :as settings]
+            [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.ui :as ui]
             [dk.simongray.elektrolyt.ui.routes :as routes]
@@ -66,6 +67,25 @@
       (when (not= c (.-content meta))
         (set! (.-content meta) c)))))
 
+(defonce ^{:doc "Whether a reading of the theme colour waits for the next
+  paint."}
+  theme-waits
+  (atom false))
+
+;; Reading a computed colour right after a render makes the browser work
+;; out the page's styles there and then, which the next render of the
+;; same task, e.g. of a Play click, undoes
+;; https://gist.github.com/paulirish/5d52fb081b3570c81e3a
+(defn theme-colored-soon!
+  "Set the page's theme-color once the page has painted, once for every
+  render before then."
+  []
+  (when (compare-and-set! theme-waits false true)
+    (.then (runtime/painted!)
+           (fn [_]
+             (reset! theme-waits false)
+             (theme-colored!)))))
+
 ;; HTML, the icon link type: the page's icon in the browser's tab, or else
 ;; the browser's own
 ;; https://html.spec.whatwg.org/multipage/links.html#rel-icon
@@ -98,10 +118,21 @@
                              (not (.-isConnected focused))
                              (some-> focused .-dataset .-refocus))]
       (some-> (js/document.querySelector selector) .focus)))
-  (set! js/document.title (ui/document-title state))
+  (let [title (ui/document-title state)]
+    (when (not= title js/document.title)
+      (set! js/document.title title)))
   (favicon! (ui/favicon state))
   (themed! state)
-  (theme-colored!))
+  (theme-colored-soon!))
+
+;; ClojureScript's atoms tell their watches of a swap that changes nothing
+;; too, e.g. the player's answer to a Play, which it keeps only when it's a
+;; refusal
+(defn rendered!
+  "Render the page for the `new` state, unless it's the `old` one."
+  [old new]
+  (when-not (identical? old new)
+    (render! new)))
 
 (defn canonicalize!
   "Replace the URL in the address bar with the canonical path of the page

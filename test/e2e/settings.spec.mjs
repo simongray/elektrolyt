@@ -90,10 +90,13 @@ test("the colours are the device's, or light or dark as the listener chooses, in
   const colours = page.getByRole('main').getByLabel('Light or dark');
   await expect(colours).toHaveValue('auto');
   expect(await scheme(page)).toBe('light dark');
+  const themeColor = () => page.locator('meta[name=theme-color]').getAttribute('content');
+  const light = await themeColor();
 
   await colours.selectOption('Dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await scheme(page), 'dark on a light device').toBe('dark');
+  await expect.poll(themeColor, "with the browser's bars in the dark paper's colour").not.toBe(light);
 
   // dark from the first paint, before the app has restored the library
   await page.reload({ waitUntil: 'domcontentloaded' });

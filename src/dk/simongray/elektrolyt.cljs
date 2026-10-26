@@ -490,7 +490,7 @@
       (.finally #(audio/restored! store))
       (.then #(artwork-colors/kept-colors! store) #(artwork-colors/kept-colors! store))
       (.finally (fn []
-                  (runtime/watch! store ::render (fn [_ state] (document/render! state)))
+                  (runtime/watch! store ::render document/rendered!)
                   (runtime/watch! store ::colors (fn [_ state] (artwork-colors/colored! store state)))
                   (runtime/watch! store ::picks (fn [_ state] (picks-finding/found! store state)))
                   (runtime/watch! store ::lock-screen (audio/lock-screen-watch store))
