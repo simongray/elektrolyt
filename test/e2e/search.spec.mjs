@@ -135,3 +135,33 @@ test('the directories of a search are the ones turned on in Settings, in their o
   await main.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(main.getByRole('heading', { level: 2 })).toHaveText(['fyyd', 'drpodcast.nu']);
 });
+
+test("a result's feed is fetched ahead once a pointer rests on its artwork, or the focus on its title", async ({ page, context }) => {
+  await directories(context, 0);
+  // results with artwork, a pixel in a data URL that needs no fetch
+  const pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  const asked = [];
+  await context.route(url => url.pathname === '/proxy', route => {
+    const url = new URL(new URL(route.request().url()).searchParams.get('url'));
+    if (url.host === 'itunes.apple.com') {
+      const answer = apple(['Delta Green Stories', 'Agents of the Program']);
+      return route.fulfill({ json: { results: answer.results.map(r => ({ ...r, artworkUrl600: pixel })) } });
+    }
+    if (url.host === 'apple.example') {
+      asked.push(url.href);
+      return route.fulfill({ status: 404 });
+    }
+    return route.fallback();
+  });
+  const main = page.getByRole('main');
+  await page.goto('/search?q=delta+green');
+  const first = main.locator('article', { has: page.getByRole('heading', { name: 'Delta Green Stories' }) });
+  await expect(first).toBeVisible();
+
+  await first.locator('.artwork-link').hover();
+  await expect.poll(() => asked).toContain('https://apple.example/0.xml');
+
+  const second = main.getByRole('link', { name: 'Agents of the Program' });
+  await second.focus();
+  await expect.poll(() => asked).toContain('https://apple.example/1.xml');
+});

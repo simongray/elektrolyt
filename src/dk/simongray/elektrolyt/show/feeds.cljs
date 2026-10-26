@@ -268,10 +268,11 @@
         (open-show! store guid url preview?)))))
 
 (defn prefetch-soon!
-  "Fetch the start of the feed of the show `guid` at `url` into `store`
-  shortly, unless the prefetch is cancelled first."
-  [store guid url]
-  (runtime/later! ::prefetch 65 #(load-show! store guid url true)))
+  "Fetch the start of the feed of the show `guid` at `url` into `store` in
+  `ms` milliseconds, or 65 without them, unless the prefetch is cancelled
+  first."
+  [store guid url ms]
+  (runtime/later! ::prefetch (or ms 65) #(load-show! store guid url true)))
 
 (defn prefetch-cancel!
   "Cancel a prefetch that hasn't started yet."

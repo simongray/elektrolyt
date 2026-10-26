@@ -271,7 +271,8 @@
          [:li {:replicant/key show-guid}
           [:article.linked-show
            (or (artwork/linked href label (artwork/img card 96 (merge {:loading "lazy"}
-                                                                      (colors/placeholder state card))))
+                                                                      (colors/placeholder state card)))
+                               (when url {:on (show/prefetching show-guid url)}))
                [:div.no-artwork])
            [:h3 (cond->> [:a (cond-> {:href href}
                                url (assoc :on (show/prefetching show-guid url)))

@@ -129,7 +129,8 @@
   (let [title (or title url)]
     [:article
      (artwork/linked (routes/show-href guid title url) title
-                     (artwork/img result 64 (merge {:loading "lazy"} (colors/placeholder state result))))
+                     (artwork/img result 64 (merge {:loading "lazy"} (colors/placeholder state result)))
+                     {:on (show/prefetching guid url)})
      [level (cond->> (show-link (assoc result :title title))
               (= :subscribed (subscription/status state subscribed url guid))
               (subscription/marked))]

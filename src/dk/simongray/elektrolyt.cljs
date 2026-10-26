@@ -169,8 +169,8 @@
     (feeds/load-show! store guid url false)))
 
 (nxr/register-effect! :show/prefetch-soon
-  (fn [_ store guid url]
-    (feeds/prefetch-soon! store guid url)))
+  (fn [_ store guid url & [ms]]
+    (feeds/prefetch-soon! store guid url ms)))
 
 (nxr/register-effect! :show/prefetch-cancel
   (fn [_ _]

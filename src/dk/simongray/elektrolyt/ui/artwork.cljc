@@ -113,7 +113,10 @@
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H2
 (defn linked
   "The artwork `img` as a link to `href`, with the `title` beside it as its
-  tooltip, or nil without an img."
-  [href title img]
-  (when img
-    [:a.artwork-link {:href href :title title :tabindex -1 :aria-hidden "true"} img]))
+  tooltip and the `attrs` merged in, or nil without an img."
+  ([href title img]
+   (linked href title img nil))
+  ([href title img attrs]
+   (when img
+     [:a.artwork-link (merge {:href href :title title :tabindex -1 :aria-hidden "true"} attrs)
+      img])))

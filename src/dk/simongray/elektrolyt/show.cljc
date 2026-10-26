@@ -239,15 +239,23 @@
 
 ;; instant.page: a pointer that rests on a link for 65 ms clicks it about
 ;; half the time, and leaves some 300 ms to fetch what the page needs. Only
-;; the start of the feed is fetched, which parses in a moment.
+;; the start of the feed is fetched, which parses in a moment. A keyboard
+;; stops briefly at each link that it tabs past, so a focus waits longer.
 ;; https://instant.page/
+(def focus-prefetch-ms
+  "How long the focus rests on a link to a show before the start of its
+  feed is fetched."
+  300)
+
 (defn prefetching
   "The actions of a link to the page of the show `guid` at `url`, which
-  fetch the start of its feed when a pointer rests on the link or presses
-  it."
+  fetch the start of its feed when a pointer or the focus rests on the
+  link, or a pointer presses it."
   [guid url]
   {:mouseenter  [[:show/prefetch-soon guid url]]
    :mouseleave  [[:show/prefetch-cancel]]
+   :focus       [[:show/prefetch-soon guid url focus-prefetch-ms]]
+   :blur        [[:show/prefetch-cancel]]
    :pointerdown [[:show/load guid url true]]})
 
 (defn with-sized-artwork
