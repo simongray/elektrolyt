@@ -446,6 +446,17 @@ button[aria-disabled="true"]:is(:hover, :focus-visible, :active) {
   box-shadow: none;
 }
 
+/* Pause, while the episode has waited half a second or more for data,
+   which Media Chrome's loading indicator waits too: a ring in the
+   button's own colour, as heavy as Phosphor Light's lines. It turns where
+   motion is allowed (below), and is dashed where it stands still, so that
+   it doesn't read as a focus ring.
+   https://www.media-chrome.org/docs/en/components/media-loading-indicator */
+.player-play[data-waiting]::after,
+.with-icon[data-waiting]::before {
+  border: 1.5px dashed currentColor;
+}
+
 /* the type of a show's title and byline, as the rules of the heading and
    its byline give it, which the show's bookmark spans (layout.css) */
 .with-bookmark {
@@ -1014,6 +1025,12 @@ search p {
     border-color: Highlight;
     background: radial-gradient(circle at calc(100% - 0.62rem) 50%, HighlightText 0.42rem, transparent 0.47rem) Highlight;
   }
+
+  /* the ring of a wait for data keeps the gap that shows it turn */
+  .player-play[data-waiting]::after,
+  .with-icon[data-waiting]::before {
+    forced-color-adjust: none;
+  }
 }
 
 /* Motion only where the listener allows it: the colours turn from one
@@ -1040,5 +1057,20 @@ search p {
 
   ::file-selector-button:active {
     transition-duration: 0s;
+  }
+
+  /* WCAG 2.2.2 lets a sign of loading move for longer than 5 seconds
+     https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html */
+  .player-play[data-waiting]::after,
+  .with-icon[data-waiting]::before {
+    border-style: solid;
+    border-top-color: transparent;
+    animation: turn 1s linear infinite;
+  }
+}
+
+@keyframes turn {
+  to {
+    rotate: 1turn;
   }
 }

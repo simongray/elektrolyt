@@ -91,6 +91,17 @@
     (ui/page (episode-page from-the-start
                            {:player (assoc (episode/playable page) :playing? true)}))))
 
+(defscene while-it-waits-for-data
+  "Pause once the episode has waited half a second for data, with a ring
+  in its icon's place, as around the player's Pause."
+  (let [page (episode-ui/route-page (episode-page from-the-start))]
+    (ui/page (episode-page from-the-start
+                           {:player (assoc (episode/playable page)
+                                           :media      {:status :buffering :paused false
+                                                        :current-time 0 :duration 5994}
+                                           :volume     1
+                                           :buffering? true)}))))
+
 (def with-details
   "The episode with what it says of itself: its number, its people with a
   guest among them, the place that it's about, where else to watch it, and

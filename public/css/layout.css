@@ -87,6 +87,21 @@ button.disclosure {
   height: 1.25em;
 }
 
+/* While the episode waits for data, a ring in the icon's place (look.css),
+   as wide as Phosphor's circles */
+.with-icon[data-waiting] > .icon {
+  display: none;
+}
+
+.with-icon[data-waiting]::before {
+  content: "";
+  flex: none;
+  width: 1em;
+  height: 1em;
+  margin: 0.125em;
+  border-radius: 50%;
+}
+
 .icon-button {
   min-width: var(--icon-alone-target);
   min-height: var(--icon-alone-target);
@@ -960,6 +975,23 @@ main h1,
 
 .player-play {
   grid-area: play;
+}
+
+/* While the episode waits for data, a ring around Pause (look.css), over
+   the button and taking none of its clicks */
+.player-play[data-waiting] {
+  position: relative;
+}
+
+.player-play[data-waiting]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: calc(var(--player-icon) + 6px);
+  height: calc(var(--player-icon) + 6px);
+  margin: auto;
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .player-forward {

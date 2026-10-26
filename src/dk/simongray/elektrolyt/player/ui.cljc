@@ -48,10 +48,14 @@
 ;; https://en.wikipedia.org/wiki/Media_control_symbols
 (defn play-button
   "The button that plays the episode that the `player` shows, or pauses
-  it, wherever it plays."
+  it, wherever it plays. While it waits for data, Pause is marked
+  data-waiting, which draws a ring around it (look.css)."
   [player]
   (if (player/playing player (player/shown-id player))
-    [controls-ui/icon-button {:icon icons/pause :class "player-play" :on {:click [[:player/pause]]}}
+    [controls-ui/icon-button {:icon         icons/pause
+                              :class        "player-play"
+                              :data-waiting (player/waiting? player (player/shown-id player))
+                              :on           {:click [[:player/pause]]}}
      "Pause"]
     [controls-ui/icon-button {:icon icons/play :class "player-play" :on {:click [[:player/resume]]}}
      "Play"]))

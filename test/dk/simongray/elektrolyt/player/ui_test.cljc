@@ -26,7 +26,12 @@
   (is (= [[controls/icon-button icons/play "Play"] [controls/icon-button icons/pause "Pause"]]
          (map (comp (juxt first (comp :icon second) last) player-ui/play-button)
               [{:id [:feed "ep"] :media {:paused true}} {:id [:feed "ep"] :media {:paused false}}]))
-      "Play and Pause, as their icons alone, named by their words"))
+      "Play and Pause, as their icons alone, named by their words")
+  (is (= [false true]
+         (map (comp :data-waiting second player-ui/play-button)
+              [{:id [:feed "ep"] :media {:paused false}}
+               {:id [:feed "ep"] :media {:paused false} :buffering? true}]))
+      "marked while the episode waits for data"))
 
 (deftest nothing-playing
   (is (nil? (player-ui/region {:library (library/make "test")}))

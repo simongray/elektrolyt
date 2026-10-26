@@ -78,6 +78,8 @@
     (is (= [[:player/pause]] (get-in (button (playing (:id page) true) nil nil) [1 :on :click]))
         "and Pause while it plays, with no aria-pressed")
     (is (= ["Pause" icons/pause] ((juxt text-of (comp :icon second)) (button (playing (:id page) true) nil nil))))
+    (is (:data-waiting (second (button (assoc (playing (:id page) true) :buffering? true) nil nil)))
+        "marked while it waits for data")
     (is (= "Play" (text-of (button (playing ["other" "x"] true) nil nil))) "while another one plays")
     (let [there {:id        ["other" "x"]
                  :media     {:paused true}

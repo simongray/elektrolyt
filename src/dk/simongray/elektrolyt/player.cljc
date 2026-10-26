@@ -153,6 +153,12 @@
       (and (= id (:id player)) (false? (:paused media)) (not (:error media)))
       :here)))
 
+(defn waiting?
+  "Whether the `player` plays the episode `id` in this tab and has waited
+  half a second or more for its data."
+  [{:keys [buffering?] :as player} id]
+  (boolean (and buffering? (= :here (playing player id)))))
+
 (def shown-keys
   "The keys of an element's media state that the page reads: the told-keys,
   and whether it seeks or failed."

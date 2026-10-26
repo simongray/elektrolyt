@@ -86,3 +86,23 @@ test('a mouse resting on the speaker shows the volume, and a click mutes', async
   await page.mouse.move(0, 0);
   await expect(slider).toBeHidden();
 });
+
+test('Pause shows that the episode waits for its file, until it plays', async ({ page }) => {
+  // the file comes 2 s late, as on a slow network or behind redirects
+  await page.route('https://media.example/**', async route => {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    await route.fallback();
+  });
+  await page.goto(episodePath(episodes[0]));
+  const main = page.getByRole('main');
+  const player = page.getByRole('region', { name: 'Player' });
+
+  await main.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(main.getByRole('button', { name: 'Pause' })).toHaveAttribute('data-waiting', 'true');
+  await expect(player.getByRole('button', { name: 'Pause' })).toHaveAttribute('data-waiting', 'true');
+  await expect(player.getByRole('status')).toHaveText('Loading…');
+
+  await playsPast(page, 1);
+  await expect(main.getByRole('button', { name: 'Pause' })).not.toHaveAttribute('data-waiting');
+  await expect(player.getByRole('button', { name: 'Pause' })).not.toHaveAttribute('data-waiting');
+});

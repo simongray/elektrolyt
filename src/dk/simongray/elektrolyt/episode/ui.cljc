@@ -84,10 +84,15 @@
 (defn play-button
   "The button that plays the episode `page` from `t` seconds or from where
   its `entry` in the profile left it, or pauses it while the `player`
-  plays it, in this tab or another."
+  plays it, in this tab or another. While it waits for data, Pause is
+  marked data-waiting, like the player's."
   [page player entry t]
   (if (player/playing player (:id page))
-    [controls-ui/button {:icon icons/pause :class "primary" :on {:click [[:player/pause]]}} "Pause"]
+    [controls-ui/button {:icon         icons/pause
+                         :class        "primary"
+                         :data-waiting (player/waiting? player (:id page))
+                         :on           {:click [[:player/pause]]}}
+     "Pause"]
     [controls-ui/button {:icon  icons/play
                          :class "primary"
                          :on    {:click [[:player/play (episode/playable page) t]]}}
