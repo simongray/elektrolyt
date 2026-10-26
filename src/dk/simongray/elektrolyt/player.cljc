@@ -318,6 +318,34 @@
   (when (and (time/finite? duration) (number? current-time))
     (max 0 (- duration current-time))))
 
+;; Apache closes an idle connection after 5 s by default and nginx after
+;; 75 s, so the next episode's connections are opened shortly before the
+;; end, though one of a host's tracking prefixes may close its own sooner
+;; https://httpd.apache.org/docs/2.4/mod/core.html#keepalivetimeout
+;; https://nginx.org/en/docs/http/ngx_http_core_module.html#keepalive_timeout
+(def warm-seconds
+  "How many seconds before the end of an episode, or the start of its
+  outro, the player opens the connections to the next episode's file."
+  10)
+
+(defn warm?
+  "Whether the player opens the connections to the next episode's file at
+  the `media` state: while it plays within warm-seconds of the end, or of
+  the start of the `outro` in seconds, if any."
+  [{:keys [paused current-time] :as media} outro]
+  (let [end  (remaining media)
+        left (if (and end (number? outro) (number? current-time))
+               (min end (- outro current-time))
+               end)]
+    (boolean (and (false? paused) left (< left warm-seconds)))))
+
+(defn warm-url
+  "The URL of the file that the `playback` loads, when it's on the web
+  rather than on the device, or nil."
+  [{:keys [src local?]}]
+  (when (and (not local?) (url/web-url? src))
+    src))
+
 ;; W3C Remote Playback API: while the media plays elsewhere, the player
 ;; shows where
 ;; https://www.w3.org/TR/remote-playback/

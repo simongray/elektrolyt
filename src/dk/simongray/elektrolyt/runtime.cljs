@@ -326,3 +326,27 @@
   [metadata actions]
   (session/metadata! metadata)
   (session/actions! actions))
+
+;; An audio element fetches its file in no-cors mode with credentials, and
+;; Chromium keeps the connections of requests with and without them apart,
+;; so the HEAD goes the same way: Fetch lets a HEAD cross origins in
+;; no-cors mode, and it follows the redirects as the element does. The
+;; IAB's guidelines count no HEAD as a download, since it transfers no data
+;; (PTMG v2.3, 5.5.2), and the URL is the enclosure's as published, as
+;; Flightcast asks of players.
+;; https://fetch.spec.whatwg.org/#cors-safelisted-method
+;; https://chromium.googlesource.com/chromium/src/+/main/net/socket/client_socket_pool.cc
+;; https://github.com/IABTechLab/Podcast-Technical-Measurement/blob/main/PTM-Guidelines_v2.3.md
+;; https://flightcast.com/player-recommendations
+(defn warm-chain!
+  "Send a HEAD request to the `url` of a media file, following its
+  redirects, so that the connections along them are open when the player
+  fetches the file. A failure is ignored."
+  [url]
+  (-> (js/fetch url #js {:method      "HEAD"
+                         :mode        "no-cors"
+                         :credentials "include"
+                         :cache       "no-store"
+                         :priority    "low"})
+      (.catch (constantly nil)))
+  nil)

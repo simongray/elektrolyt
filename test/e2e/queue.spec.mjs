@@ -1,7 +1,7 @@
 // The tests press the buttons of the queue with Enter, as a keyboard user
 // does, since the focus stays in place for them.
 
-import { test, expect, announcement, episodePath, episodes, navLink, showTitle }
+import { test, expect, announcement, episodePath, episodes, navLink, playsPast, showTitle }
   from './fixtures.mjs';
 
 const [first, second] = episodes;
@@ -77,4 +77,36 @@ test('clearing the queue asks first, and moves the focus to Undo', async ({ page
   await expect(upNext(page).getByText('Nothing in the queue.')).toBeVisible();
   await expect(upNext(page).getByRole('button', { name: 'Undo clearing the queue' }))
     .toBeFocused();
+});
+
+test('a HEAD warms the next episode in the queue before the end, and its file plays after it', async ({ page }) => {
+  await queueTwo(page);
+  const next = `https://media.example/${second.guid}.mp3`;
+  const methods = [];
+  page.on('request', request => {
+    if (request.url() === next) methods.push(request.method());
+  });
+
+  await page.goto(episodePath(first));
+  await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
+  await playsPast(page, 1);
+  expect(methods).toEqual([]);
+
+  const audio = page.locator('#player audio');
+  await audio.evaluate(a => { a.currentTime = a.duration - 5; });
+  await expect.poll(() => methods).toEqual(['HEAD']);
+
+  // The fixture's duration is a browser's guess, so the test ends the
+  // episode as a browser does, as picks.spec.mjs explains
+  await audio.evaluate(a => new Promise(resolve => {
+    a.addEventListener('pause', () => {
+      a.dispatchEvent(new Event('ended'));
+      resolve();
+    }, { once: true });
+    a.pause();
+  }));
+  await expect(page.getByRole('region', { name: 'Player' }).locator('.player-title'))
+    .toContainText(second.title, { timeout: 15_000 });
+  await expect.poll(() => methods[0]).toBe('HEAD');
+  await expect.poll(() => methods.slice(1)).toContain('GET');
 });

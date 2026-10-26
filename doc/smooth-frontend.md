@@ -315,7 +315,6 @@ Later, with the item they need:
 
 - #74 with #10, #83, #88, #97 and #100 with #8's release on the same
   origin, #55, #90 and #91 with runs on phones, and #59, which is polish.
-  #98 isn't started.
 
 Your calls, made on 26 October:
 
@@ -350,7 +349,22 @@ Your calls, made on 26 October:
 
 New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
-writes the index's segments. #22 only moves it after the paint.
+writes the index's segments. #22 only moves it after the paint. Since then,
+drop-in-search writes a segment reading each term's postings once rather
+than twice, in one walk, and with no lazy sequences per posting (c132e4e).
+The files are byte for byte the same. Writing an index of 20,000 podcast
+episodes takes 0.41 s rather than 0.71–0.78 in Node, and in the app, the
+longest task during an import of the 53 shows takes 1.36–1.37 s rather
+than 2.79–2.92 (`bench.mjs seed`, without a profiler).
+
+Done since, #98: about 10 s before an episode ends, or before its outro,
+the player sends a HEAD to the file of the episode that plays next, which
+follows its redirects as the audio element's request does, so that the
+file starts over open connections. The IAB's guidelines count no HEAD as a
+download. An end-to-end test sees the HEAD before the end and the file's
+request after it, in Firefox and Chrome. How much sooner the next episode
+starts is unmeasured in a browser: curl took 0.2–0.7 s less over open
+connections.
 
 Also new, and fixed: drop-in-search read each document's id as EDN at the
 start. A vector of plain strings, as the app's ids are, is now split at its
@@ -587,7 +601,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 95 | [Measure each script's compile and evaluate time and coverage before splitting](#95-measure-each-scripts-compile-and-evaluate-time-and-coverage-before-splitting) | Measurement | 5.5 | 1 | 3 | high | Measured |
 | 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low | Deferred |
 | 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Later |
-| 98 | [Warm the next episode's redirect chain with a HEAD request before the end](#98-warm-the-next-episodes-redirect-chain-with-a-head-request-before-the-end) | Network | 6.5 | 1 | 3 | low |  |
+| 98 | [Warm the next episode's redirect chain with a HEAD request before the end](#98-warm-the-next-episodes-redirect-chain-with-a-head-request-before-the-end) | Network | 6.5 | 1 | 3 | low | Done |
 | 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low | Part done |
 | 100 | [Cache the release build's app shell in a service worker](#100-cache-the-release-builds-app-shell-in-a-service-worker) | Load | 14 | 1 | 2 | medium | Later |
 

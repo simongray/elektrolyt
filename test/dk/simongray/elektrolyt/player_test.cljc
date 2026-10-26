@@ -54,6 +54,21 @@
     (is (not (player/report? {:paused true :seeking true} {:paused true :seeking false :current-time 600} nil now nil))
         "nor after the seek of a paused element, e.g. as it loads an episode that another tab plays")))
 
+(deftest when-the-next-file-is-warmed
+  (is (not (player/warm? {:paused false :current-time 3580 :duration 3600} nil))
+      "not 20 s before the end")
+  (is (player/warm? {:paused false :current-time 3595 :duration 3600} nil) "but 5 s before it")
+  (is (not (player/warm? {:paused true :current-time 3595 :duration 3600} nil)) "while it plays")
+  (is (player/warm? {:paused false :current-time 3000 :duration 3600} 3005)
+      "or 5 s before the outro")
+  (is (not (player/warm? {:paused false :current-time 3595 :duration ##Inf} nil))
+      "and not without a duration, e.g. of a live stream")
+  (is (= "https://example.org/7.mp3"
+         (player/warm-url (player/playback (state {}) id)))
+      "an episode's file on the web")
+  (is (nil? (player/warm-url {:src "blob:https://example.org/1" :local? true}))
+      "but not one on the device"))
+
 (deftest a-render-a-second
   (is (= {:current-time 12.0 :paused false :seeking false}
          (player/whole-seconds {:current-time 12.7 :paused false :seeking false :played [[0 12.7]]})))

@@ -198,6 +198,17 @@
            (picks/autoplayed (preferring state {::settings/autoplay? true}) grinders))
         "and then the first pick after the episode that ended")))
 
+(deftest what-plays-next
+  (let [roasting (id "Coffee Talk" 1)
+        queued   (-> lib
+                     (library/update-profile profile.queue/enqueue grinders)
+                     (library/update-profile profile.queue/enqueue roasting))]
+    (is (= roasting (picks/played-next {:library queued} grinders)) "the next in the queue")
+    (is (nil? (picks/played-next {:library lib} grinders)) "nothing, without one")
+    (is (= (id "Brew Lab" 0)
+           (picks/played-next (preferring {:library lib} {::settings/autoplay? true}) grinders))
+        "unless the listener chose autoplay")))
+
 (deftest the-episodes-that-the-picks-of-a-show-start-from
   (let [k      (keys-by-title "Coffee Talk")
         source {:key k :feed (get-in lib [:feeds k :feed]) :url (get-in lib [:feeds k :url])}]

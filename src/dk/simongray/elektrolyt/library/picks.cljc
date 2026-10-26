@@ -128,6 +128,19 @@
   (when (settings/autoplay? state)
     (some-> (after-episode state id) :episodes first :id)))
 
+;; The library's step at the end, without taking it: the next in the queue,
+;; the next of the show with Continuous play, or nothing at the end of a
+;; sleep timer, and else a pick
+(defn played-next
+  "The id of the episode that plays in `state` once the episode `id` ends,
+  or nil when the player stops there."
+  [{:keys [library] :as state} id]
+  (when library
+    (let [effects (:effects (library/step library [:ended id]))]
+      (or (some (fn [[kind next-id]] (when (= :play kind) next-id)) effects)
+          (when (some #(= :nothing-next (first %)) effects)
+            (autoplayed state id))))))
+
 ;; The picks are made again at each change of the library, e.g. as an
 ;; episode plays, and the runs read the HTML of every episode's notes,
 ;; e.g. 0.5 s for 1,200 episodes, more than the rest of the picks take

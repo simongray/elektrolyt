@@ -302,10 +302,25 @@
                      duration)]
       (step! store [:progress id current-time duration]))))
 
+;; The next file starts through its host's tracking prefixes, and curl took
+;; 0.2-0.7 s less to its first byte over open connections, e.g. 0.70 s
+;; rather than 1.38 for Omny's
+(defn warm-next!
+  "Open the connections to the file of the episode that plays after the
+  episode `id` in `store`, when it's on the web."
+  [store id]
+  (let [state @store]
+    (some->> (picks/played-next state id)
+             (player/playback state)
+             player/warm-url
+             runtime/warm-chain!)))
+
 (defn reporter
   "A function that takes each media state of the audio element and reports
-  the position to the library in `store` when a report is due. It keeps
-  the last state, and the time and episode of its last report, to itself."
+  the position to the library in `store` when a report is due, and opens
+  the connections to the next episode's file near the end. It keeps the
+  last state, the time and episode of its last report, and the episode
+  that it warmed the next of, to itself."
   [store]
   (let [seen (atom {})]
     (fn [media]
@@ -316,8 +331,11 @@
             {old :media last :at :as s} @seen
             outro                       (some-> (:profile library)
                                                 (profile/outro-start (first id) id))]
+        (when (and id (not= id (:warmed s)) (player/warm? shown outro))
+          (swap! seen assoc :warmed id)
+          (warm-next! store id))
         (if (player/report? old shown (when (= id (:id s)) last) now outro)
-          (do (reset! seen {:media shown :at now :id id})
+          (do (swap! seen assoc :media shown :at now :id id)
               (report! store shown))
           (swap! seen assoc :media shown))))))
 
