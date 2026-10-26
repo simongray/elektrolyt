@@ -175,7 +175,9 @@
 ;; CSSOM View, scrollIntoView: the heading goes to the start of a row that
 ;; scrolls sideways, which brings its column into view, and to the top of
 ;; the page when it's out of sight, e.g. further down a stack. Focus alone
-;; scrolls nothing while part of the element shows.
+;; scrolls nothing while part of the element shows. The scroll is smooth
+;; where motion is allowed, so that the listener sees which way it went;
+;; auto is at once, since no CSS sets a scroll-behavior.
 ;; https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview
 (defn show!
   "Bring the heading `id` into view and move the focus to it."
@@ -183,8 +185,9 @@
   (when-let [^js heading (js/document.getElementById id)]
     (let [box   (.getBoundingClientRect heading)
           seen? (and (>= (.-top box) 0) (<= (.-bottom box) js/window.innerHeight))]
-      (.scrollIntoView heading #js {:block  (if seen? "nearest" "start")
-                                    :inline "start"})
+      (.scrollIntoView heading #js {:block    (if seen? "nearest" "start")
+                                    :inline   "start"
+                                    :behavior (if (runtime/motion?) "smooth" "auto")})
       (.focus heading #js {:preventScroll true}))))
 
 ;; HTML, scroll to the fragment, which a pushState navigation doesn't do.

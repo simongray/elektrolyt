@@ -156,6 +156,13 @@
   []
   (= "visible" js/document.visibilityState))
 
+;; for a motion that CSS can't gate, e.g. a scroll that a script makes,
+;; which would else smooth every scroll of its box
+(defn motion?
+  "Whether the listener allows motion, as prefers-reduced-motion says."
+  []
+  (.-matches (js/matchMedia "(prefers-reduced-motion: no-preference)")))
+
 (defn on-pagehide!
   "Call `f` whenever the page unloads or goes into the back/forward
   cache."

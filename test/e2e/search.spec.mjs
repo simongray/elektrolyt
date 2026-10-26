@@ -109,6 +109,33 @@ test('a jump brings the whole of a list into view, where the row is too narrow f
   await expect(jump, 'sideways only, so the jump row stays in view').toBeInViewport();
 });
 
+// where motion is allowed, the row glides there, and ends in the same place
+test('a jump glides to the list where motion is allowed', async ({ page, context }) => {
+  await directories(context, 0);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 900, height: 700 });
+  const main = page.getByRole('main');
+  await page.goto('/settings');
+  await main.getByLabel('gpodder.net').check();
+  await navLink(page, 'Search').click();
+  await main.getByLabel('Search for podcasts, or paste a link').fill('delta green');
+  await main.getByRole('button', { name: 'Search', exact: true }).click();
+
+  const last = main.locator('section', { has: page.getByRole('heading', { name: 'drpodcast.nu', level: 2 }) });
+  await expect(last.getByRole('heading', { level: 2 })).toBeVisible();
+  const row = main.locator('.search-lists');
+  const rowBox = await row.boundingBox();
+  const scrolled = () => row.evaluate(r => r.scrollLeft);
+
+  await page.getByRole('navigation', { name: 'Directories' }).getByRole('link', { name: /drpodcast/ }).click();
+  await expect(last.getByRole('heading', { level: 2 })).toBeFocused();
+  const early = await scrolled();
+  await expect.poll(async () => (await last.boundingBox()).x + (await last.boundingBox()).width,
+                    'until the list ends in view')
+    .toBeLessThanOrEqual(rowBox.x + rowBox.width + 1);
+  expect(await scrolled(), 'which it was still on its way to as the focus moved').toBeGreaterThan(early);
+});
+
 test('a jump on a phone scrolls down to the list', async ({ page, context }) => {
   await directories(context, 0);
   await page.setViewportSize({ width: 375, height: 700 });
