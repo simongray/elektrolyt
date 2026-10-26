@@ -15,6 +15,7 @@
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.library.shows :as shows]
             [dk.simongray.elektrolyt.runtime :as runtime]
+            [dk.simongray.elektrolyt.runtime.perf :as perf]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
             [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]
@@ -147,18 +148,22 @@
   `store`, a few at a time with a pause between them, and of saving it,
   given whether the listener `asked?` for the refresh."
   [store found asked?]
-  (-> (reduce (fn [results part]
-                (.then results
-                       (fn [done]
-                         (-> (if (seq done) (runtime/yielded!) (js/Promise.resolve))
-                             (.then #(conj done (app-library/change!
-                                                 store
-                                                 {:operation [:library/refreshed part]})))))))
-              (js/Promise.resolve [])
-              (library/found-parts found part-episodes))
-      (.then (fn [results]
-               (swap! store refreshed (merged results) asked?)
-               (app-library/save! store)))))
+  (let [parts (library/found-parts found part-episodes)]
+    (perf/measured!
+     "library/refreshed" {:parts (count parts)}
+     #(-> (reduce (fn [results part]
+                    (.then results
+                           (fn [done]
+                             (-> (if (seq done) (runtime/yielded!) (js/Promise.resolve))
+                                 (.then (fn [_]
+                                          (conj done (app-library/change!
+                                                      store
+                                                      {:operation [:library/refreshed part]}))))))))
+                  (js/Promise.resolve [])
+                  parts)
+          (.then (fn [results]
+                   (swap! store refreshed (merged results) asked?)
+                   (app-library/save! store)))))))
 
 (defn fetched!
   "A promise of what the web worker finds for the library in `store`:

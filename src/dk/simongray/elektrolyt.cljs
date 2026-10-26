@@ -21,6 +21,7 @@
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.runtime.log :as log]
+            [dk.simongray.elektrolyt.runtime.perf :as perf]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.search.directories :as directories]
             [dk.simongray.elektrolyt.show :as show]
@@ -496,8 +497,11 @@
       (.finally #(audio/restored! store))
       (.then #(artwork-colors/kept-colors! store) #(artwork-colors/kept-colors! store))
       (.finally (fn []
-                  (runtime/watch! store ::render document/rendered!)
-                  (runtime/watch! store ::colors (fn [_ state] (artwork-colors/colored! store state)))
+                  (runtime/watch! store ::render (perf/timed-render document/rendered!))
+                  (runtime/watch! store ::colors
+                                  (fn [_ state]
+                                    (perf/measured! "colors" {:route (get-in state [:route :name])}
+                                                    #(artwork-colors/colored! store state))))
                   (runtime/watch! store ::picks (fn [_ state] (picks-finding/found! store state)))
                   (runtime/watch! store ::lock-screen (audio/lock-screen-watch store))
                   (start-router!)

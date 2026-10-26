@@ -4,7 +4,8 @@
   runtime, as in (ns ^:runtime …), so that they stay few: the listeners,
   timers, locks and channels in dk.simongray.elektrolyt.runtime,
   localStorage in dk.simongray.elektrolyt.runtime.local, the listeners of
-  the logs in dk.simongray.elektrolyt.runtime.log, and the web worker in
+  the logs in dk.simongray.elektrolyt.runtime.log, the frames of the
+  timings in dk.simongray.elektrolyt.runtime.perf, and the web worker in
   dk.simongray.elektrolyt.worker.fetching. The check reads the sources,
   without their strings and comments."
   (:require [clojure.java.io :as io]

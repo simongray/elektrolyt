@@ -8,8 +8,8 @@ says why.
 
 The namespaces are those of `src/dk/simongray/elektrolyt/`, and
 `elektrolyt` is the root namespace itself. Only `runtime`, `runtime.local`,
-`runtime.log` and `worker.fetching` reach outside the store, which
-`runtime_test.clj` checks.
+`runtime.log`, `runtime.perf` and `worker.fetching` reach outside the store,
+which `runtime_test.clj` checks.
 
 The names of the browser's keys and databases begin with
 `dk.simongray.elektrolyt.`, which the tables shorten to `…`.
@@ -62,6 +62,8 @@ In the tab, outside the store
 | `worker.fetching/web-worker` | The web worker, started at its first request or as the start of a show's feed is fetched ahead, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `worker.fetching/in-flight` | The promises of the worker's fetches of feeds in flight, by URL and options, which an equal fetch waits for, e.g. a subscription's while the Show page fetches the whole feed | `worker.fetching` | `worker.fetching`, for `show.feeds` | Until each settles |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
+| `player.audio/start` | The start of playback that the listener asked for last, with the time of each of its stages so far, for its User Timing marks and its log | `player.audio` | `player.audio` | Until the element plays, or the next start |
+| `runtime.perf/renders` | How many renders the page has made since its last frame, for the render's measure | `runtime.perf` | `runtime.perf` | Until the next frame |
 | `ui.memo` slots | The last result of a view that takes a while, e.g. the queue, the last four of a show's or an episode's page, and the runs of words that the notes of the last four feeds outside the library repeat, for their picks | the views, `library.picks` | the views | Until its arguments change, or four others are made after it |
 | `library.picks.finding/pending` | The key that each place's picks are being found for, so that a change of the state meanwhile doesn't find them twice | `library.picks.finding` | `library.picks.finding` | Until they're found |
 | `ui.memo/remember-each` maps | What each row derives from a string: the server's thumbnails of artwork by URL, and an episode's slug by its title and short hash by its guid | `ui.artwork`, `ui.routes` | the views, `ui.rows` | The tab, but each forgets the first of its strings past 2,000 |

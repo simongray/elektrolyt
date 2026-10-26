@@ -22,6 +22,7 @@
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.elektrolyt.library.options :as library-options]
+            [dk.simongray.elektrolyt.runtime.perf :as perf]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
 
 (def refresh-lock
@@ -57,6 +58,23 @@
   [^js data]
   (cond-> (reader/read-string (.-edn data))
     (.-encoded data) (assoc :encoded (.-encoded data))))
+
+(defn coded
+  "The value `x` as a string in the library's codec, measured as
+  codec/encode with its length."
+  [x]
+  (let [start (js/performance.now)
+        s     ((:encode (:codec library-options/options)) x)]
+    (when ^boolean perf/on?
+      (perf/measure! "codec/encode" {:chars (count s)} start))
+    s))
+
+(defn decoded
+  "The value of the string `s` in the library's codec, measured as
+  codec/decode with its length."
+  [s]
+  (perf/measured! "codec/decode" {:chars (count s)}
+                  #((:decode (:codec library-options/options)) s)))
 
 (defn post!
   "Post the `message` to the page."
@@ -187,17 +205,16 @@
   (let [fetch (:fetch (fetches opts))]
     (.then (fetch url (merge (select-keys library-options/options [:send])
                              (dissoc opts :alternative-feeds?)))
-           #((:encode (:codec library-options/options)) (dissoc % :body :report)))))
+           #(coded (dissoc % :body :report)))))
 
 (defn documents!
   "A promise of the search documents of the whole feed `encoded` in the
   library's codec, fetched from `url`, as podcast-clj builds them for a
   subscription, encoded in that codec."
   [encoded url]
-  (let [{:keys [encode decode]} (:codec library-options/options)]
-    ;; in the promise, so that a feed that throws fails this answer alone
-    (.then (js/Promise.resolve encoded)
-           #(encode (:search-documents (library/with-search-documents (decode %) url))))))
+  ;; in the promise, so that a feed that throws fails this answer alone
+  (.then (js/Promise.resolve encoded)
+         #(coded (:search-documents (library/with-search-documents (decoded %) url)))))
 
 (defn answer!
   "Answer the page's `request` with what a refresh found, a fetched feed,
@@ -208,7 +225,7 @@
         due       (when-free refresh-lock
                              #(.then (found! id due opts)
                                      (fn [found]
-                                       {:id id :encoded ((:encode (:codec library-options/options)) {:found found})}))
+                                       {:id id :encoded (coded {:found found})}))
                              #(js/Promise.resolve {:id id :busy? true}))
         fetch     (.then (fetched! url opts) (fn [fetched] {:id id :encoded fetched}))
         documents (.then (documents! encoded url) (fn [docs] {:id id :encoded docs})))
@@ -230,7 +247,6 @@
   [url on-failed]
   (let [worker  (js/Worker. url)
         pending (atom {})
-        decode  (:decode (:codec library-options/options))
         settle! (fn [id f]
                   (when-let [{:keys [resolve reject]} (get @pending id)]
                     (swap! pending dissoc id)
@@ -246,7 +262,7 @@
                            (cond
                              progress (some-> on-progress (apply [progress]))
                              failed   (settle! id #(throw (js/Error. failed)))
-                             encoded  (settle! id #(cond-> (decode encoded)
+                             encoded  (settle! id #(cond-> (decoded encoded)
                                                      keep? (vary-meta assoc ::encoded encoded)))
                              :else    (settle! id #(dissoc answer :id))))))
     ;; HTML, sections 10.2.4 and 10.2.5: a worker fires error when its
@@ -345,6 +361,5 @@
   [fetched url]
   (ask! {:documents true
          :url       url
-         :encoded   (or (encoded fetched)
-                        ((:encode (:codec library-options/options)) fetched))}
+         :encoded   (or (encoded fetched) (coded fetched))}
         nil))

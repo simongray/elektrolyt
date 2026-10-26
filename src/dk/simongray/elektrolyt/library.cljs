@@ -19,6 +19,7 @@
             [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.library.saves :as saves]
             [dk.simongray.elektrolyt.runtime :as runtime]
+            [dk.simongray.elektrolyt.runtime.perf :as perf]
             [taoensso.telemere :as tel]))
 
 (def device-key
@@ -97,21 +98,26 @@
       (let [shown (:library @state)
             kept! #(swap! waiting (fn [later] (into ops later)))]
         (reset! waiting [])
-        (-> (library/durable-swap! library-options/store k
-                                   #(if (identical? % library) shown (applied-all % ops))
-                                   library-options/options)
-            (.then (fn [{:keys [error] :as written}]
-                     (if error
-                       (kept!)
-                       (do (reset! known written)
-                           (when-not (identical? (:library written) shown)
-                             (swap! state assoc :library
-                                    (applied-all (:library written) @waiting)))
-                           (announce! (:version written))))
-                     written))
-            (.catch (fn [e]
-                      (kept!)
-                      {:error {:id :library/save-failed :reason (ex-message e)}})))))))
+        (perf/measured!
+         "library/write" {:operations (count ops)}
+         #(-> (library/durable-swap! library-options/store k
+                                     (fn [stored]
+                                       (if (identical? stored library)
+                                         shown
+                                         (applied-all stored ops)))
+                                     library-options/options)
+              (.then (fn [{:keys [error] :as written}]
+                       (if error
+                         (kept!)
+                         (do (reset! known written)
+                             (when-not (identical? (:library written) shown)
+                               (swap! state assoc :library
+                                      (applied-all (:library written) @waiting)))
+                             (announce! (:version written))))
+                       written))
+              (.catch (fn [e]
+                        (kept!)
+                        {:error {:id :library/save-failed :reason (ex-message e)}}))))))))
 
 ;; A write can fail for a while, e.g. while the device is out of room, and
 ;; the operations that wait would be lost with the tab
@@ -168,15 +174,18 @@
    (change! state change {}))
   ([state {:keys [operation ui] :or {ui identity} :as change} opts]
    (when change
-     (let [before (:library @state)
-           opts   (merge {:at (js/Date.)} opts)
-           given  (when operation
-                    (applied before operation opts))]
-       (when (and operation before)
-         (swap! waiting conj {:operation operation :opts opts}))
-       (swap! state #(ui (cond-> %
-                           operation (assoc :library (:library given)))))
-       given))))
+     (perf/measured!
+      "library/change" {:operation (first operation)}
+      (fn []
+        (let [before (:library @state)
+              opts   (merge {:at (js/Date.)} opts)
+              given  (when operation
+                       (applied before operation opts))]
+          (when (and operation before)
+            (swap! waiting conj {:operation operation :opts opts}))
+          (swap! state #(ui (cond-> %
+                              operation (assoc :library (:library given)))))
+          given))))))
 
 (defn stored-version
   "A promise of the stored version of the library's document, taken from
@@ -199,13 +208,15 @@
        (.then (stored-version)
               (fn [stored]
                 (when (not= stored version)
-                  (.then (library/read! library library-options/store
-                                        library-options/options)
-                         (fn [read]
-                           (reset! known read)
-                           (swap! state assoc :library
-                                  (applied-all (:library read) @waiting))
-                           read)))))))))
+                  (perf/measured!
+                   "library/catch-up" {}
+                   #(.then (library/read! library library-options/store
+                                          library-options/options)
+                           (fn [read]
+                             (reset! known read)
+                             (swap! state assoc :library
+                                    (applied-all (:library read) @waiting))
+                             read))))))))))
 
 ;; HTML Living Standard, 9.5 Broadcasting to other browsing contexts, and
 ;; Page Lifecycle: a hidden or frozen page, or one in the back/forward
@@ -230,15 +241,18 @@
   ;; is read after it
   (listen! state)
   (in-turn!
-   #(.then (library/read! (library/make (device/id! device-key)
-                                        {:config library-options/config
-                                         :codec  transit/codec})
-                          library-options/store
-                          library-options/options)
-           (fn [{:keys [library] :as read}]
-             (reset! known read)
-             (swap! state assoc :library (applied-all library @waiting))
-             read))))
+   (fn []
+     (perf/measured!
+      "library/open" {}
+      #(.then (library/read! (library/make (device/id! device-key)
+                                           {:config library-options/config
+                                            :codec  transit/codec})
+                             library-options/store
+                             library-options/options)
+              (fn [{:keys [library] :as read}]
+                (reset! known read)
+                (swap! state assoc :library (applied-all library @waiting))
+                read))))))
 
 ;; Storage Standard, sections 7.1 and 8. Firefox asks the user first, so the
 ;; request waits until the listener subscribes.
