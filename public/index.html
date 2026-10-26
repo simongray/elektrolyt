@@ -13,6 +13,13 @@
          browser would else ask for only once they render, and then swap in -->
     <link rel="preload" href="/fonts/charis-7.000/Charis-Regular.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/charis-7.000/Charis-Bold.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- the files that app.css imports, at the URLs that its imports resolve
+         to, which would else wait for app.css, and the deferred scripts for
+         them (HTML, 4.2.4, the interactions of styling and scripting). A link
+         can't name a cascade layer, so the imports stay. -->
+    <link rel="preload" href="/css/tokens.css" as="style">
+    <link rel="preload" href="/css/layout.css" as="style">
+    <link rel="preload" href="/css/look.css" as="style">
     <link rel="stylesheet" href="/css/app.css">
     <script src="/js/shared.js" defer></script>
     <script src="/js/main.js" defer></script>
