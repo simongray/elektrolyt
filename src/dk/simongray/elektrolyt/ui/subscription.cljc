@@ -8,19 +8,21 @@
 
 (defn status
   "Where the subscription to the feed at `url` stands in `state`, given the
-  `subscribed` URLs: :subscribed, :subscribing, :ready, or :waiting until
-  the library is restored. With the show's `guid`, a subscription by that
-  key counts too, e.g. one whose feed moved since."
+  `subscribed` URLs: :subscribed, :subscribing, :unsubscribing, :ready, or
+  :waiting until the library is restored. With the show's `guid`, a
+  subscription by that key counts too, e.g. one whose feed moved since."
   ([state subscribed url]
    (status state subscribed url nil))
   ([state subscribed url guid]
    (cond
-     (nil? subscribed)                    :waiting
-     (search/subscribed? subscribed url)  :subscribed
+     (nil? subscribed)                      :waiting
+     ;; the library has the show until the frame after the press
+     (contains? (:unsubscribing state) url) :unsubscribing
+     (search/subscribed? subscribed url)    :subscribed
      (and guid (profile/subscribed? (:profile (:library state)) guid))
      :subscribed
-     (contains? (:subscribing state) url) :subscribing
-     :else                                :ready)))
+     (contains? (:subscribing state) url)   :subscribing
+     :else                                  :ready)))
 
 ;; The filled bookmark has Phosphor's microphone cut out of it, which
 ;; stands for podcasts, as the studio microphone emoji does, so that it
@@ -80,11 +82,13 @@
                                                             filled-bookmark
                                                             icons/bookmark-simple-thin))
                                          :class "bookmark"}
-                                  (not= :ready status) (assoc :aria-disabled "true")
-                                  (= :ready status)    (assoc :on {:click (controls/single-click
-                                                                           [[:library/subscribe url title]])}))]
-          (if (= :subscribing status)
-            ["Subscribing to " title "…"]
+                                  (not= :ready status)        (assoc :aria-disabled "true")
+                                  (= :unsubscribing status)   (assoc :data-refocus "main h1")
+                                  (= :ready status)           (assoc :on {:click (controls/single-click
+                                                                                  [[:library/subscribe url title]])}))]
+          (case status
+            :subscribing   ["Subscribing to " title "…"]
+            :unsubscribing ["Unsubscribing from " title "…"]
             ["Subscribe to " title]))))
 
 (defn marked

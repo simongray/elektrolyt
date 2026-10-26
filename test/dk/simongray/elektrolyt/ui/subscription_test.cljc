@@ -26,7 +26,12 @@
     (is (= ["Unsubscribe from A Show" (subscription/bookmark subscription/filled-bookmark)] [(apply str words) (:icon attrs)])
         "and unsubscribes once it's subscribed")
     (is (= (controls/single-click [[:library/unsubscribe "https://example.org/feed.xml" "A Show"]])
-           (get-in attrs [:on :click])))))
+           (get-in attrs [:on :click]))))
+  (let [[_ attrs & words] (subscription/button :unsubscribing "https://example.org/feed.xml" "A Show")]
+    (is (= ["Unsubscribing from A Show…" (subscription/bookmark icons/bookmark-simple-thin)] [(apply str words) (:icon attrs)])
+        "empty at once")
+    (is (= "true" (:aria-disabled attrs)))
+    (is (nil? (:on attrs)))))
 
 (deftest a-mark-of-a-subscription
   (let [[icon & more] (subscription/marked [:a {:href "/shows/g"} "A Show"])]
@@ -40,6 +45,8 @@
     (is (= :waiting (subscription/status {} nil url)) "before the library is restored")
     (is (= :subscribed (subscription/status {} #{(guid/normal-url url)} url)))
     (is (= :subscribing (subscription/status {:subscribing #{url}} #{} url)))
+    (is (= :unsubscribing (subscription/status {:unsubscribing #{url}} #{(guid/normal-url url)} url))
+        "while the library still has the show")
     (is (= :ready (subscription/status {} #{} url))))
   (let [old   "https://example.org/old.xml"
         lib   (-> (library/make "test")

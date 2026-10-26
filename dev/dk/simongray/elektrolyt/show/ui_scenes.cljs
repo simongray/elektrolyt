@@ -133,6 +133,13 @@
                                               :artwork artwork}
                                              {:guid "g2" :title "Boostagram Ball" :artwork artwork}]}}})))
 
+(defscene while-it-unsubscribes
+  "A show in the library in the frame after Unsubscribe is pressed, before
+  the library lets it go: the empty bookmark, which can't be pressed yet,
+  over its episodes."
+  (ui/page (show-page {:library       (library/subscribe (library/make "scenes") url pc20)
+                       :unsubscribing #{url}})))
+
 (defscene in-the-colours-of-its-artwork
   "A show whose page takes the colours of its artwork, once they're worked
   out, here of a deep blue: its links and buttons, and a faint tint from

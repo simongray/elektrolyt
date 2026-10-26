@@ -324,16 +324,22 @@
       (.then #(do (document/canonicalize! %) %))
       (.then (fn [_] (app-library/save! store)))))
 
-;; The page stays, now for a show outside the library, with its feed URL
-;; in the address
+;; The bookmark empties before the library lets the show go, which for a
+;; long show takes a while, e.g. to take its episodes out of the search
+;; index. The page stays, now for a show outside the library, with its
+;; feed URL in the address, which checks the library's copy of the feed.
 (defn unsubscribe!
-  "Unsubscribe the library in `store` from the show `title` at `url`, and
-  save the library."
+  "Unsubscribe the library in `store` from the show `title` at `url` once
+  the page shows that it's unsubscribing, and save the library."
   [store url title]
   (let [guid (get-in @store [:route :path-params :guid])]
-    (app-library/change! store (subscription/unsubscribed @store url title))
-    (app-library/save! store)
-    (apply rfe/replace-state (routes/show-route guid title url))))
+    (swap! store subscription/unsubscribing url)
+    (.then (runtime/painted!)
+           (fn [_]
+             (app-library/change! store (subscription/unsubscribed @store url title))
+             (app-library/save! store)
+             (when (= guid (get-in @store [:route :path-params :guid]))
+               (apply rfe/replace-state (routes/show-route guid title url)))))))
 
 (def linked-except
   "The parts of a show's view that fetching its linked shows doesn't

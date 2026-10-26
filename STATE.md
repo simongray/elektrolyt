@@ -26,7 +26,7 @@ as long as the tab.
 | `:library` | The listener's library: the profile, the feeds and the search index, with this tab's operations that wait applied to it | `library` (`open!`, `change!`, `written!`, `caught-up!`) | most views, `player.audio`, `library.picks`, `library.refresh` | Replaced when another tab writes, or the page is shown again |
 | `:player` | This tab's player: the episode, the element's media state, the volume, a seek, a wait for data, and what another tab plays | `player.audio` | `player`, the views | Overwritten |
 | `:episodes` | What an episode's files say, by id: chapters, duration, transcript, and when their read began | `player.audio`, `show.feeds` | `player`, `episode.ui` | At a change of page, but for the episode that plays and the 20 whose reads began last (`episode/kept-count`) |
-| `:feeds` | The feeds of shows outside the library, by URL, with their validators and whether this visit checked them | `show.feeds`, through `show` | `show/source` | Clear cache |
+| `:feeds` | The feeds of shows outside the library, by URL, with their validators and whether this visit checked them, and the library's copy of the feed of a show that the listener unsubscribes from | `show.feeds` and `show.subscription`, through `show` | `show/source` | Clear cache |
 | `:feed-urls` | Where a show's feed is, by guid, from the cache or the Podcast Index | `show.feeds` | `show` | Clear cache, or a 404 or 410 at a URL from the cache |
 | `:requests` | The requests for those feeds in flight | `show.feeds`, through `show` | `show/status` | When answered |
 | `:episodes-shown` | How many episodes a Show page lists, by guid | `show` (`:show/more`) | `show.ui` | Never |
@@ -38,7 +38,7 @@ as long as the tab.
 | `:server` | What the app's server offers | `elektrolyt`, once | `search`, `library.settings.ui` | Never |
 | `:announcement`, `:announcements` | The last status message for a screen reader, and how many there were, which makes each a new element so that a repeat is heard too | `library.changes`, `show`, `show.feeds`, `library.refresh`, `show.subscription`, `library.saves`, `library.settings`, `library.opml`, through `ui.announcement/announced` but for `show`'s count of episodes | `ui` | Overwritten |
 | `:queue-undo`, `:inbox-undo` | The last change of the queue or the inbox that can be undone, which undoes only what's still as it left it | `library.changes`, through `library.queue` and `library.inbox` | `library.queue`, `library.inbox`, the views, which offer it while there's something to put back | This tab's next change |
-| `:subscribing`, `:subscribe-errors` | The subscriptions under way, and those that failed, by URL | `show.subscription` | `ui.subscription` | Per URL, once it's done |
+| `:subscribing`, `:unsubscribing`, `:subscribe-errors` | The subscriptions under way, the unsubscriptions until the library lets the show go, a frame later, and the subscriptions that failed, by URL | `show.subscription` | `ui.subscription` | Per URL, once it's done |
 | `:settings-status` | The last outcome on Settings | `elektrolyt`, `library.settings`, `library.opml` | `library.settings.ui` | Overwritten |
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `library.settings.ui` | At each check |
 | `:save-status` | While this tab's writes fail: when the oldest change that waits was made, how many writes in a row failed and why, which holds back the next try | `library`, through `library.saves` | `library`, `library.saves.ui`, for `ui` and `library.settings.ui` | Once a write goes through |

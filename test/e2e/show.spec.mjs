@@ -24,6 +24,30 @@ test('unsubscribing keeps the page by the URL of its feed', async ({ page }) => 
   await expect(page).not.toHaveURL(feedInAddress);
 });
 
+// After a reload without the cache's copy from the visit before the
+// subscription, the page has the show's feed from the library alone, so
+// its episodes stay from the library's copy while the feed is checked
+// again, which here fails
+test('unsubscribing after a reload keeps the episodes', async ({ page, context }) => {
+  const main = page.getByRole('main');
+  const unsubscribe = main.getByRole('button', { name: `Unsubscribe from ${showTitle}` });
+
+  await page.goto(showPath);
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
+  await expect(unsubscribe).toBeVisible();
+  // deleted once the reload closes the page's connection
+  await page.evaluate(() => { indexedDB.deleteDatabase('dk.simongray.elektrolyt.cache'); });
+  await page.reload();
+  await context.route(url => url.pathname === '/proxy' && url.searchParams.get('url') === feedUrl,
+    route => route.abort());
+
+  await unsubscribe.click();
+  await expect(announcement(page)).toHaveText(`Unsubscribed from ${showTitle}`);
+  await expect(main.getByRole('button', { name: `Subscribe to ${showTitle}` })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: showTitle })).toBeVisible();
+  await expect(main.getByRole('link', { name: episodes[0].title })).toBeVisible();
+});
+
 // Once the page has the whole feed, which its count of episodes says,
 // Subscribe turns into Unsubscribe at once, under the second click
 test('a double click on Subscribe subscribes once', async ({ page }) => {
