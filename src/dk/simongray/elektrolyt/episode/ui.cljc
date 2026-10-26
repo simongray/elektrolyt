@@ -156,7 +156,7 @@
         duration (or (:duration entry) (get-in state [:episodes id :result :duration]) (:duration page))]
     [:header.episode-intro
      [:hgroup heading [:p [:a {:href (:href show) :lang (text/lang language)} (:title show)]]]
-     (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
+     (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes :under true}
                                   (colors/placeholder state page)))
      [:div.episode-intro-body
       (facts-ui/line

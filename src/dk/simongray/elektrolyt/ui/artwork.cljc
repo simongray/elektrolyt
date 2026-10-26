@@ -70,13 +70,28 @@
   episode, at the head of the Details column or else beside the title."
   "(min-width: 63em) 16rem, 10rem")
 
+;; CSS Wizardry, the ultimate LQIP technique: a small copy that's likely in
+;; the cache, e.g. the one that a row of 48 or a search result of 64 pixels
+;; loaded at the screen's density, fills the box at once, and the large
+;; artwork covers it once it arrives
+;; https://csswizardry.com/2023/09/the-ultimate-lqip-lcp-technique/
+(defn under
+  "The style that shows a small copy of the artwork of `x` under its img
+  while the img loads, or nil for artwork without small sizes."
+  [x]
+  (when (seq (sizes x))
+    {:background-image (str "image-set(url(\"" (smallest x 64) "\") 1x, url(\""
+                            (smallest x 128) "\") 2x)")
+     :background-size  "cover"}))
+
 ;; HTML, section 4.8.4.3: with widths in the srcset and the img's size in
 ;; sizes, a browser loads the smallest artwork that fills it at the
 ;; screen's density. W3C, Images tutorial, decorative images: the title
 ;; beside the artwork names the show, so the alt is empty.
 (defn img
   "The img of the artwork of `x`, a show or an episode, `size` CSS pixels
-  square, with the `attrs` merged in, or nil without artwork."
+  square, with the `attrs` merged in, or nil without artwork. With :under
+  in the `attrs`, a small copy lies under it while it loads."
   [{:keys [artwork] :as x} size attrs]
   (when artwork
     (let [candidates (sizes x)]
@@ -88,7 +103,8 @@
                    (when (seq candidates)
                      {:srcset (srcset candidates)
                       :sizes  (str size "px")})
-                   attrs)])))
+                   (cond-> (dissoc attrs :under)
+                     (:under attrs) (update :style merge (under x))))])))
 
 ;; WCAG 2.2, technique H2: an image and the text beside it that link to
 ;; the same page are one link, not two in turn. The title is that link, so

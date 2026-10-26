@@ -248,7 +248,7 @@
         (subscription/button (subscription/status state (search/subscribed-urls (:library state)) url)
                              url title))
       [:hgroup heading (byline page url)]]
-     (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes}
+     (artwork/img page 256 (merge {:fetchpriority "high" :sizes artwork/intro-sizes :under true}
                                   (colors/placeholder state page)))
      (when-let [error (some->> url (subscription/error state))]
        [:div.show-intro-body error])

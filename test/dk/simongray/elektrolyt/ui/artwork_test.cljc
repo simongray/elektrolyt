@@ -60,6 +60,18 @@
                                          48 nil))))))
   (testing "artwork in a data URL, which the server can't fetch, stays as it is"
     (is (nil? (:srcset (second (artwork/img {:artwork "data:image/png;base64,AA=="} 48 nil))))))
+  (testing "a large img over the small copy that a row loaded, in the colour behind it"
+    (is (= {:background-color "#123456"
+            :background-image (str "image-set(url(\"/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=64\") 1x, "
+                                   "url(\"/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=128\") 2x)")
+            :background-size  "cover"}
+           (:style (second (artwork/img {:artwork "https://example.org/a.jpg"} 256
+                                        {:under true :style {:background-color "#123456"}})))))
+    (is (not (contains? (second (artwork/img {:artwork "https://example.org/a.jpg"} 256 {:under true}))
+                        :under))
+        "with no attribute of that name")
+    (is (nil? (:style (second (artwork/img {:artwork "data:image/png;base64,AA=="} 256 {:under true}))))
+        "and none where there are no small sizes, rather than the large artwork twice"))
   (is (nil? (artwork/img {} 48 nil)) "no img without artwork"))
 
 (deftest linked-artwork
