@@ -10,6 +10,7 @@
             [dk.simongray.podcast.format.image :as image]
             [dk.simongray.podcast.util.client :as client]
             [dk.simongray.podcast.util.ring :as ring]
+            [dk.simongray.elektrolyt.server.timing :as timing]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.wary-fetch :as http]
             [dk.simongray.wary-fetch.headers :as headers]
@@ -245,7 +246,7 @@
                     :headers (merge {"Via" proxy/via}
                                     (validators stale widths))}
                    opts)
-        response (send request)
+        response (timing/timed "fetch" #(send request))
         now      (System/currentTimeMillis)]
     (cond
       (and stale (= 304 (:status response)))
@@ -256,7 +257,8 @@
        :etag          (headers/header (:headers response) "etag")
        :last-modified (headers/header (:headers response) "last-modified")
        :fresh-until   (fresh-until (:headers response) now)
-       :thumbnails    (some-> (scaled scales (:body response) widths opts)
+       :thumbnails    (some-> (timing/timed "scale"
+                                            #(scaled scales (:body response) widths opts))
                               with-tags)}
 
       :else
@@ -283,8 +285,8 @@
   at once stay at :max-jobs."
   [url stale ^Semaphore jobs scales lock
    {:keys [cache-dir max-cache-bytes wait-seconds retry-seconds] :as opts}]
-  (if (.tryAcquire jobs (if (seq (:thumbnails stale)) 0 wait-seconds)
-                   TimeUnit/SECONDS)
+  (if (let [seconds (if (seq (:thumbnails stale)) 0 wait-seconds)]
+        (timing/timed "job" #(.tryAcquire jobs seconds TimeUnit/SECONDS)))
     (try
       (let [entry (try
                     (fetched url stale scales opts)
@@ -386,7 +388,7 @@
             (finally
               (swap! running dissoc k)
               (deliver mine nil)))
-          (deref now ms nil))]
+          (timing/timed "job" #(deref now ms nil)))]
     (if error (throw error) value)))
 
 (defn- entry!
@@ -400,15 +402,17 @@
   renewal under way waits :wait-seconds for it at most. When the renewal
   throws, it's the stale entry if that has thumbnails."
   [url width jobs scales lock running {:keys [cache-dir wait-seconds] :as opts}]
-  (let [stale (stored cache-dir url)
+  (let [stale (timing/timed "cache" #(stored cache-dir url))
         renew #(renewed! url stale jobs scales lock opts)]
     (cond
       (and stale (< (System/currentTimeMillis) (:fresh-until stale)))
       (do (touch! cache-dir url)
           stale)
 
+      ;; the renewal's times aren't this response's
       (get-in stale [:thumbnails width])
-      (do (future (shared running url renew 0))
+      (do (future (binding [timing/*metrics* nil]
+                    (shared running url renew 0)))
           stale)
 
       :else
@@ -435,7 +439,11 @@
   It redirects to the artwork itself when format.image can't scale it,
   or when it has no thumbnails and the fetch fails or waits too long for
   a job. A width above the artwork's own gets a redirect to the smallest
-  such width, since they share one thumbnail."
+  such width, since they share one thumbnail.
+
+  The Server-Timing of a response gives the time it took to read the
+  folder as cache, the wait for a job or for another request's fetch as
+  job, and the fetch and the scaling as fetch and scale."
   ([]
    (handler {}))
   ([opts]
@@ -444,9 +452,10 @@
          scales  (Semaphore. max-scales)
          lock    (Object.)
          running (atom {})]
-     (fn [request]
-       (or (refusal request opts)
-           (let [{:strs [url w]} (url/query-params (:query-string request))
-                 width           (parse-long w)]
-             (answer request url (entry! url width jobs scales lock running opts)
-                     width opts)))))))
+     (timing/with-timing
+      (fn [request]
+        (or (refusal request opts)
+            (let [{:strs [url w]} (url/query-params (:query-string request))
+                  width           (parse-long w)]
+              (answer request url (entry! url width jobs scales lock running opts)
+                      width opts))))))))

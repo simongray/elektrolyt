@@ -13,6 +13,7 @@
             [dk.simongray.podcast.util.client :as client]
             [dk.simongray.podcast.util.ring :as ring]
             [dk.simongray.elektrolyt.server.artwork :as artwork]
+            [dk.simongray.elektrolyt.server.timing :as timing]
             [dk.simongray.wary-fetch.proxy :as proxy]
             [dk.simongray.wary-fetch.secret :as secret]
             [io.pedestal.connector :as conn]
@@ -229,18 +230,21 @@
 
 (defn at-most
   "The Ring `handler` answering at most `n` requests at once. A request
-  that waits `seconds` for its turn gets a 503 with the `busy` headers."
+  that waits `seconds` for its turn gets a 503 with the `busy` headers.
+  The wait goes in each response's Server-Timing as queue."
   [n seconds busy handler]
   (let [turns (Semaphore. n true)]
-    (fn [request]
-      (if (.tryAcquire turns (long seconds) TimeUnit/SECONDS)
-        (try
-          (handler request)
-          (finally
-            (.release turns)))
-        (ring/text-response
-         503 "The server is busy. Try again in a few seconds."
-         busy)))))
+    (timing/with-timing
+     (fn [request]
+       (if (timing/timed "queue"
+                         #(.tryAcquire turns (long seconds) TimeUnit/SECONDS))
+         (try
+           (handler request)
+           (finally
+             (.release turns)))
+         (ring/text-response
+          503 "The server is busy. Try again in a few seconds."
+          busy))))))
 
 (defn read-secrets
   "The EDN in the file `secrets`, or nil when there's no such file. It
@@ -306,8 +310,10 @@
   (let [send       (if podcastindex
                      (podcastindex/sender podcastindex {:send client/send!})
                      client/send!)
-        proxy      (at-most 4 30 busy-proxy (proxy/handler {:user-agent client/user-agent
-                                                            :send       send}))
+        fetch      (proxy/handler {:user-agent client/user-agent :send send})
+        proxy      (at-most 4 30 busy-proxy
+                            (fn [request]
+                              (timing/timed "upstream" #(fetch request))))
         ;; no at-most, which would hold up the cached thumbnails too, since
         ;; the handler limits its own jobs
         thumbnails (artwork/handler {:cache-dir artwork-dir})]

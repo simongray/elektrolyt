@@ -64,6 +64,13 @@
     (java.nio.file.Files/readAllBytes (.toPath ^java.io.File body))
     body))
 
+(defn- metrics
+  "The names of the metrics in the Server-Timing of the `response`."
+  [response]
+  (some->> (get-in response [:headers "Server-Timing"])
+           (re-seq #"(?:^|, )([a-z]+);dur=\d+\.\d")
+           (map second)))
+
 (def art
   "The URL of the artwork of the tests."
   "https://example.org/art.jpg")
@@ -117,9 +124,10 @@
           (is (= [128 128] (let [img (javax.imageio.ImageIO/read (java.io.ByteArrayInputStream. (body-bytes made)))]
                              [(.getWidth img) (.getHeight img)])))
           (is (= {:url art :as :bytes :headers {"Via" proxy/via}} (select-keys (first @sent) [:url :as :headers]))
-              "with the Via of wary-fetch's proxy, which the handler refuses"))
+              "with the Via of wary-fetch's proxy, which the handler refuses")
+          (is (= ["cache" "job" "fetch" "scale"] (metrics made))))
         (testing "another width, from the folder, without a request, as the server checks the artwork no sooner than a day"
-          (is (= [200 1] [(:status again) (count @sent)]))
+          (is (= [200 1 ["cache"]] [(:status again) (count @sent) (metrics again)]))
           (is (= 64 (.getWidth (javax.imageio.ImageIO/read (java.io.ByteArrayInputStream. (body-bytes again)))))))
         (testing "a browser that has the thumbnail"
           (is (= 304 (:status (h (asked art 64 {"if-none-match" (get-in again [:headers "ETag"])}))))))
@@ -217,14 +225,15 @@
         (let [entry (first (filter #(re-find #"\.edn$" (.getName ^java.io.File %)) (file-seq cache)))]
           (spit entry (pr-str (assoc (read-string (slurp entry)) :fresh-until 0))))
         (reset! hang? true)
-        (is (= [200 "max-age=0"]
-               ((juxt :status #(get-in % [:headers "Cache-Control"]))
+        (is (= [200 "max-age=0" ["cache"]]
+               ((juxt :status #(get-in % [:headers "Cache-Control"]) metrics)
                 (deref (future (h (asked art 64))) 1000 nil)))
             "the thumbnails of a stale artwork, while its check hangs, which the browser asks for again")
         (let [busy (future (h (asked slow 64)))]
           (is (eventually #(some #{slow} @sent)))
-          (is (= [307 "no-store"] ((juxt :status #(get-in % [:headers "Cache-Control"]))
-                                   (h (asked slow 64))))
+          (is (= [307 "no-store" ["cache" "job"]]
+                 ((juxt :status #(get-in % [:headers "Cache-Control"]) metrics)
+                  (h (asked slow 64))))
               "and the artwork itself to a request that would wait on another's fetch")
           (deliver gate true)
           (is (= 200 (:status @busy))))))))

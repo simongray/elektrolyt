@@ -96,6 +96,9 @@
 (deftest proxy-test
   (testing "the proxy needs a URL"
     (is (= 400 (:status (response-for connector :get "/proxy")))))
+  (testing "the proxy's answer says how long it waited for its turn and for the site"
+    (is (re-matches #"queue;dur=\d+\.\d, upstream;dur=\d+\.\d"
+                    (get-in (response-for connector :get "/proxy") [:headers "Server-Timing"]))))
   (testing "the proxy answers GET and HEAD alone"
     (is (= 405 (:status (response-for connector :post "/proxy")))))
   (testing "a request that waits too long for its turn fails as the proxy's"
@@ -107,6 +110,8 @@
       (deliver held true)
       @first
       (is (= 503 (:status busy)))
+      (is (re-matches #"queue;dur=\d+\.\d" (get-in busy [:headers "Server-Timing"]))
+          "with the time it waited")
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"The server is busy"
                             (proxy/unproxied {:url "https://example.org/feed.xml"}
                                              (update busy :headers update-keys str/lower-case)))
