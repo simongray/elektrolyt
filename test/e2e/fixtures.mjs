@@ -33,13 +33,17 @@ export const episodes = [
   { guid: 'test-episode-3', title: 'Third episode', published: '2026-10-15T08:00:00Z' },
 ];
 
-/** The RSS item of the `episode`. */
+/** The RSS item of the `episode`, with its notes in three fields, as
+    many hosts write them, each with other words. */
 function item({ guid, title, published }) {
   return `
     <item>
       <guid isPermaLink="false">${guid}</guid>
       <title>${title}</title>
       <pubDate>${new Date(published).toUTCString()}</pubDate>
+      <description>Short notes of ${title}.</description>
+      <content:encoded><![CDATA[<p>The notes of ${title}, in full.</p>]]></content:encoded>
+      <itunes:summary>A summary of ${title}.</itunes:summary>
       <enclosure url="https://media.example/${guid}.mp3"
                  length="${audio.length}" type="audio/mpeg"/>
       <itunes:duration>120</itunes:duration>
@@ -51,6 +55,7 @@ function rss(episodes, artwork) {
   const newest = episodes.toSorted((a, b) => b.published.localeCompare(a.published));
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
      xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
      xmlns:podcast="https://podcastindex.org/namespace/1.0">
   <channel>

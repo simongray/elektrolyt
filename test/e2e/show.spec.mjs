@@ -1,5 +1,29 @@
-import { test, expect, announcement, episodes, feedUrl, showPath, showTitle }
+import { test, expect, announcement, episodePath, episodes, feedUrl, navLink, showPath, showTitle }
   from './fixtures.mjs';
+
+// The worker keeps only the fullest of an episode's notes, which the page
+// shows, and so a refresh of the same feed finds nothing changed
+test('an episode shows its fullest notes, which a refresh finds unchanged', async ({ page }) => {
+  const main = page.getByRole('main');
+  const changed = () => page.evaluate(() => {
+    const c = window.cljs.core;
+    const k = c.keyword;
+    const status = c.get(c.deref(window.dk.simongray.elektrolyt.store), k('refresh-status'));
+    return c.get(c.get(c.get(status, k('result')), k('counts')), k('changed'));
+  });
+
+  await page.goto(showPath);
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
+  await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
+  await page.goto(episodePath(episodes[0]));
+  await expect(main.getByText(`The notes of ${episodes[0].title}, in full.`)).toBeVisible();
+  await expect(main.getByText(`A summary of ${episodes[0].title}.`)).toHaveCount(0);
+
+  await navLink(page, 'Library').click();
+  await main.getByRole('button', { name: 'Check for new episodes' }).click();
+  await expect(announcement(page)).toHaveText('No new episodes');
+  expect(await changed()).toBe(0);
+});
 
 test('unsubscribing keeps the page by the URL of its feed', async ({ page }) => {
   const main = page.getByRole('main');

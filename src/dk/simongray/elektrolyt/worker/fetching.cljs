@@ -20,6 +20,7 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.discovery :as discovery]
+            [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
 
@@ -142,13 +143,28 @@
   items fit in the 64 KB that a fetch of a start reads at least."
   {:items 20})
 
+;; Hosts often put an episode's notes in three or four fields at once, and
+;; the app reads only the one that resolve/description picks, so the
+;; worker keeps that one alone, e.g. a third of the text of the library's
+;; feeds, which a tab decodes at each open
+(defn leaned
+  "A version of the fetch `f`, a function of a URL and its options, whose
+  answer's feed keeps only the notes that resolve/description reads."
+  [f]
+  (fn [url opts]
+    (.then (js/Promise.resolve (f url opts))
+           #(cond-> % (:feed %) (update :feed resolve/lean)))))
+
 (defn fetches
-  "The :fetch and :fetch-head that supplement DR's own feeds when the
-  `opts` of a request have :alternative-feeds?, or else nil."
+  "The :fetch and :fetch-head of the worker, whose feeds keep only the
+  notes that resolve/description reads, and which supplement DR's own
+  feeds when the `opts` of a request have :alternative-feeds?."
   [opts]
-  (when (:alternative-feeds? opts)
-    {:fetch      (supplementing podcast/fetch! {})
-     :fetch-head (supplementing discovery/fetch-head! sibling-start)}))
+  (if (:alternative-feeds? opts)
+    {:fetch      (leaned (supplementing podcast/fetch! {}))
+     :fetch-head (leaned (supplementing discovery/fetch-head! sibling-start))}
+    {:fetch      (leaned podcast/fetch!)
+     :fetch-head (leaned discovery/fetch-head!)}))
 
 (defn found!
   "A promise of what a refresh of the feeds that are `due` found, fetched
@@ -167,7 +183,7 @@
   "A promise of the answer to a fetch of the feed at `url` with `opts`
   through the proxy, without its :body and encoded in the library's codec."
   [url opts]
-  (let [fetch (:fetch (fetches opts) podcast/fetch!)]
+  (let [fetch (:fetch (fetches opts))]
     (.then (fetch url (merge (select-keys app-library/options [:send])
                              (dissoc opts :alternative-feeds?)))
            #((:encode (:codec app-library/options)) (dissoc % :body)))))
