@@ -476,6 +476,8 @@
   than turns to them."
   []
   (log/start! js/window)
+  (when ^boolean perf/on?
+    (nxr/register-interceptor! perf/dispatch-interceptor))
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
   ;; the page's frame at once, while the library is read
   (document/decodable!)

@@ -13,6 +13,19 @@
         "by identity, so an equal value that's new counts, and a new key")
     (is (= [:player] (perf/changed-keys old (dissoc old :player))) "and a key that's gone")))
 
+(deftest the-keys-of-the-actions
+  (is (= [:player/play :store/assoc]
+         (perf/action-keys [[:player/play {:title "A secret"} 12] nil [:store/assoc :x 1]]))
+      "without their arguments"))
+
+(deftest a-dispatch-measured
+  (let [{:keys [before-dispatch after-dispatch]} perf/dispatch-interceptor
+        top    (before-dispatch {:actions [[:show/more "g"]]})
+        nested (before-dispatch {:actions [[:store/assoc :x 1]] :trace [[:show/more "g"]]})]
+    (is (number? (::perf/start top)) "one of the page's own")
+    (is (nil? (::perf/start nested)) "but not one that an effect dispatches")
+    (is (= top (after-dispatch top)))))
+
 (deftest a-measure-in-the-dev-build
   (is perf/on? "since the tests run in a dev build")
   (is (= 3 (perf/measured! "test/sum" {:n 2} #(+ 1 2))))

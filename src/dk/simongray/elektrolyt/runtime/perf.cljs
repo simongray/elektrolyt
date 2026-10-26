@@ -65,16 +65,19 @@
        vec))
 
 (defonce ^{:doc "How many renders the page has made since its last frame,
-  which more than one render a frame wastes."}
-  renders
-  (atom 0))
+  which more than one render a frame wastes, as :frame, and in all, as
+  :all."}
+  render-counts
+  (atom {:frame 0 :all 0}))
 
 (defn rendered!
   "Count a render, and return how many there were since the last frame."
   []
-  (when (= 1 (swap! renders inc))
-    (js/requestAnimationFrame #(reset! renders 0)))
-  @renders)
+  (when (= 1 (:frame (swap! render-counts #(-> %
+                                                (update :frame inc)
+                                                (update :all inc)))))
+    (js/requestAnimationFrame #(swap! render-counts assoc :frame 0)))
+  (:frame @render-counts))
 
 (defn timed-render
   "The watch `f` of the store that renders the page, measured as render
@@ -99,3 +102,35 @@
             (tel/log! {:level :debug :id :perf/render
                        :data  (assoc props :ms (js/Math.round ms))}
                       "A render")))))))
+
+(defn action-keys
+  "The keywords of the `actions`, never their arguments, which hold titles
+  and URLs."
+  [actions]
+  (into [] (keep #(when (vector? %) (first %))) actions))
+
+;; Nexus's action log, nexus.action-log/inspect with Dataspex, shows each
+;; action and effect in full. This names the action behind a slow click,
+;; and how many renders its effects made, but not the work that they leave
+;; for a promise, and a dispatch from a render's on-mount counts in the
+;; outer dispatch.
+(def dispatch-interceptor
+  "A Nexus interceptor that measures each dispatch of the page's own, e.g.
+  of a click, as dispatch, and logs one that takes over 50 ms or renders
+  more than once as :perf/slow-dispatch."
+  {:id              ::dispatch
+   :before-dispatch (fn [ctx]
+                      (cond-> ctx
+                        (empty? (:trace ctx))
+                        (assoc ::start (js/performance.now)
+                               ::renders (:all @render-counts))))
+   :after-dispatch  (fn [{:keys [actions] ::keys [start] :as ctx}]
+                      (when start
+                        (let [props {:actions (action-keys actions)
+                                     :renders (- (:all @render-counts) (::renders ctx))}
+                              ms    (measure! "dispatch" props start)]
+                          (when (or (< 50 ms) (< 1 (:renders props)))
+                            (tel/log! {:level :info :id :perf/slow-dispatch
+                                       :data  (assoc props :ms (js/Math.round ms))}
+                                      "A dispatch took long or rendered more than once"))))
+                      ctx)})
