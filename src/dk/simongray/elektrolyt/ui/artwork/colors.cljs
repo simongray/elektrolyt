@@ -4,7 +4,7 @@
   (:require [clojure.string :as str]
             [dk.simongray.colour-coded :as cc]
             [dk.simongray.colour-coded.image :as image]
-            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.routes :as routes]
@@ -31,7 +31,7 @@
   "A promise of the bytes of the image at `url`, through the proxy, since
   most sites that serve artwork don't let another site's page read it."
   [url]
-  (.then (app-library/send {:url url :as :bytes}) :body))
+  (.then (library-options/send {:url url :as :bytes}) :body))
 
 ;; Fetch, redirect mode manual: fetch doesn't follow a redirect to the
 ;; artwork's own site, which a page can't read without CORS

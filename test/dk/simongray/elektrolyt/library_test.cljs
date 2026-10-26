@@ -7,6 +7,7 @@
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.runtime :as runtime]))
 
 (def at #inst "2026-10-20T12:00:00Z")
@@ -28,12 +29,12 @@
     (let [s (store/memory)]
       (-> (js/Promise.all
            #js [(library/durable-swap! s empty-store #(app-library/applied-all % [(queued ["f" "a"])])
-                                       app-library/options)
+                                       library-options/options)
                 (library/durable-swap! s empty-store #(app-library/applied-all % [(queued ["f" "b"])])
-                                       app-library/options)])
+                                       library-options/options)])
           (.then (fn [[a b]]
                    (is (= #{"1" "2"} (set [(:version a) (:version b)])) "one after the other")
-                   (library/read! (:library empty-store) s app-library/options)))
+                   (library/read! (:library empty-store) s library-options/options)))
           (.then (fn [{:keys [version] lib :library}]
                    (is (= "2" version))
                    (is (= #{["f" "a"] ["f" "b"]} (set (queue lib)))
@@ -82,7 +83,7 @@
 
 (deftest every-new-episode-in-the-inbox
   (async done
-    (let [subscribed (-> (library/make "phone" {:config app-library/config})
+    (let [subscribed (-> (library/make "phone" {:config library-options/config})
                          (library/subscribe inbox-test/url inbox-test/feed {:at at}))
           k          (first (keys (:feeds subscribed)))
           ;; as an earlier version of the app, or another app, chose

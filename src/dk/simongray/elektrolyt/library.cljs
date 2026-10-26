@@ -13,45 +13,17 @@
   that they read it. The documents are in Transit, which reads about 30
   times faster than EDN."
   (:require [dk.simongray.like-minded.device :as device]
-            [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library.operations :as operations]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.library.saves :as saves]
             [dk.simongray.elektrolyt.runtime :as runtime]
-            [dk.simongray.wary-fetch.proxy :as proxy]
             [taoensso.telemere :as tel]))
-
-(def send
-  "The function that sends the library's requests through the proxy on the
-  app's server."
-  (proxy/sender "/proxy"))
 
 (def device-key
   "The localStorage key of this browser's device id."
   "dk.simongray.elektrolyt.device")
-
-(def store
-  "The library's IndexedDB database."
-  (indexeddb/store "dk.simongray.elektrolyt.library"))
-
-;; The app offers no choice of where new episodes go, so they all go to the
-;; inbox. A show's own choice from an earlier version or another app stays
-;; in its settings, for the apps that offer one.
-(def config
-  "The library's config, the same in every tab and the worker."
-  {:new-episodes :inbox})
-
-(def options
-  "The options of every call to the library: its requests go through the
-  proxy and its documents are in Transit. They're functions, so they stay
-  out of its config."
-  {:send  send
-   :codec transit/codec})
-
-(def document-name
-  "The name that podcast-clj gives the library's own document in the store."
-  (str "library" (:extension transit/codec)))
 
 (def channel-name
   "The name of the BroadcastChannel that carries each version of the
@@ -79,7 +51,7 @@
   "The result of the `operation` on the `library`, applied with the
   library's options and the `opts`."
   [library operation opts]
-  (operations/applied library operation (merge options opts)))
+  (operations/applied library operation (merge library-options/options opts)))
 
 (defn applied-all
   "The `library` with the `ops` applied in order, each a map of an
@@ -125,9 +97,9 @@
       (let [shown (:library @state)
             kept! #(swap! waiting (fn [later] (into ops later)))]
         (reset! waiting [])
-        (-> (library/durable-swap! store k
+        (-> (library/durable-swap! library-options/store k
                                    #(if (identical? % library) shown (applied-all % ops))
-                                   options)
+                                   library-options/options)
             (.then (fn [{:keys [error] :as written}]
                      (if error
                        (kept!)
@@ -210,9 +182,10 @@
   "A promise of the stored version of the library's document, taken from
   the store's listing so that no document is read."
   []
-  (.then ((:list store))
+  (.then ((:list library-options/store))
          (fn [listed]
-           (some #(when (= document-name (:name %)) (:version %)) listed))))
+           (some #(when (= library-options/document-name (:name %)) (:version %))
+                 listed))))
 
 (defn caught-up!
   "A promise of reading the library that another tab wrote into the
@@ -226,7 +199,8 @@
        (.then (stored-version)
               (fn [stored]
                 (when (not= stored version)
-                  (.then (library/read! library store options)
+                  (.then (library/read! library library-options/store
+                                        library-options/options)
                          (fn [read]
                            (reset! known read)
                            (swap! state assoc :library
@@ -256,9 +230,11 @@
   ;; is read after it
   (listen! state)
   (in-turn!
-   #(.then (library/read! (library/make (device/id! device-key) {:config config :codec transit/codec})
-                          store
-                          options)
+   #(.then (library/read! (library/make (device/id! device-key)
+                                        {:config library-options/config
+                                         :codec  transit/codec})
+                          library-options/store
+                          library-options/options)
            (fn [{:keys [library] :as read}]
              (reset! known read)
              (swap! state assoc :library (applied-all library @waiting))

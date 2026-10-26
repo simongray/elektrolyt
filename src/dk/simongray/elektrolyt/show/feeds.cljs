@@ -14,6 +14,7 @@
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player.audio :as audio]
             [dk.simongray.elektrolyt.runtime :as runtime]
@@ -126,7 +127,7 @@
   the first episodes, and parse it in the page, since it's small."
   [store url]
   (swap! store show/requested [:head url])
-  (-> (discovery/fetch-head! url {:items show/page-size :send app-library/send})
+  (-> (discovery/fetch-head! url {:items show/page-size :send library-options/send})
       (.then (fn [{:keys [feed]}]
                (answered! store [:head url]
                           #(cond-> % feed (show/arrived url feed)))))
@@ -361,7 +362,7 @@
   [guid feed url index]
   (.then (app.show/fetch-linked-shows!
           (app.show/view feed {:url url :except linked-except})
-          {:send app-library/send :index index})
+          {:send library-options/send :index index})
          (fn [fetched]
            ;; the page's guid can come from the feed's URL, while the
            ;; publisher lists the show by the guid that its feed declares
@@ -393,7 +394,7 @@
   its `view` names into the :episodes of `store`. The transcript waits
   for the listener."
   [store id view]
-  (audio/read-files! store id #(episode/read-files! view {:send   app-library/send
+  (audio/read-files! store id #(episode/read-files! view {:send   library-options/send
                                                          :except #{:transcript}})))
 
 (defn read-transcript!
@@ -404,6 +405,6 @@
     (swap! store assoc-in [:episodes id :transcript-status] :reading)
     (let [read! #(swap! store update-in [:episodes id] assoc
                         :transcript-status :read :transcript %)]
-      (-> (episode/read-files! view {:send app-library/send :except #{:chapters :media}})
+      (-> (episode/read-files! view {:send library-options/send :except #{:chapters :media}})
           (.then (comp read! :transcript))
           (.catch #(read! {:error {:message (ex-message %)}}))))))

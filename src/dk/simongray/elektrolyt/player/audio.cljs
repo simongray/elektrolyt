@@ -20,6 +20,7 @@
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as queue]
             [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player :as player]
@@ -333,7 +334,7 @@
   transcript, which waits for the listener."
   [store id]
   (read-files! store id #(library/read-files! (:library @store) id
-                                              (assoc app-library/options :except #{:transcript}))))
+                                              (assoc library-options/options :except #{:transcript}))))
 
 ;; An MP3's ID3 tag can hold megabytes, e.g. a cover or a PRIV frame, which
 ;; the element reads too as it opens the file, so the read of the tag waits

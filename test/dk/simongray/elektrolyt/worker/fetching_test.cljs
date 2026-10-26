@@ -1,7 +1,7 @@
 (ns dk.simongray.elektrolyt.worker.fetching-test
   (:require [clojure.test :refer [async deftest is]]
             [dk.simongray.podcast.app.library :as library]
-            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]))
 
 (defn stand-in
@@ -56,7 +56,7 @@
 (deftest an-answer-that-keeps-its-string
   (async done
     (let [made   (atom [])
-          encode (:encode (:codec app-library/options))
+          encode (:encode (:codec library-options/options))
           url    "https://example.org/kept.xml"
           s      (encode {:status 200 :url url :feed {:rss/title "A Show"}})]
       (set! (.-Worker js/globalThis) (stand-in made))
@@ -122,7 +122,7 @@
 
 (def codec
   "The library's codec, which a feed and its documents travel in."
-  (:codec app-library/options))
+  (:codec library-options/options))
 
 (def show
   "A whole feed of a show with an episode, as a fetch answers it."

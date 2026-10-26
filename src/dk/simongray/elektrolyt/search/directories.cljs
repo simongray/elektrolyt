@@ -5,7 +5,7 @@
   slugs.json."
   (:require [dk.simongray.podcast.directory :as directory]
             [dk.simongray.podcast.feed.discovery :as discovery]
-            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
@@ -53,7 +53,7 @@
   ;; slugs.json is the same for every query, so the reason that a search
   ;; goes past the HTTP cache doesn't apply, and the page shares the
   ;; worker's copy, which revalidates by its ETag
-  (-> (app-library/send {:url drpodcast/slugs-url :as :json})
+  (-> (library-options/send {:url drpodcast/slugs-url :as :json})
       (.then (fn [{:keys [status body]}]
                (when-not (= 200 status)
                  (throw (js/Error. (str "drpodcast.nu answered " status))))
@@ -122,7 +122,7 @@
     (let [run    (random-uuid)
           found! #(dispatch [[:search/found q run %]])]
       (dispatch [[:store/assoc-in [:searches q] {:status :searching :results [] :run run}]])
-      (-> (discovery/find-feeds! q {:send app-library/send :index index})
+      (-> (discovery/find-feeds! q {:send library-options/send :index index})
           (.then #(found! (search/feeds->search %)))
           (.catch #(found! {:status :done :results [] :error {:message (ex-message %)}}))))
     (do (dispatch [[:store/assoc-in [:searches q] (search/searching sources)]])

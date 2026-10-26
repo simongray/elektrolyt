@@ -7,7 +7,7 @@
   (:require [dk.simongray.like-minded.cache :as cache]
             [dk.simongray.like-minded.store.indexeddb :as indexeddb]
             [dk.simongray.like-minded.transit :as transit]
-            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [taoensso.telemere :as tel]))
 
@@ -70,7 +70,7 @@
   "Send the `request` through the app's proxy, past the browser's HTTP
   cache, so that no other copy of a search stays behind."
   [request]
-  (app-library/send (assoc request :cache :no-store)))
+  (library-options/send (assoc request :cache :no-store)))
 
 (defn fetch!
   "A promise of the entry under `k` in the cache `c`, a map of its :value

@@ -51,8 +51,8 @@
           :main-opts  ["-e" "(start!)" "-m" "nrepl.cmdline"]}
 
   ;; the server's tests on the JVM, and the checks of the namespaces that
-  ;; reach outside the store, that read the player's clock, and of the
-  ;; icons: clojure -X:server:local:test
+  ;; reach outside the store, that read the player's clock, of the icons
+  ;; and of the worker's namespaces: clojure -X:server:local:test
   :test {:extra-paths ["test"]
          :extra-deps  {io.github.cognitect-labs/test-runner
                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
@@ -60,7 +60,8 @@
          :exec-args   {:patterns ["dk\\.simongray\\.elektrolyt\\.server.*"
                                   "dk\\.simongray\\.elektrolyt\\.runtime-test"
                                   "dk\\.simongray\\.elektrolyt\\.clock-test"
-                                  "dk\\.simongray\\.elektrolyt\\.icons-test"]}}
+                                  "dk\\.simongray\\.elektrolyt\\.icons-test"
+                                  "dk\\.simongray\\.elektrolyt\\.worker-test"]}}
 
   ;; podcast-clj, play-nice and colour-coded from the checkouts beside this
   ;; one, and like-minded, mind-meld, wary-fetch and drop-in-search below

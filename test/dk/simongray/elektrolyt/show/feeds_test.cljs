@@ -4,7 +4,7 @@
             [dk.simongray.like-minded.store :as store]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.show :as app.show]
-            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.feeds :as feeds]
@@ -64,11 +64,11 @@
   (async done
     (let [fetched {:status 200 :url url :feed fed :etag "\"v1\""
                    :websub {:hubs ["https://hub.example/"]}}
-          s       ((:encode (:codec app-library/options)) fetched)
+          s       ((:encode (:codec library-options/options)) fetched)
           k       (show/cache-key url)
           puts    (atom [])
           mem     (store/memory)]
-      (is (identical? (:codec app-library/options) (:codec app-cache/shows))
+      (is (identical? (:codec library-options/options) (:codec app-cache/shows))
           "in the library's codec, in which the worker encodes it")
       (with-redefs [app-cache/put! (fn [c k v] (swap! puts conj [c k v]))]
         (feeds/keep-show! url (vary-meta fetched assoc ::fetching/encoded s))

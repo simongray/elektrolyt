@@ -21,7 +21,7 @@
             [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.discovery :as discovery]
             [dk.simongray.podcast.feed.resolve :as resolve]
-            [dk.simongray.elektrolyt.library :as app-library]
+            [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
 
 (def refresh-lock
@@ -74,7 +74,7 @@
   []
   (or @known-slugs
       (reset! known-slugs
-              (-> (app-library/send {:url drpodcast/slugs-url :as :json})
+              (-> (library-options/send {:url drpodcast/slugs-url :as :json})
                   (.then #(drpodcast/slugs (:body %)))
                   (.catch (fn [_]
                             (reset! known-slugs nil)
@@ -173,8 +173,8 @@
   [id due opts]
   (let [progress (fn [{:keys [done total]}]
                    (post! {:id id :progress {:done done :total total}}))]
-    (library/fetch-due! due app-library/store
-                        (merge app-library/config app-library/options
+    (library/fetch-due! due library-options/store
+                        (merge library-options/config library-options/options
                                (dissoc opts :alternative-feeds?)
                                (fetches opts)
                                {:on-feed-fn progress}))))
@@ -185,16 +185,16 @@
   read, and encoded in the library's codec."
   [url opts]
   (let [fetch (:fetch (fetches opts))]
-    (.then (fetch url (merge (select-keys app-library/options [:send])
+    (.then (fetch url (merge (select-keys library-options/options [:send])
                              (dissoc opts :alternative-feeds?)))
-           #((:encode (:codec app-library/options)) (dissoc % :body :report)))))
+           #((:encode (:codec library-options/options)) (dissoc % :body :report)))))
 
 (defn documents!
   "A promise of the search documents of the whole feed `encoded` in the
   library's codec, fetched from `url`, as podcast-clj builds them for a
   subscription, encoded in that codec."
   [encoded url]
-  (let [{:keys [encode decode]} (:codec app-library/options)]
+  (let [{:keys [encode decode]} (:codec library-options/options)]
     ;; in the promise, so that a feed that throws fails this answer alone
     (.then (js/Promise.resolve encoded)
            #(encode (:search-documents (library/with-search-documents (decode %) url))))))
@@ -208,7 +208,7 @@
         due       (when-free refresh-lock
                              #(.then (found! id due opts)
                                      (fn [found]
-                                       {:id id :encoded ((:encode (:codec app-library/options)) {:found found})}))
+                                       {:id id :encoded ((:encode (:codec library-options/options)) {:found found})}))
                              #(js/Promise.resolve {:id id :busy? true}))
         fetch     (.then (fetched! url opts) (fn [fetched] {:id id :encoded fetched}))
         documents (.then (documents! encoded url) (fn [docs] {:id id :encoded docs})))
@@ -230,7 +230,7 @@
   [url on-failed]
   (let [worker  (js/Worker. url)
         pending (atom {})
-        decode  (:decode (:codec app-library/options))
+        decode  (:decode (:codec library-options/options))
         settle! (fn [id f]
                   (when-let [{:keys [resolve reject]} (get @pending id)]
                     (swap! pending dissoc id)
@@ -346,5 +346,5 @@
   (ask! {:documents true
          :url       url
          :encoded   (or (encoded fetched)
-                        ((:encode (:codec app-library/options)) fetched))}
+                        ((:encode (:codec library-options/options)) fetched))}
         nil))
