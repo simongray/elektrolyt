@@ -46,6 +46,14 @@
                                                  "/css/app.css")]
       (is (= 200 status))
       (is (str/starts-with? (get headers "Content-Type") "text/css"))))
+  (testing "which the browser checks with the server before it uses it again"
+    (is (= "no-cache" (get-in (response-for connector :get "/css/app.css")
+                              [:headers "Cache-Control"]))))
+  (testing "but for a font, whose folder names its version"
+    (let [{:keys [status headers]} (response-for connector :get
+                                                 "/fonts/charis-7.000/Charis-Bold.woff2")]
+      (is (= 200 status))
+      (is (= "public, max-age=31536000, immutable" (get headers "Cache-Control")))))
   (testing "a missing file is a 404, even for a browser"
     (is (= 404 (:status (response-for connector :get "/js/missing.js"
                                       :headers page)))))

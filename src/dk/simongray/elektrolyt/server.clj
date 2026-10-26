@@ -121,16 +121,28 @@
                context))}))
 
 ;; RFC 9111, sections 4.2.2 and 5.2.2.4: without no-cache, a browser may
-;; judge a file fresh by itself and run an older build's code
+;; judge a file fresh by itself and run an older build's code. RFC 8246: a
+;; font's folder is named for its version, so another version has another
+;; URL, and a font is kept for a year without a question.
+;; https://www.rfc-editor.org/rfc/rfc8246
+(defn cache-control
+  "The Cache-Control of the app's file at `uri`: immutable for a font, and
+  else no-cache, so that the browser checks with the server first."
+  [uri]
+  (if (str/starts-with? uri "/fonts/")
+    "public, max-age=31536000, immutable"
+    "no-cache"))
+
 (def revalidated
   "An interceptor that has the browser check with the server before it uses
-  a cached file, which costs a 304 when the file hasn't changed."
+  a cached file, which costs a 304 when the file hasn't changed, but for a
+  font."
   (interceptor/interceptor
    {:name  ::revalidated
-    :leave (fn [{:keys [response] :as context}]
+    :leave (fn [{:keys [request response] :as context}]
              (cond-> context
                response (assoc-in [:response :headers "Cache-Control"]
-                                  "no-cache")))}))
+                                  (cache-control (:uri request)))))}))
 
 (defn file-tag
   "The ETag of the bytes in `file`: the start of their SHA-256, quoted."

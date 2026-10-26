@@ -74,3 +74,18 @@ test('the frame of the page shows while the app starts, and a tap in it opens th
   await expect(main.getByRole('heading', { level: 1, name: 'Queue' })).toBeVisible();
   expect(await page.evaluate(() => window.loadedOnce), 'without loading the page again').toBe(true);
 });
+
+test('the bold of the headings and the buttons comes with the page, before they render', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
+  // a preloaded font's FontFace still loads after the render, so the check
+  // is of when the file was asked for, rather than of document.fonts: before
+  // the app's script arrived, which no render can come before. Firefox names
+  // a preload's initiator other rather than link.
+  const started = name => page.evaluate(n => performance.getEntriesByType('resource')
+    .find(r => r.name.endsWith(n)), name);
+  await expect.poll(async () => (await started('/Charis-Bold.woff2'))?.startTime).toBeDefined();
+  const bold = await started('/Charis-Bold.woff2');
+  const script = await started('/js/main.js');
+  expect(bold.startTime).toBeLessThan(script.responseEnd);
+});

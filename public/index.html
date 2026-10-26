@@ -9,7 +9,10 @@
     <!-- before anything renders, so not deferred -->
     <script src="/theme.js"></script>
     <title>Elektrolyt</title>
-    <link rel="preload" href="/fonts/charis/Charis-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- the text, and the bold of the headings and the buttons, which the
+         browser would else ask for only once they render, and then swap in -->
+    <link rel="preload" href="/fonts/charis-7.000/Charis-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/charis-7.000/Charis-Bold.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/css/app.css">
     <script src="/js/shared.js" defer></script>
     <script src="/js/main.js" defer></script>
