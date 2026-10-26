@@ -41,6 +41,9 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${port}`,
     trace: 'retain-on-failure',
+    // so that a test measures what's still, and a test of a motion asks for
+    // no-preference itself; motion_test checks that the CSS gates each
+    reducedMotion: 'reduce',
   },
   projects: [
     { name: 'firefox', use: { browserName: 'firefox' } },
