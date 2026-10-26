@@ -177,9 +177,9 @@ Done, with the commit of each:
 - #46 (fc8b0a2, podcast-clj e412da5): the worker keeps only the notes that
   the app reads. The feeds encode to 90 million characters rather than 140,
   and decode in 262 ms rather than 380. Only a feed that changes is written
-  leaned, though: one whose server answers 304 keeps its stored copy, so 29
-  of the 54 feeds in the in-app browser's stand-in library still hold the
-  notes twice (below).
+  leaned, though: one whose server answers 304 kept its stored copy, so 29
+  of the 54 feeds in the in-app browser's stand-in library held the notes
+  twice, until the library was leaned once at the start (below).
 - #48, its first stage (bfa1c93): an episode's other files are read once
   it plays steadily rather than in the Play click, and a restored episode's
   at idle.
@@ -340,13 +340,18 @@ rather than 2.13–2.25. The rest of the read is the index's postings, about
 600 ms with no single hotspot, which only a change of its format or #99
 would cut.
 
-Found, and waiting for your call: the heap after the start holds the notes
-of many episodes twice, as `:content/encoded` and `:rss/description`, since
-#46's leaning reaches only the feeds that change. In the in-app browser's
-stand-in library that's 12,984 of 27,833 episodes, in 29 of 54 feeds, and
-13.9 million characters.
-Leaning each feed as podcast-clj reads it would drop them, and rewrite
-those feeds' documents once.
+Also new, and fixed: the heap after the start held the notes of many
+episodes twice, as `:content/encoded` and `:rss/description`, since #46's
+leaning reached only the feeds that changed. In the in-app browser's
+stand-in library that was 12,984 of 27,833 episodes, in 29 of 54 feeds,
+and 13.9 million characters. Now the app leans the library's feeds once at
+idle after the start, with podcast-clj's `library/leaned` (8938822), and saves it,
+which writes those feeds' documents anew and deletes the ones before
+(e7492ae). A lean library stays as it is, so it happens once. With the 53
+shows of the benchmark, whose feeds were all from before #46, the heap
+after the start is 173–176 MB rather than 268, IndexedDB's reads take
+118–134 ms rather than 149–165, decoding takes 1,355–1,397 ms rather than
+1,460–1,469, and Home appears at 1.85–1.86 s rather than 1.95–1.99.
 
 Also new, and fixed: each artwork colour went into the store on its own,
 and marking the next artwork as under way was another change, each with a
