@@ -59,6 +59,7 @@ In the tab, outside the store
 | `runtime/detach` | What stops following the player's audio element and clears the lock screen's buttons | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
 | `runtime/scroll-positions` | Where the main content was scrolled to as each history entry was left, by the entry's key, for Back and Forward | `runtime/keep-scroll-positions!` | `runtime/scroll-position`, for `ui.routes/navigated` | The tab |
 | `worker.fetching/web-worker` | The web worker, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |
+| `worker.fetching/in-flight` | The promises of the worker's fetches of feeds in flight, by URL and options, which an equal fetch waits for, e.g. a subscription's while the Show page fetches the whole feed | `worker.fetching` | `worker.fetching`, for `show.feeds` | Until each settles |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
 | `ui.memo` slots | The last result of a view that takes a while, e.g. the queue or the picks, and the last four of a show's or an episode's page | the views | the views | Until its arguments change, or four others are made after it |
 | `ui.text/formatters` | The Intl formatters of dates, durations, lists, sizes and language names, by kind, language and options | `ui.text` | `ui.text`, `ui.time` | The tab |

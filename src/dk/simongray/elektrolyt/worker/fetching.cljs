@@ -275,11 +275,26 @@
   [due opts on-progress]
   (ask! {:due due :opts opts} on-progress))
 
+(defonce ^{:doc "The promises of the fetches that the web worker hasn't
+  answered yet, by URL and options."}
+  in-flight
+  (atom {}))
+
+;; A subscription while the Show page fetches the same whole feed would
+;; fetch it again, and parse and decode it twice, so it waits for that
+;; answer instead, as SWR dedupes a request in flight
+;; https://swr.vercel.app/docs/advanced/performance
 (defn fetch!
   "A promise of the answer to a fetch of the feed at `url` with `opts`, in
-  the web worker and without the :body. The `opts` must be data."
+  the web worker and without the :body, or of the same answer as an equal
+  fetch that's in flight. The `opts` must be data."
   [url opts]
-  (ask! {:fetch true :url url :opts opts} nil))
+  (let [k [url opts]]
+    (or (get @in-flight k)
+        (let [answer (.finally (ask! {:fetch true :url url :opts opts} nil)
+                               #(swap! in-flight dissoc k))]
+          (swap! in-flight assoc k answer)
+          answer))))
 
 ;; The page sends the feed it subscribes to, e.g. one from the cache, since
 ;; encoding it takes a fraction of the time that building its documents does

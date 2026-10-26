@@ -24,6 +24,35 @@
   (doseq [f (get @(:listeners w) type)]
     (f e)))
 
+(deftest an-equal-fetch-in-flight
+  (async done
+    (let [made (atom [])
+          url  "https://example.org/feed.xml"]
+      (set! (.-Worker js/globalThis) (stand-in made))
+      (reset! fetching/web-worker nil)
+      (let [first-one (fetching/fetch! url {:whole? true})
+            again     (fetching/fetch! url {:whole? true})
+            other     (fetching/fetch! url {:whole? false})
+            worker    (first @made)
+            [asked]   @(:posted worker)]
+        (is (identical? first-one again) "waits for the answer to the one in flight")
+        (is (= 2 (count @(:posted worker))) "rather than asking the worker again, unlike other options")
+        (fire! worker "message" #js {:data (fetching/packed {:id (:id asked) :failed "Gone"})})
+        (-> first-one
+            (.then #(is false "the fetch that failed answered")
+                   #(is (= "Gone" (ex-message %)) "which fails for both"))
+            (.then (fn [_]
+                     (is (= [[url {:whole? false}]] (keys @fetching/in-flight))
+                         "and is forgotten, so that the next fetch asks again")
+                     (fire! worker "message" #js {:data (fetching/packed {:id (:id (second @(:posted worker)))
+                                                                          :failed "Gone"})})
+                     (.catch other (fn [_]))))
+            (.then #(is (empty? @fetching/in-flight)))
+            (.catch #(is false (str "rejected: " %)))
+            (.finally #(do (reset! fetching/web-worker nil)
+                           (js-delete js/globalThis "Worker")
+                           (done))))))))
+
 (deftest a-worker-that-failed
   (async done
     (let [made (atom [])]
