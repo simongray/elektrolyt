@@ -90,6 +90,13 @@
       "but for one in a data URL, which needs no fetch")
   (is (= {:title "E"} (player/with-thumbnail-artwork {:title "E"})) "and none for none"))
 
+(deftest when-the-other-files-are-read
+  (is (player/steady? {:id id :media {:paused false}}) "once the episode plays")
+  (is (not (player/steady? {:id id :media {:paused false} :buffering? true}))
+      "but not while it waits for data, e.g. as the file opens")
+  (is (not (player/steady? {:id id :media {:paused true}})) "nor while it's paused")
+  (is (not (player/steady? {:media {:paused false}})) "nor without an episode"))
+
 (deftest the-chapter-at-a-time
   (let [pb {:chapters {:document {:chapters [{:start-time 0 :title "A"} {:start-time 60 :title "B"}]}}}]
     (is (= "B" (:title (player/chapter-at pb 75))))

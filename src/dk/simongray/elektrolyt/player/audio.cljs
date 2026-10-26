@@ -256,10 +256,13 @@
         (when (get-in @store [:player :buffering?])
           (swap! store assoc-in [:player :buffering?] false)))))
 
+(declare read-library-files!)
+
 (defn changed!
   "Keep the element's `media` state in the player in `store`, to the whole
   second, and show any wait for data. While the element plays, and as it
-  pauses, post each change to the other tabs."
+  pauses, post each change to the other tabs. Once it plays with the data
+  to go on, read the episode's other files, if that's due."
   [store media]
   (let [old   (get-in @store [:player :media])
         shown (player/whole-seconds media)]
@@ -267,7 +270,9 @@
       (swap! store assoc-in [:player :media] shown)
       (when (or (false? (:paused shown)) (false? (:paused old)))
         (tell! store media)))
-    (buffering! store shown)))
+    (buffering! store shown)
+    (when (player/steady? (:player @store))
+      (read-library-files! store (get-in @store [:player :id])))))
 
 (defn answered!
   "Keep the browser's refusal to play in the player in `store`, or clear it
@@ -330,6 +335,21 @@
   (read-files! store id #(library/read-files! (:library @store) id
                                               (assoc app-library/options :except #{:transcript}))))
 
+;; An MP3's ID3 tag can hold megabytes, e.g. a cover or a PRIV frame, which
+;; the element reads too as it opens the file, so the read of the tag waits
+;; until the episode plays with the data to go on (changed!), or this long
+;; when it doesn't play
+(def files-wait-ms
+  "How long after an episode is loaded its files are read at the latest,
+  once the page is idle, when it doesn't play meanwhile."
+  5000)
+
+(defn read-soon!
+  "Read the files of the library's episode `id` in `store` once the page
+  is idle, files-wait-ms from now, unless playing it reads them first."
+  [store id]
+  (runtime/later! ::files files-wait-ms #(runtime/idle! 2000 (fn [] (read-library-files! store id)))))
+
 ;; A new source pauses the element without a pause event, so the reporter
 ;; misses the last position. A paused element has reported its position
 ;; already, or holds a stale one, e.g. while another tab plays.
@@ -343,7 +363,7 @@
   (when-let [pb (player/playback @store id)]
     (some->> (playing-element) media-of (report! store))
     (swap! store update :player assoc :id id :answer nil :seeking nil)
-    (read-library-files! store id)
+    (read-soon! store id)
     ;; the swap has rendered by now, so the element is in the page
     (when-let [el (element)]
       (media/source! el (cond-> pb t (assoc :position t)))
@@ -608,7 +628,9 @@
         {:keys [id volume]}        player]
     (when (and id (not (.getAttribute element "src")))
       (media/source! element (player/playback state id))
-      (read-library-files! store id))
+      ;; after the start, and still before a Play, so that the chapters'
+      ;; buttons are there for it
+      (runtime/idle! 2000 #(read-library-files! store id)))
     (media/volume! element (or volume 1) {:curve :cubic})
     (runtime/attach-player! element {:on-media     #(changed! store %)
                                      :on-report    (reporter store)

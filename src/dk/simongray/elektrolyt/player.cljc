@@ -160,6 +160,13 @@
   [{:keys [buffering?] :as player} id]
   (boolean (and buffering? (= :here (playing player id)))))
 
+(defn steady?
+  "Whether the `player` plays its episode in this tab with the data to go
+  on, e.g. so that a read of the episode's other files doesn't hold up its
+  start."
+  [{:keys [id buffering?] :as player}]
+  (boolean (and id (not buffering?) (= :here (playing player id)))))
+
 (defn content-facts
   "What the views of the main content may read of the `player`, which
   playing, shown-id and waiting? give: its episode and the one that it

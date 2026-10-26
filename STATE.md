@@ -55,7 +55,7 @@ In the tab, outside the store
 | `library/known` | The library that this tab last read or wrote, and its version | `library` | `library`, `library.refresh` | Until the next read or write |
 | `library/waiting` | The operations that this tab applied and hasn't written | `library` (`change!`, `written!`) | `library` | Until they're written |
 | `library/turns` | The chain of this tab's reads and writes, so that they take turns | `library` | `library` | The tab |
-| `runtime/timers` | The timers that wait, by name: the next refresh, a save tried again, a prefetch, a wait for data and the clock of a player elsewhere | `library.refresh`, `library`, `show.feeds`, `player.audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
+| `runtime/timers` | The timers that wait, by name: the next refresh, a save tried again, a prefetch, a wait for data, the read of the files of an episode that was loaded but doesn't play, and the clock of a player elsewhere | `library.refresh`, `library`, `show.feeds`, `player.audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
 | `runtime/channels` | The BroadcastChannels, each opened at its first use | `runtime` | `runtime` | The tab |
 | `runtime/detach` | What stops following the player's audio element and clears the lock screen's buttons | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
 | `runtime/scroll-positions` | Where the main content was scrolled to as each history entry was left, by the entry's key, for Back and Forward | `runtime/keep-scroll-positions!` | `runtime/scroll-position`, for `ui.routes/navigated` | The tab |
