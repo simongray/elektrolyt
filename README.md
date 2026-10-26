@@ -214,3 +214,11 @@ It takes the corpus from a podcast-clj checkout beside this one, unless
 `BENCH_CORPUS` names another folder, and the app from port 8400, unless
 `BENCH_URL` names another. Its `shows.opml` imports the same shows with
 their real feeds too, e.g. to profile the app in your own browser.
+
+Every build marks the stages of the page's start on its timeline, e.g.
+`startup/library` once the library is read, and `bench.mjs open` prints
+them. The dev build also measures each render, dispatch and library
+operation, which DevTools' Performance panel shows on a track named
+Elektrolyt, and logs a render over 16 ms as `:perf/slow-render`. A release
+built with `dk.simongray.elektrolyt.runtime.perf/enabled?` set in its
+`:closure-defines` measures them too.

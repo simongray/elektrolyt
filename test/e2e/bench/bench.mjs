@@ -134,7 +134,12 @@ try {
       await page.waitForFunction(() => window.__bench.page, null, { timeout: 120_000 });
       await sleep(3000);
       const { frame, page: shown, long } = await page.evaluate(() => window.__bench);
-      console.log(JSON.stringify({ run: i, frame, page: shown, ...tasks(long.filter(([s]) => s <= shown + 3000)) }));
+      // the app's own marks of its start, e.g. startup/library
+      const startup = await page.evaluate(() => Object.fromEntries(
+        performance.getEntriesByType('mark')
+          .filter(m => m.name.startsWith('startup/'))
+          .map(m => [m.name.slice('startup/'.length), Math.round(m.startTime)])));
+      console.log(JSON.stringify({ run: i, frame, page: shown, ...tasks(long.filter(([s]) => s <= shown + 3000)), startup }));
       await page.close();
     }
   } else if (mode === 'subscribe') {

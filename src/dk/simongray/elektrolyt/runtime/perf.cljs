@@ -8,8 +8,13 @@
   e.g. to profile it, and gone from any other release. Each measure is
   cleared once it's made, since renders repeat, so a recording sees it but
   the page keeps none. A render over 16 ms is logged as
-  :perf/slow-render."
-  (:require [taoensso.telemere :as tel]))
+  :perf/slow-render.
+
+  The stages of the page's start are marks under startup/ in every build,
+  e.g. startup/library once the library is read, and the dev build logs
+  them as :perf/startup once the first page paints."
+  (:require [clojure.string :as str]
+            [taoensso.telemere :as tel]))
 
 (goog-define ^{:doc "Whether a release times itself, which a release
   that's profiled sets in its :closure-defines."}
@@ -54,6 +59,38 @@
         (measure! name props start))
       result)
     (f)))
+
+;; The marks of the start stay in every build and are never cleared, so
+;; that a test, or a profile of a release, finds them
+(defn mark!
+  "Mark `name` on the page's timeline at `at`, a time of performance.now,
+  or now, and return the time."
+  ([name]
+   (mark! name (js/performance.now)))
+  ([name at]
+   (js/performance.mark name #js {:startTime at})
+   at))
+
+(defn startup-ms
+  "The milliseconds from the navigation to each mark of the start, by its
+  name after startup/, and to the first contentful paint, as :fcp, where
+  the browser reports it."
+  []
+  (let [fcp (first (js/performance.getEntriesByName "first-contentful-paint"))]
+    (cond-> (into {}
+                  (for [m     (js/performance.getEntriesByType "mark")
+                        :let  [n (.-name m)]
+                        :when (str/starts-with? n "startup/")]
+                    [(keyword (subs n (count "startup/"))) (js/Math.round (.-startTime m))]))
+      fcp (assoc :fcp (js/Math.round (.-startTime fcp))))))
+
+(defn started!
+  "Log the start of the page as :perf/startup: the milliseconds to each of
+  its marks, and how many `feeds` the library read."
+  [feeds]
+  (tel/log! {:level :info :id :perf/startup
+             :data  (assoc (startup-ms) :feeds feeds)}
+            "The page started"))
 
 (defn changed-keys
   "The top-level keys whose values aren't identical in the maps `old` and

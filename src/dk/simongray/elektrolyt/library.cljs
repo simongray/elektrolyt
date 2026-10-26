@@ -231,28 +231,49 @@
   (runtime/on-visible! #(caught-up! state))
   (runtime/on-pageshow! #(caught-up! state)))
 
+(defn noting-fetches
+  "The `store` with the times of performance.now when its first fetch
+  began and its last ended kept in the atom `times`, as :first and :last."
+  [store times]
+  (update store :fetch
+          (fn [fetch]
+            (fn [& args]
+              (swap! times update :first #(or % (js/performance.now)))
+              (.then (js/Promise.resolve (apply fetch args))
+                     (fn [document]
+                       (swap! times assoc :last (js/performance.now))
+                       document))))))
+
 (defn open!
   "A promise of reading this browser's library, or a new one, into the
   :library of the `state` atom, and of keeping it up to date with what the
   other tabs write. If the library can't be read, the promise fails and
-  `state` gets no library."
+  `state` gets no library.
+
+  The time from its first read of IndexedDB to its last goes on the page's
+  timeline as startup/library-reading and startup/library-read, and the
+  rest of the read is decoding."
   [state]
   ;; listening first, a write that another tab announces during the read
   ;; is read after it
   (listen! state)
   (in-turn!
    (fn []
-     (perf/measured!
-      "library/open" {}
-      #(.then (library/read! (library/make (device/id! device-key)
-                                           {:config library-options/config
-                                            :codec  transit/codec})
-                             library-options/store
-                             library-options/options)
-              (fn [{:keys [library] :as read}]
-                (reset! known read)
-                (swap! state assoc :library (applied-all library @waiting))
-                read))))))
+     (let [times (atom {})]
+       (perf/measured!
+        "library/open" {}
+        #(.then (library/read! (library/make (device/id! device-key)
+                                             {:config library-options/config
+                                              :codec  transit/codec})
+                               (noting-fetches library-options/store times)
+                               library-options/options)
+                (fn [{:keys [library] :as read}]
+                  (when-let [{began :first ended :last} (not-empty @times)]
+                    (perf/mark! "startup/library-reading" began)
+                    (perf/mark! "startup/library-read" ended))
+                  (reset! known read)
+                  (swap! state assoc :library (applied-all library @waiting))
+                  read)))))))
 
 ;; Storage Standard, sections 7.1 and 8. Firefox asks the user first, so the
 ;; request waits until the listener subscribes.

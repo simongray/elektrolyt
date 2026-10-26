@@ -459,6 +459,16 @@
       (.catch #(tel/log! {:level :error :id :server/info-failed :error %}
                          "The server didn't say what it offers"))))
 
+(defn first-refresh!
+  "Refresh the library if feeds are due, and mark the refresh's start and
+  end on the page's timeline."
+  []
+  (perf/mark! "startup/refresh")
+  (let [refreshed (refresh/refresh-if-due! store)]
+    (if (instance? js/Promise refreshed)
+      (.finally refreshed #(perf/mark! "startup/refreshed"))
+      refreshed)))
+
 (defn ^:dev/after-load reload!
   "Start the router again once shadow-cljs reloads the code, so that the
   page renders with the new routes and views."
@@ -475,6 +485,7 @@
   colours of the page's artwork too, so that the page opens in them rather
   than turns to them."
   []
+  (perf/mark! "startup/init")
   (log/start! js/window)
   (when ^boolean perf/on?
     (nxr/register-interceptor! perf/dispatch-interceptor))
@@ -482,6 +493,7 @@
   ;; the page's frame at once, while the library is read
   (document/decodable!)
   (document/render! (ui/starting @store js/location.pathname))
+  (perf/mark! "startup/frame")
   (runtime/hold-links! #(contains? @store :route)
                        #(document/render! (ui/starting @store %)))
   (audio/listen! store)
@@ -495,10 +507,12 @@
                                 (document/theme-colored!)))
   (audio/volume-locked! store)
   (swap! store assoc :library-view (local/stored-edn library-view-key))
-  (-> (js/Promise.all #js [(restore-library!) (load-server-info!)])
+  (-> (js/Promise.all #js [(.finally (restore-library!) #(perf/mark! "startup/library"))
+                           (.finally (load-server-info!) #(perf/mark! "startup/server"))])
       (.finally #(audio/restored! store))
       (.then #(artwork-colors/kept-colors! store) #(artwork-colors/kept-colors! store))
       (.finally (fn []
+                  (perf/mark! "startup/colors")
                   (runtime/watch! store ::render (perf/timed-render document/rendered!))
                   (runtime/watch! store ::colors
                                   (fn [_ state]
@@ -507,7 +521,11 @@
                   (runtime/watch! store ::picks (fn [_ state] (picks-finding/found! store state)))
                   (runtime/watch! store ::lock-screen (audio/lock-screen-watch store))
                   (start-router!)
+                  (perf/mark! "startup/page")
                   ;; after the first page paints, which a refresh's status
                   ;; would else render again first
                   (.then (runtime/painted!)
-                         #(runtime/idle! 2000 (fn [] (refresh/refresh-if-due! store))))))))
+                         (fn []
+                           (perf/mark! "startup/painted")
+                           (perf/started! (count (get-in @store [:library :feeds])))
+                           (runtime/idle! 2000 #(first-refresh!))))))))

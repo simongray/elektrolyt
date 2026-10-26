@@ -89,3 +89,21 @@ test('the bold of the headings and the buttons comes with the page, before they 
   const script = await started('/js/main.js');
   expect(bold.startTime).toBeLessThan(script.responseEnd);
 });
+
+// the marks that the app makes of its start, which a profile of any build
+// finds on the page's timeline
+test('the start of the page marks each of its stages, in order', async ({ page }) => {
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByName('startup/painted').length)).toBe(1);
+  const at = await page.evaluate(() => Object.fromEntries(
+    performance.getEntriesByType('mark')
+      .filter(m => m.name.startsWith('startup/'))
+      .map(m => [m.name.slice('startup/'.length), m.startTime])));
+
+  for (const [before, after] of [['init', 'frame'], ['frame', 'library-reading'],
+                                 ['library-reading', 'library-read'], ['library-read', 'library'],
+                                 ['library', 'colors'], ['server', 'colors'],
+                                 ['colors', 'page'], ['page', 'painted']]) {
+    expect(at[before], `${before} before ${after}`).toBeLessThanOrEqual(at[after]);
+  }
+});
