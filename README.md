@@ -189,3 +189,19 @@ E2E_ALIASES=:server npm run e2e
 ```
 
 CI runs all three, and lints `src`, `test` and `dev` with clj-kondo first.
+
+To time the app with a library the size of a listener's, there's a
+benchmark of 50 shows from podcast-clj's sweep corpus, 27,575 episodes in
+all. It serves the corpus's feeds to the app's proxy in place of the
+network, so each run is the same. Seed its profile once, with the watch
+running, and then time opening Home or subscribing to a show:
+
+```bash
+node test/e2e/bench/bench.mjs seed
+node test/e2e/bench/bench.mjs open 5
+```
+
+It takes the corpus from a podcast-clj checkout beside this one, unless
+`BENCH_CORPUS` names another folder, and the app from port 8400, unless
+`BENCH_URL` names another. Its `shows.opml` imports the same shows with
+their real feeds too, e.g. to profile the app in your own browser.
