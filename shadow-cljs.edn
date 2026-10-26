@@ -14,7 +14,10 @@
                                               :depends-on #{:shared}}
                                      :worker {:init-fn    dk.simongray.elektrolyt.worker/init
                                               :depends-on #{:shared}
-                                              :web-worker true}}}
+                                              :web-worker true}}
+                        ;; a release goes beside the watch's files, never
+                        ;; over them
+                        :release    {:output-dir "target/release/js"}}
             ;; a scene for each state of each view, from the namespaces of
             ;; dev/ that end in -scenes
             :portfolio {:target     :portfolio
