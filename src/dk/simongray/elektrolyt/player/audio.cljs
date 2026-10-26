@@ -12,7 +12,8 @@
   other tabs and runs the commands they send. When it pauses, the others
   move their paused elements to where it stopped, so that Play in any tab
   goes on from there."
-  (:require [dk.simongray.play-nice.media :as media]
+  (:require [clojure.string :as str]
+            [dk.simongray.play-nice.media :as media]
             [dk.simongray.play-nice.page.tabs.playback :as playback]
             [dk.simongray.play-nice.session :as session]
             [dk.simongray.podcast.app.library :as library]
@@ -188,6 +189,80 @@
           (reset! shown k)
           (lock-screen! store))))))
 
+;; User Timing, so that DevTools shows each stage of a start of playback in
+;; its Performance panel
+;; https://w3c.github.io/user-timing/
+(defonce ^{:doc "The start of playback that the listener asked for last,
+  until the element plays: a map of its :trigger, e.g. :play, and the time of
+  each of its stages by name, from performance.now, or nil."}
+  start
+  (atom nil))
+
+(defn asked!
+  "Note that the listener asked for playback with the `trigger`: :play for
+  an episode's Play, :resume for the player's, :ended for what's next and
+  :press for the lock screen's next or previous."
+  [trigger]
+  (js/performance.mark "player/asked")
+  (reset! start {:trigger trigger :marks {:asked (js/performance.now)}}))
+
+(defn marked!
+  "Note the `stage` of the start of playback under way, unless there's
+  none or it has that stage already."
+  [stage]
+  (when (and @start (nil? (get-in @start [:marks stage])))
+    (js/performance.mark (str "player/" (name stage)))
+    (swap! start assoc-in [:marks stage] (js/performance.now))))
+
+;; HTML, §4.8.11.7: loadedmetadata, canplay and playing fire as the ready
+;; state reaches theirs
+(defn stages
+  "The stages of a start of playback that the element's `media` state
+  shows: loadstart while it loads, loadedmetadata and canplay by its ready
+  state, and playing once it plays with the data to go on. The stages of
+  loading count only once the element has a new `source?`."
+  [{:keys [network-state ready-state paused]} source?]
+  (let [ready (.indexOf media/ready-states ready-state)]
+    (cond-> []
+      (and source? (= :loading network-state)) (conj :loadstart)
+      (and source? (<= 1 ready))               (conj :loadedmetadata)
+      (and source? (<= 3 ready))               (conj :canplay)
+      (and (false? paused) (<= 3 ready))       (conj :playing))))
+
+(defn proxied-bytes
+  "The bytes that the reads through the proxy transferred from `since`, in
+  the time of performance.now."
+  [since]
+  (->> (js/performance.getEntriesByType "resource")
+       (filter #(and (<= since (.-startTime %))
+                     (str/includes? (.-name %) "/proxy?")))
+       (map #(.-transferSize %))
+       (reduce + 0)))
+
+(defn played!
+  "Log how long the start of playback took to each stage, and forget it."
+  []
+  (let [{:keys [trigger marks]} @start
+        asked                   (:asked marks)]
+    (reset! start nil)
+    (tel/log! {:level :info :id :player/started
+               :data  {:trigger       trigger
+                       :ms            (update-vals (dissoc marks :asked)
+                                                   #(js/Math.round (- % asked)))
+                       :visibility    (some-> (.-document js/globalThis)
+                                              .-visibilityState)
+                       :proxied-bytes (proxied-bytes asked)}}
+              "The episode started playing")))
+
+(defn staged!
+  "Mark the stages of the start of playback under way that the element's
+  `media` state shows, and log the start once the element plays."
+  [media]
+  (when-let [{:keys [marks]} @start]
+    (run! marked! (stages media (contains? marks :source)))
+    (when (get-in @start [:marks :playing])
+      (played!))))
+
 (defn moved!
   "Post the state of the paused `element` and the episode in `store` to
   the other tabs after the listener moves it, since a paused element's
@@ -205,6 +280,8 @@
   (let [{:keys [library player] :as state} @store
         id                                 (:id player)]
     (when-let [el (and id (element))]
+      (when (#{:previoustrack :nexttrack} (:action details))
+        (asked! :press))
       (swap! store assoc-in [:player :seeking] nil)
       (steps! store (media-session/events library id (.-currentTime el) details
                                           (player/playback-opts state id)))
@@ -267,6 +344,7 @@
   [store media]
   (let [old   (get-in @store [:player :media])
         shown (player/whole-seconds media)]
+    (staged! media)
     (when (not= shown old)
       (swap! store assoc-in [:player :media] shown)
       (when (or (false? (:paused shown)) (false? (:paused old)))
@@ -368,6 +446,7 @@
     ;; the swap has rendered by now, so the element is in the page
     (when-let [el (element)]
       (media/source! el (cond-> pb t (assoc :position t)))
+      (marked! :source)
       (lock-screen! store)
       el)))
 
@@ -416,6 +495,7 @@
   if given. First add it to the library, if needed, so that its progress
   is kept, and make it the current episode at the front of the queue."
   [store {:keys [id] :as playable} t]
+  (asked! :play)
   (try
     (app-library/change! store (added @store playable))
     (step! store [:play id])
@@ -428,6 +508,7 @@
   "Resume the player in `store` from where it is, or try its file again
   where it failed, and its other files if their read failed."
   [store]
+  (asked! :resume)
   (some->> (get-in @store [:player :id]) (read-library-files! store))
   (some->> (element) (play-element! store)))
 
@@ -436,6 +517,7 @@
   play what's next, e.g. the next episode in the queue."
   [store]
   (when-let [id (get-in @store [:player :id])]
+    (asked! :ended)
     (step! store [:ended id])))
 
 (defn chapter!

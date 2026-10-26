@@ -5,6 +5,23 @@ function inWords(seconds) {
   return `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
 }
 
+// the stages of a start of playback, as User Timing marks them
+test('a Play marks each stage up to the element playing, in order and within 3 seconds', async ({ page }) => {
+  await page.goto(episodePath(episodes[0]));
+  await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByName('player/playing').length)).toBe(1);
+
+  const marks = await page.evaluate(() => performance.getEntriesByType('mark')
+    .filter(m => m.name.startsWith('player/'))
+    .map(m => ({ name: m.name.slice('player/'.length), at: m.startTime })));
+  const names = marks.map(m => m.name);
+  const stages = ['asked', 'source', 'loadstart', 'loadedmetadata', 'canplay', 'playing'];
+  expect(names).toEqual(expect.arrayContaining(['asked', 'source', 'playing']));
+  expect(names, 'in the order of a start').toEqual(stages.filter(stage => names.includes(stage)));
+  const at = Object.fromEntries(marks.map(m => [m.name, m.at]));
+  expect(at.playing - at.asked).toBeLessThan(3000);
+});
+
 test('a paused episode is paused at the same second after a reload', async ({ page }) => {
   await page.goto(episodePath(episodes[0]));
   const main = page.getByRole('main');

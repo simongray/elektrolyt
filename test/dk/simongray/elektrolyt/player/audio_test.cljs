@@ -259,3 +259,15 @@
       (audio/unmounted! store #js {:paused true :currentTime 10 :duration 3600})
       (is (= 1 (count @reports)) "but not where a paused element is")
       (is (= 2 @detached) "and stops following it either way"))))
+
+(deftest the-stages-of-a-start
+  (is (= [:loadstart]
+         (audio/stages {:network-state :loading :ready-state :have-nothing :paused false} true)))
+  (is (= [:loadstart :loadedmetadata :canplay :playing]
+         (audio/stages {:network-state :loading :ready-state :have-future-data :paused false} true)))
+  (is (= [:loadedmetadata :canplay]
+         (audio/stages {:network-state :idle :ready-state :have-enough-data :paused true} true))
+      "not playing while it's paused")
+  (is (= [:playing]
+         (audio/stages {:network-state :idle :ready-state :have-enough-data :paused false} false))
+      "and only playing for the file that the element had already"))
