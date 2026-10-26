@@ -16,6 +16,7 @@
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.links :as links]
+            [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]
@@ -205,22 +206,30 @@
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/chapters/jsonChapters.md
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
+;; The same list while they stay, so that Replicant skips it, since the
+;; page renders at every change of the state
+(def chapter-list
+  "The list of the `chapters` of the episode `page`, with their titles in
+  the language `lang`."
+  (memo/remember-last
+   (fn [chapters page lang]
+     [:ol.chapters {:role "list"}
+      (for [{:keys [start-time title url]} chapters]
+        [:li {:replicant/key start-time}
+         (time-link page start-time (time-ui/clock start-time))
+         " "
+         (if (url/web-url? url)
+           (links/new-tab [:a {:href url :lang lang} (or title url)])
+           (when title
+             [:span {:lang lang} title]))])])))
+
 (defn chapters
   "The `chapters` of the episode `page` in `state`, folded like the
   transcript so that the notes come before a long list. Each has its time
   and its title, which links to the chapter's web page, if any."
   [state {:keys [id language] :as page} chapters]
-  (let [lang (text/lang language)]
-    (controls-ui/folded state {:id "chapters" :heading "Chapters" :place [:chapters id]}
-                        #(vector :ol.chapters {:role "list"}
-                                 (for [{:keys [start-time title url]} chapters]
-                                   [:li {:replicant/key start-time}
-                                    (time-link page start-time (time-ui/clock start-time))
-                                    " "
-                                    (if (url/web-url? url)
-                                      (links/new-tab [:a {:href url :lang lang} (or title url)])
-                                      (when title
-                                        [:span {:lang lang} title]))])))))
+  (controls-ui/folded state {:id "chapters" :heading "Chapters" :place [:chapters id]}
+                      #(chapter-list chapters page (text/lang language))))
 
 ;; WAI, Transcribing Audio to Text: the transcript is on the media's own
 ;; page, in paragraphs that name who speaks. It's folded, since an hour's
@@ -234,6 +243,22 @@
 ;; https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/transcript.md
 ;; https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html
 ;; https://www.w3.org/WAI/WCAG22/Techniques/html/H58
+;; An hour's transcript of 210 paragraphs took 14 ms to make at each render
+(def transcript-text
+  "The transcript `document` of the episode `page` in paragraphs of a
+  speaker's turn or about a minute, in the language `lang`, the same while
+  they stay."
+  (memo/remember-last
+   (fn [document page lang]
+     [:div.transcript {:lang lang}
+      (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
+        [:p
+         (when start-time
+           (list (time-link page start-time (time-ui/clock start-time)) " "))
+         (when speaker
+           (list [:strong speaker] ": "))
+         body])])))
+
 (defn transcript
   "The transcript of the episode `page` in `state` from the `files` read so
   far, in paragraphs of a speaker's turn or about a minute. It's read once
@@ -254,14 +279,7 @@
         [:p {:role "status"} "The transcript couldn't be read."]
 
         document
-        [:div.transcript {:lang (text/lang (or language (:language page)))}
-         (for [{:keys [start-time speaker body]} (:segments (transcript/paragraphs document))]
-           [:p
-            (when start-time
-              (list (time-link page start-time (time-ui/clock start-time)) " "))
-            (when speaker
-              (list [:strong speaker] ": "))
-            body])]))))
+        (transcript-text document page (text/lang (or language (:language page))))))))
 
 (def not-found
   "The content of an Episode page whose episode isn't in its show's feed."

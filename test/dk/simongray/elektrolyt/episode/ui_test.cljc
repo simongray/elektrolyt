@@ -225,6 +225,21 @@
     (is (= "TranscriptThe transcript couldn't be read."
            (shown {:transcript-status :read :transcript {:error {:message "404"}}})))))
 
+(deftest a-transcript-and-chapters-made-once
+  (let [page     (episode-ui/route-page (episode-page nil))
+        doc      {:segments [{:start-time 0.0 :speaker "Adam" :body "Hello."}]}
+        files    {:transcript-status :read :transcript {:document doc}}
+        marks    [{:start-time 0 :title "Intro"}]
+        open     {:open {[:transcript (:id page)] true [:chapters (:id page)] true}}
+        later    (assoc open :player {:media {:current-time 12}})
+        text     #(first (elements :div.transcript (episode-ui/transcript %1 page %2)))
+        chapters #(first (elements :ol.chapters (episode-ui/chapters %1 page %2)))]
+    (is (identical? (text open files) (text later files))
+        "the same transcript at the next render, which Replicant skips")
+    (is (identical? (chapters open marks) (chapters later marks)) "and the same chapters")
+    (is (not= (text open files)
+              (text open (assoc-in files [:transcript :document :segments 0 :body] "Hi."))))))
+
 (deftest a-transcript-in-its-own-language
   (let [page (assoc (episode-ui/route-page (episode-page nil)) :language "de")
         doc  {:segments [{:start-time 0.0 :speaker "Ana" :body "Hola."}]}
