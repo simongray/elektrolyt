@@ -4,6 +4,7 @@
   left out, and so are the Details when none of them has one."
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.resolve :as resolve]
+            [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.links :as links]
             [dk.simongray.wary-fetch.url :as url]))
 
@@ -63,14 +64,15 @@
       [k (map place places)])))
 
 ;; W3C, Images tutorial, decorative images: the name beside a picture says
-;; who it is, so its alt is empty
+;; who it is, so its alt is empty. The picture is often a large photo, so
+;; it comes from the server's thumbnails, as artwork does.
 (defn person
   "A `person` who makes the show or the episode: a picture, the name,
   linked to their page where there's one, and the role."
   [{:keys [name role img href] :as person}]
   [:span.person
    (when (url/web-url? img)
-     [:img {:src img :alt "" :width 48 :height 48 :loading "lazy" :decoding "async"}])
+     (artwork/img {:artwork img} 48 {:loading "lazy"}))
    [:span (or (web-link href name) name)
     (when role (str ", " (str/capitalize role)))]])
 

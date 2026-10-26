@@ -192,7 +192,11 @@
            (subvec (first (elements :div aside)) 2))
         "a name and its value in a div of the dl")
     (is (= "PeopleAdam, Host" (text-of (last (elements :div aside))))
-        "and the people last, a value for each"))
+        "and the people last, a value for each")
+    (let [{:keys [srcset sizes alt]} (second (first (elements :img (last (elements :div aside)))))]
+      (is (re-find #"^/artwork\?url=https%3A%2F%2Fexample.org%2Fadam.jpg&w=64 64w" srcset)
+          "each with a picture from the server's thumbnails rather than the original")
+      (is (= ["48px" ""] [sizes alt]))))
   (testing "no Details before the feed has any"
     (let [state (show-page {:searches {"q" {:results [{:guid "g" :url url :title "A Show"}]}}
                             :requests {[:whole url] {}}})
