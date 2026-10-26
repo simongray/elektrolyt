@@ -154,35 +154,41 @@
 (defn navigated
   "The actions of the navigation to `route` from `state`: keep the route,
   and prepare the page, e.g. run its search, load its show or move the
-  focus to its heading.
+  focus to its heading. A new page that had the `scroll` position when it
+  was left, e.g. one gone back to, scrolls back there instead.
 
   The first page, and a page that only changes its query, keep the focus
   at the start of the document unless the URL's fragment names a part of
   it."
-  [state route]
-  (let [{:keys [q url]} (:query-params route)]
-    (cond-> [[:store/assoc :route route]]
-      ;; forget the reads of episodes' files only on a new page, since an
-      ;; Episode page reads its own again as it mounts
-      (and (contains? state :route)
-           (not (same-page? route (:route state))))
-      (conj [:page/focus-heading] [:episodes/forget])
+  ([state route]
+   (navigated state route nil))
+  ([state route scroll]
+   (let [{:keys [q url]} (:query-params route)
+         new-page?       (and (contains? state :route)
+                              (not (same-page? route (:route state))))
+         restore?        (and new-page? (some? scroll))]
+     (cond-> [[:store/assoc :route route]]
+       ;; forget the reads of episodes' files only on a new page, since an
+       ;; Episode page reads its own again as it mounts
+       new-page?
+       (conj (if restore? [:page/restore-scroll scroll] [:page/focus-heading])
+             [:episodes/forget])
 
-      (and (= :route/search (:name route))
-           (not (str/blank? q))
-           (or (not (get-in state [:searches q]))
-               (search/outdated? state q)))
-      (conj [:search/run q])
+       (and (= :route/search (:name route))
+            (not (str/blank? q))
+            (or (not (get-in state [:searches q]))
+                (search/outdated? state q)))
+       (conj [:search/run q])
 
-      (#{:route/show :route/episode} (:name route))
-      (conj [:show/load (get-in route [:path-params :guid]) url false])
+       (#{:route/show :route/episode} (:name route))
+       (conj [:show/load (get-in route [:path-params :guid]) url false])
 
-      (= :route/settings (:name route))
-      (conj [:storage/check])
+       (= :route/settings (:name route))
+       (conj [:storage/check])
 
-      ;; last, so that it moves the focus on from the heading
-      (:fragment route)
-      (conj [:page/scroll-to (:fragment route)]))))
+       ;; last, so that it moves the focus on from the heading
+       (and (:fragment route) (not restore?))
+       (conj [:page/scroll-to (:fragment route)])))))
 
 (comment
   (href :route/library)

@@ -57,6 +57,7 @@ In the tab, outside the store
 | `runtime/timers` | The timers that wait, by name: the next refresh, a save tried again, a prefetch, a wait for data and the clock of a player elsewhere | `library.refresh`, `library`, `show.feeds`, `player.audio`, through `runtime` | `runtime` | Until each fires or is cancelled |
 | `runtime/channels` | The BroadcastChannels, each opened at its first use | `runtime` | `runtime` | The tab |
 | `runtime/detach` | What stops following the player's audio element and clears the lock screen's buttons | `runtime/attach-player!` | `runtime/detach-player!` | While the element is mounted |
+| `runtime/scroll-positions` | Where the main content was scrolled to as each history entry was left, by the entry's key, for Back and Forward | `runtime/keep-scroll-positions!` | `runtime/scroll-position`, for `ui.routes/navigated` | The tab |
 | `worker.fetching/web-worker` | The web worker, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
 | `ui.memo` slots | The last result of a view that takes a while, e.g. the queue, a show's page, the picks | the views | the views | Until its arguments change |
@@ -108,7 +109,7 @@ In the page
 | The Media Session | The episode on the lock screen, and its buttons while the player's element is mounted | `runtime/lock-screen!`, from `player.audio` | The platform |
 | `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `ui.document`, at each render | CSS, the browser |
 | The history | The page's URL; `ui.document/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `ui.routes`, `ui.document` | `runtime/follow-history!` |
-| The listeners | The page shown, hidden or restored, the end of a transition, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
+| The listeners | The page shown, hidden or restored, the end of a transition, a navigation, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
 | The beforeunload listener | That the browser asks before the page goes, while its changes aren't saved | `runtime/warn-before-leaving!`, from `library` | The browser |
 | The listeners of the logs | The errors and the rejected promises that nothing else caught, in the page and in the worker | `runtime.log` | Telemere |
 

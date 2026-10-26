@@ -123,6 +123,10 @@
   (fn [_ _ id]
     (document/scroll-to! id)))
 
+(nxr/register-effect! :page/restore-scroll
+  (fn [_ _ px]
+    (document/restore-scroll! px)))
+
 (nxr/register-effect! :dialog/open
   (fn [_ _ id]
     (document/open-dialog! id)))
@@ -410,10 +414,12 @@
   starting with the current one."
   []
   (document/decodable!)
+  (runtime/keep-scroll-positions! "main")
   (runtime/follow-history! routes/router
                            (fn [match _]
                              (nxr/dispatch store {} [[:route/navigated
-                                                      (routes/match->route match)]]))
+                                                      (routes/match->route match)
+                                                      (runtime/scroll-position)]]))
                            {:use-fragment         false
                             :ignore-anchor-click? routed-click?}))
 

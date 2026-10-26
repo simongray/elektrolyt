@@ -134,7 +134,24 @@
         "a link from elsewhere, or a reload")
     (is (= [[:store/assoc :route settings] [:storage/check] [:page/scroll-to "search"]]
            (routes/navigated {:route (dissoc settings :fragment)} settings))
-        "on the same page")))
+        "on the same page")
+    (is (= [[:store/assoc :route settings] [:page/restore-scroll 900] [:episodes/forget] [:storage/check]]
+           (routes/navigated {:route inbox} settings 900))
+        "unless it's a page gone back to")))
+
+(deftest back-where-the-page-was-left
+  (is (= [[:store/assoc :route (search-page "x")] [:page/restore-scroll 1200] [:episodes/forget]]
+         (routes/navigated {:route inbox :searches {"x" {:status :done}}} (search-page "x") 1200))
+      "a page gone back to scrolls to where it was left, and its heading takes the focus there")
+  (is (= [[:store/assoc :route library-page] [:page/restore-scroll 0] [:episodes/forget]]
+         (routes/navigated {:route inbox} library-page 0))
+      "the top included")
+  (is (= [[:store/assoc :route inbox]]
+         (routes/navigated {} inbox 300))
+      "but not the first page")
+  (is (= [[:store/assoc :route (search-page "b")] [:search/run "b"]]
+         (routes/navigated {:route (search-page "a")} (search-page "b") 300))
+      "nor the same page with another query"))
 
 (deftest the-page-of-a-show-loads-it
   (let [route {:name         :route/show

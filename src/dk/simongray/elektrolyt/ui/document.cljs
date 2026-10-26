@@ -133,6 +133,14 @@
   []
   (some-> (js/document.querySelector "main h1") .focus))
 
+(defn restore-scroll!
+  "Scroll the main content back to `px` and move the focus to the page's
+  heading without scrolling to it."
+  [px]
+  (some-> (js/document.querySelector "main h1") (.focus #js {:preventScroll true}))
+  (when-let [main (js/document.getElementById "main")]
+    (set! (.-scrollTop main) px)))
+
 ;; CSSOM View, scrollIntoView: the heading goes to the start of a row that
 ;; scrolls sideways, which brings its column into view, and to the top of
 ;; the page when it's out of sight, e.g. further down a stack. Focus alone

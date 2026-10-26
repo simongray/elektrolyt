@@ -71,3 +71,27 @@ test('the Details come after the episodes on a phone, and beside them on a wider
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(details.locator('dt').first()).toBeInViewport();
 });
+
+test('Back returns to where the page was left, with the focus on its heading', async ({ page }) => {
+  // a phone's height, so that the Show page scrolls
+  await page.setViewportSize({ width: 360, height: 480 });
+  await page.goto(showPath);
+  const main = page.getByRole('main');
+  const link = main.getByRole('link', { name: episodes[0].title });
+  await main.evaluate(m => { m.scrollTop = m.scrollHeight; });
+  await link.scrollIntoViewIfNeeded();
+  const left = await main.evaluate(m => m.scrollTop);
+  expect(left).toBeGreaterThan(0);
+
+  await link.click();
+  await expect(main.getByRole('heading', { level: 1, name: episodes[0].title })).toBeFocused();
+  await expect.poll(() => main.evaluate(m => m.scrollTop)).toBe(0);
+
+  await page.goBack();
+  await expect(main.getByRole('heading', { level: 1, name: showTitle })).toBeFocused();
+  await expect.poll(() => main.evaluate(m => m.scrollTop)).toBe(left);
+
+  await page.goForward();
+  await expect(main.getByRole('heading', { level: 1, name: episodes[0].title })).toBeFocused();
+  await expect.poll(() => main.evaluate(m => m.scrollTop)).toBe(0);
+});

@@ -181,6 +181,36 @@
   [router on-navigate opts]
   (rfe/start! router on-navigate opts))
 
+(defonce ^{:doc "The scroll position of the main content as each history
+  entry was left, by the entry's key."}
+  scroll-positions
+  (atom {}))
+
+;; HTML, the Navigation API: navigate fires at a push, a replace or a
+;; traversal before the URL changes, while currentEntry is still the entry
+;; that's left. The browser's own restore of an inner scroller comes during
+;; a traversal, while the page that's left is still rendered, so the app
+;; keeps the positions itself. Without the API, e.g. in Safari before 26.2,
+;; Back goes to the top.
+;; https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-api
+(defn keep-scroll-positions!
+  "Keep the scroll position of the element `id` for each history entry as
+  it's left, where the browser has the Navigation API."
+  [id]
+  (when-let [^js navigation (.-navigation js/globalThis)]
+    (.addEventListener navigation "navigate"
+                       (fn [_]
+                         (when-let [element (js/document.getElementById id)]
+                           (swap! scroll-positions assoc
+                                  (.. navigation -currentEntry -key)
+                                  (.-scrollTop element)))))))
+
+(defn scroll-position
+  "The scroll position kept for the current history entry, or nil."
+  []
+  (when-let [k (some-> js/globalThis .-navigation .-currentEntry .-key)]
+    (get @scroll-positions k)))
+
 (defn watch!
   "Call `f` with the old and the new state at each change of the atom
   `store`, as the watch `k`."
