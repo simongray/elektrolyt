@@ -96,6 +96,34 @@ test('a slow load moves a line under its status, unless motion is reduced', asyn
   await expect(skeleton).toHaveCount(0);
 });
 
+// The bookmark fills in at once, and pulses while the subscription waits,
+// here for the whole feed, which comes without a Range, while the start of
+// the feed shows the page
+test('the bookmark pulses while a subscription works, unless motion is reduced', async ({ page, context }) => {
+  const main = page.getByRole('main');
+  const bookmark = main.locator('button.bookmark');
+  const animation = () => bookmark.locator('svg.icon').evaluate(svg => getComputedStyle(svg).animationName);
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  await context.route(url => url.pathname === '/proxy' && url.searchParams.get('url') === feedUrl,
+    async route => {
+      if (!route.request().headers().range) await held;
+      await route.fallback();
+    });
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto(showPath);
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
+  await expect(bookmark).toHaveClass(/subscribing/);
+  expect(await animation()).toBe('drop, pulse');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await animation()).toBe('none');
+
+  release();
+  await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
+  await expect(bookmark).not.toHaveClass(/subscribing/);
+});
+
 // Once the page has the whole feed, which its count of episodes says,
 // Subscribe turns into Unsubscribe at once, under the second click
 test('a double click on Subscribe subscribes once', async ({ page }) => {

@@ -133,6 +133,12 @@
                                               :artwork artwork}
                                              {:guid "g2" :title "Boostagram Ball" :artwork artwork}]}}})))
 
+(defscene while-it-subscribes
+  "A show in the frame after Subscribe is pressed, while its whole feed and
+  its documents are on their way: the filled bookmark, which pulses three
+  times where motion is allowed."
+  (ui/page (whole pc20 {:subscribing #{url}})))
+
 (defscene while-it-unsubscribes
   "A show in the library in the frame after Unsubscribe is pressed, before
   the library lets it go: the empty bookmark, which can't be pressed yet,

@@ -83,6 +83,8 @@
                                                             icons/bookmark-simple-thin))
                                          :class "bookmark"}
                                   (not= :ready status)        (assoc :aria-disabled "true")
+                                  ;; which pulses while it works (look.css)
+                                  (= :subscribing status)     (assoc :class ["bookmark" "subscribing"])
                                   (= :unsubscribing status)   (assoc :data-refocus "main h1")
                                   (= :ready status)           (assoc :on {:click (controls/single-click
                                                                                   [[:library/subscribe url title]])}))]

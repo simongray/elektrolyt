@@ -1106,6 +1106,25 @@ search p {
   .busy::after {
     animation: busy 1s ease-in-out 1s 4 alternate;
   }
+
+  /* the bookmark drops into place as it fills in, and pulses three times
+     while the subscription works, which stops within 5 seconds (WCAG
+     2.2.2). Only its drawing moves, so the focus ring stays still. */
+  .icon-button.bookmark.subscribing .icon {
+    animation: drop 0.2s ease-out, pulse 1.2s ease-in-out 0.4s 3;
+  }
+}
+
+@keyframes drop {
+  from {
+    translate: 0 -10%;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes busy {
