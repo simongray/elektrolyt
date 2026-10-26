@@ -1,12 +1,21 @@
 (ns dk.simongray.elektrolyt.runtime-test
-  "The player's audio element, as runtime follows it, with stand-ins for
-  the browser's Media Session and for what play-nice listens to, which
-  Node has none of. runtime_test.clj checks which namespaces are runtime."
-  (:require [clojure.test :refer [deftest is]]
+  "Work at idle in a browser without requestIdleCallback, and the player's
+  audio element, as runtime follows it, with stand-ins for the browser's
+  Media Session and for what play-nice listens to, which Node has none of.
+  runtime_test.clj checks which namespaces are runtime."
+  (:require [clojure.test :refer [async deftest is]]
             [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.play-nice.media :as media]
             [dk.simongray.play-nice.page.tabs :as tabs]
             [dk.simongray.elektrolyt.runtime :as runtime]))
+
+(deftest work-at-idle-without-request-idle-callback
+  (async done
+    (let [ran? (atom false)]
+      (runtime/idle! 1000 #(do (reset! ran? true)
+                               (is true "runs once the page has painted, as Node has no frames")
+                               (done)))
+      (is (not @ran?) "rather than within the current task"))))
 
 (defn stand-in-session
   "A stand-in for the browser's Media Session, which keeps the handler of

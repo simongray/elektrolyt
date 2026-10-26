@@ -47,15 +47,6 @@
   [f]
   (js/setTimeout f 0))
 
-(defn idle!
-  "Call `f` once the page is idle, or after `ms` milliseconds at the
-  latest, or after the current task in a browser without
-  requestIdleCallback."
-  [ms f]
-  (if (exists? js/requestIdleCallback)
-    (js/requestIdleCallback f #js {:timeout ms})
-    (soon! f)))
-
 ;; HTML Living Standard, the event loop's processing model: the browser
 ;; paints between tasks, right after the callbacks of requestAnimationFrame,
 ;; so a task queued from one runs once the frame is painted. A hidden page
@@ -74,6 +65,19 @@
        (do (js/requestAnimationFrame #(soon! resolve))
            (js/setTimeout resolve 100))
        (soon! resolve)))))
+
+;; Safari has requestIdleCallback only behind a setting, and there work
+;; after the current task would run before the page paints what changed,
+;; e.g. a feed encoded for the cache before the Show page's list shows
+;; https://caniuse.com/requestidlecallback
+(defn idle!
+  "Call `f` once the page is idle, or after `ms` milliseconds at the
+  latest, or once the page has painted in a browser without
+  requestIdleCallback."
+  [ms f]
+  (if (exists? js/requestIdleCallback)
+    (js/requestIdleCallback f #js {:timeout ms})
+    (.then (painted!) (fn [_] (f)))))
 
 ;; Prioritized Task Scheduling, scheduler.yield(): the rest of a long piece
 ;; of work goes on ahead of other tasks, once the input that waits is
