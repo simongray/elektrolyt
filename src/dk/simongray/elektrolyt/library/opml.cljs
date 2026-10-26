@@ -118,12 +118,17 @@
   of its shows has its feed, or the listener left one, and keep the rest
   in the document `name`."
   [store name list]
-  (let [k (gensym "opml-import")]
+  (let [k        (gensym "opml-import")
+        running? #(get-in % [:refresh-status :running?])]
     (runtime/watch! store k
                     (fn [old new]
-                      ;; not at each step of the player, which changes only the profile
-                      (when (and (not (identical? (get-in old [:library :feeds])
-                                                  (get-in new [:library :feeds])))
+                      ;; not at each step of the player, which changes only
+                      ;; the profile, nor between the parts of a refresh, but
+                      ;; once it ends
+                      (when (and (not (running? new))
+                                 (or (running? old)
+                                     (not (identical? (get-in old [:library :feeds])
+                                                      (get-in new [:library :feeds]))))
                                  (not= list (waiting new list)))
                         (runtime/unwatch! store k)
                         (mark! store name list))))))

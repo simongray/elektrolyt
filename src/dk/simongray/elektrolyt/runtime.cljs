@@ -75,6 +75,25 @@
            (js/setTimeout resolve 100))
        (soon! resolve)))))
 
+;; Prioritized Task Scheduling, scheduler.yield(): the rest of a long piece
+;; of work goes on ahead of other tasks, once the input that waits is
+;; handled. Safari has no scheduler, so a message on a channel of its own
+;; stands in, which waits behind the other tasks, but not for a timer's
+;; clamp as setTimeout does.
+;; https://developer.chrome.com/blog/use-scheduler-yield
+;; https://developer.mozilla.org/en-US/docs/Web/API/Scheduler/yield
+(defn yielded!
+  "A promise that resolves once the browser has handled what waits, e.g.
+  a click, between parts of a long piece of work."
+  []
+  (if (some-> js/globalThis .-scheduler .-yield)
+    (.yield js/scheduler)
+    (js/Promise.
+     (fn [resolve]
+       (let [channel (js/MessageChannel.)]
+         (set! (.. channel -port1 -onmessage) (fn [_] (resolve)))
+         (.postMessage (.-port2 channel) nil))))))
+
 ;; Channels
 
 (defonce ^{:doc "The BroadcastChannels of the app by name, each opened at

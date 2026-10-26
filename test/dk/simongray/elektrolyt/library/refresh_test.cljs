@@ -1,6 +1,7 @@
 (ns dk.simongray.elektrolyt.library.refresh-test
-  (:require [clojure.test :refer [deftest is]]
-            [dk.simongray.elektrolyt.library.refresh :as refresh]))
+  (:require [clojure.test :refer [async deftest is]]
+            [dk.simongray.elektrolyt.library.refresh :as refresh]
+            [dk.simongray.elektrolyt.runtime :as runtime]))
 
 (def at
   (js/Date. 1000000))
@@ -25,3 +26,28 @@
   (let [busy (refresh/busy {} true at)]
     (is (= {:running? false :busy-at at} (:refresh-status busy)))
     (is (= "Another tab is checking for new episodes" (:announcement busy)))))
+
+(deftest a-refresh-applied-in-parts
+  (let [result (refresh/merged [{:library :first :at at :counts {:changed 2} :seconds 4.2
+                                 :added [] :backfilled [] :renamed [] :moved {} :report [:offline]}
+                                {:library :second :added [[:a "1"]] :backfilled [] :renamed []
+                                 :moved {:a "https://a.example"} :report [:taken]}
+                                {:library :third :added [[:b "1"] [:b "2"]] :backfilled [[:b "0"]]
+                                 :renamed [] :moved {} :report []}])]
+    (is (= {:library    :third
+            :at         at
+            :counts     {:changed 2}
+            :seconds    4.2
+            :added      [[:a "1"] [:b "1"] [:b "2"]]
+            :backfilled [[:b "0"]]
+            :renamed    []
+            :moved      {:a "https://a.example"}
+            :report     [:offline :taken]}
+           result)
+        "is one result, with the library of the last part and what all of them found")))
+
+(deftest a-pause-between-parts
+  (async done
+    (-> (runtime/yielded!)
+        (.then #(is true "ends"))
+        (.finally done))))

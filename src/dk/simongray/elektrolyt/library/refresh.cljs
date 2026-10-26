@@ -117,14 +117,48 @@
                                           :result   (dissoc result :library)})
       summary (announcement/announced summary))))
 
+(def part-episodes
+  "How many episodes of the feeds that a refresh found are applied to the
+  library in one task, at most, unless a feed has more."
+  500)
+
+(defn merged
+  "The result of a refresh from the `results` of its parts, as
+  library/found-parts gives them: the first has the counts, the seconds and
+  the report of the whole, and each adds its own episodes, moves and
+  report."
+  [[first-part & others :as results]]
+  (reduce (fn [acc {:keys [added backfilled renamed moved report]}]
+            (-> acc
+                (update :added into added)
+                (update :backfilled into backfilled)
+                (update :renamed into renamed)
+                (update :moved merge moved)
+                (update :report into report)))
+          (assoc first-part :library (:library (peek results)))
+          others))
+
+;; web.dev, optimize long tasks: the page answers a click or a key between
+;; the parts, rather than once every feed that changed is applied, which
+;; took seconds after an import or on a day's first refresh
+;; https://web.dev/articles/optimize-long-tasks
 (defn refreshed!
-  "Apply the feeds that a refresh `found` to the library in `store` and
-  save it, given whether the listener `asked?` for the refresh."
+  "A promise of applying the feeds that a refresh `found` to the library in
+  `store`, a few at a time with a pause between them, and of saving it,
+  given whether the listener `asked?` for the refresh."
   [store found asked?]
-  (let [result (app-library/change! store
-                                    {:operation [:library/refreshed found]})]
-    (swap! store refreshed result asked?)
-    (app-library/save! store)))
+  (-> (reduce (fn [results part]
+                (.then results
+                       (fn [done]
+                         (-> (if (seq done) (runtime/yielded!) (js/Promise.resolve))
+                             (.then #(conj done (app-library/change!
+                                                 store
+                                                 {:operation [:library/refreshed part]})))))))
+              (js/Promise.resolve [])
+              (library/found-parts found part-episodes))
+      (.then (fn [results]
+               (swap! store refreshed (merged results) asked?)
+               (app-library/save! store)))))
 
 (defn fetched!
   "A promise of what the web worker finds for the library in `store`:
