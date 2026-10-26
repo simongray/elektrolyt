@@ -74,3 +74,16 @@ jobs:
         with:
           name: e2e-traces
           path: target/e2e
+
+      # A release build into a snapshot of its own, which fails where a
+      # module is over its budget in dev/sizes.edn
+      - name: Release build and sizes
+        run: clojure -M:cljs clj-run sizes/check!
+
+      - name: The report of the release build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-report
+          path: target/build-report.html
+          if-no-files-found: ignore

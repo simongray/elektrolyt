@@ -188,7 +188,15 @@ Without them, name `:server` alone:
 E2E_ALIASES=:server npm run e2e
 ```
 
-CI runs all three, and lints `src`, `test` and `dev` with clj-kondo first.
+To check the size of the release build, evaluate `(sizes/check!)` in the
+watch's nREPL, or run `clojure -M:cljs clj-run sizes/check!` without the
+watch. It builds a release into a snapshot of its own, prints each
+namespace's share of it and writes shadow-cljs's report to
+`target/build-report.html`. It fails where a module is bigger than its
+budget in `dev/sizes.edn`, raw or gzipped, so raise a budget only for a
+dependency you add on purpose.
+
+CI runs all four, and lints `src`, `test` and `dev` with clj-kondo first.
 
 To time the app with a library the size of a listener's, there's a
 benchmark of 50 shows from podcast-clj's sweep corpus, 27,575 episodes in
