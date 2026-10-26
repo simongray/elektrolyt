@@ -335,6 +335,93 @@ so the app has them only with the `:local` alias, which now takes
 drop-in-search from its checkout too.
 
 
+## Changes you can see
+
+The changes that alter what the page shows or how it moves, for you to
+review. Each names its item and commit, and the Portfolio scene that shows
+it, where there's one. The motion shows only where the device allows
+motion, and with reduced motion each of them changes at once.
+
+While something loads:
+
+- **A line moves under the status of a slow load** (#35, d17234d). A
+  status that's still there after a second, e.g. Loading the show…,
+  Looking for episodes… or a directory's search, gets a line 2 px high and
+  a third as wide as its text, a little below it, which moves to the right
+  and back four times and then stops. With reduced motion there's no line.
+  Scenes: the Episode page's while its feed loads, and Home while its picks
+  are found.
+- **A ring turns around Pause while the episode waits for its file** (#5,
+  3a43571). After half a second of waiting, the player's Pause and the
+  Episode page's button get a ring in the button's own colour, which turns
+  with a gap in it, or stands still and dashed with reduced motion.
+  Scenes: the player's and the Episode page's while it waits for data.
+- **The page's frame shows at start** (#85, df2923c). The navigation and
+  the page's heading show at once while the library is read, with three
+  lines in the paper's soft rule below, each shorter than the one before,
+  from a second on. Scene: while the app starts.
+- **Skeleton rows hold a show's place while its feed loads** (#38,
+  98ab7e8). Five rows of an artwork's square and two lines stand under
+  Loading the show or Loading episodes, and three lines under Loading the
+  episode, from a second on. Scene: the Episode page's while its feed loads.
+- **The picks fill in after the page** (#45, 0e147df). Home's sections and
+  More like this show their heading over Looking for episodes… for a moment
+  before their picks. Scene: Home while its picks are found.
+- **The small artwork shows first** (#23, 126e30b). A Show or Episode
+  page's large artwork shows the small copy from the row or result you
+  came from, scaled up, until the large one arrives.
+- **A linked show opens with its card's title and artwork** (#24,
+  4268684), rather than with the heading Show and no artwork, when you open
+  it from a podroll or the publisher's other shows.
+
+Subscribing and new episodes:
+
+- **The bookmark drops in and pulses** (#58, 2dda6df). As you subscribe,
+  the bookmark fills, drops a tenth of its height into place over 0.2 s,
+  and then fades to half and back three times, 1.2 s each, while the
+  subscription works. This is the bounce. Scene: the Show page's while it
+  subscribes.
+- **Unsubscribe empties the bookmark at once** (#34, 2d1adf6), and the
+  page keeps its episodes rather than show Loading the show for a few
+  seconds. Scene: the Show page's while it unsubscribes.
+- **The button for new episodes takes the status line's place** (#62,
+  1ca871a). On a show that you've opened before, new episodes wait behind
+  a button where the line of the episodes' count was, so the list doesn't
+  move down. Scene: new episodes that wait.
+
+Motion where there was none:
+
+- **Dialogs ease in** (#60, b40d090). A dialog, e.g. Clear the queue,
+  fades in and rises half a rem over 0.2 s as its backdrop fades in, and
+  goes at once.
+- **Search's jump row scrolls smoothly** (#61, c2d0c4f) to a directory's
+  list.
+- **Small changes ease** (#66, a06510e). A folded section's caret turns
+  over 0.2 s, a switch's knob slides, the volume panel fades in and fades
+  out within its 0.3 s, and artwork brightens under the pointer over
+  0.15 s.
+- **The Library's artwork moves to its new place** (#78, f4cb654) over
+  0.25 s as Show as or Sort by changes, while the rest cross-fades, and a
+  change of Light or dark or of the contrast cross-fades the whole page.
+
+Side effects of speed-ups that you may notice:
+
+- The Library's tiles past the first dozen get their artwork as you scroll
+  to them, so you may see their colour first (#40, fb6a66b).
+- Back to a show more than five outside shows ago opens from the cache,
+  which can show a short load (#94, 6eac94d).
+
+Before the ranking, on 24 and 25 October, the branch had these already:
+
+- The player's buttons lift on hover, and the volume panel lies over the
+  seek bar (ade8a42).
+- Every button lifts as a key, a light in its words' colour at 10%, and
+  the outlines stay for More contrast (fbc3bd6).
+- Subscribe is a bookmark before the show's title: a thin outline to
+  subscribe, filled with a microphone cut out once subscribed, and it
+  fills before the subscription indexes the feed (2bb4aa1, 13f2ac6).
+
+
 ## The ranking
 
 | # | Item | Area | Hours | Gain | Score | Confidence | Status |
