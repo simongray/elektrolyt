@@ -119,13 +119,36 @@ test('a show from the cache past its time is fetched again, and its new episodes
   const button = main.getByRole('button', { name: 'Show the new episode' });
   await expect(button).toBeVisible();
   expect(fetched.n, 'the feed alone, whole, not its start first').toBe(before + 1);
-  await expect(main.getByText('3 episodes. 1 new episode is in.')).toBeVisible();
+  await expect(main.getByRole('status').filter({ hasText: '3 episodes. 1 new episode is in.' })).toBeAttached();
   await expect(main.getByRole('link', { name: 'Fourth episode' })).toHaveCount(0);
 
   await button.click();
   await expect(main.getByRole('link', { name: 'Fourth episode' })).toBeVisible();
   await expect(main.getByRole('heading', { name: 'Episodes', level: 2 })).toBeFocused();
 });
+
+for (const width of [320, 900]) {
+  test(`the button for new episodes takes the status line's place, so the list stays put, ${width} px wide`, async ({ page, show }) => {
+    show.headers = { 'Cache-Control': 'max-age=1' };
+    await page.setViewportSize({ width, height: 800 });
+    const main = page.getByRole('main');
+    const first = main.getByRole('link', { name: episodes[2].title }).first();
+
+    await page.goto(showPath);
+    await expect(first).toBeVisible();
+    await expect.poll(() => cached(page)).toContainEqual(expect.stringMatching(/^show\./));
+    await page.waitForTimeout(1100);
+
+    show.publish({ guid: 'test-episode-4', title: 'Fourth episode', published: '2026-10-18T08:00:00Z' });
+    const release = show.hold();
+    await page.reload();
+    await expect(first).toBeVisible();
+    const before = (await first.boundingBox()).y;
+    release();
+    await expect(main.getByRole('button', { name: 'Show the new episode' })).toBeVisible();
+    expect(Math.abs((await first.boundingBox()).y - before)).toBeLessThan(8);
+  });
+}
 
 test('a show from the cache past its time that has not changed is asked about with its ETag, and stays', async ({ page, show }) => {
   show.headers = { 'Cache-Control': 'max-age=1', ETag: '"v1"' };

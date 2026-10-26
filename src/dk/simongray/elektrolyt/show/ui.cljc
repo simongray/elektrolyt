@@ -197,7 +197,13 @@
 ;;
 ;; Both buttons go once they've done their part, so the focus moves on: to
 ;; the list's heading once the new episodes show, and to the first episode
-;; that the last page listed
+;; that the last page listed.
+;;
+;; The button for the new episodes takes the status line's place, whose
+;; text a screen reader still hears, so that the list barely moves when
+;; they arrive, which is often soon after the page opens and could put a
+;; tap on another row
+;; https://web.dev/articles/cls
 (defn episodes
   "The episodes of the show `page` in `state`, a page at a time, with the
   status of the load and buttons for newer episodes that wait and for
@@ -214,7 +220,11 @@
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
        (failure state n error "#episodes")
-       [(if (= :loading status) :p.busy :p) {:role "status"} (status-text status n error newer)])
+       [(cond (= :loading status) :p.busy
+              newer               :p.visually-hidden
+              :else               :p)
+        {:role "status"}
+        (status-text status n error newer)])
      (when newer
        [:button {:type "button" :data-refocus "#episodes" :on {:click [[:show/newer g]]}}
         (str "Show the " (text/plural newer "new episode"))])
