@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.podcast.feed.search :as feed.search]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.elektrolyt.library.operations :as operations]
@@ -182,4 +183,8 @@
           [ids]   (picks/show-seeds lib outside)]
       (is (= ["1" "0"] (map second ids)) "and of a show outside the library, its newest")
       (is (= #{(first (first ids))} (set (keys (:feeds (picks/outside {} outside)))))
-          "whose feed recommend is given"))))
+          "whose feed recommend is given")
+      (let [runs #(-> (picks/outside {} outside) :feeds vals first :repeated)]
+        (is (= (feed.search/repeated-runs (:feed outside)) (runs))
+            "with the runs that its notes repeat")
+        (is (identical? (runs) (runs)) "worked out once for the feed")))))

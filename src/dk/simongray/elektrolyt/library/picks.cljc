@@ -10,6 +10,7 @@
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
+            [dk.simongray.podcast.feed.search :as feed.search]
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.library.settings :as settings]
@@ -131,13 +132,25 @@
   (when (settings/autoplay? state)
     (some-> (after-episode state id) :episodes first :id)))
 
+;; The picks are made again at each change of the library, e.g. as an
+;; episode plays, and the runs read the HTML of every episode's notes,
+;; e.g. 0.5 s for 1,200 episodes, more than the rest of the picks take
+(def repeated-runs
+  "The runs of words that the notes of the parsed `feed` repeat, as
+  feed.search/repeated-runs gives them, worked out again only for another
+  feed. The last four are kept, e.g. for the start of a feed and the
+  whole."
+  (memo/remember-recent 4 feed.search/repeated-runs vector))
+
 (defn outside
   "The `opts` of library/recommend with the feed `source` of a show added
   when it's outside the library, so that the picks can start from its
-  episodes."
+  episodes, with the runs of words that its notes repeat."
   [opts {:keys [key feed url] :as source}]
   (cond-> opts
-    (not key) (assoc :feeds {(guid/feed-key feed url) {:feed feed :url url}})))
+    (not key) (assoc :feeds {(guid/feed-key feed url) {:feed     feed
+                                                        :url      url
+                                                        :repeated (repeated-runs feed)}})))
 
 (def like-episode
   "The picks under the episode `page` in `state`, like that episode."
