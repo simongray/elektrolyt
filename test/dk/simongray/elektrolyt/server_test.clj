@@ -83,7 +83,13 @@
         (testing "a file that a build wrote again is sent again"
           (is (= [200 "new"] ((juxt :status :body) (get! {"if-none-match" etag})))))
         (testing "also to a browser that kept the date of the file it has"
-          (is (= 200 (:status (get! {"if-modified-since" "Wed, 01 Jan 2031 00:00:00 GMT"}))))))
+          (is (= 200 (:status (get! {"if-modified-since" "Wed, 01 Jan 2031 00:00:00 GMT"})))))
+        (testing "while a file that stays as it is is hashed once"
+          (let [hashed (atom 0)
+                hash   server/hashed-tag]
+            (with-redefs [server/hashed-tag (fn [f] (swap! hashed inc) (hash f))]
+              (dotimes [_ 3] (get! {}))
+              (is (= 0 @hashed))))))
       (finally
         (run! io/delete-file (reverse (file-seq dir)))))))
 

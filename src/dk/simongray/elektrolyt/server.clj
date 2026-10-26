@@ -24,7 +24,7 @@
             [io.pedestal.service.resources :as resources]
             [taoensso.telemere :as tel])
   (:import [java.io ByteArrayOutputStream]
-           [java.nio.file Files]
+           [java.nio.file Files LinkOption]
            [java.security MessageDigest]
            [java.util HexFormat]
            [java.util.concurrent Semaphore TimeUnit]))
@@ -144,12 +144,48 @@
                response (assoc-in [:response :headers "Cache-Control"]
                                   (cache-control (:uri request)))))}))
 
-(defn file-tag
+(defn hashed-tag
   "The ETag of the bytes in `file`: the start of their SHA-256, quoted."
   [^java.io.File file]
   (let [digest (.digest (MessageDigest/getInstance "SHA-256")
                         (Files/readAllBytes (.toPath file)))]
     (str "\"" (subs (.formatHex (HexFormat/of) digest) 0 32) "\"")))
+
+(defonce ^{:doc "The ETag of each of the app's files, by its canonical path,
+  with the version of the file that it's of, as file-version gives it."}
+  file-tags
+  (atom {}))
+
+;; POSIX, stat: a file's status changes at each write, and at each change
+;; of its times, so a build put back with its older time and length is
+;; another version still
+(defn file-version
+  "The version of `file`: its last modification, its length and the last
+  change of its status, or nil where the system doesn't give the last, e.g.
+  on Windows."
+  [^java.io.File file]
+  (try
+    [(.lastModified file)
+     (.length file)
+     (str (Files/getAttribute (.toPath file) "unix:ctime" (make-array LinkOption 0)))]
+    (catch UnsupportedOperationException _
+      nil)))
+
+;; A page loads some 16 MB of files in dev, each read whole to hash it at
+;; every request, 304s too
+(defn file-tag
+  "The ETag of the bytes in `file`, as hashed-tag gives it, worked out once
+  for each version of the file, or each time where its version is unknown."
+  [^java.io.File file]
+  (let [path    (.getCanonicalPath file)
+        version (file-version file)
+        kept    (get @file-tags path)]
+    (if (and version (= version (:version kept)))
+      (:tag kept)
+      (let [tag (hashed-tag file)]
+        (when version
+          (swap! file-tags assoc path {:version version :tag tag}))
+        tag))))
 
 ;; RFC 9110, sections 8.8.3 and 13.2.2: Last-Modified counts whole
 ;; seconds, so If-Modified-Since would get a 304 for a file rebuilt within
