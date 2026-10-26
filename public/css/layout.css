@@ -469,6 +469,27 @@ main h1,
   overflow-wrap: anywhere;
 }
 
+/* The skeleton of a page while the app starts (ui.cljc): three lines of
+   text below the heading, each shorter than the one before */
+.skeleton {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 40rem;
+  margin-top: var(--space-5);
+}
+
+.skeleton > div {
+  height: 1em;
+}
+
+.skeleton > div:nth-child(2) {
+  width: 80%;
+}
+
+.skeleton > div:nth-child(3) {
+  width: 60%;
+}
+
 /* The notes apart from the header above them, and their own headings and
    paragraphs */
 .show-notes {

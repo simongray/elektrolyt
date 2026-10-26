@@ -181,6 +181,24 @@
   [router on-navigate opts]
   (rfe/start! router on-navigate opts))
 
+;; Before the router starts, a link of the frame would load the page again
+;; and start the wait over
+(defn hold-links!
+  "Until `routed?` gives true, keep a plain click on a link of the
+  navigation from loading its page: push its path to the history instead,
+  and call `f` with the path, e.g. to render the frame there."
+  [routed? f]
+  (letfn [(held [^js e]
+            (if (routed?)
+              (.removeEventListener js/document "click" held)
+              (when-let [^js a (some-> ^js (.-target e) (.closest "nav a[href]"))]
+                (when-not (or (pos? (.-button e)) (.-metaKey e) (.-ctrlKey e)
+                              (.-shiftKey e) (.-altKey e))
+                  (.preventDefault e)
+                  (.pushState js/history nil "" (.-href a))
+                  (f (.-pathname a))))))]
+    (.addEventListener js/document "click" held)))
+
 (defonce ^{:doc "The scroll position of the main content as each history
   entry was left, by the entry's key."}
   scroll-positions

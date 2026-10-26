@@ -1,6 +1,7 @@
 (ns dk.simongray.elektrolyt.ui-scenes
   "Scenes of the whole page: its navigation, in each palette that the
-  listener can choose, and a path that no page has."
+  listener can choose, a path that no page has, and the frame of a page
+  while the app starts."
   (:require [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library.operations :as operations]
             [dk.simongray.elektrolyt.library.settings :as settings]
@@ -36,3 +37,9 @@
 (defscene not-found
   "A path that no page has, which links back to the queue."
   (ui/page {:route nil}))
+
+(defscene while-the-app-starts
+  "The frame of the Library page while the library is read: the
+  navigation, and the page's heading over a skeleton, which shows after a
+  second."
+  (ui/page (ui/starting {} "/library")))

@@ -201,6 +201,17 @@
   [:p.visually-hidden {:role "status"}
    [:span {:replicant/key announcements} announcement]])
 
+;; NN/g: a skeleton screen shows the shape of a page as it loads, and a
+;; wait of less than a second needs no sign, so it shows only after one
+;; (look.css)
+;; https://www.nngroup.com/articles/skeleton-screens/
+;; https://www.nngroup.com/articles/progress-indicators/
+(def skeleton
+  "The content of a page while the app starts: a line for a screen reader,
+  and blocks in the place of the content, hidden from it."
+  (list [:p.visually-hidden "Loading…"]
+        [:div.skeleton {:aria-hidden "true"} [:div] [:div] [:div]]))
+
 (def library-pages
   "The names of the routes whose pages need the listener's library."
   #{:route/queue :route/inbox :route/library :route/settings})
@@ -219,33 +230,36 @@
 ;; https://replicant.fun/top-down/
 (def main-content
   "The main content of the page in `state`, under its heading, which a
-  Show or Episode page puts in its article instead. It's made again only
-  when the state changes beyond the player's clock, as the content-facts
-  of the player tell."
+  Show or Episode page puts in its article instead, or the heading over
+  the skeleton while the app starts. It's made again only when the state
+  changes beyond the player's clock, as the content-facts of the player
+  tell."
   (memo/remember-last
    (fn [state]
      (let [route   (get-in state [:route :name])
            heading (page-heading state)]
-       [:main#main
-        (saves-ui/notice state)
-        (when-not (#{:route/show :route/episode} route)
-          heading)
-        (if (and (library-pages route) (nil? (:library state)))
-          no-library
-          (case route
-            nil             not-found
-            :route/home     (home-ui/content state)
-            :route/queue    (queue-ui/content state)
-            :route/inbox    (inbox-ui/content state)
-            :route/library  (library-ui/content state)
-            :route/search   (search-ui/content state)
-            :route/settings (settings-ui/content state)
-            :route/show     (show-ui/content state heading)
-            :route/episode  (episode-ui/content state heading)
-            nil))
-        (announcer state)
-        (for [{:keys [id text]} (vals links/notes)]
-          [:p.visually-hidden {:id id} text])]))
+       (if (:starting? state)
+         [:main#main {:aria-busy "true"} heading skeleton]
+         [:main#main
+          (saves-ui/notice state)
+          (when-not (#{:route/show :route/episode} route)
+            heading)
+          (if (and (library-pages route) (nil? (:library state)))
+            no-library
+            (case route
+              nil             not-found
+              :route/home     (home-ui/content state)
+              :route/queue    (queue-ui/content state)
+              :route/inbox    (inbox-ui/content state)
+              :route/library  (library-ui/content state)
+              :route/search   (search-ui/content state)
+              :route/settings (settings-ui/content state)
+              :route/show     (show-ui/content state heading)
+              :route/episode  (episode-ui/content state heading)
+              nil))
+          (announcer state)
+          (for [{:keys [id text]} (vals links/notes)]
+            [:p.visually-hidden {:id id} text])])))
    (fn [{:keys [player] :as state}]
      [(dissoc state :player) (player/content-facts player)])
    (fn [[state facts] [last-state last-facts]]
@@ -258,13 +272,24 @@
   (merge {:data-palette (name (settings/navigation-palette state))}
          (colors/attrs state)))
 
+;; The shell of the frame at the start is another element than the page's,
+;; so that the page opens in the colours of its artwork rather than turns
+;; to them from the app's own
 (defn page
   "The whole page for `state`, with the navigation, the main content and
   the player in the same order at every width, so that the focus order
   doesn't change with the layout."
   [state]
-  [:div.shell (shell-attrs state)
+  [:div.shell (cond-> (shell-attrs state)
+                (:starting? state) (assoc :replicant/key :starting))
    skip-link
    (main-nav state)
    (main-content state)
    (player-ui/region state)])
+
+(defn starting
+  "The `state` of the page's frame at `path` while the app starts, before
+  the library is read and the router runs: the navigation, and the page's
+  heading over the skeleton."
+  [state path]
+  (assoc state :route (routes/route-at path) :starting? true))

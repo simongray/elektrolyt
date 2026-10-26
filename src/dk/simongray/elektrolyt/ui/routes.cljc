@@ -144,6 +144,12 @@
       (:slug path-params) (assoc :slug (:slug path-params))
       (seq fragment)      (assoc :fragment fragment))))
 
+(defn route-at
+  "The route of the page at `path`, without a query or a fragment, or nil
+  for no page, e.g. before the router has started."
+  [path]
+  (match->route (reitit/match-by-path router path)))
+
 (defn same-page?
   "Whether the routes `a` and `b` are the same page, whatever their slugs,
   query parameters and fragments."

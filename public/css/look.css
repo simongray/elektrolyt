@@ -457,6 +457,18 @@ button[aria-disabled="true"]:is(:hover, :focus-visible, :active) {
   border: 1.5px dashed currentColor;
 }
 
+/* The skeleton of a page while the app starts, in the paper's soft rule
+   and with no shimmer. It shows only after a second (ui.cljc), and fades
+   in where motion is allowed (below). */
+.skeleton {
+  animation: appear 0s 1s both;
+}
+
+.skeleton > div {
+  border-radius: var(--radius);
+  background: var(--rule-soft);
+}
+
 /* the type of a show's title and byline, as the rules of the heading and
    its byline give it, which the show's bookmark spans (layout.css) */
 .with-bookmark {
@@ -1067,10 +1079,20 @@ search p {
     border-top-color: transparent;
     animation: turn 1s linear infinite;
   }
+
+  .skeleton {
+    animation-duration: 0.4s;
+  }
 }
 
 @keyframes turn {
   to {
     rotate: 1turn;
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
   }
 }

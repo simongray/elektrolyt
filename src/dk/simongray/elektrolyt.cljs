@@ -24,6 +24,7 @@
             [dk.simongray.elektrolyt.search.directories :as directories]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.feeds :as feeds]
+            [dk.simongray.elektrolyt.ui :as ui]
             [dk.simongray.elektrolyt.ui.artwork.colors :as artwork-colors]
             [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [dk.simongray.elektrolyt.ui.document :as document]
@@ -459,14 +460,20 @@
 (defn ^:export init
   "Start the app in the page.
 
-  The first render waits for the library and for what the server offers,
-  since the first page can depend on both, e.g. a search includes the
+  The page's frame renders at once: the navigation, and the page's heading
+  over a skeleton. The page itself waits for the library and for what the
+  server offers, since it can depend on both, e.g. a search includes the
   Podcast Index only when the server signs for it. It waits for the cached
   colours of the page's artwork too, so that the page opens in them rather
   than turns to them."
   []
   (log/start! js/window)
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
+  ;; the page's frame at once, while the library is read
+  (document/decodable!)
+  (document/render! (ui/starting @store js/location.pathname))
+  (runtime/hold-links! #(contains? @store :route)
+                       #(document/render! (ui/starting @store %)))
   (audio/listen! store)
   (runtime/on-hidden! #(do (audio/hidden! store)
                            (app-library/save! store)))

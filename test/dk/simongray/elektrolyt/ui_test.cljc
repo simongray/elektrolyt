@@ -170,3 +170,20 @@
                                                  :route queue-page
                                                  :library (library/make "other")))))
         "or any other change of the state")))
+
+(deftest the-frame-as-the-app-starts
+  (doseq [[path title current] [["/" "Elektrolyt" "Home"]
+                                ["/library" "Library" "Library"]
+                                ["/settings" "Settings" "Settings"]
+                                ["/shows/917393e3-1b1e-5cef-ace4-edaa54e1f810/podcasting-2-0" "Show" nil]
+                                ["/shows/917393e3-1b1e-5cef-ace4-edaa54e1f810/episodes/2a6f978" "Episode" nil]
+                                ["/nowhere" "Page not found" nil]]]
+    (let [page (ui/page (ui/starting {} path))
+          main (first (elements :main#main page))]
+      (is (= [title {:aria-busy "true"}] [(text-of (first (elements :h1 main))) (second main)])
+          (str "the heading of " path ", in a main that's busy"))
+      (is (= ui/skeleton (last main)) "over the skeleton, and nothing that needs the library")
+      (is (= (if current [current] []) (current-links page)) "under the navigation to the page")
+      (is (= :starting (:replicant/key (second page))) "in a shell of its own")))
+  (is (nil? (:replicant/key (second (ui/page {:route {:name :route/home}}))))
+      "which the page's own shell replaces, so that the page opens in its colours"))

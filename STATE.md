@@ -109,7 +109,7 @@ In the page
 | The Media Session | The episode on the lock screen, and its buttons while the player's element is mounted | `runtime/lock-screen!`, from `player.audio` | The platform |
 | `<html>`'s `data-theme` and `data-contrast`, the `theme-color` and the title | The look of the page | `ui.document`, at each render | CSS, the browser |
 | The history | The page's URL; `ui.document/canonicalize!` changes it without a navigation, so `:route` keeps the URL that the link gave | `ui.routes`, `ui.document` | `runtime/follow-history!` |
-| The listeners | The page shown, hidden or restored, the end of a transition, a navigation, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
+| The listeners | The page shown, hidden or restored, the end of a transition, a navigation, a tap on a link before the router starts, the channels' messages and the store's changes | `runtime`, for `elektrolyt`, `library`, `player.audio` and `library.opml` | — |
 | The beforeunload listener | That the browser asks before the page goes, while its changes aren't saved | `runtime/warn-before-leaving!`, from `library` | The browser |
 | The listeners of the logs | The errors and the rejected promises that nothing else caught, in the page and in the worker | `runtime.log` | Telemere |
 
