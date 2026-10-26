@@ -145,6 +145,28 @@ Done, with the commit of each:
   episodes are made again in 115–194 ms rather than 347–634. In the worker,
   as the item planned, the runs held up every Show page's whole feed by
   0.55 s, though More like this starts folded.
+- #38 (98ab7e8): rows in the place of a show's episodes, and lines in the
+  place of an episode's notes, while a feed loads. They show after a
+  second, like the skeleton as the app starts, rather than the item's
+  300 ms.
+- #39, its first stage (podcast-clj 14908cb): a refresh builds each changed
+  feed's documents in a task of its own, so a listener's request to the
+  worker waits for one feed at most. That's 139 ms for a show of 347
+  episodes, but 2.2 s for one of 4576. The second stage, a worker for the
+  listener's requests, waits for a trace that needs it.
+- #40, its lazy artwork (fb6a66b): the Library's tiles past the first dozen
+  load their artwork lazily, so a fresh Library page of 54 shows asks for
+  16 thumbnails rather than 54. Its content-visibility is left out: the 54
+  tiles lay out again in 1.8 ms, which doesn't pay for the risk to focus
+  rings and to scrolling in Safari.
+- #41 (drop-in-search 94dcb5d): an add's merges stop at 8192 documents.
+  Adding 4577 documents to 22,500 that 50 adds made takes 272–283 ms rather
+  than 530–579 on the JVM, and queries over the extra segments give the
+  same results in 0.57 ms rather than 0.30. The bound on pruning is left
+  out.
+- #42 (drop-in-search e36838c, podcast-clj 632108f): a tab that catches up
+  with another tab's write reads only the segments it lacks. After another
+  tab's subscription, that takes 97 ms rather than 2196.
 
 Two costs that the ranking lacked, both fixed:
 
@@ -219,11 +241,11 @@ drop-in-search from its checkout too.
 | 35 | [Draw a short, delayed busy line under the status of slow loads](#35-draw-a-short-delayed-busy-line-under-the-status-of-slow-loads) | Perceived | 3.5 | 2 | 8 | medium | Done |
 | 36 | [List the cache database once for the artwork colours read at start](#36-list-the-cache-database-once-for-the-artwork-colours-read-at-start) | Startup | 3.5 | 2 | 8 | medium | Done |
 | 37 | [Find an outside show's repeated runs in the worker for its picks](#37-find-an-outside-shows-repeated-runs-in-the-worker-for-its-picks) | Main thread | 4 | 2 | 8 | medium | Done |
-| 38 | [Hold the Show and Episode pages' shape with delayed skeleton rows while a feed loads](#38-hold-the-show-and-episode-pages-shape-with-delayed-skeleton-rows-while-a-feed-loads) | Perceived | 4 | 2 | 8 | medium |  |
-| 39 | [Keep the refresh's indexing from holding up the listener's worker requests](#39-keep-the-refreshs-indexing-from-holding-up-the-listeners-worker-requests) | Main thread | 4 | 2 | 8 | medium |  |
-| 40 | [Let the browser skip off-screen rows, and lazy-load the Library tiles past the first dozen](#40-let-the-browser-skip-off-screen-rows-and-lazy-load-the-library-tiles-past-the-first-dozen) | Rendering | 4 | 2 | 8 | low |  |
-| 41 | [Measure drop-in-search's merges, then cap them so one add never rewrites the whole index](#41-measure-drop-in-searchs-merges-then-cap-them-so-one-add-never-rewrites-the-whole-index) | Main thread | 6 | 2 | 6 | low |  |
-| 42 | [Read only new index segments when catching up with another tab](#42-read-only-new-index-segments-when-catching-up-with-another-tab) | Main thread | 7 | 2 | 6 | medium |  |
+| 38 | [Hold the Show and Episode pages' shape with delayed skeleton rows while a feed loads](#38-hold-the-show-and-episode-pages-shape-with-delayed-skeleton-rows-while-a-feed-loads) | Perceived | 4 | 2 | 8 | medium | Done |
+| 39 | [Keep the refresh's indexing from holding up the listener's worker requests](#39-keep-the-refreshs-indexing-from-holding-up-the-listeners-worker-requests) | Main thread | 4 | 2 | 8 | medium | Stage 1 done |
+| 40 | [Let the browser skip off-screen rows, and lazy-load the Library tiles past the first dozen](#40-let-the-browser-skip-off-screen-rows-and-lazy-load-the-library-tiles-past-the-first-dozen) | Rendering | 4 | 2 | 8 | low | Lazy tiles done |
+| 41 | [Measure drop-in-search's merges, then cap them so one add never rewrites the whole index](#41-measure-drop-in-searchs-merges-then-cap-them-so-one-add-never-rewrites-the-whole-index) | Main thread | 6 | 2 | 6 | low | Done |
+| 42 | [Read only new index segments when catching up with another tab](#42-read-only-new-index-segments-when-catching-up-with-another-tab) | Main thread | 7 | 2 | 6 | medium | Done |
 | 43 | [Build a benchmark library of 50 shows for repeatable profiling](#43-build-a-benchmark-library-of-50-shows-for-repeatable-profiling) | Measurement | 7 | 2 | 6 | medium |  |
 | 44 | [While hidden, skip clock-only renders, render once per task, and catch up when shown](#44-while-hidden-skip-clock-only-renders-render-once-per-task-and-catch-up-when-shown) | Rendering | 7 | 2 | 6 | medium |  |
 | 45 | [Find the picks after the paint and keep them in the store](#45-find-the-picks-after-the-paint-and-keep-them-in-the-store) | Main thread | 8 | 2 | 6 | medium |  |
