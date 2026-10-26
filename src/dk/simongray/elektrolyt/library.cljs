@@ -11,7 +11,10 @@
   that the tab knows, or else applies them again to the stored library.
   Then it tells the other tabs the new version on a BroadcastChannel, so
   that they read it. The documents are in Transit, which reads about 30
-  times faster than EDN."
+  times faster than EDN.
+
+  The search index is read after the rest, decoded in the web worker, so
+  that the page shows before it, and only the picks wait for it."
   (:require [dk.simongray.like-minded.device :as device]
             [dk.simongray.like-minded.transit :as transit]
             [dk.simongray.podcast.app.library :as library]
@@ -20,6 +23,7 @@
             [dk.simongray.elektrolyt.library.saves :as saves]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.perf :as perf]
+            [dk.simongray.elektrolyt.worker.fetching :as fetching]
             [taoensso.telemere :as tel]))
 
 (def device-key
@@ -271,11 +275,80 @@
                        (swap! times assoc :last (js/performance.now))
                        document))))))
 
+(defn segments!
+  "A promise of the segments of the search index named `names`, as the
+  files that ciff/read-files takes: decoded in the web worker, or fetched
+  from the store for the page to decode when the worker fails."
+  [names]
+  (.catch (fetching/segments! names)
+          (fn [e]
+            (tel/log! {:level :warn :id :library/index-not-decoded :error e}
+                      "The worker didn't decode the search index")
+            (js/Promise.all
+             (into-array (map (fn [name]
+                                (.then ((:fetch library-options/store) name {:as :bytes})
+                                       (fn [doc] {:name name :body (:body doc)})))
+                              names))))))
+
+(defn cached-segments
+  "A function like segments! that asks for each segment once, and gives the
+  same file for it after, e.g. to load the index again into a library that
+  another tab wrote meanwhile."
+  []
+  (let [asked (atom {})]
+    (fn [names]
+      (let [fresh (vec (remove @asked names))]
+        (when (seq fresh)
+          (let [files (segments! fresh)]
+            (swap! asked into (map-indexed (fn [i name] [name (.then files #(nth % i))])
+                                           fresh))))
+        (js/Promise.all (into-array (map @asked names)))))))
+
+;; Reading the index took 1.15 s of the start's task of 1.5 s with a library
+;; of 53 shows, and Home appeared after 2.0 s, against 0.7 s without the
+;; index. So the page shows first, and the worker decodes the index after,
+;; outside this tab's turns, so that no save waits for it. The index joins
+;; the library in a turn, though, so that a save under way doesn't put back
+;; the library from before. That's the library loaded already, unless a save
+;; or another tab's write changed it meanwhile.
+(defn load-index!
+  "A promise of reading the search index that open! left in its documents
+  into the library that the `state` atom holds and the one that this tab
+  knows, decoded in the web worker."
+  [state]
+  (when-let [{:keys [library]} @known]
+    (when (library/index-unloaded? library)
+      (let [opts    (assoc library-options/options :read-segments (cached-segments))
+            loaded! #(library/load-index! % library-options/store opts)
+            joined! (fn [{loaded :library :keys [report]}]
+                      (when (seq report)
+                        (tel/log! {:level :warn :id :library/index-report :data {:report report}}
+                                  "The search index didn't read in full"))
+                      (swap! known assoc :library loaded)
+                      (swap! state assoc :library (applied-all loaded @waiting))
+                      loaded)]
+        (perf/measured!
+         "library/index" {}
+         #(-> (loaded! library)
+              (.then (fn [first-read]
+                       (in-turn!
+                        (fn []
+                          (let [now (:library @known)]
+                            (when (library/index-unloaded? now)
+                              (.then (if (identical? now library)
+                                       (js/Promise.resolve first-read)
+                                       (loaded! now))
+                                     joined!)))))))
+              (.catch (fn [e]
+                        (tel/log! {:level :error :id :library/index-failed :error e}
+                                  "The search index didn't load")))))))))
+
 (defn open!
   "A promise of reading this browser's library, or a new one, into the
   :library of the `state` atom, and of keeping it up to date with what the
   other tabs write. If the library can't be read, the promise fails and
-  `state` gets no library.
+  `state` gets no library. Its search index is read after the rest, by
+  load-index!.
 
   The time from its first read of IndexedDB to its last goes on the page's
   timeline as startup/library-reading and startup/library-read, and the
@@ -284,23 +357,28 @@
   ;; listening first, a write that another tab announces during the read
   ;; is read after it
   (listen! state)
-  (in-turn!
-   (fn []
-     (let [times (atom {})]
-       (perf/measured!
-        "library/open" {}
-        #(.then (library/read! (library/make (device/id! device-key)
-                                             {:config library-options/config
-                                              :codec  transit/codec})
-                               (noting-fetches library-options/store times)
-                               library-options/options)
-                (fn [{:keys [library] :as read}]
-                  (when-let [{began :first ended :last} (not-empty @times)]
-                    (perf/mark! "startup/library-reading" began)
-                    (perf/mark! "startup/library-read" ended))
-                  (reset! known read)
-                  (swap! state assoc :library (applied-all library @waiting))
-                  read)))))))
+  ;; the worker starts during the read when there's a saved library, whose
+  ;; index it decodes after the read
+  (.then (stored-version) #(when % (fetching/warm!)))
+  (let [read (in-turn!
+              (fn []
+                (let [times (atom {})]
+                  (perf/measured!
+                   "library/open" {}
+                   #(.then (library/read! (library/make (device/id! device-key)
+                                                        {:config library-options/config
+                                                         :codec  transit/codec})
+                                          (noting-fetches library-options/store times)
+                                          (assoc library-options/options :load-index? false))
+                           (fn [{:keys [library] :as read}]
+                             (when-let [{began :first ended :last} (not-empty @times)]
+                               (perf/mark! "startup/library-reading" began)
+                               (perf/mark! "startup/library-read" ended))
+                             (reset! known read)
+                             (swap! state assoc :library (applied-all library @waiting))
+                             read))))))]
+    (.then read (fn [_] (load-index! state)) (constantly nil))
+    read))
 
 ;; Storage Standard, sections 7.1 and 8. Firefox asks the user first, so the
 ;; request waits until the listener subscribes.

@@ -489,7 +489,9 @@
   server offers, since it can depend on both, e.g. a search includes the
   Podcast Index only when the server signs for it. It waits for the cached
   colours of the page's artwork too, so that the page opens in them rather
-  than turns to them."
+  than turns to them. Only the library's search index comes later, since
+  the picks alone need it, and their sections say that they're on the
+  way."
   []
   (perf/mark! "startup/init")
   (log/start! js/window)

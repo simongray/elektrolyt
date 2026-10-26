@@ -11,7 +11,32 @@ segments when the library is saved. This plan moves those three into the
 worker and leaves the index on the page, in three stages.
 
 
-## What the index costs now
+## Where it stands
+
+Stages 1 and 2 are built, and stage 3 isn't started. With the benchmark's
+library, `bench.mjs open` shows Home after 0.66–0.75 s rather than
+1.85–1.86 s, and the longest task at the start takes 0.22–0.23 s rather
+than about 1.45 s. The index arrives after 1.97–2.14 s, when the picks are
+found, and making it from the worker's parts takes the page a task of
+60–80 ms.
+
+So the picks come a little later than before, when they came with Home at
+about 1.9 s, since the worker starts to decode only once the page has
+read the rest. The worker could read the index's manifest itself at the
+start, and decode the index while the page reads the feeds.
+
+Two things differ from the plan below:
+
+- **The decoding runs outside the tab's turns.** A tab reads and writes
+  its library one turn at a time. Loading the index in a turn of its own
+  held up the saves after it, e.g. that of a Play just before a reload, so
+  the worker decodes the index outside the turns. Only joining the index
+  to the library takes a turn, which is short.
+- **The worker starts during the read only when there's a saved
+  library,** since one that runs unused takes a heap of its own.
+
+
+## What the index cost before
 
 These numbers are from the dev build in headless Chrome, with the
 benchmark's library of 53 shows (27,625 documents in the index), two runs

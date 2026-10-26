@@ -14,8 +14,13 @@
   With :alternative-feeds? in a request's options, a feed of DR's own is
   supplemented by its sibling on drpodcast.nu. DR's feeds have no
   validators, so the library keeps checking a supplemented feed by its
-  start, which is supplemented too."
+  start, which is supplemented too.
+
+  At the start, the worker decodes the segments of the library's search
+  index, whose arrays move to the page without a copy, so that the page
+  doesn't decode them itself."
   (:require [cljs.reader :as reader]
+            [dk.simongray.drop-in-search.ciff :as ciff]
             [dk.simongray.podcast :as podcast]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed :as feed]
@@ -47,17 +52,22 @@
 ;; to decode it in the library's codec
 ;; https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializeinternal
 (defn packed
-  "The `message` as the page and the worker post it: its EDN, and its
-  :encoded part, a string in the library's codec, beside it."
-  [{:keys [encoded] :as message}]
-  #js {:edn (pr-str (dissoc message :encoded)) :encoded encoded})
+  "The `message` as the page and the worker post it: its EDN, and beside
+  it its :encoded part, a string in the library's codec, and its :parts,
+  the decoded segments of the search index as decoded-segments! gives
+  them."
+  [{:keys [encoded parts] :as message}]
+  #js {:edn     (pr-str (dissoc message :encoded :parts :transfer))
+       :encoded encoded
+       :parts   parts})
 
 (defn unpacked
   "The message that the page or the worker posted as `data`, with its
-  :encoded part, if any, as the string it is."
+  :encoded and :parts, if any, as they are."
   [^js data]
   (cond-> (reader/read-string (.-edn data))
-    (.-encoded data) (assoc :encoded (.-encoded data))))
+    (.-encoded data) (assoc :encoded (.-encoded data))
+    (.-parts data)   (assoc :parts (.-parts data))))
 
 (defn coded
   "The value `x` as a string in the library's codec, measured as
@@ -77,9 +87,10 @@
                   #((:decode (:codec library-options/options)) s)))
 
 (defn post!
-  "Post the `message` to the page."
-  [message]
-  (js/postMessage (packed message)))
+  "Post the `message` to the page, moving the buffers of its :transfer
+  there."
+  [{:keys [transfer] :as message}]
+  (js/postMessage (packed message) (or transfer #js [])))
 
 (defonce ^{:doc "A promise of drpodcast.nu's slugs by production number, or
   nil until they're fetched."}
@@ -216,11 +227,34 @@
   (.then (js/Promise.resolve encoded)
          #(coded (:search-documents (library/with-search-documents (decoded %) url)))))
 
+;; HTML, 2.7.2 Transferable objects: an ArrayBuffer that the worker
+;; transfers moves to the page, rather than being copied
+;; https://html.spec.whatwg.org/multipage/structured-data.html#transferable-objects
+(defn decoded-segments!
+  "A promise of the segments of the search index named `names`, fetched
+  from the library's store and decoded, as a pair: an array of objects of
+  their name and parts, as ciff/segment-parts gives them, and the buffers
+  of their typed arrays, to transfer."
+  [names]
+  (.then (js/Promise.all
+          (into-array (map (fn [name]
+                             (.then ((:fetch library-options/store) name {:as :bytes})
+                                    #(js-obj "name" name
+                                             "parts" (clj->js (ciff/segment-parts name (:body %))))))
+                           names)))
+         (fn [segments]
+           [segments
+            (into-array (into #{}
+                              (comp (mapcat #(js/Object.values (.-parts ^js %)))
+                                    (filter #(js/ArrayBuffer.isView %))
+                                    (map #(.-buffer ^js %)))
+                              segments))])))
+
 (defn answer!
   "Answer the page's `request` with what a refresh found, a fetched feed,
-  the search documents of a feed, :busy? while another worker refreshes,
-  or why it :failed."
-  [{:keys [id due fetch documents url opts encoded] :as request}]
+  the search documents of a feed, the decoded segments of the search
+  index, :busy? while another worker refreshes, or why it :failed."
+  [{:keys [id due fetch documents url opts encoded segments] :as request}]
   (-> (cond
         due       (when-free refresh-lock
                              #(.then (found! id due opts)
@@ -228,7 +262,10 @@
                                        {:id id :encoded (coded {:found found})}))
                              #(js/Promise.resolve {:id id :busy? true}))
         fetch     (.then (fetched! url opts) (fn [fetched] {:id id :encoded fetched}))
-        documents (.then (documents! encoded url) (fn [docs] {:id id :encoded docs})))
+        documents (.then (documents! encoded url) (fn [docs] {:id id :encoded docs}))
+        segments  (.then (perf/measured! "index/decode" {:segments (count segments)}
+                                         #(decoded-segments! segments))
+                         (fn [[parts transfer]] {:id id :parts parts :transfer transfer})))
       (.then post!)
       (.catch (fn [e] (post! {:id id :failed (str e)})))))
 
@@ -238,6 +275,14 @@
   (set! (.-onmessage js/self)
         (fn [^js e]
           (answer! (unpacked (.-data e))))))
+
+(defn segment-file
+  "The segment `o` that decoded-segments! posted, an object of its name and
+  parts, as ciff/read-files takes it: a map of its :name and its :parts."
+  [^js o]
+  (let [parts (.-parts o)]
+    {:name  (.-name o)
+     :parts (into {} (map (fn [k] [(keyword k) (unchecked-get parts k)])) (js-keys parts))}))
 
 (defn client
   "A client in the page of the web worker at `url`: a map of the :worker,
@@ -256,7 +301,7 @@
                         (reject e)))))]
     (.addEventListener worker "message"
                        (fn [^js e]
-                         (let [{:keys [id progress encoded failed] :as answer}
+                         (let [{:keys [id progress encoded parts failed] :as answer}
                                (unpacked (.-data e))
                                {:keys [on-progress keep?]} (get @pending id)]
                            (cond
@@ -264,6 +309,7 @@
                              failed   (settle! id #(throw (js/Error. failed)))
                              encoded  (settle! id #(cond-> (decoded encoded)
                                                      keep? (vary-meta assoc ::encoded encoded)))
+                             parts    (settle! id #(mapv segment-file parts))
                              :else    (settle! id #(dissoc answer :id))))))
     ;; HTML, sections 10.2.4 and 10.2.5: a worker fires error when its
     ;; script fails to load, and then never runs, or when nothing catches
@@ -351,6 +397,13 @@
                                #(swap! in-flight dissoc k))]
           (swap! in-flight assoc k answer)
           answer))))
+
+(defn segments!
+  "A promise of the segments of the search index named `names`, fetched
+  from the library's store and decoded in the web worker, as the files that
+  ciff/read-files takes, maps of their :name and :parts."
+  [names]
+  (ask! {:segments (vec names)} nil))
 
 ;; The page sends the feed it subscribes to, e.g. one from the cache, since
 ;; encoding it takes a fraction of the time that building its documents does

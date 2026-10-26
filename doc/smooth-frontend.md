@@ -315,8 +315,9 @@ Later, with the item they need:
 
 - #74 with #10, #83, #88, #97 and #100 with #8's release on the same
   origin, #55, #90 and #91 with runs on phones, and #59, which is polish.
-  #98 isn't started, and #99 has a plan of its own in
-  [search-index-plan.md](search-index-plan.md).
+  #98 isn't started, and #99's third stage, building and encoding
+  segments in the worker, waits as
+  [search-index-plan.md](search-index-plan.md) has it.
 
 Your calls, made on 26 October:
 
@@ -377,6 +378,14 @@ the next artworks marked in the same change: 19 renders, with 41–43 ms of
 rendering for the colours rather than 139–146, and 5 ms in the colours'
 watch rather than 54–60.
 
+Done since, the first two stages of #99, as
+[search-index-plan.md](search-index-plan.md) planned them: the page shows
+before the search index is read, and the web worker decodes the index.
+Reading the index took 1.15 s of the start's task, and Home's picks only
+30 ms, so the index stays on the page. Home appears after 0.66–0.75 s
+rather than 1.85–1.86 s, the longest task at the start takes 0.22–0.23 s
+rather than about 1.45 s, and the picks come after 1.97–2.14 s.
+
 The commits in podcast-clj, drop-in-search and like-minded aren't released,
 so the app has them only with the `:local` alias, which now takes
 drop-in-search from its checkout too.
@@ -414,6 +423,11 @@ While something loads:
 - **The picks fill in after the page** (#45, 0e147df). Home's sections and
   More like this show their heading over Looking for episodes… for a moment
   before their picks. Scene: Home while its picks are found.
+- **At the start, the picks wait for the search index** (#99). Home shows
+  sooner, and its picks say Looking for episodes… until the web worker has
+  decoded the index, about 1.3 s with the benchmark's 53 shows, so the line
+  under that status moves too. An episode that ends in that time doesn't
+  autoplay the next pick.
 - **The small artwork shows first** (#23, 126e30b). A Show or Episode
   page's large artwork shows the small copy from the row or result you
   came from, scaled up, until the large one arrives.
@@ -571,7 +585,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low | Deferred |
 | 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Later |
 | 98 | [Warm the next episode's redirect chain with a HEAD request before the end](#98-warm-the-next-episodes-redirect-chain-with-a-head-request-before-the-end) | Network | 6.5 | 1 | 3 | low |  |
-| 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low | Planned |
+| 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low | Part done |
 | 100 | [Cache the release build's app shell in a service worker](#100-cache-the-release-builds-app-shell-in-a-service-worker) | Load | 14 | 1 | 2 | medium | Later |
 
 

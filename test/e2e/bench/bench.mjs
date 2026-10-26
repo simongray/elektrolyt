@@ -46,7 +46,8 @@ function feed(route, url) {
   });
 }
 
-// when the page's heading first appears, when main is no longer busy, and
+// when the page's heading first appears, when main is no longer busy, when
+// its picks are no longer on the way, which the search index holds up, and
 // each long task, from the start
 function measure() {
   window.__bench = { long: [] };
@@ -56,8 +57,11 @@ function measure() {
   new MutationObserver((_, observer) => {
     const main = document.querySelector('main');
     if (main?.querySelector('h1') && !window.__bench.frame) window.__bench.frame = Math.round(performance.now());
-    if (main?.querySelector('h1') && !main.hasAttribute('aria-busy')) {
+    if (main?.querySelector('h1') && !main.hasAttribute('aria-busy') && !window.__bench.page) {
       window.__bench.page = Math.round(performance.now());
+    }
+    if (window.__bench.page && !main.querySelector('section.picks[aria-busy]')) {
+      window.__bench.picks = Math.round(performance.now());
       observer.disconnect();
     }
   }).observe(document, { childList: true, subtree: true, attributes: true });
@@ -131,15 +135,15 @@ try {
     for (let i = 1; i <= Number(n); i++) {
       const page = await context.newPage();
       await page.goto(`${base}/`);
-      await page.waitForFunction(() => window.__bench.page, null, { timeout: 120_000 });
+      await page.waitForFunction(() => window.__bench.picks, null, { timeout: 120_000 });
       await sleep(3000);
-      const { frame, page: shown, long } = await page.evaluate(() => window.__bench);
+      const { frame, page: shown, picks, long } = await page.evaluate(() => window.__bench);
       // the app's own marks of its start, e.g. startup/library
       const startup = await page.evaluate(() => Object.fromEntries(
         performance.getEntriesByType('mark')
           .filter(m => m.name.startsWith('startup/'))
           .map(m => [m.name.slice('startup/'.length), Math.round(m.startTime)])));
-      console.log(JSON.stringify({ run: i, frame, page: shown, ...tasks(long.filter(([s]) => s <= shown + 3000)), startup }));
+      console.log(JSON.stringify({ run: i, frame, page: shown, picks, ...tasks(long.filter(([s]) => s <= picks + 3000)), startup }));
       await page.close();
     }
   } else if (mode === 'subscribe') {

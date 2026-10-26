@@ -1,6 +1,7 @@
 (ns dk.simongray.elektrolyt.library.picks-test
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.app.library.impl :as library.impl]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.search :as feed.search]
             [dk.simongray.podcast.profile :as profile]
@@ -130,8 +131,10 @@
   (let [home {:library lib :route {:name :route/home}}
         show {:library lib :route {:name :route/show :path-params {:guid "g"}}}]
     (is (= [[:home]] (picks/shown-places home nil)))
+    (is (nil? (picks/shown-places (update home :library library.impl/index-unloaded) nil))
+        "but none while the library's index is unloaded")
     (is (nil? (picks/shown-places (assoc home :route {:name :route/queue}) nil))
-        "but not the end of an empty queue")
+        "nor the end of an empty queue")
     (is (= [[:queue]] (picks/shown-places {:library (library/update-profile lib profile.queue/enqueue grinders)
                                            :route   {:name :route/queue}}
                                           nil)))

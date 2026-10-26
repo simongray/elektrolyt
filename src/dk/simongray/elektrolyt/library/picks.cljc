@@ -221,9 +221,12 @@
   "The places of the picks that the page in `state` shows: [:home],
   [:queue] while the queue has episodes, and [:show guid] or [:episode id
   guid] while the listener has their picks open, where `episode` is the
-  page of the episode that the page shows, if any."
+  page of the episode that the page shows, if any. There are none while
+  the library's search index is unloaded, which the picks need."
   [state episode]
-  (let [route (when (:library state) (get-in state [:route :name]))
+  (let [library (:library state)
+        route   (when (and library (not (library/index-unloaded? library)))
+                  (get-in state [:route :name]))
         open? #(get-in state [:open (into [:picks] %)])]
     (case route
       :route/home    [[:home]]
