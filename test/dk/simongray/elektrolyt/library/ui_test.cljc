@@ -24,6 +24,13 @@
                                                          :library-view {:layout :list}}))))
         "or the listener's choice")))
 
+(deftest the-artwork-of-the-tiles
+  (let [show {:feed-guid "g" :title "A Show" :artwork "https://example.org/a.jpg"}
+        img  #(attributes :img (library-ui/show-item {} % show))]
+    (is (nil? (:loading (img 0))) "loads at once in the first screen")
+    (is (nil? (:loading (img (dec library-ui/eager-tiles)))))
+    (is (= "lazy" (:loading (img library-ui/eager-tiles))) "and lazily after it")))
+
 (deftest a-refresh-under-way
   (let [x (library-ui/content {:library queue-test/lib :refresh-status {:running? true :done 3 :total 40}})]
     (is (re-find #"Checking 3 of 40 shows" (text-of x)))

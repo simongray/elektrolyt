@@ -37,17 +37,27 @@
                 (not running?) (assoc :on {:click [[:library/refresh]]}))
       "Check for new episodes"]]))
 
+;; web.dev: lazy artwork in the first screen loads later than it would, so
+;; a desktop grid's first screen loads at once, and the rest as it nears
+;; the window rather than all of it at once, e.g. after an import
+;; https://web.dev/articles/lcp-lazy-loading
+(def eager-tiles
+  "How many of the first tiles load their artwork at once."
+  12)
+
 ;; Inclusive Components, Cards: the title is the link rather than the whole
 ;; tile, whose every word would be the link's name
 ;; https://inclusive-components.design/cards/
 (defn show-item
-  "The tile of the library's `show` in `state`: its artwork and title,
-  which link to its page, its counts and the date of its newest episode."
-  [state {:keys [feed-guid title newest counts] :as show}]
+  "The tile of the library's `show` in `state`, the `i`th, counted from 0:
+  its artwork and title, which link to its page, its counts and the date
+  of its newest episode."
+  [state i {:keys [feed-guid title newest counts] :as show}]
   (let [href (routes/show-href feed-guid title)]
     [:li {:replicant/key feed-guid}
      [:article.library-show
-      (artwork/linked href title (artwork/img show 160 (colors/placeholder state show)))
+      (artwork/linked href title (artwork/img show 160 (merge (when (<= eager-tiles i) {:loading "lazy"})
+                                                              (colors/placeholder state show))))
       [:h3 [:a {:href href} title]]
       (when-let [text (shows/counts-text counts)]
         [:p text])
@@ -76,4 +86,4 @@
         [:ul {:role      "list"
               :class     ["library-shows" (name (shows/choice state :layout))]
               :aria-busy (str (boolean (:running? refresh-status)))}
-         (map #(show-item state %) (shows/sorted all (shows/choice state :sort)))]]))))
+         (map-indexed #(show-item state %1 %2) (shows/sorted all (shows/choice state :sort)))]]))))
