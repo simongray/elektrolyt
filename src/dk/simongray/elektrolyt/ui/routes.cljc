@@ -4,6 +4,7 @@
   (:require [clojure.string :as str]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.elektrolyt.search :as search]
+            [dk.simongray.elektrolyt.ui.memo :as memo]
             [reitit.core :as reitit]))
 
 ;; A show's page is at /shows/<guid>/<slug>, as a question is on Stack
@@ -78,23 +79,31 @@
   for ø."
   {"ø" "o" "æ" "ae" "œ" "oe" "ß" "ss" "đ" "d" "ł" "l" "þ" "th" "ı" "i"})
 
-(defn slug
+(def slug
   "The words of `title` as lower-case letters and digits between hyphens,
-  at most 60 characters of them, or nil when it has none.
+  at most 60 characters of them, or nil when it has none. Each row of an
+  episode asks at every render, so they're kept for the last 2,000 titles.
 
       (slug \"Podcasting 2.0\")  ; => \"podcasting-2-0\"
       (slug \"Mørkeland\")       ; => \"morkeland\""
-  [title]
-  ;; decomposed first, since NFKD turns letters such as 𝐓 and ℌ into capitals
-  (let [words (-> (decomposed (str title))
-                  (str/lower-case)
-                  ;; the combining accents that NFKD splits off the letters
-                  (str/replace #"[̀-ͯ]" "")
-                  (str/replace #"[øæœßđłþı]" foldings)
-                  (str/replace #"[^a-z0-9]+" "-"))]
-    (-> (subs words 0 (min 60 (count words)))
-        (str/replace #"^-+|-+$" "")
-        (not-empty))))
+  (memo/remember-each
+   (fn [title]
+     ;; decomposed first, since NFKD turns letters such as 𝐓 and ℌ into capitals
+     (let [words (-> (decomposed (str title))
+                     (str/lower-case)
+                     ;; the combining accents that NFKD splits off the letters
+                     (str/replace #"[̀-ͯ]" "")
+                     (str/replace #"[øæœßđłþı]" foldings)
+                     (str/replace #"[^a-z0-9]+" "-"))]
+       (-> (subs words 0 (min 60 (count words)))
+           (str/replace #"^-+|-+$" "")
+           (not-empty))))))
+
+(def short-hash
+  "The short hash of a guid, as guid/short-hash gives it, e.g. for the path
+  of an episode's page. Each row of an episode asks at every render, so
+  they're kept for the last 2,000 guids."
+  (memo/remember-each guid/short-hash))
 
 (defn show-route
   "The route name, path params and query params, in that order, of the
@@ -124,7 +133,7 @@
   ([guid item-guid title url]
    (episode-href guid item-guid title url nil))
   ([guid item-guid title url t]
-   (let [path  {:guid guid :hash (guid/short-hash item-guid)}
+   (let [path  {:guid guid :hash (short-hash item-guid)}
          query (not-empty (cond-> {}
                             url (assoc :url url)
                             t   (assoc :t (long t))))]

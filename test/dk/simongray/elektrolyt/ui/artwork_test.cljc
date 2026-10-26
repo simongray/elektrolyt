@@ -10,6 +10,9 @@
           {:href "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=256" :width 256}
           {:href "/artwork?url=https%3A%2F%2Fexample.org%2Fa.jpg&w=512" :width 512}]
          (artwork/thumbnails "https://example.org/a.jpg")))
+  (is (identical? (artwork/thumbnails "https://example.org/a.jpg")
+                  (artwork/thumbnails (str "https://example.org/" "a.jpg")))
+      "the same ones each time, which a render compares cheaply")
   (is (nil? (artwork/thumbnails "data:image/png;base64,iVBORw0KGgo="))
       "none for artwork in a data URL, which no server fetches")
   (is (nil? (artwork/thumbnails nil))))

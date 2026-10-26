@@ -2,6 +2,7 @@
   "The artwork of a show or an episode as an img, in the sizes that its
   feed names or else in the server's thumbnails of it."
   (:require [clojure.string :as str]
+            [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.wary-fetch.url :as url]))
 
 (def thumbnails-path
@@ -25,16 +26,18 @@
   [path url width]
   (str path "?url=" (url/percent-encode url) "&w=" width))
 
-(defn thumbnails
+(def thumbnails
   "The server's thumbnails of the artwork at `url`, as maps of :href and
   :width, or nil for a URL that isn't http or https, e.g. a data URL.
 
   The server doesn't scale artwork up, so a thumbnail can be narrower than
-  its :width."
-  [url]
-  (when (url/web-url? url)
-    (mapv #(hash-map :href (thumbnail-url thumbnails-path url %) :width %)
-          widths)))
+  its :width. Each row with artwork asks at every render, so they're kept
+  for the last 2,000 URLs."
+  (memo/remember-each
+   (fn [url]
+     (when (url/web-url? url)
+       (mapv #(hash-map :href (thumbnail-url thumbnails-path url %) :width %)
+             widths)))))
 
 ;; Most feeds name a single artwork of 3000 pixels and no smaller sizes,
 ;; e.g. 1.4 MB for each episode of an Anchor feed

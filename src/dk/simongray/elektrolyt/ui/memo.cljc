@@ -1,6 +1,7 @@
 (ns dk.simongray.elektrolyt.ui.memo
-  "Remembering the last result of a slow function whose arguments seldom
-  change between renders, e.g. a view of the library.")
+  "Remembering the results of slow functions whose arguments seldom change
+  between renders, e.g. a view of the library, or the thumbnails of a
+  row's artwork.")
 
 (defn same?
   "Whether the arguments `a` and `b` count as the same: identical
@@ -58,3 +59,33 @@
           (let [made (apply f args)]
             (swap! remembered #(conj (cond-> % (<= n (count %)) (subvec 1)) [k made]))
             made))))))
+
+;; A JS Map finds a string by its value, but a ClojureScript collection
+;; only by its identity, so the keys are strings
+(defn remember-each
+  "A version of `f`, a function of a string, that keeps its result for
+  each of the last `n` strings, 2,000 unless given, the first one kept
+  going first, e.g. for what each row of a list derives from a URL or a
+  guid at every render."
+  ([f]
+   (remember-each f 2000))
+  ([f n]
+   #?(:clj  (let [^java.util.Map kept (proxy [java.util.LinkedHashMap] []
+                                        (removeEldestEntry [_]
+                                          (< n (.size ^java.util.Map this))))]
+              (fn [s]
+                (locking kept
+                  (if (.containsKey kept s)
+                    (.get kept s)
+                    (let [made (f s)]
+                      (.put kept s made)
+                      made)))))
+      :cljs (let [kept (js/Map.)]
+              (fn [s]
+                (if (.has kept s)
+                  (.get kept s)
+                  (let [made (f s)]
+                    (.set kept s made)
+                    (when (< n (.-size kept))
+                      (.delete kept (.-value (.next (.keys kept)))))
+                    made)))))))

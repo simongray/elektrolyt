@@ -1,14 +1,14 @@
 (ns dk.simongray.elektrolyt.ui.rows
   "The buttons of the rows of any list with an order, e.g. the queue: a
   button named by its row, and Move up and Move down."
-  (:require [dk.simongray.podcast.feed.guid :as guid]
-            [dk.simongray.elektrolyt.ui.controls :as controls]))
+  (:require [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.routes :as routes]))
 
 (defn control-id
   "The id of the `kind` of button, e.g. :remove, of the row `id` in the
   list `list-name`, by which the focus finds it again after a change."
   [list-name id kind]
-  (str list-name "-" (guid/short-hash (pr-str id)) "-" (name kind)))
+  (str list-name "-" (routes/short-hash (pr-str id)) "-" (name kind)))
 
 (defn neighbour
   "The row that takes the place of the one at index `i` in the vector

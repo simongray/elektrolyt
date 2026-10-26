@@ -14,3 +14,15 @@
     (is (= 3 @made))
     (page :b)
     (is (= 4 @made) "which is made again")))
+
+(deftest what-each-string-gives
+  (let [made  (atom [])
+        upper (memo/remember-each (fn [s] (swap! made conj s) (some-> s .toUpperCase)) 2)]
+    (is (= "A" (upper "a")))
+    (is (= "A" (upper (subs "ab" 0 1))) "is kept, for an equal string too")
+    (is (nil? (upper nil)))
+    (upper nil)
+    (is (= ["a" nil] @made) "or a result of nil")
+    (upper "b")
+    (upper "a")
+    (is (= ["a" nil "b" "a"] @made) "for as many strings as it keeps, the first kept going first")))

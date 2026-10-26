@@ -62,6 +62,7 @@ In the tab, outside the store
 | `worker.fetching/in-flight` | The promises of the worker's fetches of feeds in flight, by URL and options, which an equal fetch waits for, e.g. a subscription's while the Show page fetches the whole feed | `worker.fetching` | `worker.fetching`, for `show.feeds` | Until each settles |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
 | `ui.memo` slots | The last result of a view that takes a while, e.g. the queue or the picks, and the last four of a show's or an episode's page | the views | the views | Until its arguments change, or four others are made after it |
+| `ui.memo/remember-each` maps | What each row derives from a string: the server's thumbnails of artwork by URL, and an episode's slug by its title and short hash by its guid | `ui.artwork`, `ui.routes` | the views, `ui.rows` | The tab, but each forgets the first of its strings past 2,000 |
 | `ui.text/formatters` | The Intl formatters of dates, durations, lists, sizes and language names, by kind, language and options | `ui.text` | `ui.text`, `ui.time` | The tab |
 | Telemere's handlers and minimum level | Its console handler, and the minimum level, which is `:warn` in a release build | `runtime.log/start!` | Telemere | The tab, or the worker |
 
