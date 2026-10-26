@@ -278,9 +278,12 @@
   (fn [_ store url title]
     (feeds/unsubscribe! store url title)))
 
+;; the tiles' artwork moves to its new place (look.css)
 (nxr/register-effect! :library/view
   (fn [_ store k v]
-    (local/store-edn! library-view-key (:library-view (swap! store assoc-in [:library-view k] v)))))
+    (runtime/transition!
+     #(local/store-edn! library-view-key
+                        (:library-view (swap! store assoc-in [:library-view k] v))))))
 
 (nxr/register-effect! :library/refresh
   (fn [_ store]
@@ -347,10 +350,13 @@
 
 ;; The settings
 
+;; a change of the colours cross-fades the page, rather than flip it
 (nxr/register-effect! :settings/prefer
   (fn [_ store k v]
     (when (or (boolean? v) (keyword? v) (js/Number.isFinite v))
-      (changed! store (settings/preferred {k v}))
+      (if (#{::settings/appearance ::settings/contrast} k)
+        (runtime/transition! #(changed! store (settings/preferred {k v})))
+        (changed! store (settings/preferred {k v})))
       ;; DR's own feeds are stale now, so a refresh fetches them at once
       (when (= ::settings/alternative-feeds? k)
         (refresh/refresh-if-due! store)))))

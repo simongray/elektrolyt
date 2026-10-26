@@ -163,6 +163,17 @@
   []
   (.-matches (js/matchMedia "(prefers-reduced-motion: no-preference)")))
 
+;; CSS View Transitions: the browser draws the page as it was, calls `f`,
+;; and then moves to the page as it is
+;; https://developer.mozilla.org/en-US/docs/Web/API/Document/startViewTransition
+(defn transition!
+  "Call `f`, which changes the page, in a view transition where the
+  browser has them and the listener allows motion, or else at once."
+  [f]
+  (if (and (fn? (.-startViewTransition js/document)) (motion?))
+    (.startViewTransition js/document f)
+    (f)))
+
 (defn on-pagehide!
   "Call `f` whenever the page unloads or goes into the back/forward
   cache."
