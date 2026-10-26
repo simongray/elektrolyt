@@ -325,10 +325,13 @@ New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
 writes the index's segments. #22 only moves it after the paint.
 
-Also new: opening the Library and then the Queue made 104 renders, one for
-each artwork colour as it arrived, 246 ms in all, besides 106 ms in the
-colours' watch. #12's batching would cut that, and so would applying the
-colours that arrive in one frame together.
+Also new, and fixed: each artwork colour went into the store on its own,
+and marking the next artwork as under way was another change, each with a
+render of the page. Opening the Library with 50 colours to work out made 98
+renders. Now the colours that arrive before a paint go in together, with
+the next artworks marked in the same change: 19 renders, with 41–43 ms of
+rendering for the colours rather than 139–146, and 5 ms in the colours'
+watch rather than 54–60.
 
 The commits in podcast-clj, drop-in-search and like-minded aren't released,
 so the app has them only with the `:local` alias, which now takes

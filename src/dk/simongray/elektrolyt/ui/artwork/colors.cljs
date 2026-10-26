@@ -5,6 +5,7 @@
             [dk.simongray.colour-coded :as cc]
             [dk.simongray.colour-coded.image :as image]
             [dk.simongray.elektrolyt.library.options :as library-options]
+            [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
             [dk.simongray.elektrolyt.ui.colors :as colors]
             [dk.simongray.elektrolyt.ui.routes :as routes]
@@ -51,11 +52,60 @@
                      (proxied-bytes artwork)))))
       (proxied-bytes url))))
 
+(def colors-at-once
+  "How many artworks' colours are worked out at a time, so that a long
+  list doesn't send all its images through the proxy at once."
+  4)
+
+(defn next-wanted
+  "The artworks on the page in `state` whose colours to work out next, as
+  many as colors-at-once allows beside those under way."
+  [state]
+  (let [loading (count (filter #(= :loading (:status %)) (vals (:colors state))))]
+    (take (- colors-at-once loading) (colors/wanted state))))
+
+(defn loading
+  "The `state` with the colours of the artworks `xs` marked as under way."
+  [state xs]
+  (update state :colors merge (zipmap (map :artwork xs) (repeat {:status :loading}))))
+
+(declare load-colors!)
+
+(defn took-arrived!
+  "Put the colours of the artworks `found` into `store` in one change,
+  with the next artworks marked as under way, and start on those."
+  [store found]
+  (let [xs (volatile! nil)]
+    (swap! store (fn [state]
+                   (let [state (update state :colors merge found)]
+                     (vreset! xs (next-wanted state))
+                     (loading state @xs))))
+    (run! #(load-colors! store %) @xs)))
+
+;; Each colour went into the store on its own, and each made a render of
+;; the page, as did marking the next artwork as under way: 97 renders as
+;; the Library's 50 colours arrived
+(defonce ^{:doc "The colours of artworks worked out since the store last
+  took them, by artwork, which it takes together once the page paints, or
+  nil when none wait."}
+  arrived
+  (atom nil))
+
+(defn arrived!
+  "Keep the colours `v` of the `artwork` for `store` to take with the
+  others that arrive before the page paints."
+  [store artwork v]
+  (when (nil? @arrived)
+    (.then (runtime/painted!)
+           #(let [found @arrived]
+              (reset! arrived nil)
+              (took-arrived! store found))))
+  (swap! arrived assoc artwork v))
+
 (defn load-colors!
-  "Work out the colours of the artwork `x` into the :colors of `store`,
-  from the cache or else from the image, whose colours are then cached.
-  An image that fails to load leaves the artwork without colours until
-  the page loads again."
+  "Work out the colours of the artwork `x` for `store`, from the cache or
+  else from the image, whose colours are then cached. An image that fails
+  to load leaves the artwork without colours until the page loads again."
   [store {:keys [artwork] :as x}]
   (-> (app-cache/fetch! app-cache/colors artwork)
       (.then (fn [kept]
@@ -71,23 +121,16 @@
                            :data  {:artwork artwork} :error e}
                           "The colours of the artwork weren't worked out")
                 nil))
-      (.then #(swap! store assoc-in [:colors artwork] (or % {:seed nil})))))
-
-(def colors-at-once
-  "How many artworks' colours are worked out at a time, so that a long
-  list doesn't send all its images through the proxy at once."
-  4)
+      (.then #(arrived! store artwork (or % {:seed nil})))))
 
 (defn colored!
   "Work out the missing colours of the artworks on the page in `state`
   into `store`, a few at a time and in order."
   [store state]
-  (let [loading (count (filter #(= :loading (:status %)) (vals (:colors state))))
-        xs      (take (- colors-at-once loading) (colors/wanted state))]
+  (let [xs (next-wanted state)]
     (when (seq xs)
-      (swap! store update :colors merge (zipmap (map :artwork xs) (repeat {:status :loading})))
-      (doseq [x xs]
-        (load-colors! store x)))))
+      (swap! store loading xs)
+      (run! #(load-colors! store %) xs))))
 
 (defn kept-colors!
   "A promise of loading the cached colours of the artwork on the page at
