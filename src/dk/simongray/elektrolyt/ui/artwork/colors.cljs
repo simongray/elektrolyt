@@ -96,8 +96,8 @@
   [store]
   (let [route  (routes/match->route (reitit/match-by-path routes/router js/location.pathname))
         wanted (colors/wanted (assoc @store :route route))]
-    (-> (js/Promise.all (into-array (map #(app-cache/fetch! app-cache/colors (:artwork %)) wanted)))
+    (-> (app-cache/fetch-all! app-cache/colors (map :artwork wanted))
         (.then (fn [kept]
                  (swap! store update :colors merge
-                        (into {} (keep (fn [[x k]] (some->> (cached-colors k) (vector (:artwork x)))))
-                              (map vector wanted kept))))))))
+                        (into {} (keep (fn [[artwork k]] (some->> (cached-colors k) (vector artwork))))
+                              kept)))))))
