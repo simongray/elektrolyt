@@ -1,7 +1,9 @@
 (ns dk.simongray.elektrolyt.ui.home-test
   (:require [clojure.test :refer [deftest is]]
             [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.library.queue-test :refer [state]]
+            [dk.simongray.elektrolyt.library.shows :as shows]
             [dk.simongray.elektrolyt.ui.home :as home]
             [dk.simongray.elektrolyt.ui-test :refer [elements nodes text-of]]))
 
@@ -28,4 +30,12 @@
   (is (= ["About" "Up next" "You might like"] (headings {:library (library/make "test")})))
   (is (= ["Up next" "You might like" "About"] (headings (state false)))
       "and last for one who has shows")
+  (is (= ["Up next" "You might like" "About"]
+         (headings {:library (library/update-profile (library/make "test") profile/subscribe
+                                                     "g" {:url "https://example.org/new.xml"})}))
+      "including a show whose feed isn't fetched yet")
   (is (= ["About"] (headings {})) "and alone without the library"))
+
+(deftest no-counting-of-episodes
+  (with-redefs [shows/all-shows #(throw (ex-info "counted the episodes" {}))]
+    (is (= ["Up next" "You might like" "About"] (headings (state false))))))

@@ -7,11 +7,11 @@
   has You Might Like, and so does Pocket Casts' Discover.
   https://support.apple.com/guide/iphone/find-podcasts-iph19bb8e705/ios
   https://support.pocketcasts.com/article/subscribing-to-podcasts/"
-  (:require [dk.simongray.elektrolyt.library.picks :as picks]
+  (:require [dk.simongray.podcast.profile :as profile]
+            [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.library.queue.ui :as queue-ui]
-            [dk.simongray.elektrolyt.library.shows :as shows]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]))
 
 (def queue-count
@@ -60,6 +60,8 @@
                 [:div.home-lists
                  (up-next state)
                  (picks-ui/section state picks-section (picks/home state))])]
-    (if (empty? (some-> library shows/all-shows))
+    ;; the subscriptions alone, since the Library page's shows count every
+    ;; episode, and the profile changes at each position report
+    (if (empty? (some-> library :profile profile/subscriptions))
       (list about lists)
       (list lists about))))
