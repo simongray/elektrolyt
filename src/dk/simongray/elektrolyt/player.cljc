@@ -5,8 +5,8 @@
   The player is a map of:
 
   - :id, the episode, as [feed-guid item-guid]
-  - :media, the audio element's media state, to the whole second and
-    without the ranges it buffered
+  - :media, the parts of the audio element's media state that the page
+    reads, to the whole second
   - :seeking, the seconds that the seek bar is dragged to, while it's
     dragged
   - :volume, the level of the volume slider, and :volume-locked?, whether
@@ -153,22 +153,23 @@
       (and (= id (:id player)) (false? (:paused media)) (not (:error media)))
       :here)))
 
-(defn whole-ranges
-  "The time `ranges` with their starts and ends to the whole second."
-  [ranges]
-  (mapv (fn [[start end]] [(Math/floor start) (Math/floor end)]) ranges))
+(def shown-keys
+  "The keys of an element's media state that the page reads: the told-keys,
+  and whether it seeks or failed."
+  (conj told-keys :seeking :error))
 
-;; Nothing reads the ranges that the element buffered, which change as its
-;; file loads
+;; HTML, time marches on: the element fires timeupdate every 15 to 250 ms
+;; while it plays, and its played ranges grow with the position. Nothing
+;; reads them, nor the buffered ranges or the ready and network states,
+;; which change as the file loads.
+;; https://html.spec.whatwg.org/multipage/media.html#time-marches-on
 (defn whole-seconds
-  "The `media` state with its position and the ranges it played to the
-  whole second, so that the page renders once a second while it plays
-  rather than at every timeupdate. It leaves out the ranges it buffered."
+  "The shown-keys of the `media` state, with its position to the whole
+  second, so that the page renders once a second while it plays rather
+  than at every timeupdate."
   [media]
-  (-> media
-      (update :current-time #(when (number? %) (Math/floor %)))
-      (update :played whole-ranges)
-      (dissoc :buffered)))
+  (-> (select-keys media shown-keys)
+      (update :current-time #(when (number? %) (Math/floor %)))))
 
 (defn proxied
   "The `url` through the app's proxy, e.g. for a chapter's image, so that

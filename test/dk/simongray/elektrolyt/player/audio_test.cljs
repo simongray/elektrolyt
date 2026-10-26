@@ -61,6 +61,15 @@
       (report {:paused false :current-time 0.5})
       (is (= [10 12 0] @reports) "and as another episode starts"))))
 
+(deftest a-change-a-second
+  (let [swaps (atom 0)
+        store (atom {:player {:id ["feed" "one"]}})]
+    (add-watch store ::swaps (fn [_ _ _ _] (swap! swaps inc)))
+    (with-redefs [audio/tell! (fn [_ _])]
+      (audio/changed! store {:current-time 12.1 :paused false :played [[0 12.1]] :network-state :loading})
+      (audio/changed! store {:current-time 12.4 :paused false :played [[0 12.4]] :network-state :idle}))
+    (is (= 1 @swaps) "of the store, while the element plays and loads its file")))
+
 (defn playing
   "A store of the player with the episode `id` of the picks' library,
   current and `position` seconds into its 1800, with the listener's
