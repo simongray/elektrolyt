@@ -191,7 +191,7 @@
   "The episodes of the show `page` in `state`, a page at a time, with the
   status of the load and buttons for newer episodes that wait and for
   more."
-  [state {rows :episodes :keys [language] :as page}]
+  [state {rows :episodes n :episode-count :keys [language] :as page}]
   (let [g                             (guid state)
         {:keys [key url error newer]} (source state)
         url                           (when-not key url)
@@ -202,8 +202,8 @@
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
-       (failure state (count rows) error "#episodes")
-       [:p {:role "status"} (status-text status (count rows) error newer)])
+       (failure state n error "#episodes")
+       [:p {:role "status"} (status-text status n error newer)])
      (when newer
        [:button {:type "button" :data-refocus "#episodes" :on {:click [[:show/newer g]]}}
         (str "Show the " (text/plural newer "new episode"))])
@@ -212,10 +212,10 @@
         (for [[i row] (map-indexed vector (take shown rows))]
           [:li {:replicant/key (or (:guid row) i)}
            (episode-row state (episode-href (or key g) row url) row lang page)])])
-     (when (< shown (count rows))
+     (when (< shown n)
        [:button {:type         "button"
                  :data-refocus (str "ol.episodes > li:nth-child(" (inc shown) ") :is(h3 a, h3[tabindex])")
-                 :on           {:click [[:show/more g (count rows)]]}}
+                 :on           {:click [[:show/more g n]]}}
         "Show more episodes"])]))
 
 (def looking-up

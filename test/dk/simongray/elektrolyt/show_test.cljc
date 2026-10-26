@@ -29,7 +29,17 @@
   (let [page (show/feed->page url (feed "A Show" "One" "Two"))]
     (is (= "A Show" (:title page)))
     (is (= #{"One" "Two"} (set (map :title (:episodes page)))))
-    (is (every? :guid (:episodes page)) "each row has the key of its list item")))
+    (is (every? :guid (:episodes page)) "each row has the key of its list item")
+    (is (= 2 (:episode-count page)))))
+
+(deftest the-rows-of-a-long-show
+  (let [made (atom 0)
+        row  show/episode-row]
+    (with-redefs [show/episode-row (fn [item] (swap! made inc) (row item))]
+      (let [page (show/feed->page url (apply feed "A Show" (map #(str "Episode " %) (range 100))))]
+        (is (= 100 (:episode-count page)))
+        (is (= 20 (count (take show/page-size (:episodes page)))))
+        (is (< @made 100) "are made only as far as the page lists them")))))
 
 (deftest the-facts-of-a-feed
   (let [dated (fn [title date] {:rss/title title :rss/guid {:content title} :rss/pub-date date})

@@ -79,7 +79,8 @@
 
 (deftest more-episodes-on-request
   (let [rows     (vec (for [i (range 45)] {:guid (str i) :title (str "Episode " i)}))
-        section  (show/episodes (show-page {:episodes-shown {"g" 20}}) {:episodes rows})
+        page     {:episodes rows :episode-count 45}
+        section  (show/episodes (show-page {:episodes-shown {"g" 20}}) page)
         [_ & xs] section
         items    (some #(when (and (vector? %) (= :ol.episodes (first %))) (last %)) xs)
         button   (some #(when (and (vector? %) (= :button (first %))) %) xs)
@@ -92,7 +93,7 @@
     (is (= "ol.episodes > li:nth-child(21) :is(h3 a, h3[tabindex])" (get-in button [1 :data-refocus]))
         "which gives the focus to the first episode that it lists, once it goes, by its link or its title")
     (is (nil? (some #(when (and (vector? %) (= :button (first %))) %)
-                    (show/episodes (show-page {:episodes-shown {"g" 45}}) {:episodes rows})))
+                    (show/episodes (show-page {:episodes-shown {"g" 45}}) page)))
         "no button once they're all listed")))
 
 (deftest an-episode-without-a-guid
@@ -250,7 +251,7 @@
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]
         state     (show-page {:feeds {url {:feed (fed "A Show" {} "Episode 1") :whole? true :newer {:count 2}}}})
-        [_ & xs]  (show/episodes state {:episodes rows})
+        [_ & xs]  (show/episodes state {:episodes rows :episode-count 1})
         buttons   (filter #(and (vector? %) (= :button (first %))) xs)]
     (is (= [[[:show/newer "g"]] "Show the new episodes"]
            ((juxt #(get-in % [1 :on :click]) last) (first buttons)))

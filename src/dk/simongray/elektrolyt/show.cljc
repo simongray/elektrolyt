@@ -69,19 +69,21 @@
   (when latest
     (schedule/cadence {:rss/items episodes} latest)))
 
+;; The page lists 20 episodes at first, so the rows of a show of thousands
+;; are made only as far as it lists them, 32 at a time
 (defn view->page
   "The page of the show `view`, from a feed or from the library."
   [view]
   (let [episodes (:episodes view)
-        rows     (mapv episode-row episodes)
-        latest   (some->> (seq (keep :published rows)) (apply max-key inst-ms))]
+        latest   (some->> (seq (keep resolve/published episodes)) (apply max-key inst-ms))]
     (merge (select-keys view facts)
            {:title         (:title view)
             :author        (resolve/author view)
             :artwork       (:artwork view)
             :artwork-sizes (resolve/artwork-sizes view)
             :notes         (:notes view)
-            :episodes      rows}
+            :episodes      (map episode-row episodes)
+            :episode-count (count episodes)}
            (when latest
              {:latest  latest
               :cadence (cadence episodes latest)}))))
@@ -100,7 +102,8 @@
    :author        author
    :artwork       artwork
    :artwork-sizes artwork-sizes
-   :episodes      []})
+   :episodes      []
+   :episode-count 0})
 
 ;; A Show or Episode page looks its show up about twelve times a render,
 ;; and each lookup went over every subscription, while only a change of the
