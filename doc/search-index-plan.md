@@ -13,7 +13,7 @@ worker and leaves the index on the page, in three stages.
 
 ## Where it stands
 
-Stages 1 and 2 are built, and stage 3 isn't started. With the benchmark's
+Stages 1 and 2 are built, and you declined stage 3. With the benchmark's
 library, `bench.mjs open` shows Home after 0.66–0.75 s rather than
 1.85–1.86 s, and the longest task at the start takes 0.22–0.23 s rather
 than about 1.45 s. The index arrives after 1.97–2.14 s, when the picks are
@@ -21,9 +21,12 @@ found, and making it from the worker's parts takes the page a task of
 60–80 ms.
 
 So the picks come a little later than before, when they came with Home at
-about 1.9 s, since the worker starts to decode only once the page has
-read the rest. The worker could read the index's manifest itself at the
-start, and decode the index while the page reads the feeds.
+about 1.9 s. Having the worker start to decode during the page's read
+would gain little: it starts as soon as the page finds a saved library,
+and takes a quarter of a second to load, so it's ready about when the
+read ends. Only a worker started from index.html, before the app's
+scripts, could decode sooner, by an estimated 0.3 s, and it would run at
+every start, whether a library is saved or not.
 
 Two things differ from the plan below:
 
@@ -150,6 +153,8 @@ soon after anyway.
 
 ## Stage 3: build and encode segments in the worker
 
+You declined this stage on 26 October.
+
 For a subscription and a refresh's changed feeds, the worker already builds
 the search documents (#7). It would also build their segment and encode it
 as CIFF, and transfer both.
@@ -180,7 +185,7 @@ gain too, unmeasured.
    appears.
 3. **When stage 3 comes.** It helps subscriptions and imports, not the
    start, so it can wait for a measurement of a refresh in your own
-   library.
+   library. You declined it.
 
 A small fix stands apart from the stages. Counting each show's episodes for
 the cap on common words takes most of Home's 30 ms of picks, and it could

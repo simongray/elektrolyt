@@ -315,9 +315,7 @@ Later, with the item they need:
 
 - #74 with #10, #83, #88, #97 and #100 with #8's release on the same
   origin, #55, #90 and #91 with runs on phones, and #59, which is polish.
-  #98 isn't started, and #99's third stage, building and encoding
-  segments in the worker, waits as
-  [search-index-plan.md](search-index-plan.md) has it.
+  #98 isn't started.
 
 Your calls, made on 26 October:
 
@@ -344,6 +342,11 @@ Your calls, made on 26 October:
   rewrite the importScripts string in worker.js, so that no code ships
   twice. It waits for #8's release on the same origin, and it goes if #100
   is built, whose versioned cache does the same.
+- #99's third stage, declined: building and encoding segments in the
+  worker would take about 0.73 s off the page's work when subscribing to a
+  big show, and most of the 3.7 s save after an import, but nothing off the
+  start. [search-index-plan.md](search-index-plan.md) records the first two
+  stages, which are done.
 
 New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
