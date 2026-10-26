@@ -176,8 +176,9 @@ Done, with the commit of each:
   store by place, so a change of the queue on Home renders in 4–9 ms.
 - #46 (fc8b0a2, podcast-clj e412da5): the worker keeps only the notes that
   the app reads. The feeds encode to 90 million characters rather than 140,
-  and decode in 262 ms rather than 380. The first refresh after it writes
-  every feed once.
+  and decode in 262 ms rather than 380. Only a feed that changes is written
+  leaned, though: one whose server answers 304 keeps its stored copy, so 29
+  of the 54 feeds in your library still hold the notes twice (below).
 - #48, its first stage (bfa1c93): an episode's other files are read once
   it plays steadily rather than in the Play click, and a restored episode's
   at idle.
@@ -243,12 +244,17 @@ Done, with the commit of each:
   took 656 ms.
 - #80 (10da984): with an hour's transcript open, a render took 14 ms more,
   and now takes 0.8–1.7 ms, as with it closed.
-- #81, its shows (podcast-clj 4ffb8ba): a screen of shows keeps what it
+- #81 (podcast-clj 4ffb8ba, 210a78f): a screen of shows keeps what it
   takes of each feed, and counts the statuses from the episodes that the
   profile holds marks of. For 54 shows of 27,831 episodes, it's made again
   in 4.9 ms rather than 91 after each change of the profile, e.g. each
-  report of a position while the Library shows. The queue's lookups take
-  up to 6.9 ms for 50 queued episodes, so their index waits.
+  report of a position while the Library shows. An item is found by its
+  guid in an index of its feed, which takes 0.002 ms rather than 0.59 for
+  an episode 700 items in. A queue of 50 episodes still takes about 8 ms,
+  almost all of it each row's view, which is under a frame. Both caches are
+  weak, so they go with their feed. The shows' counts are also worked out
+  at idle after the start (ff8eee0), so the first click into the Library
+  takes 46–60 ms rather than 115.
 - #93, measured, and #94 (6eac94d): ten outside shows held about 110 MB of
   heap, and none of it went. Besides the store, two leaks held them:
   `memo/remember-recent` dropped its oldest result with a subvec, which
@@ -324,6 +330,21 @@ Your call:
 New, and not in the ranking: the save after an import of the 53 shows is one
 task of 3.7 s, 3.2 s of it in drop-in-search's `ciff/segment-body`, which
 writes the index's segments. #22 only moves it after the paint.
+
+Also new, and fixed: drop-in-search read each document's id as EDN at the
+start. A vector of plain strings, as the app's ids are, is now split at its
+quotes (drop-in-search 9ca9ed8), so decoding the library of 53 shows takes
+1,460–1,469 ms rather than 1,622–1,689, and Home appears at 1.95–1.99 s
+rather than 2.13–2.25. The rest of the read is the index's postings, about
+600 ms with no single hotspot, which only a change of its format or #99
+would cut.
+
+Found, and waiting for your call: the heap after the start holds the notes
+of many episodes twice, as `:content/encoded` and `:rss/description`, since
+#46's leaning reaches only the feeds that change. In your library that's
+12,984 of 27,833 episodes, in 29 of 54 feeds, and 13.9 million characters.
+Leaning each feed as podcast-clj reads it would drop them, and rewrite
+those feeds' documents once.
 
 Also new, and fixed: each artwork colour went into the store on its own,
 and marking the next artwork as under way was another change, each with a
