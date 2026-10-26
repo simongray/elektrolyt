@@ -469,8 +469,9 @@ main h1,
   overflow-wrap: anywhere;
 }
 
-/* The skeleton of a page while the app starts (ui.cljc): three lines of
-   text below the heading, each shorter than the one before */
+/* The skeleton of a page while the app starts (ui.cljc), or while an
+   Episode page's feed loads: three lines of text below the heading, each
+   shorter than the one before */
 .skeleton {
   display: grid;
   gap: var(--space-3);
@@ -488,6 +489,27 @@ main h1,
 
 .skeleton > div:nth-child(3) {
   width: 60%;
+}
+
+/* The rows in the place of a show's episodes while they load
+   (show/ui.cljc): the artwork's square beside a title and a line of
+   facts, in the grid of an episode's row */
+.skeleton-rows .show-episode > div:first-child {
+  grid-column: 1;
+  grid-row: span 2;
+  width: 48px;
+  height: 48px;
+}
+
+.skeleton-rows .show-episode > div:not(:first-child) {
+  grid-column: 2;
+  width: 70%;
+  height: 1em;
+}
+
+.skeleton-rows .show-episode > div:last-child {
+  width: 40%;
+  margin-top: var(--space-2);
 }
 
 /* The line just below the status of a wait on the network, apart from

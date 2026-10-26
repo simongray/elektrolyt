@@ -244,9 +244,10 @@
     (is (= "Other" (spoken other)))))
 
 (deftest a-show-that-has-no-page-yet
-  (is (= [[:h1 "Show"] [:p.busy {:role "status"} "Loading the show…"]]
+  (is (= [[:h1 "Show"] [[:p.busy {:role "status"} "Loading the show…"] show/skeleton-rows]]
          (show/content (show-page {:requests {[:whole url] {}}}) [:h1 "Show"]))
-      "its heading, with no article around it, over a line that moves while it waits"))
+      "its heading, with no article around it, over a line that moves while it waits and rows in the place of the episodes")
+  (is (= "true" (get-in show/skeleton-rows [1 :aria-hidden])) "which a screen reader skips"))
 
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]

@@ -457,14 +457,16 @@ button[aria-disabled="true"]:is(:hover, :focus-visible, :active) {
   border: 1.5px dashed currentColor;
 }
 
-/* The skeleton of a page while the app starts, in the paper's soft rule
-   and with no shimmer. It shows only after a second (ui.cljc), and fades
-   in where motion is allowed (below). */
-.skeleton {
+/* The skeleton of a page while the app starts or a feed loads, in the
+   paper's soft rule and with no shimmer. It shows only after a second
+   (ui.cljc), and fades in where motion is allowed (below). */
+.skeleton,
+.skeleton-rows {
   animation: appear 0s 1s both;
 }
 
-.skeleton > div {
+.skeleton > div,
+.skeleton-rows .show-episode > div {
   border-radius: var(--radius);
   background: var(--rule-soft);
 }
@@ -1050,6 +1052,12 @@ search p {
   .with-icon[data-waiting]::before {
     forced-color-adjust: none;
   }
+
+  /* the blocks of a skeleton keep an outline where their fill goes */
+  .skeleton > div,
+  .skeleton-rows .show-episode > div {
+    outline: 1px solid GrayText;
+  }
 }
 
 /* Motion only where the listener allows it: the colours turn from one
@@ -1087,7 +1095,8 @@ search p {
     animation: turn 1s linear infinite;
   }
 
-  .skeleton {
+  .skeleton,
+  .skeleton-rows {
     animation-duration: 0.4s;
   }
 

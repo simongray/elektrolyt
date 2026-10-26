@@ -49,11 +49,13 @@ test('unsubscribing after a reload keeps the episodes', async ({ page, context }
 });
 
 // WCAG 2.2.2: the line under the status of a slow load moves for 5
-// seconds at most, and not at all where the listener asks for less motion
+// seconds at most, and not at all where the listener asks for less motion.
+// The rows in the place of the episodes are for the eye alone.
 test('a slow load moves a line under its status, unless motion is reduced', async ({ page, show }) => {
   const main = page.getByRole('main');
   const loading = main.getByRole('status').filter({ hasText: 'Loading the show…' });
   const animation = () => loading.evaluate(p => getComputedStyle(p, '::after').animationName);
+  const skeleton = main.locator('ol.skeleton-rows');
   const release = show.hold();
 
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -62,9 +64,12 @@ test('a slow load moves a line under its status, unless motion is reduced', asyn
   expect(await animation()).toBe('busy');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await animation()).toBe('none');
+  await expect(skeleton).toHaveAttribute('aria-hidden', 'true');
+  await expect(main.getByRole('listitem')).toHaveCount(0);
 
   release();
   await expect(main.getByText(`${episodes.length} episodes.`, { exact: true })).not.toHaveClass(/busy/);
+  await expect(skeleton).toHaveCount(0);
 });
 
 // Once the page has the whole feed, which its count of episodes says,

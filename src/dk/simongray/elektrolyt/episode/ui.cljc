@@ -276,7 +276,9 @@
   (let [{:keys [guid]} (get-in state [:route :path-params])]
     (case (episode/status state guid)
       :looking-up show-ui/looking-up
-      :loading    [:p.busy {:role "status"} "Loading the episode…"]
+      ;; lines in the place of the notes, as the page's skeleton has them
+      :loading    (list [:p.busy {:role "status"} "Loading the episode…"]
+                        [:div.skeleton {:aria-hidden "true"} [:div] [:div] [:div]])
       :no-show    show-ui/not-found
       :failed     [:p {:role "status"}
                    (show-ui/status-text :failed 0 (:error (show-ui/source state)) nil)]

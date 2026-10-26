@@ -174,6 +174,17 @@
                                   :on           {:click [[:show/retry (guid state) (:url (source state))]]}}
                  "Try again" [:span.visually-hidden " to fetch the feed"]]))
 
+;; NN/g: rows in the place of the episodes hold the page's shape while they
+;; load, and like the page's skeleton as the app starts, they show only
+;; after a second (look.css)
+;; https://www.nngroup.com/articles/skeleton-screens/
+(def skeleton-rows
+  "Rows in the place of a show's episodes while they load, hidden from a
+  screen reader, which hears the status line over them."
+  [:ol.episodes.skeleton-rows {:role "list" :aria-hidden "true"}
+   (for [i (range 5)]
+     [:li {:replicant/key i} [:div.show-episode [:div] [:div] [:div]]])])
+
 ;; A button that lists more, rather than a list that grows as it scrolls,
 ;; whose end a keyboard or a voice can't reach (GitLab's audit of infinite
 ;; scrolling, issue 1196 of gitlab-ui, and Deque on role=feed). New
@@ -207,6 +218,8 @@
      (when newer
        [:button {:type "button" :data-refocus "#episodes" :on {:click [[:show/newer g]]}}
         (str "Show the " (text/plural newer "new episode"))])
+     (when (and (= :loading status) (zero? n))
+       skeleton-rows)
      (when (seq rows)
        [:ol.episodes {:role "list"}
         (for [[i row] (map-indexed vector (take shown rows))]
@@ -337,7 +350,7 @@
               heading)
             (case status
               :looking-up looking-up
-              :loading    [:p.busy {:role "status"} "Loading the show…"]
+              :loading    (list [:p.busy {:role "status"} "Loading the show…"] skeleton-rows)
               :failed     (failure state 0 (:error (source state)) "main h1")
               not-found))
       (let [aside (details/aside (details-rows page) (:people page))

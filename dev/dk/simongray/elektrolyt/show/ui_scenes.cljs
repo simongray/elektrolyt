@@ -188,6 +188,13 @@
     (ui/page {:route   {:name :route/show :path-params {:guid k} :query-params {}}
               :library lib})))
 
+(defscene a-show-from-a-link-on-its-way
+  "A link to a show outside the library that names its feed, which is on
+  its way, with no search that found it: rows in the place of its
+  episodes after a second."
+  (ui/page (-> (show-page {:requests {[:whole url] {}}})
+               (dissoc :searches))))
+
 (defscene a-show-nobody-knows
   "A link to a show that the library doesn't keep and that names no feed."
   (ui/page {:route   {:name :route/show :path-params {:guid guid} :query-params {}}
