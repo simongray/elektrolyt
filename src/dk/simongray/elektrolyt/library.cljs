@@ -187,6 +187,20 @@
                               operation (assoc :library (:library given)))))
           given))))))
 
+;; The worker leans each feed that it fetches, but a feed whose server
+;; answers 304 kept its document from before, with its notes in two or
+;; three fields: 12,984 of the 27,833 episodes of the in-app browser's
+;; library of 54 shows
+(defn leaned!
+  "Drop the notes that the app doesn't read from the feeds of the library
+  in the `state` atom, and save it, which writes those feeds' documents
+  anew, once. A library whose feeds are lean already stays as it is."
+  [state]
+  (when-let [library (:library @state)]
+    (when-not (identical? library (library/leaned library (js/Date.)))
+      (change! state {:operation [:library/leaned]})
+      (save! state))))
+
 (defn stored-version
   "A promise of the stored version of the library's document, taken from
   the store's listing so that no document is read."

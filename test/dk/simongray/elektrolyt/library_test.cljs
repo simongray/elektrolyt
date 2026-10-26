@@ -81,6 +81,23 @@
       (is (= [[::app-library/retry :cancelled]] @retries)
           "but not after a newer version saved the library, which only a reload can write over"))))
 
+(deftest feeds-from-before-leaned-once
+  (let [doubled (update inbox-test/feed :rss/items
+                        (partial mapv #(assoc % :content/encoded "<p>Notes</p>" :rss/description "Notes")))
+        state   (atom {:library (library/subscribe (library/make "phone" {:config library-options/config})
+                                                   inbox-test/url doubled {:at at})})
+        saves   (atom 0)]
+    (reset! app-library/waiting [])
+    (with-redefs [app-library/save! (fn [_] (swap! saves inc))]
+      (app-library/leaned! state)
+      (is (= [[:library/leaned]] (map :operation @app-library/waiting)))
+      (is (= 1 @saves) "and saved, which writes their documents anew")
+      (is (every? #(nil? (:rss/description %))
+                  (mapcat (comp :rss/items :feed) (vals (:feeds (:library @state))))))
+      (app-library/leaned! state)
+      (is (= 1 (count @app-library/waiting)) "once, since a lean library stays as it is"))
+    (reset! app-library/waiting [])))
+
 (deftest every-new-episode-in-the-inbox
   (async done
     (let [subscribed (-> (library/make "phone" {:config library-options/config})

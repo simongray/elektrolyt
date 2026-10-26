@@ -69,6 +69,9 @@
          ;; what the worker found, applied at the time of its refresh
          :library/refreshed   (let [[found] args]
                                 (library/refreshed library found (dissoc opts :at)))
+         ;; the feeds with only the notes that the app reads, as the worker
+         ;; fetches them, so that a feed kept from before is written so once
+         :library/leaned      (library/leaned library at)
          :player/step         (let [[event] args]
                                 (library/step library event (assoc opts :at at))))))))
 
