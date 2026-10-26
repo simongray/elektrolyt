@@ -56,8 +56,11 @@
           (do (when-not (identical? entry (peek kept))
                 (swap! remembered #(conj (filterv (complement #{entry}) %) entry)))
               (second entry))
+          ;; a copy rather than a subvec, which is a view of the whole
+          ;; vector, so that conj onto it would keep every result
           (let [made (apply f args)]
-            (swap! remembered #(conj (cond-> % (<= n (count %)) (subvec 1)) [k made]))
+            (swap! remembered #(conj (cond->> % (<= n (count %)) (into [] (drop 1)))
+                                     [k made]))
             made))))))
 
 ;; A JS Map finds a string by its value, but a ClojureScript collection
