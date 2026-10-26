@@ -150,6 +150,8 @@ async function labelsAlike(page) {
 
 test("the navigation's colours are a page's, the player's, or none, which leaves its labels in the same ink", async ({ page }) => {
   await page.goto('/settings');
+  // the frame as the app starts has a navigation of its own, which goes
+  await expect(page.getByRole('main')).not.toHaveAttribute('aria-busy', 'true');
   expect(await labelsAlike(page), 'a colour for each page').toBe(false);
   const colours = page.getByRole('main').getByLabel('Colours in the navigation');
   await colours.selectOption("The player's colour");
