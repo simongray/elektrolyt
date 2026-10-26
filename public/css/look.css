@@ -1113,6 +1113,31 @@ search p {
   .icon-button.bookmark.subscribing .icon {
     animation: drop 0.2s ease-out, pulse 1.2s ease-in-out 0.4s 3;
   }
+
+  /* a dialog and its backdrop ease in, and go at once: a fade out needs
+     the overlay property, which Firefox and Safari lack, and Clear the
+     queue's text would change under it as the queue clears
+     https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style */
+  dialog[open] {
+    transition: opacity 0.2s, translate 0.2s;
+  }
+
+  @starting-style {
+    dialog[open] {
+      opacity: 0;
+      translate: 0 0.5rem;
+    }
+  }
+
+  dialog[open]::backdrop {
+    transition: opacity 0.2s;
+  }
+
+  @starting-style {
+    dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
 }
 
 @keyframes drop {
