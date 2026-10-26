@@ -29,9 +29,9 @@ clojure -M:cljs:server:serve
 If you have checkouts of the libraries beside this one, add the `:local`
 alias to this command and to every other one, e.g.
 `clojure -M:cljs:server:local:serve`. It takes podcast-clj, play-nice,
-colour-coded, like-minded, mind-meld and wary-fetch from `../podcast-clj`
-and the other checkouts, so that a fix in any of them shows in the app at
-once. Without it, they come from the versions in `deps.edn`.
+colour-coded, like-minded, mind-meld, wary-fetch and drop-in-search from
+`../podcast-clj` and the other checkouts, so that a fix in any of them
+shows in the app at once. Without it, they come from the versions in `deps.edn`.
 
 The app is at http://localhost:8400, and its views are at
 http://localhost:8402, in [Portfolio](https://github.com/cjohansen/portfolio),

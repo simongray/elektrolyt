@@ -60,12 +60,13 @@
                                   "dk\\.simongray\\.elektrolyt\\.runtime-test"]}}
 
   ;; podcast-clj, play-nice and colour-coded from the checkouts beside this
-  ;; one, and like-minded, mind-meld and wary-fetch below podcast-clj, so
-  ;; that a fix in any of them shows in the app at once
+  ;; one, and like-minded, mind-meld, wary-fetch and drop-in-search below
+  ;; podcast-clj, so that a fix in any of them shows in the app at once
   :local {:override-deps
-          {dk.simongray/podcast-clj  {:local/root "../podcast-clj"}
-           dk.simongray/play-nice    {:local/root "../play-nice"}
-           dk.simongray/colour-coded {:local/root "../colour-coded"}
-           dk.simongray/like-minded  {:local/root "../like-minded"}
-           dk.simongray/mind-meld    {:local/root "../mind-meld"}
-           dk.simongray/wary-fetch   {:local/root "../wary-fetch"}}}}}
+          {dk.simongray/podcast-clj     {:local/root "../podcast-clj"}
+           dk.simongray/play-nice       {:local/root "../play-nice"}
+           dk.simongray/colour-coded    {:local/root "../colour-coded"}
+           dk.simongray/like-minded     {:local/root "../like-minded"}
+           dk.simongray/mind-meld       {:local/root "../mind-meld"}
+           dk.simongray/wary-fetch      {:local/root "../wary-fetch"}
+           dk.simongray/drop-in-search  {:local/root "../drop-in-search"}}}}}
