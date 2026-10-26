@@ -91,6 +91,41 @@
                            (js-delete js/globalThis "Worker")
                            (done))))))))
 
+(def found
+  "What a refresh found: the feeds that changed, their documents in the
+  library's codec, the time and a report."
+  {:at        #inst "2026-10-26T10:00:00Z"
+   :feeds     {"g" {:document "g-1" :fetched-at #inst "2026-10-26T10:00:00Z"}}
+   :documents {"g-1" ((:encode codec) show)}
+   :changed   #{"g"}
+   :report    [{:feed-guid "g" :status 200}]})
+
+(deftest what-a-refresh-found
+  (async done
+    (let [made   (atom [])
+          posted (atom nil)
+          found! fetching/found!
+          post!  fetching/post!]
+      (set! (.-Worker js/globalThis) (stand-in made))
+      (reset! fetching/web-worker nil)
+      (let [answered (fetching/fetch-due! {:feed-guids ["g"]} {} nil)
+            worker   (first @made)]
+        (set! fetching/found! (fn [_ _ _] (js/Promise.resolve found)))
+        (set! fetching/post! (fn [message]
+                               (reset! posted (fetching/packed message))
+                               (fire! worker "message" #js {:data @posted})))
+        (fetching/answer! (first @(:posted worker)))
+        (-> answered
+            (.then (fn [answer]
+                     (is (= "{:id 1}" (.-edn ^js @posted)) "beside the EDN")
+                     (is (= {:found found} answer) "in the library's codec")))
+            (.catch #(is false (str "rejected: " %)))
+            (.finally #(do (set! fetching/found! found!)
+                           (set! fetching/post! post!)
+                           (reset! fetching/web-worker nil)
+                           (js-delete js/globalThis "Worker")
+                           (done))))))))
+
 (defn item
   "An item of a parsed feed with the guid `id`, the `title` and the `day`."
   [id title day]

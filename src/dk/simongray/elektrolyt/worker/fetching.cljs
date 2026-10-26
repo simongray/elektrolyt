@@ -7,8 +7,9 @@
   documents of the feeds that changed in the library's store and writes
   nothing else, so the page applies the result to the library. Only one
   worker refreshes at a time across the tabs, and the others answer that
-  they're busy. A feed and its search documents go beside the EDN in the
-  library's codec, which the page reads far faster than EDN.
+  they're busy. What a refresh found, a feed and its search documents go
+  beside the EDN in the library's codec, which the page reads far faster
+  than EDN.
 
   With :alternative-feeds? in a request's options, a feed of DR's own is
   supplemented by its sibling on drpodcast.nu. DR's feeds have no
@@ -188,7 +189,9 @@
   [{:keys [id due fetch documents url opts encoded] :as request}]
   (-> (cond
         due       (when-free refresh-lock
-                             #(.then (found! id due opts) (fn [found] {:id id :found found}))
+                             #(.then (found! id due opts)
+                                     (fn [found]
+                                       {:id id :encoded ((:encode (:codec app-library/options)) {:found found})}))
                              #(js/Promise.resolve {:id id :busy? true}))
         fetch     (.then (fetched! url opts) (fn [fetched] {:id id :encoded fetched}))
         documents (.then (documents! encoded url) (fn [docs] {:id id :encoded docs})))
