@@ -187,10 +187,23 @@
                               operation (assoc :library (:library given)))))
           given))))))
 
-;; The worker leans each feed that it fetches, but a feed whose server
-;; answers 304 kept its document from before, with its notes in two or
-;; three fields: 12,984 of the 27,833 episodes of the in-app browser's
-;; library of 54 shows
+;; A one-off for the feeds kept from before 2026-10-26, when the worker
+;; began to lean each feed that it fetches. Those hold their notes in two
+;; or three fields, and a feed whose server answers 304 keeps its document
+;; as it was, e.g. 12,984 of the 27,833 episodes of the in-app browser's
+;; library of 54 shows. That held the notes twice in memory: a library of
+;; 53 such shows took 268 MB of heap after the start, and 173 MB once lean.
+;;
+;; It's an operation, saved as any other, rather than a part of the read,
+;; since a save deletes only the documents that the library it came from
+;; names. A feed renamed as it's read would leave its old document in the
+;; store for good, while one leaned by an operation gets a new document in
+;; place of the old, as podcast-clj's library/leaned explains.
+;;
+;; A lean library stays the same, so the check at each start writes
+;; nothing, and it takes about 20 ms of idle time for 27,833 episodes in
+;; the dev build. It can go once every library from before 2026-10-26 has
+;; opened once since.
 (defn leaned!
   "Drop the notes that the app doesn't read from the feeds of the library
   in the `state` atom, and save it, which writes those feeds' documents
