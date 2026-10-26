@@ -181,12 +181,13 @@
 
 (defn fetched!
   "A promise of the answer to a fetch of the feed at `url` with `opts`
-  through the proxy, without its :body and encoded in the library's codec."
+  through the proxy, without its :body and :report, which the page doesn't
+  read, and encoded in the library's codec."
   [url opts]
   (let [fetch (:fetch (fetches opts))]
     (.then (fetch url (merge (select-keys app-library/options [:send])
                              (dissoc opts :alternative-feeds?)))
-           #((:encode (:codec app-library/options)) (dissoc % :body)))))
+           #((:encode (:codec app-library/options)) (dissoc % :body :report)))))
 
 (defn documents!
   "A promise of the search documents of the whole feed `encoded` in the
@@ -240,12 +241,13 @@
     (.addEventListener worker "message"
                        (fn [^js e]
                          (let [{:keys [id progress encoded failed] :as answer}
-                               (unpacked (.-data e))]
+                               (unpacked (.-data e))
+                               {:keys [on-progress keep?]} (get @pending id)]
                            (cond
-                             progress (some-> (get-in @pending [id :on-progress])
-                                              (apply [progress]))
+                             progress (some-> on-progress (apply [progress]))
                              failed   (settle! id #(throw (js/Error. failed)))
-                             encoded  (settle! id #(decode encoded))
+                             encoded  (settle! id #(cond-> (decode encoded)
+                                                     keep? (vary-meta assoc ::encoded encoded)))
                              :else    (settle! id #(dissoc answer :id))))))
     ;; HTML, sections 10.2.4 and 10.2.5: a worker fires error when its
     ;; script fails to load, and then never runs, or when nothing catches
@@ -286,14 +288,24 @@
 
 (defn ask!
   "A promise of the web worker's answer to `request`, calling `on-progress`
-  with each report of progress. It rejects when the worker fails."
+  with each report of progress. It rejects when the worker fails. The
+  answer to a fetch keeps the string that it came as, which encoded gives."
   [request on-progress]
   (let [{:keys [^js worker pending next]} (web-worker!)
         id                                (swap! next inc)]
     (js/Promise.
      (fn [resolve reject]
-       (swap! pending assoc id {:resolve resolve :reject reject :on-progress on-progress})
+       (swap! pending assoc id {:resolve     resolve
+                                :reject      reject
+                                :on-progress on-progress
+                                :keep?       (:fetch request)})
        (.postMessage worker (packed (assoc request :id id)))))))
+
+(defn encoded
+  "The string in the library's codec that the web worker's answer to a
+  fetch, `fetched`, came as, or nil for any other value."
+  [fetched]
+  (::encoded (meta fetched)))
 
 (defn fetch-due!
   "A promise of what a refresh of the feeds that are `due` found in the
@@ -331,5 +343,8 @@
   `url`, built in the web worker for a subscription, as podcast-clj's
   library/with-search-documents builds them."
   [fetched url]
-  (ask! {:documents true :url url :encoded ((:encode (:codec app-library/options)) fetched)}
+  (ask! {:documents true
+         :url       url
+         :encoded   (or (encoded fetched)
+                        ((:encode (:codec app-library/options)) fetched))}
         nil))

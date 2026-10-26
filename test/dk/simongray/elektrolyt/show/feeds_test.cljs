@@ -1,8 +1,12 @@
 (ns dk.simongray.elektrolyt.show.feeds-test
   (:require [clojure.test :refer [async deftest is]]
+            [dk.simongray.like-minded.cache :as cache]
+            [dk.simongray.like-minded.store :as store]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.show :as app.show]
+            [dk.simongray.elektrolyt.library :as app-library]
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
+            [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.feeds :as feeds]
             [dk.simongray.elektrolyt.worker.fetching :as fetching]))
 
@@ -55,6 +59,29 @@
                      "and a feed that's gone fails as a fetch of the whole feed does")))
         (.catch #(is false (str "rejected: " %)))
         (.finally done))))
+
+(deftest a-show-cached-as-the-worker-sent-it
+  (async done
+    (let [fetched {:status 200 :url url :feed fed :etag "\"v1\""
+                   :websub {:hubs ["https://hub.example/"]}}
+          s       ((:encode (:codec app-library/options)) fetched)
+          k       (show/cache-key url)
+          puts    (atom [])
+          mem     (store/memory)]
+      (is (identical? (:codec app-library/options) (:codec app-cache/shows))
+          "in the library's codec, in which the worker encodes it")
+      (with-redefs [app-cache/put! (fn [c k v] (swap! puts conj [c k v]))]
+        (feeds/keep-show! url (vary-meta fetched assoc ::fetching/encoded s))
+        (feeds/keep-show! url fetched))
+      (is (= [[app-cache/encoded-shows k s] [app-cache/shows k (show/kept fetched)]] @puts)
+          "as the string it came as, or else encoded")
+      (-> (cache/put! (assoc app-cache/encoded-shows :store mem) k s)
+          (.then #(cache/fetch! (assoc app-cache/shows :store mem) k))
+          (.then (fn [{:keys [value]}]
+                   (is (= (show/kept fetched) (show/kept value))
+                       "which reads back as the feed it keeps")))
+          (.catch #(is false (str "rejected: " %)))
+          (.finally done)))))
 
 (deftest a-feed-gone-from-the-url-that-the-cache-had
   (async done

@@ -53,6 +53,34 @@
                            (js-delete js/globalThis "Worker")
                            (done))))))))
 
+(deftest an-answer-that-keeps-its-string
+  (async done
+    (let [made   (atom [])
+          encode (:encode (:codec app-library/options))
+          url    "https://example.org/kept.xml"
+          s      (encode {:status 200 :url url :feed {:rss/title "A Show"}})]
+      (set! (.-Worker js/globalThis) (stand-in made))
+      (reset! fetching/web-worker nil)
+      (let [fetched                 (fetching/fetch! url {})
+            found                   (fetching/fetch-due! [] {} nil)
+            worker                  (first @made)
+            [asked-fetch asked-due] @(:posted worker)]
+        (fire! worker "message" #js {:data (fetching/packed {:id (:id asked-fetch) :encoded s})})
+        (fire! worker "message" #js {:data (fetching/packed {:id      (:id asked-due)
+                                                             :encoded (encode {:found {}})})})
+        (-> (js/Promise.all #js [fetched found])
+            (.then (fn [[f d]]
+                     (is (= {:status 200 :url url :feed {:rss/title "A Show"}} f))
+                     (is (= s (fetching/encoded f)) "a fetch's answer, which the cache writes as it is")
+                     (is (nil? (fetching/encoded d)) "but no other, which would hold its string")
+                     (fetching/search-documents! f url)
+                     (is (= s (:encoded (last @(:posted worker))))
+                         "and which a subscription sends back as it came")))
+            (.catch #(is false (str "rejected: " %)))
+            (.finally #(do (reset! fetching/web-worker nil)
+                           (js-delete js/globalThis "Worker")
+                           (done))))))))
+
 (deftest a-worker-started-ahead
   (let [made (atom [])]
     (set! (.-Worker js/globalThis) (stand-in made))

@@ -39,9 +39,12 @@
    :alternative-feeds? (settings/alternative-feeds? state)})
 
 (defn keep-show!
-  "Cache the whole feed `fetched` from `url`."
+  "Cache the whole feed `fetched` from `url`, as the string that the web
+  worker sent it as, when it did."
   [url fetched]
-  (app-cache/put! app-cache/shows (show/cache-key url) (show/kept fetched)))
+  (if-let [s (fetching/encoded fetched)]
+    (app-cache/put! app-cache/encoded-shows (show/cache-key url) s)
+    (app-cache/put! app-cache/shows (show/cache-key url) (show/kept fetched))))
 
 (defn index-lookup!
   "A promise of the feed URL of the show `guid` from the Podcast Index,
@@ -177,7 +180,9 @@
                      ;; a feed that lost every item, e.g. during a host's outage,
                      ;; stays as it was, as a refresh of the library keeps it
                      (and (:feed fetched) (not (feeds/emptied? feed (:feed fetched))))
-                     (do (swap! store show/refetched guid url fetched (js/Date.))
+                     ;; the page holds new episodes without the string they
+                     ;; came as, which the cache writes at idle
+                     (do (swap! store show/refetched guid url (with-meta fetched nil) (js/Date.))
                          (keep-show! url fetched))
 
                      ;; the old :not-before has passed, so only the 304's

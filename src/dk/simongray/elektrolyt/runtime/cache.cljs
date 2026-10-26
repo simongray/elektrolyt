@@ -39,6 +39,13 @@
   "The feeds of shows outside the library, by URL."
   (config "show." 20 7))
 
+;; the codec of the library, in which the web worker sends a feed, so that
+;; the page doesn't encode a large feed a second time
+(def encoded-shows
+  "The cache of shows, for a feed that's encoded already, as a string in
+  the codec of the cache and the library."
+  (assoc-in shows [:codec :encode] identity))
+
 ;; A podroll changes about as seldom as artwork, but it's kept as long as
 ;; the shows
 (def linked
