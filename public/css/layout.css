@@ -1122,6 +1122,26 @@ main h1,
   transition: none;
 }
 
+/* where motion is allowed, the panel fades in at once and out in the
+   second half of its 0.3 s. Its fade is here, beside its visibility,
+   since a transition in the look's layer would replace the delays above. */
+@media (prefers-reduced-motion: no-preference) {
+  .player-volume-slider {
+    opacity: 0;
+    transition: visibility 0s 0.3s, opacity 0.15s 0.15s;
+  }
+
+  @media (hover: hover) {
+    .player-volume:not([data-dismissed]):hover .player-volume-slider {
+      opacity: 1;
+    }
+  }
+
+  .player-volume:not([data-dismissed]):has(:focus-visible, input:focus, input:active) .player-volume-slider {
+    opacity: 1;
+  }
+}
+
 /* What's next, a square at the player's right edge, as tall as the
    episode's row, as the artwork is at its left: "Next" and the artwork
    below it in the middle of the square together, with a mat as wide on

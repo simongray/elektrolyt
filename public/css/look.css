@@ -424,13 +424,14 @@ button.disclosure::after {
   margin-inline-start: 0.5em;
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
-  vertical-align: 0.25em;
-  transform: rotate(45deg);
+  vertical-align: 0.05em;
+  translate: 0 -0.2em;
+  rotate: 45deg;
 }
 
 button.disclosure[aria-expanded="true"]::after {
-  vertical-align: 0.05em;
-  transform: rotate(-135deg);
+  translate: none;
+  rotate: -135deg;
 }
 
 /* a button that can't act yet never lifts, though it keeps the focus */
@@ -516,6 +517,7 @@ label {
    system colours where forced colours replace the others
    https://www.w3.org/WAI/ARIA/apg/patterns/switch/ */
 input[role="switch"] {
+  --knob: 0.62rem;
   appearance: none;
   flex: none;
   width: 2.75rem;
@@ -523,13 +525,23 @@ input[role="switch"] {
   margin: 0;
   border: 2px solid var(--rule);
   border-radius: 999px;
-  background: radial-gradient(circle at 0.62rem 50%, var(--ink-2) 0.42rem, transparent 0.47rem) var(--field);
+  background: radial-gradient(circle at var(--knob) 50%, var(--ink-2) 0.42rem, transparent 0.47rem) var(--field);
   cursor: pointer;
 }
 
 input[role="switch"]:checked {
+  --knob: calc(100% - 0.62rem);
   border-color: var(--accent);
-  background: radial-gradient(circle at calc(100% - 0.62rem) 50%, var(--accent-ink) 0.42rem, transparent 0.47rem), var(--grain) 0 0 / var(--grain-size), var(--accent);
+  background: radial-gradient(circle at var(--knob) 50%, var(--accent-ink) 0.42rem, transparent 0.47rem), var(--grain) 0 0 / var(--grain-size), var(--accent);
+}
+
+/* the knob's place as a length, so that it can slide (below). Its
+   initial value can't depend on the font's size.
+   https://developer.mozilla.org/en-US/docs/Web/CSS/@property */
+@property --knob {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 0px;
 }
 
 
@@ -1039,12 +1051,12 @@ search p {
   input[role="switch"] {
     forced-color-adjust: none;
     border-color: ButtonText;
-    background: radial-gradient(circle at 0.62rem 50%, ButtonText 0.42rem, transparent 0.47rem) Canvas;
+    background: radial-gradient(circle at var(--knob) 50%, ButtonText 0.42rem, transparent 0.47rem) Canvas;
   }
 
   input[role="switch"]:checked {
     border-color: Highlight;
-    background: radial-gradient(circle at calc(100% - 0.62rem) 50%, HighlightText 0.42rem, transparent 0.47rem) Highlight;
+    background: radial-gradient(circle at var(--knob) 50%, HighlightText 0.42rem, transparent 0.47rem) Highlight;
   }
 
   /* the ring of a wait for data keeps the gap that shows it turn */
@@ -1084,6 +1096,20 @@ search p {
 
   ::file-selector-button:active {
     transition-duration: 0s;
+  }
+
+  /* a folded section's caret turns as it opens and closes, a switch's
+     knob slides, and artwork brightens under the pointer */
+  button.disclosure::after {
+    transition: rotate 0.2s, translate 0.2s;
+  }
+
+  input[role="switch"] {
+    transition: --knob 0.15s, background-color 0.15s, border-color 0.15s;
+  }
+
+  .artwork-link img {
+    transition: filter 0.15s;
   }
 
   /* WCAG 2.2.2 lets a sign of loading move for longer than 5 seconds
