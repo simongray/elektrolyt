@@ -142,6 +142,18 @@
             (audio/press! store {:action :nexttrack})
             (is (= [[:progress id 30 nil] [:chapter id :next doc]] @events))))))))
 
+(deftest the-lock-screen-as-the-choice-of-track-buttons-changes
+  (let [calls (atom 0)
+        store (atom (player-test/state {:media {:paused false :current-time 30}}))
+        watch (audio/lock-screen-watch store)]
+    (with-redefs [audio/element        (constantly #js {:currentTime 30 :paused false})
+                  runtime/lock-screen! (fn [_ _] (swap! calls inc))]
+      (watch nil @store)
+      (watch nil (swap! store assoc-in [:player :media :current-time] 31))
+      (is (= 1 @calls) "is set once while only the position moves")
+      (watch nil (swap! store update :library library/update-profile profile/prefer {:track-buttons :queue}))
+      (is (= 2 @calls) "and again when the listener chooses other track buttons, in this tab or another"))))
+
 (deftest an-episode-that-the-library-doesnt-have
   (let [lib   (library/add-episode (library/make "test") url feed "one")
         one   [(first (keys (:feeds lib))) "one"]

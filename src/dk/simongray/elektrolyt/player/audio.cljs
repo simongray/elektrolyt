@@ -26,6 +26,7 @@
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.show :as show]
+            [dk.simongray.elektrolyt.ui.memo :as memo]
             [taoensso.telemere :as tel]))
 
 (defn element
@@ -153,6 +154,38 @@
                                          (concat [:play :pause :stop]
                                                  (media-session/actions library id
                                                                         (player/playback-opts state id))))))))
+
+(def track-buttons
+  "The listener's choice of what the lock screen's Next and Previous do in
+  `profile`, worked out again only when the profile changes."
+  (memo/remember-last #(:track-buttons (profile/preferences %))))
+
+(defn lock-screen-key
+  "What the lock screen shows of the player in `state` comes from: its
+  episode, the listener's choice of track buttons, what the episode's files
+  say, and the entry of its show's feed in the library."
+  [{:keys [player library episodes]}]
+  (let [id (:id player)]
+    [id
+     (some-> (:profile library) track-buttons)
+     (get-in episodes [id :result])
+     (get-in library [:feeds (first id)])]))
+
+;; Media Session, setActionHandler: each call sets a handler again, which
+;; can redraw a platform's media notification, so the lock screen is set
+;; only when what it shows changes, e.g. the listener's choice of track
+;; buttons in this tab or another
+;; https://w3c.github.io/mediasession/#dom-mediasession-setactionhandler
+(defn lock-screen-watch
+  "A watch of the state in `store` that shows its player's episode on the
+  lock screen again when what it comes from changes."
+  [store]
+  (let [shown (atom nil)]
+    (fn [_ state]
+      (let [k (lock-screen-key state)]
+        (when-not (and @shown (every? true? (map memo/same? k @shown)))
+          (reset! shown k)
+          (lock-screen! store))))))
 
 (defn moved!
   "Post the state of the paused `element` and the episode in `store` to
@@ -286,9 +319,7 @@
     (-> reading
         (.then (fn [result]
                  (swap! store update-in [:episodes id]
-                        #(-> % (assoc :status :read :result result) (dissoc :error)))
-                 (when (= id (get-in @store [:player :id]))
-                   (lock-screen! store))))
+                        #(-> % (assoc :status :read :result result) (dissoc :error)))))
         (.catch #(swap! store update-in [:episodes id] assoc :status :read
                         :error {:message (ex-message %)})))))
 

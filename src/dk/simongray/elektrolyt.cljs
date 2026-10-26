@@ -491,5 +491,6 @@
       (.finally (fn []
                   (runtime/watch! store ::render (fn [_ state] (document/render! state)))
                   (runtime/watch! store ::colors (fn [_ state] (artwork-colors/colored! store state)))
+                  (runtime/watch! store ::lock-screen (audio/lock-screen-watch store))
                   (start-router!)
                   (refresh/refresh-if-due! store)))))

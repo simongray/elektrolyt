@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { test, expect, feedUrl, navLink, showPath, showTitle } from './fixtures.mjs';
+import { test, expect, episodePath, episodes, feedUrl, navLink, showPath, showTitle } from './fixtures.mjs';
 
 /** An OPML file of the show, as another podcast app exports it. */
 const opml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -158,4 +158,28 @@ test("the navigation's colours are a page's, the player's, or none, which leaves
   expect(await labelsAlike(page), 'or one for colour blindness').toBe(false);
   await colours.selectOption('None');
   await expect.poll(() => labelsAlike(page)).toBe(true);
+});
+
+test('the lock screen follows the choice of what next and previous go to', async ({ page }) => {
+  // the handlers that the page gives the lock screen, the last of each
+  await page.addInitScript(() => {
+    window.handlers = {};
+    const session = navigator.mediaSession;
+    if (!session) return;
+    const set = session.setActionHandler.bind(session);
+    session.setActionHandler = (action, handler) => {
+      window.handlers[action] = Boolean(handler);
+      return set(action, handler);
+    };
+  });
+  await page.goto(episodePath(episodes[0]));
+  await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
+  const next = () => page.evaluate(() => window.handlers.nexttrack ?? false);
+  await expect.poll(() => page.evaluate(() => Object.keys(window.handlers).length)).toBeGreaterThan(0);
+  expect(await next(), 'none for an episode without chapters').toBe(false);
+
+  await navLink(page, 'Settings').click();
+  await page.getByRole('main').getByLabel('Next and previous on the lock screen go to')
+    .selectOption({ label: 'The episodes of the queue' });
+  await expect.poll(next, 'once they go to the queue, while the episode plays').toBe(true);
 });
