@@ -35,7 +35,12 @@
          (search/status-text "example.org" {:status :done :results []})))
   (is (= "2 podcast feeds."
          (search/status-text "freakshow.fm" {:status :done :results [{} {}]}))
-      "the feeds at a link can be those of one show"))
+      "the feeds at a link can be those of one show")
+  (is (= [:p.busy :p :p]
+         (map first [(search/status-line "x" (listed [:apple :fyyd] {:apple (shows 2)}))
+                     (search/status-line "x" (listed [:apple :fyyd] {:apple (shows 2) :fyyd (shows 1)}))
+                     (search/status-line nil nil)]))
+      "with a line that moves only while it searches"))
 
 (defn paragraphs
   "The texts of the paragraphs in the Hiccup `x`."

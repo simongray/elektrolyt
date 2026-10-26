@@ -490,6 +490,22 @@ main h1,
   width: 60%;
 }
 
+/* The line just below the status of a wait on the network, apart from
+   its letters so that it isn't taken for an underline, which moves across
+   it (look.css) */
+.busy {
+  position: relative;
+}
+
+.busy::after {
+  content: "";
+  position: absolute;
+  bottom: calc(-1 * var(--space-1));
+  left: 0;
+  width: 30%;
+  height: 2px;
+}
+
 /* The notes apart from the header above them, and their own headings and
    paragraphs */
 .show-notes {

@@ -48,7 +48,7 @@
         "and closes it again")
     (is (= ["Grinders compared" "Gears"] (map text-of (elements :h3 open))))
     (is (= "Looking for episodes like it…"
-           (text-of (elements :p (picks-ui/folded opened section place (constantly nil)))))
+           (text-of (elements :p.busy (picks-ui/folded opened section place (constantly nil)))))
         "or, before the library's index is made, that they're on the way")))
 
 (deftest the-artwork-of-a-pick

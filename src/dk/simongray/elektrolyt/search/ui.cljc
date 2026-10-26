@@ -101,7 +101,7 @@
   "The status line of the `search` for `q`, on the page even before the
   search starts."
   [q search]
-  [:p {:role "status"} (status-text q search)])
+  [(if (some-> search search/searching?) :p.busy :p) {:role "status"} (status-text q search)])
 
 (defn show-link
   "The link to the page of the show in the search `result`, which fetches
@@ -199,7 +199,7 @@
                                      :data-refocus (str "#" (list-id source))
                                      :on           {:click [[:search/retry q source]]}}
                     "Try again" [:span.visually-hidden " " (search/source-name source)]])
-     [:p (list-text q l)])
+     [(if (= :searching status) :p.busy :p) (list-text q l)])
    (results state :h3 (:results l))])
 
 (defn jump-label

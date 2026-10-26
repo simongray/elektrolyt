@@ -48,6 +48,25 @@ test('unsubscribing after a reload keeps the episodes', async ({ page, context }
   await expect(main.getByRole('link', { name: episodes[0].title })).toBeVisible();
 });
 
+// WCAG 2.2.2: the line under the status of a slow load moves for 5
+// seconds at most, and not at all where the listener asks for less motion
+test('a slow load moves a line under its status, unless motion is reduced', async ({ page, show }) => {
+  const main = page.getByRole('main');
+  const loading = main.getByRole('status').filter({ hasText: 'Loading the show…' });
+  const animation = () => loading.evaluate(p => getComputedStyle(p, '::after').animationName);
+  const release = show.hold();
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto(showPath);
+  await expect(loading).toBeVisible();
+  expect(await animation()).toBe('busy');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await animation()).toBe('none');
+
+  release();
+  await expect(main.getByText(`${episodes.length} episodes.`, { exact: true })).not.toHaveClass(/busy/);
+});
+
 // Once the page has the whole feed, which its count of episodes says,
 // Subscribe turns into Unsubscribe at once, under the second click
 test('a double click on Subscribe subscribes once', async ({ page }) => {

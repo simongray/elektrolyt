@@ -247,7 +247,7 @@
         ;; read on mount, so that an open transcript whose read was dropped
         ;; from the state is read again when its page shows once more
         (not= :read transcript-status)
-        [:p {:role "status" :replicant/on-mount [[:episode/read-transcript id view]]}
+        [:p.busy {:role "status" :replicant/on-mount [[:episode/read-transcript id view]]}
          "Loading the transcript…"]
 
         (or error (empty? (:segments document)))
@@ -276,7 +276,7 @@
   (let [{:keys [guid]} (get-in state [:route :path-params])]
     (case (episode/status state guid)
       :looking-up show-ui/looking-up
-      :loading    [:p {:role "status"} "Loading the episode…"]
+      :loading    [:p.busy {:role "status"} "Loading the episode…"]
       :no-show    show-ui/not-found
       :failed     [:p {:role "status"}
                    (show-ui/status-text :failed 0 (:error (show-ui/source state)) nil)]

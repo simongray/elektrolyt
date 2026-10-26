@@ -203,7 +203,7 @@
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
        (failure state n error "#episodes")
-       [:p {:role "status"} (status-text status n error newer)])
+       [(if (= :loading status) :p.busy :p) {:role "status"} (status-text status n error newer)])
      (when newer
        [:button {:type "button" :data-refocus "#episodes" :on {:click [[:show/newer g]]}}
         (str "Show the " (text/plural newer "new episode"))])
@@ -221,7 +221,7 @@
 (def looking-up
   "The status line of a show or an episode page during a lookup in the
   Podcast Index."
-  [:p {:role "status"} "Looking for the show in the Podcast Index…"])
+  [:p.busy {:role "status"} "Looking for the show in the Podcast Index…"])
 
 (def not-found
   "The content of a show's page when neither the library, the link to it
@@ -337,7 +337,7 @@
               heading)
             (case status
               :looking-up looking-up
-              :loading    [:p {:role "status"} "Loading the show…"]
+              :loading    [:p.busy {:role "status"} "Loading the show…"]
               :failed     (failure state 0 (:error (source state)) "main h1")
               not-found))
       (let [aside (details/aside (details-rows page) (:people page))

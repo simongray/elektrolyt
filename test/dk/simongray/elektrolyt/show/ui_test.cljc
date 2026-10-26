@@ -244,9 +244,9 @@
     (is (= "Other" (spoken other)))))
 
 (deftest a-show-that-has-no-page-yet
-  (is (= [[:h1 "Show"] [:p {:role "status"} "Loading the show…"]]
+  (is (= [[:h1 "Show"] [:p.busy {:role "status"} "Loading the show…"]]
          (show/content (show-page {:requests {[:whole url] {}}}) [:h1 "Show"]))
-      "its heading, with no article around it"))
+      "its heading, with no article around it, over a line that moves while it waits"))
 
 (deftest new-episodes-on-request
   (let [rows      [{:guid "1" :title "Episode 1"}]

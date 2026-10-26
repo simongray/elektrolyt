@@ -60,4 +60,4 @@
                       #(if-let [picks (picks-fn)]
                          (picks-list state lead none picks)
                          ;; before the library's index is made
-                         [:p {:role "status"} "Looking for episodes like it…"])))
+                         [:p.busy {:role "status"} "Looking for episodes like it…"])))

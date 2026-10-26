@@ -469,6 +469,13 @@ button[aria-disabled="true"]:is(:hover, :focus-visible, :active) {
   background: var(--rule-soft);
 }
 
+/* The line of a wait on the network, in the status's ink, shows only
+   while it moves (below), and forced colours drop it */
+.busy::after {
+  opacity: 0;
+  background-color: currentColor;
+}
+
 /* the type of a show's title and byline, as the rules of the heading and
    its byline give it, which the show's bookmark spans (layout.css) */
 .with-bookmark {
@@ -1082,6 +1089,24 @@ search p {
 
   .skeleton {
     animation-duration: 0.4s;
+  }
+
+  /* a wait past a second moves the line to and fro under its status,
+     four times, so that it stops within 5 seconds, since the listener can
+     use the rest of the page meanwhile (WCAG 2.2.2) */
+  .busy::after {
+    animation: busy 1s ease-in-out 1s 4 alternate;
+  }
+}
+
+@keyframes busy {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 1;
+    translate: 233%;
   }
 }
 

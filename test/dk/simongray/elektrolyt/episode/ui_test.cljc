@@ -216,7 +216,7 @@
            (get-in (button (episode-ui/transcript open page nil)) [:on :click]))
         "or closes it")
     (is (= [[:episode/read-transcript (:id page) (:view page)]]
-           (-> (elements :p (episode-ui/transcript open page nil)) first second :replicant/on-mount))
+           (-> (elements :p.busy (episode-ui/transcript open page nil)) first second :replicant/on-mount))
         "and an open one that isn't read reads it as it shows, e.g. after the state forgot it")
     (is (= "TranscriptLoading the transcript…" (shown nil)))
     (is (= "TranscriptLoading the transcript…" (shown {:transcript-status :reading})))
