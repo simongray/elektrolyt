@@ -60,7 +60,7 @@ In the tab, outside the store
 | `runtime/scroll-positions` | Where the main content was scrolled to as each history entry was left, by the entry's key, for Back and Forward | `runtime/keep-scroll-positions!` | `runtime/scroll-position`, for `ui.routes/navigated` | The tab |
 | `worker.fetching/web-worker` | The web worker, and the requests that it hasn't answered | `worker.fetching` | `library.refresh`, `show.feeds` | The tab, but a worker that fails stops, and the next ask starts another |
 | `player.audio/tab` | This tab's id on the player's channel | `player.audio` | `player.audio` | The tab |
-| `ui.memo` slots | The last result of a view that takes a while, e.g. the queue, a show's page, the picks | the views | the views | Until its arguments change |
+| `ui.memo` slots | The last result of a view that takes a while, e.g. the queue or the picks, and the last four of a show's or an episode's page | the views | the views | Until its arguments change, or four others are made after it |
 | `ui.text/formatters` | The Intl formatters of dates, durations, lists, sizes and language names, by kind, language and options | `ui.text` | `ui.text`, `ui.time` | The tab |
 | Telemere's handlers and minimum level | Its console handler, and the minimum level, which is `:warn` in a release build | `runtime.log/start!` | Telemere | The tab, or the worker |
 

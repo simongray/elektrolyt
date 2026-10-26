@@ -137,14 +137,16 @@
   "The page of the show under a key in a library, made again only when its
   feed, subscription or settings change, since sorting thousands of
   episodes takes a while. With an order of the listener's own, any change
-  of the profile makes it again."
-  (memo/remember-last (fn [lib k] (view->page (library/show lib k view-opts)))
-                      (fn [{:keys [profile] :as lib} k]
-                        [(get-in lib [:feeds k])
-                         (get-in profile [:settings k])
-                         (get-in profile [:subscriptions k])
-                         (when (:order (profile/settings profile k)) profile)
-                         k])))
+  of the profile makes it again. The last four are kept, for going back
+  and forth between shows."
+  (memo/remember-recent 4
+                        (fn [lib k] (view->page (library/show lib k view-opts)))
+                        (fn [{:keys [profile] :as lib} k]
+                          [(get-in lib [:feeds k])
+                           (get-in profile [:settings k])
+                           (get-in profile [:subscriptions k])
+                           (when (:order (profile/settings profile k)) profile)
+                           k])))
 
 (defn requested?
   "Whether the `request` is in flight in the `state`."
@@ -215,10 +217,13 @@
 (def feed-page
   "The page of the show from the parsed `feed` at `url`, with the artwork
   of the search `result` that found it, made again only when one of them
-  changes, since a feed of thousands of episodes takes a while."
-  (memo/remember-last (fn [url feed result]
-                        (with-sized-artwork (feed->page url feed)
-                          (some-> result result->page)))))
+  changes, since a feed of thousands of episodes takes a while. The last
+  four are kept, for going back and forth between shows."
+  (memo/remember-recent 4
+                        (fn [url feed result]
+                          (with-sized-artwork (feed->page url feed)
+                            (some-> result result->page)))
+                        vector))
 
 (defn page
   "The page of the show `guid` in `state`, from its feed or else from a

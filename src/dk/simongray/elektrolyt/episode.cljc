@@ -103,12 +103,14 @@
 (def page-in
   "The page of an episode in the feed of a source, made again only when the
   feed or the link changes, since the page renders at every change of the
-  state and hashing thousands of guids takes a while."
-  (memo/remember-last (fn [guid src hash slug time-fn]
-                        (when-let [item (item-of (:rss/items (:feed src)) hash slug)]
-                          (page-of guid src item time-fn)))
-                      (fn [guid {:keys [feed url key]} hash slug time-fn]
-                        [feed url key guid hash slug time-fn])))
+  state and hashing thousands of guids takes a while. The last four are
+  kept, for going back and forth between episodes."
+  (memo/remember-recent 4
+                        (fn [guid src hash slug time-fn]
+                          (when-let [item (item-of (:rss/items (:feed src)) hash slug)]
+                            (page-of guid src item time-fn)))
+                        (fn [guid {:keys [feed url key]} hash slug time-fn]
+                          [feed url key guid hash slug time-fn])))
 
 (defn page
   "The page of an episode of the show `guid` in `state`, by the short

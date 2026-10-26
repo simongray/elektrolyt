@@ -37,3 +37,24 @@
            (let [made (apply f args)]
              (reset! remembered [k made])
              made)))))))
+
+(defn remember-recent
+  "A version of `f` that keeps its results for the last `n` keys that
+  `key-fn` gives for the arguments, compared as remember-last compares
+  them, e.g. for the pages that the listener goes back and forth between.
+  The one used longest ago goes first."
+  [n f key-fn]
+  (let [remembered (atom [])]
+    (fn [& args]
+      (let [k     (apply key-fn args)
+            hit?  (fn [[kept-k]] (and (= (count k) (count kept-k))
+                                      (every? true? (map same? k kept-k))))
+            kept  @remembered
+            entry (some #(when (hit? %) %) kept)]
+        (if entry
+          (do (when-not (identical? entry (peek kept))
+                (swap! remembered #(conj (filterv (complement #{entry}) %) entry)))
+              (second entry))
+          (let [made (apply f args)]
+            (swap! remembered #(conj (cond-> % (<= n (count %)) (subvec 1)) [k made]))
+            made))))))
