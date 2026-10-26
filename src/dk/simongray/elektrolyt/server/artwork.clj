@@ -32,9 +32,10 @@
     thumbnails used longest ago first
   - :max-age, the seconds that a browser keeps a thumbnail that isn't
     stale
-  - :max-jobs, the most artworks that it fetches and scales at once,
-    since each can take some 40 MB of heap while it decodes an artwork
-    of 20 MB
+  - :max-jobs, the most artworks that it fetches and keeps at once, each
+    up to :max-bytes
+  - :max-scales, the most of those that it scales at once, since each
+    can take some 40 MB of heap while it decodes an artwork of 20 MB
   - :wait-seconds, how long a request waits for a job, or for another
     request's fetch of the same artwork, when the folder has no
     thumbnail for it, before it gets a redirect
@@ -46,11 +47,14 @@
   - :timeout-seconds and :user-agent, which go on to wary-fetch
 
   The options can hold format.image's :max-pixels too."
+  ;; a browser opens about six connections to the server over HTTP/1.1,
+  ;; which the proxy shares, so more than four jobs would buy little
   {:widths          artwork/widths
    :cache-dir       nil
    :max-cache-bytes (* 200 1024 1024)
    :max-age         604800
-   :max-jobs        2
+   :max-jobs        4
+   :max-scales      2
    :wait-seconds    10
    :retry-seconds   300
    :send            client/send!
@@ -215,16 +219,26 @@
       etag          (assoc "If-None-Match" etag)
       last-modified (assoc "If-Modified-Since" last-modified))))
 
+(defn- scaled
+  "The thumbnails of the artwork's bytes `b` at the `widths`, as
+  format.image makes them with `opts`, once one of the `scales` is free."
+  [^Semaphore scales b widths opts]
+  (.acquire scales)
+  (try
+    (image/thumbnails b widths opts)
+    (finally
+      (.release scales))))
+
 ;; RFC 9110, section 7.6.3: the Via header of wary-fetch's proxy, which
 ;; refusal refuses, so that an artwork URL that names the handler can't
 ;; loop
 (defn- fetched
-  "The entry of the artwork at `url` fetched with `opts`, or the `stale`
-  entry renewed when the artwork hasn't changed. An entry holds the :url,
-  the artwork's :etag and :last-modified, its :fresh-until and its
-  :thumbnails, which are nil when format.image can't scale it. It throws
-  when the fetch fails."
-  [url stale {:keys [send widths] :as opts}]
+  "The entry of the artwork at `url` fetched with `opts` and scaled with
+  one of the `scales`, or the `stale` entry renewed when the artwork
+  hasn't changed. An entry holds the :url, the artwork's :etag and
+  :last-modified, its :fresh-until and its :thumbnails, which are nil when
+  format.image can't scale it. It throws when the fetch fails."
+  [url stale scales {:keys [send widths] :as opts}]
   (let [request  (http/with-options
                    {:url     url
                     :as      :bytes
@@ -242,7 +256,7 @@
        :etag          (headers/header (:headers response) "etag")
        :last-modified (headers/header (:headers response) "last-modified")
        :fresh-until   (fresh-until (:headers response) now)
-       :thumbnails    (some-> (image/thumbnails (:body response) widths opts)
+       :thumbnails    (some-> (scaled scales (:body response) widths opts)
                               with-tags)}
 
       :else
@@ -259,17 +273,21 @@
 
 (defn- renewed!
   "The entry of the artwork at `url`, fetched again with `opts` in place
-  of the `stale` one and kept in the folder through the `lock`, when one
-  of the `jobs` is free. A request with stale thumbnails takes a job only
-  if one is free at once, and any other waits :wait-seconds for one.
-  Without a job, it's the stale entry, or nil."
-  [url stale ^Semaphore jobs lock
+  of the `stale` one, scaled with one of the `scales` and kept in the
+  folder through the `lock`, when one of the `jobs` is free. A request
+  with stale thumbnails takes a job only if one is free at once, and any
+  other waits :wait-seconds for one. Without a job, it's the stale entry,
+  or nil.
+
+  The job is held from the fetch to the folder, so that the artworks held
+  at once stay at :max-jobs."
+  [url stale ^Semaphore jobs scales lock
    {:keys [cache-dir max-cache-bytes wait-seconds retry-seconds] :as opts}]
   (if (.tryAcquire jobs (if (seq (:thumbnails stale)) 0 wait-seconds)
                    TimeUnit/SECONDS)
     (try
       (let [entry (try
-                    (fetched url stale opts)
+                    (fetched url stale scales opts)
                     (catch Exception _
                       (failed url stale (System/currentTimeMillis)
                               retry-seconds)))]
@@ -374,16 +392,16 @@
 (defn- entry!
   "The entry of the artwork at `url` for its thumbnail at `width`: the one
   in the :cache-dir of `opts` while it's fresh, or else one renewed with
-  `jobs`, `lock` and `opts`, shared through `running` with the requests
-  that ask meanwhile.
+  `jobs`, `scales`, `lock` and `opts`, shared through `running` with the
+  requests that ask meanwhile.
 
   A stale entry with that thumbnail is the answer at once, while the
   renewal runs on a thread of its own. A request that finds another's
   renewal under way waits :wait-seconds for it at most. When the renewal
   throws, it's the stale entry if that has thumbnails."
-  [url width jobs lock running {:keys [cache-dir wait-seconds] :as opts}]
+  [url width jobs scales lock running {:keys [cache-dir wait-seconds] :as opts}]
   (let [stale (stored cache-dir url)
-        renew #(renewed! url stale jobs lock opts)]
+        renew #(renewed! url stale jobs scales lock opts)]
     (cond
       (and stale (< (System/currentTimeMillis) (:fresh-until stale)))
       (do (touch! cache-dir url)
@@ -408,10 +426,11 @@
   artwork at its url parameter at the width of its w parameter. It keeps
   each artwork's thumbnails in the :cache-dir, and once the artwork's
   freshness ends, it checks it again with its ETag and Last-Modified,
-  meanwhile sending the thumbnails it has. It fetches and scales at most
-  :max-jobs artworks at once, but sends cached thumbnails without waiting
-  for a job. After a failed fetch, it sends the thumbnails it has and
-  waits :retry-seconds before it fetches the artwork again.
+  meanwhile sending the thumbnails it has. It fetches at most :max-jobs
+  artworks at once and scales at most :max-scales of them, but sends
+  cached thumbnails without waiting for a job. After a failed fetch, it
+  sends the thumbnails it has and waits :retry-seconds before it fetches
+  the artwork again.
 
   It redirects to the artwork itself when format.image can't scale it,
   or when it has no thumbnails and the fetch fails or waits too long for
@@ -420,13 +439,14 @@
   ([]
    (handler {}))
   ([opts]
-   (let [{:keys [max-jobs] :as opts} (merge defaults opts)
+   (let [{:keys [max-jobs max-scales] :as opts} (merge defaults opts)
          jobs    (Semaphore. max-jobs)
+         scales  (Semaphore. max-scales)
          lock    (Object.)
          running (atom {})]
      (fn [request]
        (or (refusal request opts)
            (let [{:strs [url w]} (url/query-params (:query-string request))
                  width           (parse-long w)]
-             (answer request url (entry! url width jobs lock running opts)
+             (answer request url (entry! url width jobs scales lock running opts)
                      width opts)))))))

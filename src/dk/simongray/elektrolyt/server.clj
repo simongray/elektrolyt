@@ -263,8 +263,9 @@
   "The routes of the proxy, the thumbnails of artwork and /api/server,
   with the Podcast Index credentials `podcastindex`, or nil, and the
   thumbnails kept in `artwork-dir`. The proxy holds up to four bodies of
-  32 MB at once, and the thumbnails' handler scales two artworks, so that
-  together they fit in a heap of 320 MB."
+  32 MB at once, and the thumbnails' handler four artworks of up to 20 MB,
+  of which it decodes two, each into some 20 MB more. That's about 250 MB
+  in all, so they fit in a heap of 320 MB."
   [podcastindex artwork-dir]
   (let [send       (if podcastindex
                      (podcastindex/sender podcastindex {:send client/send!})

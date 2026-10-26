@@ -6,6 +6,7 @@
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
             [dk.simongray.elektrolyt.server.artwork :as artwork]
+            [dk.simongray.podcast.format.image :as image]
             [dk.simongray.wary-fetch.proxy :as proxy]
             [dk.simongray.wary-fetch.url :as url]
             [taoensso.telemere :as tel])
@@ -335,6 +336,45 @@
         (deliver gate true)
         (is (= 200 (:status @busy)))
         (is (= [art slow] @sent))))))
+
+(deftest jobs-beside-slow-hosts
+  (with-temp-dir
+    (fn [dir]
+      (let [gate    (promise)
+            waiting (atom 0)
+            b       (jpeg 200 200)
+            h       (artwork/handler {:cache-dir    (io/file dir "artwork")
+                                      :wait-seconds 0
+                                      :send         (fn [{:keys [url]}]
+                                                      (when (str/includes? url "slow")
+                                                        (swap! waiting inc)
+                                                        @gate)
+                                                      {:status 200 :headers {} :body b})})
+            slow    (mapv #(future (h (asked (str "https://slow.example/" % ".jpg") 64))) (range 2))]
+        (is (eventually #(= 2 @waiting)))
+        (is (= 200 (:status (h (asked art 64))))
+            "two hosts that don't answer don't keep a third artwork from a job")
+        (deliver gate true)
+        (is (= [200 200] (map (comp :status deref) slow)))))))
+
+(deftest scales-at-most
+  (with-temp-dir
+    (fn [dir]
+      (let [scaling (atom 0)
+            peak    (atom 0)
+            scale   image/thumbnails
+            b       (jpeg 200 200)
+            h       (artwork/handler {:cache-dir (io/file dir "artwork")
+                                      :send      (fn [_] {:status 200 :headers {} :body b})})]
+        (with-redefs-fn {#'image/thumbnails (fn [& args]
+                                              (swap! peak max (swap! scaling inc))
+                                              (Thread/sleep 100)
+                                              (swap! scaling dec)
+                                              (apply scale args))}
+          (fn []
+            (let [asks (mapv #(future (h (asked (str "https://example.org/" % ".jpg") 64))) (range 4))]
+              (is (= [200 200 200 200] (map (comp :status deref) asks)))
+              (is (= 2 @peak) "four jobs scale two artworks at a time"))))))))
 
 (deftest one-copy-above-the-artworks-width
   (with-temp-dir
