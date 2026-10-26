@@ -306,10 +306,12 @@
   [store url title]
   (app-library/persist!)
   (swap! store subscription/subscribing url)
-  ;; the bookmark fills in before the page indexes the documents
-  (-> (js/Promise.all #js [(.then (whole-feed! store url) #(with-search-documents! % url))
-                           (runtime/painted!)])
-      (.then (fn [[fetched]]
+  ;; the bookmark fills in before the feed is encoded for the worker and the
+  ;; page indexes the documents, while a fetch of the feed starts at once;
+  ;; a feed that the page has resolves within the click's task
+  (-> (js/Promise.all #js [(whole-feed! store url) (runtime/painted!)])
+      (.then (fn [[fetched]] (with-search-documents! fetched url)))
+      (.then (fn [fetched]
                (try
                  (app-library/change! store (subscription/subscribed url title fetched))
                  (catch :default e
