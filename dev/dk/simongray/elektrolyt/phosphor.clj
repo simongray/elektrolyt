@@ -1,9 +1,8 @@
 (ns dk.simongray.elektrolyt.phosphor
   "Writing the app's icons, ui/icons.cljc, from Phosphor's npm package,
-  @phosphor-icons/core: a def for the path of each icon in one weight, and
-  in other weights for the few that need them, e.g. a filled weight for an
-  icon that fills in to show a state, so that a release build keeps only
-  the icons that the views use."
+  @phosphor-icons/core: a def for the path of each icon that the code
+  uses, in one weight, and in other weights for the few that need them,
+  e.g. a filled weight for an icon that fills in to show a state."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.reader :as reader]
@@ -50,6 +49,22 @@
   (into (sorted-map)
         (for [file (.listFiles (io/file package "assets" weight))]
           [(icon-name weight file) (path (slurp file))])))
+
+(def folders
+  "The folders whose code uses icons."
+  ["src" "dev" "test"])
+
+;; a name after icons/ in code, e.g. icons/play, but not in a name such as
+;; @phosphor-icons/core
+(defn used
+  "The names of the icons that the code in the `folders` uses as
+  icons/<name>."
+  [folders]
+  (set (for [folder folders
+             file   (file-seq (io/file folder))
+             :when  (re-find #"\.clj[cs]?$" (.getName (io/file file)))
+             [_ k]  (re-seq #"(?<![\w@/-])icons/([a-z0-9-]+)" (slurp file))]
+         k)))
 
 (defn defined-name
   "The name that the top-level `form` defines, e.g. \"list\" for (defn list
@@ -125,9 +140,13 @@
          "  Phosphor names it, e.g. play, gear-six or bookmark-simple-" (first others) ".\n"
          "\n"
          "  The icon alias of ui.controls draws a path in the colour of the text\n"
-         "  around it. A release build keeps only the icons that the views use.\n"
-         "  Phosphor's site shows them all: https://phosphoricons.com\"\n"
-         "  (:refer-clojure :exclude [" (str/join " " excluded) "]))\n"
+         "  around it. This namespace holds only the icons that the code uses,\n"
+         "  so that the dev build stays small. To use another, write\n"
+         "  icons/<name> and run write-icons! again. Phosphor's site shows them\n"
+         "  all: https://phosphoricons.com\""
+         (when (seq excluded)
+           (str "\n  (:refer-clojure :exclude [" (str/join " " excluded) "])"))
+         ")\n"
          "\n"
          (str/join (for [[k d] icons]
                      (str "(def " k " " (pr-str d) ")\n"))))))
@@ -136,14 +155,16 @@
 ;; star-fill, since Phosphor ends the file of every weight but Regular in
 ;; the weight's name
 (defn write-icons!
-  "Write the icons of the `weight`, e.g. \"light\", and of the `others`
-  weights, e.g. \"fill\", under names that end in theirs, to the app's
-  namespace of icons, and return how many there are."
+  "Write the icons that the code uses of the `weight`, e.g. \"light\", and
+  of the `others` weights, e.g. \"fill\", under names that end in theirs,
+  to the app's namespace of icons, and return how many there are."
   [weight & others]
-  (let [icons (apply merge (icons weight)
-                     (for [other others]
-                       (update-keys (icons other) #(str % "-" other))))]
-    (spit target (source weight others icons (clashes (keys icons))))
+  (let [icons (-> (apply merge (icons weight)
+                         (for [other others]
+                           (update-keys (icons other) #(str % "-" other))))
+                  (select-keys (used folders)))]
+    (spit target (source weight others (into (sorted-map) icons)
+                         (clashes (keys icons))))
     (count icons)))
 
 (comment
@@ -151,6 +172,6 @@
   ;; for e.g. the bookmark of a subscription, and Thin for the bookmark of
   ;; a show to subscribe to
   (write-icons! "light" "fill" "thin")
-  ;; => 4536
+  ;; => 34
   (clashes (keys (icons "light")))
   #_.)

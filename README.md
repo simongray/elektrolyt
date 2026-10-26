@@ -145,11 +145,12 @@ warnings.
 The icons are the Light weight of [Phosphor Icons](https://phosphoricons.com),
 from the npm package `@phosphor-icons/core`, with the Fill and Thin weights
 for the few that need them, e.g. `bookmark-simple-fill` for a subscription.
-Each icon's path is a def of its own in the `ui.icons` namespace, so a release
-build keeps only the icons that the views use. After you update the package,
-evaluate `(write-icons! "light" "fill" "thin")` in the
-`dk.simongray.elektrolyt.phosphor` namespace to write them again.
-Phosphor's licence, MIT, is at the top of that file.
+Each icon's path is a def of its own in the `ui.icons` namespace, which holds
+only the icons that the code uses and starts with Phosphor's licence, MIT. To
+use another icon, write `icons/<name>` and evaluate
+`(write-icons! "light" "fill" "thin")` in the
+`dk.simongray.elektrolyt.phosphor` namespace, and do the same after you update
+the package.
 
 
 Tests
