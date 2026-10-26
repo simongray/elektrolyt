@@ -26,6 +26,44 @@
     (is (nil? (::perf/start nested)) "but not one that an effect dispatches")
     (is (= top (after-dispatch top)))))
 
+(deftest the-phases-of-an-interaction
+  (is (= {:kind :interaction :type "click" :ms 160
+          :input-delay 20 :processing 100 :presentation 40}
+         (perf/interaction {:name "click" :start-time 1000 :duration 160
+                            :processing-start 1020 :processing-end 1120}))))
+
+(deftest the-event-of-each-interaction
+  (let [event #(do #js {:name %1 :interactionId %2 :processingStart 0 :processingEnd %3})]
+    (is (= ["click" "keydown"]
+           (sort (map #(.-name %) (perf/slowest-events [(event "pointerdown" 1 2)
+                                                        (event "click" 1 300)
+                                                        (event "pointerup" 1 1)
+                                                        (event "keydown" 2 40)
+                                                        (event "mousemove" 0 90)]))))
+        "the one whose handlers took longest, and none of events outside an interaction")))
+
+(deftest a-long-frame-and-its-scripts
+  (is (= {:kind :frame :ms 180 :blocking 130
+          :scripts [{:invoker "BUTTON.onclick" :source "main.js" :ms 90 :forced-layout 12}
+                    {:invoker "Promise.then" :source "shared.js" :ms 40 :forced-layout 0}]}
+         (perf/frame {:duration 180 :blocking-duration 130
+                      :scripts [{:invoker "Promise.then" :source "shared.js"
+                                 :forced-style-and-layout 0 :duration 40}
+                                {:invoker "BUTTON.onclick" :source "main.js"
+                                 :forced-style-and-layout 12.4 :duration 90}]}))
+      "the scripts that ran longest first"))
+
+(deftest the-worst-kept
+  (reset! perf/worst [])
+  (run! #(perf/kept! {:ms %}) (range 30))
+  (is (= (range 29 9 -1) (map :ms @perf/worst)) "the 20 slowest, slowest first")
+  (reset! perf/worst []))
+
+(deftest a-target-by-its-tag-and-id
+  (is (= "button#play" (perf/target #js {:tagName "BUTTON" :id "play"})))
+  (is (= "a" (perf/target #js {:tagName "A" :id ""})) "without its label")
+  (is (nil? (perf/target nil))))
+
 (deftest a-measure-in-the-dev-build
   (is perf/on? "since the tests run in a dev build")
   (is (= 3 (perf/measured! "test/sum" {:n 2} #(+ 1 2))))

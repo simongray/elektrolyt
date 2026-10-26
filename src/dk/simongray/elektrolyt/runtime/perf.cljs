@@ -171,3 +171,135 @@
                                        :data  (assoc props :ms (js/Math.round ms))}
                                       "A dispatch took long or rendered more than once"))))
                       ctx)})
+
+;; Event Timing and Long Animation Frames: the browser's own record of a
+;; slow interaction and its phases, and in Chromium of a frame that a task
+;; blocked, with the scripts that ran in it
+;; https://web.dev/articles/inp
+;; https://developer.chrome.com/docs/web-platform/long-animation-frames
+(defonce ^{:doc "The 20 slowest interactions and longest frames that the
+  page has logged, slowest first, for report."}
+  worst
+  (atom []))
+
+(defn interaction
+  "The phases of the slowest event `e` of an interaction, a map of the
+  Event Timing entry's :name, :start-time, :duration, :processing-start
+  and :processing-end, in whole milliseconds."
+  [{:keys [name start-time duration processing-start processing-end]}]
+  {:kind         :interaction
+   :type         name
+   :ms           (js/Math.round duration)
+   :input-delay  (js/Math.round (- processing-start start-time))
+   :processing   (js/Math.round (- processing-end processing-start))
+   :presentation (js/Math.round (- (+ start-time duration) processing-end))})
+
+(defn frame
+  "What a long animation frame `f` tells, a map of the entry's :duration,
+  its :blocking-duration and its :scripts, each a map of the script's
+  :invoker, :source, :forced-style-and-layout and :duration, with the
+  three that ran longest."
+  [{:keys [duration blocking-duration scripts]}]
+  {:kind     :frame
+   :ms       (js/Math.round duration)
+   :blocking (js/Math.round blocking-duration)
+   :scripts  (->> scripts
+                  (sort-by :duration >)
+                  (take 3)
+                  (mapv #(-> %
+                             (select-keys [:invoker :source])
+                             (assoc :ms (js/Math.round (:duration %))
+                                    :forced-layout (js/Math.round (:forced-style-and-layout %))))))})
+
+(defn kept!
+  "Keep the `summary` of a slow interaction or a long frame among the
+  worst."
+  [summary]
+  (swap! worst #(->> (conj % summary) (sort-by :ms >) (take 20) vec)))
+
+(defn target
+  "The element `el` of an event, named by its tag and id alone, since its
+  label can hold a show's or an episode's title."
+  [^js el]
+  (when (and el (.-tagName el))
+    (str (.toLowerCase (.-tagName el)) (when (seq (.-id el)) (str "#" (.-id el))))))
+
+(defn event-fields
+  "The fields of the Event Timing entry `e` that interaction reads."
+  [^js e]
+  {:name             (.-name e)
+   :start-time       (.-startTime e)
+   :duration         (.-duration e)
+   :processing-start (.-processingStart e)
+   :processing-end   (.-processingEnd e)})
+
+(defn frame-fields
+  "The fields of the long animation frame `f` that frame reads."
+  [^js f]
+  {:duration          (.-duration f)
+   :blocking-duration (.-blockingDuration f)
+   :scripts           (for [^js s (.-scripts f)]
+                        {:invoker                 (.-invoker s)
+                         :source                  (.-sourceURL s)
+                         :forced-style-and-layout (.-forcedStyleAndLayoutDuration s)
+                         :duration                (.-duration s)})})
+
+(defn observe!
+  "Call `f` with the entries of the `type` that the browser has made and
+  makes from now on, a few at a time, with the `opts`, where the browser
+  has them."
+  [type opts f]
+  (when (some #{type} (.-supportedEntryTypes js/PerformanceObserver))
+    (.observe (js/PerformanceObserver. (fn [entries] (f (.getEntries entries))))
+              (clj->js (assoc opts :type type :buffered true)))))
+
+(defn slowest-events
+  "The event of each interaction among the Event Timing `entries` whose
+  handlers took longest, e.g. its click rather than its pointerdown."
+  [entries]
+  (->> entries
+       (filter #(pos? (.-interactionId ^js %)))
+       (group-by #(.-interactionId ^js %))
+       (map (fn [[_ events]]
+              (apply max-key #(- (.-processingEnd ^js %) (.-processingStart ^js %))
+                     events)))))
+
+(defn observed!
+  "Log each slow interaction over 100 ms as :perf/slow-interaction, with
+  the page's route that `route-fn` gives, and in Chromium each frame that
+  a task blocked over 100 ms with no slow interaction in it as
+  :perf/long-frame, when the app times itself."
+  [route-fn]
+  (when ^boolean on?
+    (let [interactions (atom ())
+          during?      (fn [start end]
+                         (some (fn [[s e]] (and (< s end) (< start e))) @interactions))]
+      (observe! "event" {:durationThreshold 16}
+                (fn [entries]
+                  (doseq [^js e (slowest-events entries)
+                          :when (< 100 (.-duration e))]
+                    (swap! interactions #(take 20 (conj % [(.-startTime e)
+                                                           (+ (.-startTime e) (.-duration e))])))
+                    (let [summary (assoc (interaction (event-fields e))
+                                         :target (target (.-target e))
+                                         :route  (route-fn))]
+                      (kept! summary)
+                      (tel/log! {:level :info :id :perf/slow-interaction :data summary}
+                                "An interaction was slow")))))
+      (observe! "long-animation-frame" {}
+                (fn [entries]
+                  (doseq [^js f entries
+                          :when (and (< 100 (.-blockingDuration f))
+                                     (not (during? (.-startTime f)
+                                                   (+ (.-startTime f) (.-duration f)))))]
+                    (let [summary (assoc (frame (frame-fields f)) :route (route-fn))]
+                      (kept! summary)
+                      (tel/log! {:level :info :id :perf/long-frame :data summary}
+                                "A frame was blocked"))))))))
+
+(defn ^:export report
+  "The worst interactions and frames that the page has logged, as JSON to
+  paste, e.g. from the console as
+  dk.simongray.elektrolyt.runtime.perf.report()."
+  []
+  (js/JSON.stringify (clj->js @worst) nil 2))

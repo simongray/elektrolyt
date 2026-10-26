@@ -16,7 +16,7 @@
   "What only a runtime namespace may use: the browser's own calls, and
   those of play-nice and reitit that listen to the page."
   (re-pattern (str/join "|" ["addEventListener" "setTimeout" "setInterval"
-                             "requestIdleCallback" "BroadcastChannel"
+                             "requestIdleCallback" "BroadcastChannel" "PerformanceObserver"
                              "\\.-locks" "navigator\\.locks" "add-watch"
                              "localStorage" "rfe/start!" "media/watch!"
                              "session/attach!" "session/actions!"
