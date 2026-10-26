@@ -20,7 +20,8 @@
             [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.library.settings :as settings]
-            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
+            [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]
+            [dk.simongray.elektrolyt.ui.memo :as memo]))
 
 (defn link?
   "Whether the query `q` is a link, e.g. a feed URL, a domain, a web page
@@ -188,14 +189,16 @@
     drpodcast/source-name
     (get-in directory/sources [source-id :name] (name source-id))))
 
-(defn subscribed-urls
+(def subscribed-urls
   "The set of normalized feed URLs of the subscriptions in the library
-  `lib`, or nil without a library."
-  [lib]
-  (when lib
-    (into #{}
-          (keep #(some-> % val :url guid/normal-url))
-          (profile/subscriptions (:profile lib)))))
+  `lib`, or nil without a library, worked out again only when the
+  subscriptions change."
+  (memo/remember-last (fn [lib]
+                        (when lib
+                          (into #{}
+                                (keep #(some-> % val :url guid/normal-url))
+                                (profile/subscriptions (:profile lib)))))
+                      (fn [lib] [(some? lib) (get-in lib [:profile :subscriptions])])))
 
 (defn subscribed?
   "Whether the feed at `url` is among the normalized `subscribed` URLs."

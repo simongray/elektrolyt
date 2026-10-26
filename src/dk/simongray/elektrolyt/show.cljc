@@ -102,18 +102,32 @@
    :artwork-sizes artwork-sizes
    :episodes      []})
 
+;; A Show or Episode page looks its show up about twelve times a render,
+;; and each lookup went over every subscription, while only a change of the
+;; subscriptions changes the answer, not e.g. a report of the position
+(def subscriptions-of
+  "The live subscriptions of `profile` by feed guid, as profile/subscriptions
+  gives them, worked out again only when its subscriptions change."
+  (memo/remember-last profile/subscriptions (fn [profile] [(:subscriptions profile)])))
+
+(def by-url
+  "The feed guids of the subscriptions of `profile` by normalized URL, as
+  profile/by-url gives them, worked out again only when its subscriptions
+  change."
+  (memo/remember-last profile/by-url (fn [profile] [(:subscriptions profile)])))
+
 (defn subscription-of
   "The subscription to the show `guid` in the library `lib`, whether or not
   the library has its feed, e.g. one whose feed was never fetched, or nil."
   [lib guid]
-  (get (profile/subscriptions (:profile lib)) guid))
+  (get (subscriptions-of (:profile lib)) guid))
 
 (defn subscribed-key
   "The key of the subscription at `url` in the library `lib`, whether or
   not the library has its feed, or nil."
   [lib url]
   (let [profile (:profile lib)
-        k       (get (profile/by-url profile) (guid/normal-url url))]
+        k       (get (by-url profile) (guid/normal-url url))]
     (when (profile/subscribed? profile k)
       k)))
 
@@ -216,11 +230,12 @@
 ;; NN/g, response times: the page shows at once what the link that led to
 ;; it knew, its title and artwork, rather than a blank until the feed comes
 ;; https://www.nngroup.com/articles/response-times-3-important-limits/
-(defn known-result
+(def known-result
   "What a search in the `state`, or the card of a show that links to it,
-  says of the show `guid`, or nil."
-  [state guid]
-  (or (search-result state guid) (linked-card state guid)))
+  says of the show `guid`, or nil, worked out again only when the searches
+  or the linked shows change."
+  (memo/remember-last (fn [state guid] (or (search-result state guid) (linked-card state guid)))
+                      (fn [state guid] [(:searches state) (:linked state) guid])))
 
 ;; instant.page: a pointer that rests on a link for 65 ms clicks it about
 ;; half the time, and leaves some 300 ms to fetch what the page needs. Only

@@ -3,6 +3,7 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.podcast.profile.queue :as profile.queue]
+            [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.show :as show]))
 
 (def url "https://example.org/feed.xml")
@@ -166,6 +167,22 @@
     (is (= "Kept" (:title (show/page {:library lib} k))))
     (is (= [url k true] ((juxt :url :key :whole?) (show/source {:library lib} k))))
     (is (= :done (show/status {:library lib} k)))))
+
+(deftest the-subscriptions-looked-up-once
+  (let [lib    (library/subscribe (library/make "test") url (feed "Kept" "One"))
+        k      (key (first (library/subscriptions lib)))
+        played (library/update-profile lib profile/progress [k "One"] 100 600)
+        gone   (library/update-profile played profile/unsubscribe k)]
+    (is (= [(profile/subscriptions (:profile lib)) (profile/by-url (:profile lib))]
+           [(show/subscriptions-of (:profile lib)) (show/by-url (:profile lib))])
+        "as the profile gives them")
+    (is (identical? (show/by-url (:profile lib)) (show/by-url (:profile played)))
+        "the same after a report of the position")
+    (is (identical? (search/subscribed-urls lib) (search/subscribed-urls played)))
+    (is (= [k nil] [(show/subscribed-key played url) (show/subscribed-key gone url)])
+        "and again after an unsubscription")
+    (is (nil? (show/subscription-of gone k)))
+    (is (empty? (search/subscribed-urls gone)))))
 
 (deftest the-page-of-a-show-that-plays
   (let [lib     (library/subscribe (library/make "test") url (feed "Kept" "One" "Two"))
