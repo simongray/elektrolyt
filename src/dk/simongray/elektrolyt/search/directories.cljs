@@ -15,20 +15,34 @@
   request to DR."
   10)
 
+(defn checked!
+  "A promise of whether DR publishes a podcast of the series `slug`:
+  :unpublished for a 404, or :published for any other answer. An answer
+  of 2xx or 404 is kept for a day, and a check that fails throws."
+  [slug]
+  ;; DR's CDN can ignore the range and send a whole feed, which the
+  ;; truncation cuts short
+  (.then (app-cache/send {:url       (drpodcast/official-url slug)
+                          :range     [0 0]
+                          :max-bytes 65536
+                          :truncate? true})
+         (fn [{:keys [status]}]
+           (let [answer (if (= 404 status) :unpublished :published)]
+             (when (or (= 404 status) (<= 200 status 299))
+               (app-cache/put! app-cache/dr-feeds slug answer))
+             answer))))
+
+;; DR's answers are fresh for only minutes, while a search's next query
+;; often finds the same series
 (defn unpublished!
   "A promise of the `series` of slugs.json if DR publishes no podcast of
   it, or of nil. A series whose check fails counts as unpublished."
   [{:keys [slug] :as series}]
   ;; TODO: with DR's podcastUrl in slugs.json, this wouldn't need a request
   ;; per series, and a series that DR renamed wouldn't count as unpublished.
-  ;;
-  ;; DR's CDN can ignore the range and send a whole feed, which the
-  ;; truncation cuts short
-  (-> (app-cache/send {:url       (drpodcast/official-url slug)
-                       :range     [0 0]
-                       :max-bytes 65536
-                       :truncate? true})
-      (.then #(when (= 404 (:status %)) series))
+  (-> (app-cache/fetch! app-cache/dr-feeds slug)
+      (.then #(or (:value %) (checked! slug)))
+      (.then #(when (= :unpublished %) series))
       (.catch (constantly series))))
 
 (defn drpodcast-search!
@@ -36,7 +50,10 @@
   every word in their titles that DR publishes no podcast of, since the
   other directories list DR's podcasts."
   [q]
-  (-> (app-cache/send {:url drpodcast/slugs-url :as :json})
+  ;; slugs.json is the same for every query, so the reason that a search
+  ;; goes past the HTTP cache doesn't apply, and the page shares the
+  ;; worker's copy, which revalidates by its ETag
+  (-> (app-library/send {:url drpodcast/slugs-url :as :json})
       (.then (fn [{:keys [status body]}]
                (when-not (= 200 status)
                  (throw (js/Error. (str "drpodcast.nu answered " status))))

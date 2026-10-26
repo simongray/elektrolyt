@@ -51,6 +51,12 @@
   "The colours of artwork, by URL."
   (config "colors." 500 90))
 
+;; DR can publish a series that it didn't, so the answer keeps a day
+(def dr-feeds
+  "Whether DR publishes a podcast of each series of drpodcast.nu, by its
+  slug: :published or :unpublished."
+  (config "dr-feed." 2000 1))
+
 ;; Fetch, request cache mode no-store
 ;; https://fetch.spec.whatwg.org/#concept-request-cache-mode
 (defn send
@@ -86,4 +92,4 @@
 (defn clear!
   "A promise of emptying every cache."
   []
-  (js/Promise.all (into-array (map cache/clear! [searches feed-urls shows linked colors]))))
+  (js/Promise.all (into-array (map cache/clear! [searches feed-urls shows linked colors dr-feeds]))))
