@@ -75,12 +75,12 @@ function rss(episodes, artwork) {
 const query = `?url=${encodeURIComponent(feedUrl)}`;
 
 /** The path of the show's page, by the start of its guid, as the app links to it. */
-export const showPath = `/shows/${showGuid.slice(0, 8)}${query}`;
+export const showPath = `/show/${showGuid.slice(0, 8)}${query}`;
 
 /** The path of the page of the `episode`, by the short hash of its guid. */
 export function episodePath({ guid }) {
   const hash = createHash('sha1').update(guid).digest('hex').slice(0, 7);
-  return `/shows/${showGuid.slice(0, 8)}/episodes/${hash}${query}`;
+  return `/show/${showGuid.slice(0, 8)}/ep/${hash}${query}`;
 }
 
 /** The status line of main, which only a screen reader reads. */

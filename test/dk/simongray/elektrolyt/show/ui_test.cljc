@@ -85,7 +85,7 @@
         [_ {:keys [href]} title] (first (elements :a (first items)))]
     (is (= 20 (count items)))
     (is (= "Episode 0" title))
-    (is (re-find #"^/shows/g/episodes/\w+/episode-0\?url=" href)
+    (is (re-find #"^/show/g/ep/\w+/episode-0\?url=" href)
         "each title links to the page of its episode, with the URL of the feed")
     (is (= [[:show/more "g" 45]] (get-in button [1 :on :click])))
     (is (= "ol.episodes > li:nth-child(21) :is(h3 a, h3[tabindex])" (get-in button [1 :data-refocus]))

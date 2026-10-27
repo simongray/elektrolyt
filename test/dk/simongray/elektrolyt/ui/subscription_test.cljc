@@ -34,10 +34,10 @@
     (is (nil? (:on attrs)))))
 
 (deftest a-mark-of-a-subscription
-  (let [[icon & more] (subscription/marked [:a {:href "/shows/g"} "A Show"])]
+  (let [[icon & more] (subscription/marked [:a {:href "/show/g"} "A Show"])]
     (is (= [controls/icon {:icon icons/bookmark-simple-fill :class "bookmark" :title "Subscribed"}] icon)
         "the filled bookmark before the title, which does nothing")
-    (is (= [" " [:a {:href "/shows/g"} "A Show"] [:span.visually-hidden ", subscribed"]] more)
+    (is (= [" " [:a {:href "/show/g"} "A Show"] [:span.visually-hidden ", subscribed"]] more)
         "and words after it for a screen reader")))
 
 (deftest the-state-of-a-subscription

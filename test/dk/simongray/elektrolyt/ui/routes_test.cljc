@@ -23,7 +23,7 @@
 
 (deftest a-stray-percent-sign
   (is (= "/search?q=100%25" (routes/decodable "/search?q=100%")))
-  (is (= "/shows/%25zz#50%25" (routes/decodable "/shows/%zz#50%")))
+  (is (= "/show/%25zz#50%25" (routes/decodable "/show/%zz#50%")))
   (is (= "/search?q=a%20b" (routes/decodable "/search?q=a%20b")) "but not an escape")
   (is (= "/search?q=%C3%A6" (routes/decodable "/search?q=%C3%A6")) "of UTF-8")
   (is (= "/search?q=%25FF" (routes/decodable "/search?q=%FF")) "unlike escapes that aren't UTF-8")
@@ -54,31 +54,31 @@
   (is (nil? (routes/slug nil))))
 
 (deftest the-page-of-a-show
-  (is (= "/shows/917393e3/podcasting-2-0" (routes/show-href pc20 "Podcasting 2.0"))
+  (is (= "/show/917393e3/podcasting-2-0" (routes/show-href pc20 "Podcasting 2.0"))
       "by the start of its guid")
-  (is (= "/shows/917393e3" (routes/show-href pc20 "日本語")))
-  (is (= "/shows/a-guid" (routes/show-href "a-guid" nil)) "or the whole of one that isn't a UUID")
+  (is (= "/show/917393e3" (routes/show-href pc20 "日本語")))
+  (is (= "/show/a-guid" (routes/show-href "a-guid" nil)) "or the whole of one that isn't a UUID")
   (is (= {:name :route/show :path-params {:guid pc20} :query-params {}}
-         (dissoc (route-of (str "/shows/" pc20 "/podcasting-2-0")) :slug)
-         (dissoc (route-of (str "/shows/" pc20 "/another-slug")) :slug)
-         (route-of (str "/shows/" pc20)))
+         (dissoc (route-of (str "/show/" pc20 "/podcasting-2-0")) :slug)
+         (dissoc (route-of (str "/show/" pc20 "/another-slug")) :slug)
+         (route-of (str "/show/" pc20)))
       "the guid finds the show with any slug or none")
-  (is (routes/same-page? (route-of (str "/shows/" pc20 "/a")) (route-of (str "/shows/" pc20)))))
+  (is (routes/same-page? (route-of (str "/show/" pc20 "/a")) (route-of (str "/show/" pc20)))))
 
 (deftest the-page-of-an-episode
   (let [item "https://example.org/?p=7"
         h    "84b5b7c"]
-    (is (= (str "/shows/917393e3/episodes/" h "/episode-7") (routes/episode-href pc20 item "Episode 7" nil))
+    (is (= (str "/show/917393e3/ep/" h "/episode-7") (routes/episode-href pc20 item "Episode 7" nil))
         "the short hash of a guid that couldn't go in a path")
-    (is (= (str "/shows/917393e3/episodes/" h "?url=https%3A%2F%2Fexample.org%2Ffeed.xml&t=754")
+    (is (= (str "/show/917393e3/ep/" h "?url=https%3A%2F%2Fexample.org%2Ffeed.xml&t=754")
            (routes/episode-href pc20 item "日本語" "https://example.org/feed.xml" 754.5))
         "with the feed of a show that the library doesn't keep, and a time")
     (is (= {:name :route/episode :path-params {:guid pc20 :hash h} :query-params {} :slug "episode-7"}
-           (route-of (str "/shows/" pc20 "/episodes/" h "/episode-7")))
+           (route-of (str "/show/" pc20 "/ep/" h "/episode-7")))
         "the slug apart from the path, to tell two episodes of a hash apart")
-    (is (routes/same-page? (route-of (str "/shows/" pc20 "/episodes/" h "/a"))
-                           (route-of (str "/shows/" pc20 "/episodes/" h))))
-    (is (= :route/show (:name (route-of (str "/shows/" pc20 "/episodes")))) "a show's slug can be anything")))
+    (is (routes/same-page? (route-of (str "/show/" pc20 "/ep/" h "/a"))
+                           (route-of (str "/show/" pc20 "/ep/" h))))
+    (is (= :route/show (:name (route-of (str "/show/" pc20 "/ep")))) "a show's slug can be anything")))
 
 (def inbox
   {:name :route/inbox :path-params {} :query-params {}})

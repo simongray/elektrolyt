@@ -116,7 +116,7 @@
         derived "d5a1ae35-5e8b-599a-943b-95609562016d"
         route   {:name :route/show :path-params {:guid derived} :query-params {:url url}}
         found   {:searches {"pc20" {:results [{:guid derived :url url :title "Podcasting 2.0"}]}}}]
-    (is (= "/shows/d5a1ae35/podcasting-2-0?url=https%3A%2F%2Ffeeds.podcastindex.org%2Fpc20.xml"
+    (is (= "/show/d5a1ae35/podcasting-2-0?url=https%3A%2F%2Ffeeds.podcastindex.org%2Fpc20.xml"
            (ui/canonical-path (assoc found :route route :library (library/make "test")))
            (ui/canonical-path (assoc found
                                      :route (assoc-in route [:path-params :guid] "d5a1ae35")
@@ -124,7 +124,7 @@
         "a show that the library doesn't keep keeps the URL of its feed, by the whole guid or its start")
     (let [lib (library/subscribe (library/make "test") url {:rss/title "Podcasting 2.0"})
           k   (key (first (library/subscriptions lib)))]
-      (is (= (str "/shows/" (subs k 0 8) "/podcasting-2-0")
+      (is (= (str "/show/" (subs k 0 8) "/podcasting-2-0")
              (ui/canonical-path (assoc found :route route :library lib))
              (ui/canonical-path {:route   {:name         :route/show
                                            :path-params  {:guid (subs k 0 8)}
@@ -182,8 +182,8 @@
   (doseq [[path title current] [["/" "Elektrolyt" "Home"]
                                 ["/library" "Library" "Library"]
                                 ["/settings" "Settings" "Settings"]
-                                ["/shows/917393e3-1b1e-5cef-ace4-edaa54e1f810/podcasting-2-0" "Show" nil]
-                                ["/shows/917393e3-1b1e-5cef-ace4-edaa54e1f810/episodes/2a6f978" "Episode" nil]
+                                ["/show/917393e3/podcasting-2-0" "Show" nil]
+                                ["/show/917393e3/ep/2a6f978" "Episode" nil]
                                 ["/nowhere" "Page not found" nil]]]
     (let [page (ui/page (ui/starting {} path))
           main (first (elements :main#main page))]

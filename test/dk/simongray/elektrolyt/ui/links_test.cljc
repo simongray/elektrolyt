@@ -15,5 +15,5 @@
           (controls/in-text icons/envelope-simple "Opens your email app")]
          (links/leaving [:a {:href "MAILTO:a@example.org"} "a@example.org"]))
       "or in the email app, which an envelope shows")
-  (is (= [:a {:href "/shows/g"} "x"] (links/leaving [:a {:href "/shows/g"} "x"]))
+  (is (= [:a {:href "/show/g"} "x"] (links/leaving [:a {:href "/show/g"} "x"]))
       "but not those of the app"))

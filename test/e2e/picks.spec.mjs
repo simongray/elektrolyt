@@ -93,13 +93,13 @@ function query(show) {
 
 /** The path of the page of the `show`. */
 function showPath(show) {
-  return `/shows/${show.guid}${query(show)}`;
+  return `/show/${show.guid}${query(show)}`;
 }
 
 /** The path of the page of the episode `i` of the `show`, by the short hash of its guid. */
 function episodePath(show, i) {
   const hash = createHash('sha1').update(itemGuid(show, i)).digest('hex').slice(0, 7);
-  return `/shows/${show.guid}/episodes/${hash}${query(show)}`;
+  return `/show/${show.guid}/ep/${hash}${query(show)}`;
 }
 
 /** Subscribe to the `shows` with an OPML file, from Settings, and wait for their episodes. */

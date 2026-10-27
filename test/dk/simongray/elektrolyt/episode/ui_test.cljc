@@ -261,6 +261,6 @@
                                :query-params {:url episode-test/url}})
           x     (episode-ui/missing state)]
       (is (re-find #"isn't in its show's feed" (text-of x)))
-      (is (= [(str "/shows/" (subs episode-test/g 0 8) "?url=https%3A%2F%2Fexample.org%2Ffeed.xml")]
+      (is (= [(str "/show/" (subs episode-test/g 0 8) "?url=https%3A%2F%2Fexample.org%2Ffeed.xml")]
              (map #(:href (second %)) (elements :a x)))
           "with a link to the show"))))

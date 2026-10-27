@@ -7,7 +7,7 @@
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [reitit.core :as reitit]))
 
-;; A show's page is at /shows/<guid>/<slug>, as a question is on Stack
+;; A show's page is at /show/<guid>/<slug>, as a question is on Stack
 ;; Overflow: the guid finds the show, and the slug of its title is only for
 ;; whoever reads the link, so any slug or none will do. A titled route
 ;; names its page as :page. A link names the show by the first 8 hex digits
@@ -15,25 +15,26 @@
 ;; show by them with show/route-guid, which takes a whole guid too, e.g. in
 ;; a link from before.
 ;;
-;; An episode's page is under its show's, since an item's guid is unique
-;; only within its feed, as podcast:remoteItem has it. The item goes by a
-;; short hash of its guid, as git names a commit, since the guid is often a
-;; URL, whose slashes many servers refuse in a path even percent-encoded.
-;; The slug tells apart two items with the same hash.
+;; An episode's page is under its show's, at ep/<hash>/<slug>, since an
+;; item's guid is unique only within its feed, as podcast:remoteItem has
+;; it. Podcasts shorten episode to ep themselves, e.g. Ep. 21. The item
+;; goes by a short hash of its guid, as git names a commit, since the guid
+;; is often a URL, whose slashes many servers refuse in a path even
+;; percent-encoded. The slug tells apart two items with the same hash.
 ;; https://podcasting2.org/docs/podcast-namespace/tags/remote-item
 (def router
   "The router of the app's paths, whose routes are named :route/…"
   (reitit/router
-   [["/"                                 :route/home]
-    ["/queue"                            :route/queue]
-    ["/inbox"                            :route/inbox]
-    ["/library"                          :route/library]
-    ["/search"                           :route/search]
-    ["/settings"                         :route/settings]
-    ["/shows/:guid"                      :route/show]
-    ["/shows/:guid/:slug"                {:name :route/titled-show :page :route/show}]
-    ["/shows/:guid/episodes/:hash"       :route/episode]
-    ["/shows/:guid/episodes/:hash/:slug" {:name :route/titled-episode :page :route/episode}]]))
+   [["/"                          :route/home]
+    ["/queue"                     :route/queue]
+    ["/inbox"                     :route/inbox]
+    ["/library"                   :route/library]
+    ["/search"                    :route/search]
+    ["/settings"                  :route/settings]
+    ["/show/:guid"                :route/show]
+    ["/show/:guid/:slug"          {:name :route/titled-show :page :route/show}]
+    ["/show/:guid/ep/:hash"       :route/episode]
+    ["/show/:guid/ep/:hash/:slug" {:name :route/titled-episode :page :route/episode}]]))
 
 (defn decodes?
   "Whether the run of percent `escapes` decodes as UTF-8."
@@ -226,5 +227,5 @@
   (match->route (reitit/match-by-path router "/inbox"))
   ;; => {:name :route/inbox, :path-params {}, :query-params {}}
   (show-href "917393e3-1b1e-5cef-ace4-edaa54e1f810" "Podcasting 2.0")
-  ;; => "/shows/917393e3/podcasting-2-0"
+  ;; => "/show/917393e3/podcasting-2-0"
   #_.)

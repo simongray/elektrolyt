@@ -39,7 +39,7 @@
         (is (= 200 status))
         (is (= index body))))
     (testing "also at a path that ends in a slash"
-      (doseq [path ["/library/" "/shows/abc/"]]
+      (doseq [path ["/library/" "/show/abc/"]]
         (let [{:keys [status body]} (response-for connector :get path
                                                   :headers page)]
           (is (= 200 status) path)

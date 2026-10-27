@@ -81,7 +81,7 @@ The globe
   says 19% of the located shows are explicit, but the app can only learn
   which ones from each show's own feed.
 - **Every row has a `podcastGuid` and a feed URL**, so each show links
-  straight to its page at `/shows/<guid>?url=…`.
+  straight to its page at `/show/<guid>?url=…`.
 
 ### Why not the feeds' IP addresses
 

@@ -51,9 +51,9 @@ test('unsubscribing keeps the page by the URL of its feed', async ({ page }) => 
 // A link from before names the show by its whole guid, which still opens
 // its page, whose address then has the start of the guid alone
 test('a link with the whole guid opens the show, and the address takes its start', async ({ page }) => {
-  await page.goto(`/shows/${showGuid}?url=${encodeURIComponent(feedUrl)}`);
+  await page.goto(`/show/${showGuid}?url=${encodeURIComponent(feedUrl)}`);
   await expect(page.getByRole('heading', { level: 1, name: showTitle })).toBeVisible();
-  await expect(page).toHaveURL(url => url.pathname === `/shows/${showGuid.slice(0, 8)}/the-test-show`);
+  await expect(page).toHaveURL(url => url.pathname === `/show/${showGuid.slice(0, 8)}/the-test-show`);
 });
 
 // After a reload without the cache's copy from the visit before the
