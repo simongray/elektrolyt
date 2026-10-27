@@ -356,17 +356,33 @@
 
 (declare read-library-files!)
 
+;; The library plays what's queued next only after the current episode
+;; ends, so an episode that plays outside the queue, e.g. again after it
+;; ended and left it, would play nothing next, though Play next was
+;; pressed meanwhile
+(defn current!
+  "Make the player's episode in `store` the current one, at the front of
+  the queue, as a Play does, unless it is."
+  [store]
+  (let [{:keys [player library]} @store
+        id                       (:id player)]
+    (when (and id library (not= id (queue/current (:profile library))))
+      (step! store [:play id]))))
+
 (defn changed!
   "Keep the element's `media` state in the player in `store`, to the whole
-  second, and show any wait for data. While the element plays, and as it
-  pauses, post each change to the other tabs. Once it plays with the data
-  to go on, read the episode's other files, if that's due."
+  second, and show any wait for data. As it starts to play, make its
+  episode current. While it plays, and as it pauses, post each change to
+  the other tabs. Once it plays with the data to go on, read the
+  episode's other files, if that's due."
   [store media]
   (let [old   (get-in @store [:player :media])
         shown (player/whole-seconds media)]
     (staged! media)
     (when (not= shown old)
       (swap! store assoc-in [:player :media] shown)
+      (when (and (false? (:paused shown)) (not (false? (:paused old))))
+        (current! store))
       (when (or (false? (:paused shown)) (false? (:paused old)))
         (tell! store media)))
     (buffering! store shown)

@@ -197,6 +197,25 @@
       (audio/load! store one nil)
       (is (= 1 (count @reports)) "but not where a paused element is, which may be stale"))))
 
+(deftest an-episode-that-plays-outside-the-queue
+  (let [lib       (-> (library/make "test")
+                      (library/add-episode url two-feed "one")
+                      (library/add-episode url two-feed "two"))
+        feed-id   (first (keys (:feeds lib)))
+        [one two] (map #(vector feed-id %) ["one" "two"])
+        store     (atom {:library lib :player {:id one :media {:paused true}}})
+        current   #(some-> @store :library :profile queue/current)]
+    (with-redefs [audio/element             (constantly nil)
+                  audio/tell!               (fn [_ _])
+                  app-library/save!         (constantly nil)
+                  audio/read-library-files! (constantly nil)]
+      (is (nil? (current)) "e.g. one that ended and left it")
+      (audio/changed! store {:paused false :current-time 0})
+      (is (= one (current)) "is current once it plays, as after a Play")
+      (swap! store update :library library/update-profile queue/play-next two)
+      (audio/ended! store)
+      (is (= two (get-in @store [:player :id])) "so that Play next plays after it"))))
+
 (deftest the-keys-of-the-player
   (let [posts   (atom [])
         here    {:id [:feed "here"] :media {:paused true :current-time 30}}
