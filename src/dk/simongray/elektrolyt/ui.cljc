@@ -110,8 +110,8 @@
   "The canonical path of the Show or Episode page in `state`, with the slug
   of its title, or nil before the title is known. A show that the listener
   subscribes to goes by its key in the library, without its feed's URL."
-  [{{:keys [name path-params query-params]} :route :as state}]
-  (let [guid (:guid path-params)
+  [{{:keys [name query-params]} :route :as state}]
+  (let [guid (show/route-guid state)
         url  (:url query-params)]
     (case name
       :route/show

@@ -50,9 +50,8 @@
   "The show of the Show or Episode page in `state`, or nil on any other
   page."
   [state]
-  (let [{:keys [name path-params]} (:route state)]
-    (when (#{:route/show :route/episode} name)
-      (show/page state (:guid path-params)))))
+  (when (#{:route/show :route/episode} (get-in state [:route :name]))
+    (show/page state (show/route-guid state))))
 
 (defn focus
   "What the paper of the page in `state` takes its colours from: the show

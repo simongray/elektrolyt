@@ -184,7 +184,7 @@
                      ;; the page holds new episodes without the string they
                      ;; came as, which the cache writes at idle
                      (do (runtime/kept-in-place! "ol.episodes > li"
-                                                 #(swap! store show/refetched guid url (with-meta fetched nil) (js/Date.)))
+                                                 #(swap! store show/refetched url (with-meta fetched nil) (js/Date.)))
                          (keep-show! url fetched))
 
                      ;; the old :not-before has passed, so only the 304's
@@ -234,11 +234,13 @@
   (some? (some-> (:library state) (show/library-key guid url))))
 
 (defn look-up?
-  "Whether to look up the show `guid` without a `url` in `state`: when its
-  feed URL is neither known nor being looked up, the app's server signs
-  requests to the Podcast Index, and the library doesn't have the show."
+  "Whether to look up the show `guid` without a `url` in `state`: when it's
+  a whole guid rather than the start of one, its feed URL is neither known
+  nor being looked up, the app's server signs requests to the Podcast
+  Index, and the library doesn't have the show."
   [state guid url]
   (and (nil? url)
+       (guid/guid? guid)
        (nil? (get-in state [:feed-urls guid]))
        (not (show/requested? state [:look-up guid]))
        (some? (search/index-credentials state))
@@ -250,9 +252,11 @@
   whole feed too unless `preview?`.
 
   Without a URL, the cache or the Podcast Index finds the feed by its
-  guid, when the app's server signs requests to the index."
+  guid, when the app's server signs requests to the index. The `guid` can
+  be the start of one, as a path has it."
   [store guid url preview?]
   (let [state  @store
+        guid   (show/guid-named state guid url)
         url    (or url (:url (show/source state guid)))
         known  (get-in state [:feeds url])
         asked? #(show/requested? state [% url])]

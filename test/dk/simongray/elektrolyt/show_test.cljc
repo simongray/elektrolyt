@@ -117,6 +117,24 @@
     (is (nil? (show/source {:feed-urls {guid {:not-found? true}}} guid))
         "and nowhere when the index doesn't know it")))
 
+(deftest the-show-that-a-path-names
+  (let [pc20  "917393e3-1b1e-5cef-ace4-edaa54e1f810"
+        at    (fn [state s] (assoc state :route {:name         :route/show
+                                                 :path-params  {:guid s}
+                                                 :query-params {}}))
+        found {:searches {"pc20" {:results [{:guid pc20 :url url :title "Podcasting 2.0"}]}}}
+        lib   (library/subscribe (library/make "test") url (feed "A Show"))
+        k     (key (first (library/subscriptions lib)))]
+    (is (= pc20 (show/route-guid (at found "917393e3")) (show/route-guid (at found "917393E3")))
+        "by the start of its guid, among the shows of a search")
+    (is (= pc20 (show/route-guid (at {:linked {"other" {:podroll [{:guid pc20}]}}} "917393e3")))
+        "or of a podroll")
+    (is (= k (show/route-guid (at {:library lib} (subs k 0 8)))) "or of the library")
+    (is (= k (show/route-guid (on-page (subs k 0 8)))) "or the one that the feed URL of the link derives")
+    (is (= pc20 (show/route-guid (at {} pc20))) "or by the whole guid, known or not")
+    (is (= "0000aaaa" (show/route-guid (at found "0000aaaa"))) "and a start of no known guid stays as it is")
+    (is (nil? (show/route-guid {:route {:name :route/home}})) "but another page has none")))
+
 (deftest a-feed-gone-from-the-url-in-the-cache
   (let [guid   "g"
         cached {:feed-urls {guid {:url url :from :cache}}}]
@@ -252,14 +270,17 @@
         later  #inst "2026-10-18T14:00:00Z"
         titles #(map :title (:episodes (show/page % "g")))]
     (is (= 1 (show/new-episodes (feed "A Show" "One") (feed "A Show" "Two" "One"))))
-    (let [fetched (show/refetched state "g" url newer later)]
+    (let [fetched (show/refetched state url newer later)]
       (is (= ["Two" "One"] (titles fetched)) "the new episodes go in at once")
       (is (= {:etag "\"v2\""} (get-in fetched [:feeds url :validators])))
       (is (= "1 new episode is in." (:announcement fetched)) "and a screen reader hears how many"))
-    (let [elsewhere (show/refetched (assoc-in state [:route :name] :route/episode) "g" url newer later)]
+    (let [elsewhere (show/refetched (assoc-in state [:route :name] :route/episode) url newer later)]
       (is (= ["Two" "One"] (titles elsewhere)))
       (is (nil? (:announcement elsewhere)) "but not where the page doesn't list them, e.g. an episode's"))
-    (let [edited (show/refetched state "g" url
+    (let [other (show/refetched (assoc-in state [:route :query-params :url] "https://example.org/other.xml")
+                                url newer later)]
+      (is (nil? (:announcement other)) "nor on the page of another show"))
+    (let [edited (show/refetched state url
                                  {:feed (assoc-in (feed "A Show" "One") [:rss/items 0 :rss/title] "One, edited")}
                                  later)]
       (is (= ["One, edited"] (titles edited)))

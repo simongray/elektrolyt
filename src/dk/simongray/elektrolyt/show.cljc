@@ -16,7 +16,8 @@
     read, [:head url] or [:whole url] while the start or all of a feed is
     fetched, [:check url] while a cached feed is fetched again, and
     [:look-up guid] while the Podcast Index is asked."
-  (:require [dk.simongray.podcast.app.library :as library]
+  (:require [clojure.string :as str]
+            [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.show :as show]
             [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.guid :as guid]
@@ -194,6 +195,48 @@
   (cond-> state
     (get-in state [:feeds url]) (update-in [:feeds url] dissoc :error :checked?)))
 
+(defn known-guids
+  "The guids of the shows that `state` knows of, given the feed URL `url`
+  of a link: the guid of the feed at the URL and the one that the URL
+  derives, then the library's, and those of searches and linked shows."
+  [state url]
+  (let [lib (:library state)]
+    (concat (when url
+              (remove nil? [(some-> (get-in state [:feeds url :feed]) (guid/feed-guid url))
+                            (guid/from-url url)]))
+            (keys (:feeds lib))
+            (some-> (:profile lib) subscriptions-of keys)
+            (keep :guid (mapcat search/results-of (vals (:searches state))))
+            (keep :guid (mapcat (fn [{:keys [podroll publisher]}]
+                                  (concat podroll (:shows publisher)))
+                                (vals (:linked state)))))))
+
+;; Only a whole guid can be looked up in the Podcast Index, so a link to a
+;; show outside the library has its feed's URL too (routes/show-href)
+(defn guid-named
+  "The guid of the show that `s`, the guid in a path, names in `state`,
+  given the feed URL `url` of the link: `s` itself when it's a whole guid,
+  or else the first guid of a show that `state` knows of that starts with
+  `s`, or `s` when there's none."
+  [state s url]
+  (if (guid/guid? s)
+    s
+    (let [s (str/lower-case s)]
+      (or (some #(when (str/starts-with? % s) %) (known-guids state url))
+          s))))
+
+(def route-guid
+  "The guid of the show of the Show or Episode page in `state`, or nil on
+  another page, worked out again only when the route, the library, the
+  feeds, the searches or the linked shows change, since the page asks at
+  every render."
+  (memo/remember-last (fn [{:keys [route] :as state}]
+                        (when-let [s (get-in route [:path-params :guid])]
+                          (guid-named state s (get-in route [:query-params :url]))))
+                      (fn [state]
+                        [(:route state) (:library state) (:feeds state)
+                         (:searches state) (:linked state)])))
+
 (defn source
   "The feed of the show `guid` for its page in `state`, or nil when its URL
   is unknown.
@@ -204,13 +247,12 @@
   feed the library doesn't have, with the :url and, once it has arrived,
   the :feed."
   [state guid]
-  (let [lib                                (:library state)
-        {:keys [path-params query-params]} (:route state)
-        url                                (or (when (= guid (:guid path-params))
-                                                 (:url query-params))
-                                               (get-in state [:feed-urls guid :url])
-                                               (some-> lib (subscription-of guid) :url))
-        k                                  (some-> lib (library-key guid url))]
+  (let [lib (:library state)
+        url (or (when (= guid (route-guid state))
+                  (get-in state [:route :query-params :url]))
+                (get-in state [:feed-urls guid :url])
+                (some-> lib (subscription-of guid) :url))
+        k   (some-> lib (library-key guid url))]
     (cond
       k   {:url    (get-in lib [:feeds k :url])
            :key    k
@@ -378,23 +420,26 @@
   (let [known (set (map guid/item-guid (:rss/items old)))]
     (count (remove known (map guid/item-guid (:rss/items fresh))))))
 
+;; By the feed's URL, since a load that a path began can know the show by
+;; the start of its guid alone
 (defn listed?
-  "Whether the page in `state` is the Show page of the show `guid`, which
+  "Whether the page in `state` is the Show page of the feed at `url`, which
   lists its episodes."
-  [{{:keys [name path-params]} :route :as state} guid]
-  (and (= :route/show name) (= guid (:guid path-params))))
+  [state url]
+  (and (= :route/show (get-in state [:route :name]))
+       (= url (:url (source state (route-guid state))))))
 
 ;; New episodes go in at once. Once the listener has scrolled, the rows in
 ;; view stay where they are (show/feeds.cljs), and at the top of the page
 ;; the list grows in place.
 (defn refetched
-  "The `state` with the feed of the show `guid` at `url`, `fetched` again
-  at the instant `at`, in place of the old one, and while the episodes are
-  listed, how many are new, for a screen reader."
-  [state guid url fetched at]
+  "The `state` with the feed at `url`, `fetched` again at the instant `at`,
+  in place of the old one, and while its episodes are listed, how many are
+  new, for a screen reader."
+  [state url fetched at]
   (let [n (new-episodes (get-in state [:feeds url :feed]) (:feed fetched))]
     (cond-> (whole state url fetched at true)
-      (and (pos? n) (listed? state guid))
+      (and (pos? n) (listed? state url))
       (announcement/announced (str (text/counted n "new episode") (if (= 1 n) " is in." " are in."))))))
 
 (defn more-shown
@@ -420,8 +465,8 @@
   It keeps the page's own feed, those that a request in flight or a
   subscription or unsubscription under way needs, and the kept-feeds
   whole feeds fetched last."
-  [{:keys [feeds requests subscribing unsubscribing route] :as state}]
-  (let [page    (some->> (get-in route [:path-params :guid]) (source state) :url)
+  [{:keys [feeds requests subscribing unsubscribing] :as state}]
+  (let [page    (some->> (route-guid state) (source state) :url)
         needed  (-> #{page}
                     (into (map second) (keys requests))
                     (into subscribing)

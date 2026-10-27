@@ -140,7 +140,7 @@
                                                        :guid  "917393e3-1b1e-5cef-ace4-edaa54e1f810"
                                                        :title "Podcasting 2.0"})]
     (is (= "Podcasting 2.0" title))
-    (is (= (str "/shows/917393e3-1b1e-5cef-ace4-edaa54e1f810/podcasting-2-0"
+    (is (= (str "/shows/917393e3/podcasting-2-0"
                 "?url=https%3A%2F%2Ffeeds.podcastindex.org%2Fpc20.xml")
            href)
         "with the slug of the title, and the feed for a show that the library doesn't keep")

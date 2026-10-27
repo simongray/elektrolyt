@@ -42,7 +42,7 @@
   "The page of the episode that the route in `state` names, or nil."
   [state]
   (let [{:keys [path-params slug]} (:route state)]
-    (episode/page state (:guid path-params) (:hash path-params) slug time-link)))
+    (episode/page state (show-ui/guid state) (:hash path-params) slug time-link)))
 
 (defn link-time
   "The seconds that the t of the link in `state` starts the episode at,
@@ -293,7 +293,7 @@
   show: that its show or feed is on the way, why it failed, or that the
   episode isn't in the feed and a link to the show."
   [state]
-  (let [{:keys [guid]} (get-in state [:route :path-params])]
+  (let [guid (show-ui/guid state)]
     (case (episode/status state guid)
       ;; lines in the place of the notes, as the page's skeleton has them
       :looking-up (list show-ui/looking-up loading/lines)

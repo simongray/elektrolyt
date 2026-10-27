@@ -65,9 +65,9 @@
         page  (episode/page state g hash-2 nil time-link)]
     (is (= "Episode 2: The Present" (:title page)))
     (is (= [g "https://example.org/?p=2"] (:id page)))
-    (is (= {:title "A Show" :href (str "/shows/" g "/a-show?url=https%3A%2F%2Fexample.org%2Ffeed.xml")}
+    (is (= {:title "A Show" :href (str "/shows/" (subs g 0 8) "/a-show?url=https%3A%2F%2Fexample.org%2Ffeed.xml")}
            (:show page)))
-    (is (= (str "/shows/" g "/episodes/" hash-2 "/episode-2-the-present?url=https%3A%2F%2Fexample.org%2Ffeed.xml")
+    (is (= (str "/shows/" (subs g 0 8) "/episodes/" hash-2 "/episode-2-the-present?url=https%3A%2F%2Fexample.org%2Ffeed.xml")
            (:href page)))
     (is (= {:id (:id page) :guid g :url url :item-guid "https://example.org/?p=2"}
            (episode/playable page))

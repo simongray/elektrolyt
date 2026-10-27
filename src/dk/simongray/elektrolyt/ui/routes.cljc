@@ -10,7 +10,10 @@
 ;; A show's page is at /shows/<guid>/<slug>, as a question is on Stack
 ;; Overflow: the guid finds the show, and the slug of its title is only for
 ;; whoever reads the link, so any slug or none will do. A titled route
-;; names its page as :page.
+;; names its page as :page. A link names the show by the first 8 hex digits
+;; of its guid, since the whole guid made a long path. The page finds the
+;; show by them with show/route-guid, which takes a whole guid too, e.g. in
+;; a link from before.
 ;;
 ;; An episode's page is under its show's, since an item's guid is unique
 ;; only within its feed, as podcast:remoteItem has it. The item goes by a
@@ -105,15 +108,25 @@
   they're kept for the last 2,000 guids."
   (memo/remember-each guid/short-hash))
 
+(defn short-guid
+  "The start of the show `guid` that a path names the show by: the first 8
+  hex digits, the UUID's first group, or the whole of a guid that isn't a
+  UUID."
+  [guid]
+  (if (guid/guid? guid)
+    (subs guid 0 8)
+    guid))
+
 (defn show-route
   "The route name, path params and query params, in that order, of the
   page of the show `guid` titled `title`, with its feed's `url` for a show
   outside the library."
   [guid title url]
-  (let [query (when url {:url url})]
+  (let [path  {:guid (short-guid guid)}
+        query (when url {:url url})]
     (if-let [s (slug title)]
-      [:route/titled-show {:guid guid :slug s} query]
-      [:route/show {:guid guid} query])))
+      [:route/titled-show (assoc path :slug s) query]
+      [:route/show path query])))
 
 (defn show-href
   "The path of the page of the show `guid` titled `title`, with its feed's
@@ -133,7 +146,7 @@
   ([guid item-guid title url]
    (episode-href guid item-guid title url nil))
   ([guid item-guid title url t]
-   (let [path  {:guid guid :hash (short-hash item-guid)}
+   (let [path  {:guid (short-guid guid) :hash (short-hash item-guid)}
          query (not-empty (cond-> {}
                             url (assoc :url url)
                             t   (assoc :t (long t))))]
@@ -213,5 +226,5 @@
   (match->route (reitit/match-by-path router "/inbox"))
   ;; => {:name :route/inbox, :path-params {}, :query-params {}}
   (show-href "917393e3-1b1e-5cef-ace4-edaa54e1f810" "Podcasting 2.0")
-  ;; => "/shows/917393e3-1b1e-5cef-ace4-edaa54e1f810/podcasting-2-0"
+  ;; => "/shows/917393e3/podcasting-2-0"
   #_.)

@@ -18,24 +18,30 @@
   "The feed of the show g of the tests, with an episode."
   {:rss/title "A Show" :rss/items [{:rss/title "One" :rss/guid {:content "1"}}]})
 
+(def looked-up-guid
+  "The guid of the show that the tests look up in the Podcast Index."
+  "917393e3-1b1e-5cef-ace4-edaa54e1f810")
+
 (defn looked-up
-  "A promise of the state once the Podcast Index was asked for the show g
-  and answered with `answer`."
+  "A promise of the state once the Podcast Index was asked for the show
+  looked-up-guid and answered with `answer`."
   [answer]
   (let [store (atom {:server {:podcastindex? true}})]
     (with-redefs [app-cache/send (fn [_] answer)]
-      (.then (feeds/look-up-show! store "g" false true) (fn [_] @store)))))
+      (.then (feeds/look-up-show! store looked-up-guid false true) (fn [_] @store)))))
 
 (deftest a-lookup-in-the-podcast-index
+  (is (not (feeds/look-up? {:server {:podcastindex? true}} "917393e3" nil))
+      "which can't find a show by the start of its guid")
   (async done
     (-> (looked-up (js/Promise.resolve {:status 404}))
         (.then (fn [state]
-                 (is (= {:not-found? true} (get-in state [:feed-urls "g"])))
-                 (is (not (feeds/look-up? state "g" nil)) "which isn't asked again")))
+                 (is (= {:not-found? true} (get-in state [:feed-urls looked-up-guid])))
+                 (is (not (feeds/look-up? state looked-up-guid nil)) "which isn't asked again")))
         (.then #(looked-up (js/Promise.reject (js/Error. "Offline"))))
         (.then (fn [state]
-                 (is (nil? (get-in state [:feed-urls "g"])) "but one that failed leaves nothing")
-                 (is (feeds/look-up? state "g" nil) "so the next visit asks again")))
+                 (is (nil? (get-in state [:feed-urls looked-up-guid])) "but one that failed leaves nothing")
+                 (is (feeds/look-up? state looked-up-guid nil) "so the next visit asks again")))
         (.catch #(is false (str "rejected: " %)))
         (.finally done))))
 

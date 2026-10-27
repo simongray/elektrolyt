@@ -26,9 +26,9 @@
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 (defn guid
-  "The guid of the show on the Show page in `state`."
+  "The guid of the show on the Show or Episode page in `state`."
   [state]
-  (get-in state [:route :path-params :guid]))
+  (show/route-guid state))
 
 (defn source
   "The feed of the show on the Show page in `state`, or nil."

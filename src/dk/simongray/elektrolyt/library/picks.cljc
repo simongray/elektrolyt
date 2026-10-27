@@ -245,7 +245,7 @@
       :route/home    [[:home]]
       :route/queue   (when (seq (some-> (:library state) :profile profile.queue/queue))
                        [[:queue]])
-      :route/show    (let [place [:show (get-in state [:route :path-params :guid])]]
+      :route/show    (let [place [:show (show/route-guid state)]]
                        (when (open? place) [place]))
       :route/episode (when-let [{:keys [id guid]} episode]
                        (let [place [:episode id guid]]
