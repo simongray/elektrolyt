@@ -35,10 +35,13 @@
   media state and the other tabs send their commands."
   "dk.simongray.elektrolyt.player")
 
+;; Up to 2×, like Apple Podcasts and YouTube, since faster speech is hard
+;; to follow, and in quarter steps, since those who speed up tend to go
+;; a little above 1× rather than straight to 1.5×.
+;; https://marco.org/2013/10/18/podcast-app-playback-speeds
 (def speeds
-  "The speeds that the player offers, in quarter steps like YouTube's and
-  Plyr's."
-  [0.5 0.75 1 1.25 1.5 1.75 2 2.25 2.5 2.75 3])
+  "The speeds that the player offers, in quarter steps from 0.5× to 2×."
+  [0.5 0.75 1 1.25 1.5 1.75 2])
 
 (defn speed-options
   "The speeds that the player offers, each with its label, e.g. 1.5×, with

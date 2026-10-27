@@ -15,6 +15,12 @@
 (def lib
   (library/subscribe (library/make "test") "https://example.org/feed.xml" feed))
 
+(deftest the-speeds-on-offer
+  (is (= ["0.5×" "0.75×" "1×" "1.25×" "1.5×" "1.75×" "2×"] (map second (player/speed-options 1)))
+      "in quarter steps up to 2×")
+  (is (= [1.75 2 2.5] (take-last 3 (map first (player/speed-options 2.5))))
+      "and a faster speed that the listener has already, e.g. from another app"))
+
 (def id
   [(first (keys (:feeds lib))) "e7"])
 
