@@ -182,7 +182,8 @@
           main (first (elements :main#main page))]
       (is (= [title {:aria-busy "true"}] [(text-of (first (elements :h1 main))) (second main)])
           (str "the heading of " path ", in a main that's busy"))
-      (is (= ui/skeleton (last main)) "over the skeleton, and nothing that needs the library")
+      (is (= ui/skeleton (last (first (elements :div.paper main))))
+          "over the skeleton, and nothing that needs the library")
       (is (= (if current [current] []) (current-links page)) "under the navigation to the page")
       (is (= :starting (:replicant/key (second page))) "in a shell of its own")))
   (is (nil? (:replicant/key (second (ui/page {:route {:name :route/home}}))))

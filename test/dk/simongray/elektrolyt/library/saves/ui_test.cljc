@@ -40,6 +40,6 @@
   (is (nil? (saves-ui/notice {}))))
 
 (deftest before-the-pages-heading
-  (let [main  (first (elements :main#main (ui/page (unsaved :other 2))))
-        kinds (keep #(when (vector? %) (first %)) (rest main))]
+  (let [paper (first (elements :div.paper (ui/page (unsaved :other 2))))
+        kinds (keep #(when (vector? %) (first %)) (rest paper))]
     (is (= [:section.notice :h1] (take 2 kinds)))))

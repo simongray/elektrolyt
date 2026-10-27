@@ -50,6 +50,22 @@ test('on a phone, a tab shows its icon alone, and its title names it', async ({ 
   await expect(library).toHaveAttribute('aria-current', 'page');
 });
 
+// Safari repaints all of a scroller with a background of its own that
+// scrolls with the content, at every step of a scroll (look.css)
+test('the grain lies on a paper inside main, as tall as main on a short page', async ({ page }) => {
+  await page.goto('/queue');
+  await expect(page.getByRole('heading', { name: 'Queue', level: 1 })).toBeVisible();
+  const [main, paper, mainHeight, paperHeight] = await page.evaluate(() => {
+    const main = document.querySelector('main');
+    const paper = main.querySelector(':scope > .paper');
+    return [getComputedStyle(main).backgroundImage, getComputedStyle(paper).backgroundImage,
+            main.clientHeight, paper.offsetHeight];
+  });
+  expect(main, 'main without a background').toBe('none');
+  expect(paper).toContain('grain');
+  expect(paperHeight).toBeGreaterThanOrEqual(mainHeight);
+});
+
 test('the frame of the page shows while the app starts, and a tap in it opens that page', async ({ page }) => {
   // what the server offers comes late, so the app starts slowly
   let release;

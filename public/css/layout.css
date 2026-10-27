@@ -266,12 +266,18 @@ hgroup > p {
 
 /* Positioned, so that the text that only a screen reader reads, which is
    positioned absolutely, stays in the main content's scroller, rather than
-   make the whole page scroll past the end of the shell. A container, so
-   that a page's layout follows the width that it has, not the window's. */
+   make the whole page scroll past the end of the shell. */
 .shell > main {
   grid-area: main;
   overflow-y: auto;
   position: relative;
+}
+
+/* The paper (look.css), as tall as main at least, so that a short page
+   has its grain to the foot. A container, so that a page's layout follows
+   the width that it has, not the window's. */
+.shell > main > .paper {
+  min-block-size: 100%;
   padding: var(--space-5) var(--gutter);
   container-type: inline-size;
 }
@@ -356,7 +362,7 @@ hgroup > p {
   }
 
   /* as far from the rail's edge as from the top of the page */
-  .shell > main {
+  .shell > main > .paper {
     padding-inline: var(--space-5);
   }
 }

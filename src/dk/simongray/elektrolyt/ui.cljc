@@ -239,24 +239,25 @@
      (let [route   (get-in state [:route :name])
            heading (page-heading state)]
        (if (:starting? state)
-         [:main#main {:aria-busy "true"} heading skeleton]
+         [:main#main {:aria-busy "true"} [:div.paper heading skeleton]]
          [:main#main
-          (saves-ui/notice state)
-          (when-not (#{:route/show :route/episode} route)
-            heading)
-          (if (and (library-pages route) (nil? (:library state)))
-            no-library
-            (case route
-              nil             not-found
-              :route/home     (home-ui/content state)
-              :route/queue    (queue-ui/content state)
-              :route/inbox    (inbox-ui/content state)
-              :route/library  (library-ui/content state)
-              :route/search   (search-ui/content state)
-              :route/settings (settings-ui/content state)
-              :route/show     (show-ui/content state heading)
-              :route/episode  (episode-ui/content state heading)
-              nil))
+          [:div.paper
+           (saves-ui/notice state)
+           (when-not (#{:route/show :route/episode} route)
+             heading)
+           (if (and (library-pages route) (nil? (:library state)))
+             no-library
+             (case route
+               nil             not-found
+               :route/home     (home-ui/content state)
+               :route/queue    (queue-ui/content state)
+               :route/inbox    (inbox-ui/content state)
+               :route/library  (library-ui/content state)
+               :route/search   (search-ui/content state)
+               :route/settings (settings-ui/content state)
+               :route/show     (show-ui/content state heading)
+               :route/episode  (episode-ui/content state heading)
+               nil))]
           (announcer state)
           (for [{:keys [id text]} (vals links/notes)]
             [:p.visually-hidden {:id id} text])])))

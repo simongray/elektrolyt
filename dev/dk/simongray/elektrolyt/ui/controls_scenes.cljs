@@ -39,8 +39,9 @@
   [attrs]
   [:div.shell attrs
    [:main#main
-    [:h1 "Buttons with icons"]
-    buttons]])
+    [:div.paper
+     [:h1 "Buttons with icons"]
+     buttons]]])
 
 (defscene buttons-with-icons
   "The buttons in the app's own colours."

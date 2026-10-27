@@ -279,21 +279,30 @@ time,
 }
 
 /* The paper, whose links, buttons and focus ring take the seed's own
-   hue. Its grain scrolls with the text, since the text is printed on it.
-   https://developer.mozilla.org/en-US/docs/Web/CSS/background-attachment */
+   hue. */
 .shell > main {
-  background: var(--grain) 0 0 / var(--grain-size) local;
   --accent: var(--seed-accent);
   --accent-ink: light-dark(oklch(100% 0 0), oklch(from var(--seed) 18% min(c, 0.03) h));
   --accent-soft: light-dark(oklch(from var(--seed) 95% min(c, 0.02) h), oklch(from var(--seed) 26% min(c, 0.03) h));
   --focus: var(--accent);
 }
 
+/* The paper's grain scrolls with the text, since the text is printed on
+   it. It lies on a wrapper inside main rather than on main itself with
+   background-attachment: local, since then Safari repaints all of main at
+   every step of a scroll, and Firefox stops skipping the paints of a
+   scroll. In Safari for iOS that was some 60 screens of paint per frame.
+   https://github.com/WebKit/WebKit/commit/b6af623293be604b2cda1b7789258fa230aaa8cd
+   https://reviewboard.mozilla.org/r/64634/diff/ */
+.shell > main > .paper {
+  background: var(--grain) 0 0 / var(--grain-size);
+}
+
 /* Lines of reading text no longer than a measure, while the wrappers of
    the Search lists and the articles with their Details beside them take
    the room. The whole of an article's content keeps to the measure, so
    that e.g. a show's episodes end where its description does. */
-.shell > main > :not(div, article, search, .search-jump),
+.shell > main > .paper > :not(div, article, search, .search-jump),
 .with-details > :first-child {
   max-inline-size: var(--measure);
 }
