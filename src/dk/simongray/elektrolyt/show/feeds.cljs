@@ -274,19 +274,13 @@
         :else
         (open-show! store guid url preview?)))))
 
-(defn prefetch-soon!
-  "Fetch the start of the feed of the show `guid` at `url` into `store` in
-  `ms` milliseconds, or 65 without them, unless the prefetch is cancelled
-  first. The web worker starts then too, at idle, since the show's whole
-  feed would wait for it."
-  [store guid url ms]
-  (runtime/later! ::prefetch (or ms 65) #(do (load-show! store guid url true)
-                                             (runtime/idle! 1000 fetching/warm!))))
-
-(defn prefetch-cancel!
-  "Cancel a prefetch that hasn't started yet."
-  []
-  (runtime/cancel! ::prefetch))
+(defn prefetch!
+  "Fetch the start of the feed of the show `guid` at `url` into `store`,
+  ahead of a click. The web worker starts then too, at idle, since the
+  show's whole feed would wait for it."
+  [store guid url]
+  (load-show! store guid url true)
+  (runtime/idle! 1000 fetching/warm!))
 
 (defn whole-feed!
   "A promise of the whole feed at `url`, from the Show page in `store` or

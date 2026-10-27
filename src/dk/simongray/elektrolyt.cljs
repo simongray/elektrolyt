@@ -171,13 +171,17 @@
     (swap! store show/retried url)
     (feeds/load-show! store guid url false)))
 
-(nxr/register-effect! :show/prefetch-soon
-  (fn [_ store guid url & [ms]]
-    (feeds/prefetch-soon! store guid url ms)))
+(nxr/register-effect! :show/prefetch
+  (fn [_ store guid url]
+    (feeds/prefetch! store guid url)))
 
-(nxr/register-effect! :show/prefetch-cancel
+(nxr/register-effect! :prefetch/soon
+  (fn [_ store ms actions]
+    (runtime/prefetch-soon! ms #(nxr/dispatch store {} actions))))
+
+(nxr/register-effect! :prefetch/cancel
   (fn [_ _]
-    (feeds/prefetch-cancel!)))
+    (runtime/prefetch-cancel!)))
 
 ;; Dispatched as the linked shows mount, so the store changes after the
 ;; render

@@ -30,6 +30,21 @@
   (let [id (js/setTimeout #(do (swap! timers dissoc k) (f)) ms)]
     (swap! timers assoc k {:id id})))
 
+;; Network Information API: saveData is the listener's wish for less data,
+;; e.g. in a browser's data saver
+;; https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/saveData
+(defn prefetch-soon!
+  "Call `f` in `ms` milliseconds as the one prefetch that waits, in place
+  of any other, unless the connection saves data (ui/prefetch.cljc)."
+  [ms f]
+  (when-not (some-> js/navigator .-connection .-saveData)
+    (later! ::prefetch ms f)))
+
+(defn prefetch-cancel!
+  "Cancel the prefetch that waits, if any."
+  []
+  (cancel! ::prefetch))
+
 (defn every!
   "Call `f` every `ms` milliseconds as the timer `k`, replacing any timer
   of that name, until it's cancelled."

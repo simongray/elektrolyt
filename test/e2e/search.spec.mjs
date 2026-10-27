@@ -192,3 +192,33 @@ test("a result's feed is fetched ahead once a pointer rests on its artwork, or t
   await second.focus();
   await expect.poll(() => asked).toContain('https://apple.example/1.xml');
 });
+
+// A connection that saves data fetches nothing on a hunch (ui/prefetch.cljc)
+test('with data saving on, a resting pointer fetches no feed ahead, though a press does', async ({ page, context }) => {
+  await context.addInitScript(() => Object.defineProperty(navigator, 'connection', { value: { saveData: true } }));
+  await directories(context, 0);
+  const asked = [];
+  await context.route(url => url.pathname === '/proxy', route => {
+    const url = new URL(new URL(route.request().url()).searchParams.get('url'));
+    if (url.host === 'itunes.apple.com') return route.fulfill({ json: apple(['Delta Green Stories']) });
+    if (url.host === 'apple.example') {
+      asked.push(url.href);
+      return route.fulfill({ status: 404 });
+    }
+    return route.fallback();
+  });
+  const main = page.getByRole('main');
+  await page.goto('/search?q=delta+green');
+  const link = main.getByRole('link', { name: 'Delta Green Stories' });
+  await expect(link).toBeVisible();
+
+  await link.hover();
+  await page.waitForTimeout(500);
+  expect(asked).toEqual([]);
+
+  const box = await link.boundingBox();
+  await page.mouse.move(box.x + 5, box.y + 5);
+  await page.mouse.down();
+  await expect.poll(() => asked).toContain('https://apple.example/0.xml');
+  await page.mouse.up();
+});

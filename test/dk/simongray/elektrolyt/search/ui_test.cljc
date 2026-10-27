@@ -144,6 +144,6 @@
                 "?url=https%3A%2F%2Ffeeds.podcastindex.org%2Fpc20.xml")
            href)
         "with the slug of the title, and the feed for a show that the library doesn't keep")
-    (is (= [[:show/load "917393e3-1b1e-5cef-ace4-edaa54e1f810" "https://feeds.podcastindex.org/pc20.xml" true]]
+    (is (= [[:show/prefetch "917393e3-1b1e-5cef-ace4-edaa54e1f810" "https://feeds.podcastindex.org/pc20.xml"]]
            (:pointerdown on))
         "a press fetches the start of the feed at once, before the click")))

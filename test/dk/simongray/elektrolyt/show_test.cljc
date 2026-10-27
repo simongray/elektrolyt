@@ -179,12 +179,8 @@
     (is (= :done (show/status {:library lib} k)))))
 
 (deftest a-link-that-fetches-ahead
-  (let [on (show/prefetching "g" url)]
-    (is (= [[:show/prefetch-soon "g" url]] (:mouseenter on)) "once a pointer rests on it")
-    (is (= [[:show/prefetch-soon "g" url show/focus-prefetch-ms]] (:focus on))
-        "or the focus, a while longer, since a keyboard tabs past many links")
-    (is (= [[:show/prefetch-cancel]] (:mouseleave on) (:blur on)) "unless it moves on first")
-    (is (= [[:show/load "g" url true]] (:pointerdown on)) "and at once as a pointer presses it")))
+  (is (= [[:show/prefetch "g" url]] (:pointerdown (show/prefetching "g" url)))
+      "the start of the show's feed, ahead of a click"))
 
 (deftest the-subscriptions-looked-up-once
   (let [lib    (library/subscribe (library/make "test") url (feed "Kept" "One"))

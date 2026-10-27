@@ -27,6 +27,7 @@
             [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.ui.links :as links]
             [dk.simongray.elektrolyt.ui.memo :as memo]
+            [dk.simongray.elektrolyt.ui.prefetch :as prefetch]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def page-size
@@ -242,26 +243,12 @@
   (memo/remember-last (fn [state guid] (or (search-result state guid) (linked-card state guid)))
                       (fn [state guid] [(:searches state) (:linked state) guid])))
 
-;; instant.page: a pointer that rests on a link for 65 ms clicks it about
-;; half the time, and leaves some 300 ms to fetch what the page needs. Only
-;; the start of the feed is fetched, which parses in a moment. A keyboard
-;; stops briefly at each link that it tabs past, so a focus waits longer.
-;; https://instant.page/
-(def focus-prefetch-ms
-  "How long the focus rests on a link to a show before the start of its
-  feed is fetched."
-  300)
-
+;; Only the start of the feed is fetched, which parses in a moment
 (defn prefetching
-  "The actions of a link to the page of the show `guid` at `url`, which
-  fetch the start of its feed when a pointer or the focus rests on the
-  link, or a pointer presses it."
+  "The handlers of a link to the page of the show `guid` at `url`, which
+  fetch the start of its feed ahead of a click."
   [guid url]
-  {:mouseenter  [[:show/prefetch-soon guid url]]
-   :mouseleave  [[:show/prefetch-cancel]]
-   :focus       [[:show/prefetch-soon guid url focus-prefetch-ms]]
-   :blur        [[:show/prefetch-cancel]]
-   :pointerdown [[:show/load guid url true]]})
+  (prefetch/on-intent [[:show/prefetch guid url]]))
 
 (defn with-sized-artwork
   "The `page` of a feed, with the artwork of the earlier page `known` when
