@@ -1,8 +1,7 @@
 (ns dk.simongray.elektrolyt.ui.controls-scenes
   "Scenes of the buttons with icons on the paper, in the app's own colours
   and in an artwork's."
-  (:require [dk.simongray.elektrolyt.player.ui :as player-ui]
-            [dk.simongray.elektrolyt.ui.controls :as controls]
+  (:require [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [portfolio.replicant :refer [defscene]]))
 
@@ -26,8 +25,8 @@
    [:div {:style row}
     [controls/icon-button {:icon icons/play :class "primary"} "Play"]
     [controls/icon-button {:icon icons/pause} "Pause"]
-    [controls/icon-button {:icon (player-ui/skip-icon :back 15)} "Back 15 seconds"]
-    [controls/icon-button {:icon (player-ui/skip-icon :forward 30)} "Forward 30 seconds"]
+    [controls/icon-button {:icon icons/arrow-counter-clockwise} "Back 15 seconds"]
+    [controls/icon-button {:icon icons/arrow-clockwise} "Forward 30 seconds"]
     [controls/icon-button {:icon icons/skip-back} "Previous chapter"]
     [controls/icon-button {:icon icons/skip-forward} "Next chapter"]
     [controls/icon-button {:icon icons/dots-three} "More"]

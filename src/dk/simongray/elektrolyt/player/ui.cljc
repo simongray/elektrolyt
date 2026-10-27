@@ -123,31 +123,13 @@
       (chapter-marks shown (:chapters (player/chapter-doc playback)))]
      (update (time-ui/clock (player/remaining shown)) 2 #(str "−" %))]))
 
-;; Phosphor has no skip by a number of seconds, and the listener chooses
-;; theirs, so the number is text in the page's font, like Apple's symbol
-;; gobackward.15. Its size leaves a stroke's width between it and the ring.
-;; https://developer.apple.com/sf-symbols/
-(defn skip-icon
-  "The icon of a skip by `seconds` in the `direction`, :back or :forward,
-  with the number inside the arrow."
-  [direction seconds]
-  (let [text (str seconds)]
-    [controls-ui/icon {:icon (if (= :back direction)
-                               icons/arrow-counter-clockwise
-                               icons/arrow-clockwise)}
-     [:text {:x           128
-             :y           128
-             :dy          "0.35em"
-             :text-anchor "middle"
-             :font-size   (if (< 2 (count text)) 80 108)
-             :font-weight 700
-             :fill        "currentColor"}
-      text]]))
-
 ;; Play sits between back and forward, like in every podcast player, where
 ;; a thumb reaches it best on a phone. The speed comes before them and the
 ;; speaker after, like in Apple Podcasts on a Mac. The row follows the
-;; episode, since it has the controls used most.
+;; episode, since it has the controls used most. A skip is a circular
+;; arrow, as in other podcast players, but without their number of
+;; seconds inside it, which the button's tooltip and name give. Rewind and
+;; fast-forward would read as the next track, as in Apple Music.
 ;; https://support.apple.com/guide/podcasts/pod970198c2
 ;; https://www.uxmatters.com/mt/archives/2013/02/how-do-users-really-hold-mobile-devices.php
 (defn transport
@@ -157,12 +139,12 @@
   [player back forward speed volume]
   [:div.player-transport
    speed
-   [controls-ui/icon-button {:icon  (skip-icon :back back)
+   [controls-ui/icon-button {:icon  icons/arrow-counter-clockwise
                              :class "player-back"
                              :on    {:click [[:player/press {:action :seekbackward}]]}}
     (str "Back " back " seconds")]
    (play-button player)
-   [controls-ui/icon-button {:icon  (skip-icon :forward forward)
+   [controls-ui/icon-button {:icon  icons/arrow-clockwise
                              :class "player-forward"
                              :on    {:click [[:player/press {:action :seekforward}]]}}
     (str "Forward " forward " seconds")]
