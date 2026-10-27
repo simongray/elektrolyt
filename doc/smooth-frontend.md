@@ -313,8 +313,8 @@ Deferred, by what was measured:
 Later, with the item they need:
 
 - #74 with #10, #55, #90 and #91 with runs on phones, and #59, which is
-  polish. #83, #88, #97 and #100 needed #8's release on the same origin,
-  which is done now.
+  polish. #97 and #100 needed #8's release on the same origin, which is
+  done now, as are #83 and #88, which needed it too.
 
 Your calls, made on 26 October:
 
@@ -404,6 +404,18 @@ and in 1.54–1.58 s with one of 755–779 ms at 4x. So whole documents add
 about 0.1 s, and 0.4 s at 4x, as a task of over a second on a slow phone.
 A second document of each feed, of the notes that the library leaves
 out, which a start doesn't read, would win that back.
+
+Done since, #88: `npm run perf` runs the key flows in Chrome at 4x
+against a release, with a show of 2,500 episodes that the test server
+makes, since the bench's corpus isn't in git and CI can't reach it. Each
+flow's longest frame must stay under three times the median of five runs,
+and at least 100 ms, and a click on Subscribe must paint within 200 ms.
+On this Mac the medians were 150 ms to open the show, 367 ms to subscribe,
+17 ms to go to the Library and back, 17 ms to show more, 50 ms to play and
+67 ms to check for new episodes, and Subscribe painted within 56–64 ms. CI
+runs it in a job of its own that doesn't fail the run until the budgets
+are calibrated on its machines. Firefox and Safari have neither the
+throttling nor long animation frames, so the budgets are Chrome's alone.
 
 Also new, and fixed: drop-in-search read each document's id as EDN at the
 start. A vector of plain strings, as the app's ids are, is now split at its
@@ -634,7 +646,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 85 | [Render the page's frame at init, before the library is read](#85-render-the-pages-frame-at-init-before-the-library-is-read) | Startup | 4.5 | 2 | 6 | low | Done |
 | 86 | [Decode each feed document as its fetch resolves in podcast-clj's read!](#86-decode-each-feed-document-as-its-fetch-resolves-in-podcast-cljs-read) | Startup | 3 | 1 | 4 | low | Deferred |
 | 87 | [Log slow interactions and long frames with PerformanceObserver](#87-log-slow-interactions-and-long-frames-with-performanceobserver) | Measurement | 4 | 1 | 4 | medium | Done |
-| 88 | [Add performance budgets to the end-to-end tests for the key flows](#88-add-performance-budgets-to-the-end-to-end-tests-for-the-key-flows) | Measurement | 9 | 2 | 4 | medium | Later |
+| 88 | [Add performance budgets to the end-to-end tests for the key flows](#88-add-performance-budgets-to-the-end-to-end-tests-for-the-key-flows) | Measurement | 9 | 2 | 4 | medium | Done |
 | 89 | [Read the first page's feeds first and load the rest of the library after](#89-read-the-first-pages-feeds-first-and-load-the-rest-of-the-library-after) | Startup | 18 | 2 | 4 | low | Declined |
 | 90 | [Measure long-list scrolling on phones in Chrome, Firefox and Safari](#90-measure-long-list-scrolling-on-phones-in-chrome-firefox-and-safari) | Measurement | 4.5 | 1 | 3 | high | Later |
 | 91 | [Print main's grain on a page wrapper instead of a local background](#91-print-mains-grain-on-a-page-wrapper-instead-of-a-local-background) | Rendering | 5 | 3 | 9 | medium | Later |
