@@ -312,8 +312,8 @@ Deferred, by what was measured:
 
 Later, with the item they need:
 
-- #74 with #10, #55, #90 and #91 with runs on phones, and #59, which is
-  polish. #97 and #100 needed #8's release on the same origin, which is
+- #74 with #10, the rest of #55 and #90 with runs on phones, and #59,
+  which is polish. #97 and #100 needed #8's release on the same origin, which is
   done now, as are #83 and #88, which needed it too.
 
 Your calls, made on 26 October:
@@ -470,9 +470,43 @@ Reading the index took 1.15 s of the start's task, and Home's picks only
 rather than 1.85–1.86 s, the longest task at the start takes 0.22–0.23 s
 rather than about 1.45 s, and the picks come after 1.97–2.14 s.
 
-The commits in podcast-clj, drop-in-search and like-minded aren't released,
-so the app has them only with the `:local` alias, which now takes
-drop-in-search from its checkout too.
+Done since, #91, measured in Safari in the iOS Simulator (iOS 26.3, on an
+iPhone 16e) through its Web Inspector, on the dev build with the bench's
+50 shows. While a script scrolled main by 24 px a frame, Safari logged
+about 127 paints a frame on the Library, covering some 60 times main's
+area, and 116 a frame on the page of a show of 5,548 episodes. With the
+grain on a wrapper inside main, rather than on main itself with
+`background-attachment: local`, that's 3–5 paints a frame covering about
+twice main's area on the Library, and 2–3 on the show's page: as few as
+with no grain at all. The multiply of the artwork made no difference. The
+simulator runs on the Mac's CPU, so it counts the paints without timing
+them as a phone would.
+
+Done since, #55's tally in the dev build: while the page is hidden, it
+counts the timeupdates, the store's changes, the renders with their
+milliseconds and the posts on the player's channel, and logs them as
+`:perf/hidden-tally` once the page is shown. In the simulator, with the
+episode muted so that it played without sound, Safari suspended the page
+in the background: 1 timeupdate and 2 renders in 3 minutes, and the
+episode's position barely moved. What it does while an episode plays
+with sound needs a run with sound.
+
+#93 in Safari, with the same library and after a garbage collection: the
+JavaScript heap was 259 MB after the start, 293 MB after ten outside
+shows and 298 MB after ten more, so it keeps no more than the five feeds
+that the store holds. Safari's other memory of the page went between 199
+and 437 MB without climbing. Whether iOS reloads the tab in the
+background needs a phone, since the simulator runs on the Mac's memory.
+
+Also seen in the simulator: Safari kept the stylesheets that app.css
+imports in its memory cache across a reload, though the server sends them
+with no-cache. After a change to look.css, a reload kept the old rules,
+and only a restart of Safari loaded the new ones. A release whose files
+are named by their content, as #97 would make them, avoids it.
+
+The libraries' commits went out in their releases of 27 October, which
+the app's deps.edn pins, all but podcast-clj's second document, which the
+app has only with the `:local` alias.
 
 
 ## Changes you can see
@@ -625,7 +659,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 52 | [Skip identical renders, guard the title, and read the theme colour after paint](#52-skip-identical-renders-guard-the-title-and-read-the-theme-colour-after-paint) | Rendering | 1 | 1 | 5 | medium | Done |
 | 53 | [Preload /api/server from index.html so it arrives while the scripts evaluate](#53-preload-apiserver-from-indexhtml-so-it-arrives-while-the-scripts-evaluate) | Startup | 1 | 1 | 5 | low | Deferred |
 | 54 | [Hash each served file once per version, not on every request](#54-hash-each-served-file-once-per-version-not-on-every-request) | Load | 1.5 | 1 | 4 | high | Done |
-| 55 | [Tally timeupdates, store changes and renders per minute while hidden, in dev](#55-tally-timeupdates-store-changes-and-renders-per-minute-while-hidden-in-dev) | Measurement | 1.5 | 1 | 4 | medium | Later |
+| 55 | [Tally timeupdates, store changes and renders per minute while hidden, in dev](#55-tally-timeupdates-store-changes-and-renders-per-minute-while-hidden-in-dev) | Measurement | 1.5 | 1 | 4 | medium | Part done |
 | 56 | [Start the web worker at idle after the first paint](#56-start-the-web-worker-at-idle-after-the-first-paint) | Startup | 1.5 | 1 | 4 | low | Done |
 | 57 | [Run the e2e tests with reduced motion and check that all motion stays gated](#57-run-the-e2e-tests-with-reduced-motion-and-check-that-all-motion-stays-gated) | Measurement | 2 | 1 | 4 | high | Done |
 | 58 | [Pulse the bookmark while a subscription works, and stop within 5 s](#58-pulse-the-bookmark-while-a-subscription-works-and-stop-within-5-s) | Motion | 3 | 2 | 8 | medium | Done |
@@ -660,8 +694,8 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 87 | [Log slow interactions and long frames with PerformanceObserver](#87-log-slow-interactions-and-long-frames-with-performanceobserver) | Measurement | 4 | 1 | 4 | medium | Done |
 | 88 | [Add performance budgets to the end-to-end tests for the key flows](#88-add-performance-budgets-to-the-end-to-end-tests-for-the-key-flows) | Measurement | 9 | 2 | 4 | medium | Done |
 | 89 | [Read the first page's feeds first and load the rest of the library after](#89-read-the-first-pages-feeds-first-and-load-the-rest-of-the-library-after) | Startup | 18 | 2 | 4 | low | Declined |
-| 90 | [Measure long-list scrolling on phones in Chrome, Firefox and Safari](#90-measure-long-list-scrolling-on-phones-in-chrome-firefox-and-safari) | Measurement | 4.5 | 1 | 3 | high | Later |
-| 91 | [Print main's grain on a page wrapper instead of a local background](#91-print-mains-grain-on-a-page-wrapper-instead-of-a-local-background) | Rendering | 5 | 3 | 9 | medium | Later |
+| 90 | [Measure long-list scrolling on phones in Chrome, Firefox and Safari](#90-measure-long-list-scrolling-on-phones-in-chrome-firefox-and-safari) | Measurement | 4.5 | 1 | 3 | high | Part done |
+| 91 | [Print main's grain on a page wrapper instead of a local background](#91-print-mains-grain-on-a-page-wrapper-instead-of-a-local-background) | Rendering | 5 | 3 | 9 | medium | Done |
 | 92 | [Isolate main so each artwork's multiply stays in its scrolling layer](#92-isolate-main-so-each-artworks-multiply-stays-in-its-scrolling-layer) | Rendering | 4 | 2 | 8 | medium | Measured |
 | 93 | [Measure the heap at start, after ten outside shows and after an hour of play](#93-measure-the-heap-at-start-after-ten-outside-shows-and-after-an-hour-of-play) | Measurement | 5 | 1 | 3 | high | Measured |
 | 94 | [Keep only the last few outside shows' whole feeds in the store](#94-keep-only-the-last-few-outside-shows-whole-feeds-in-the-store) | Main thread | 5 | 1 | 3 | low | Done |
