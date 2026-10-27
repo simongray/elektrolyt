@@ -381,7 +381,11 @@ stand-in library that was 12,984 of 27,833 episodes, in 29 of 54 feeds,
 and 13.9 million characters. Now the app leans the library's feeds once at
 idle after the start, with podcast-clj's `library/leaned` (8938822), and saves it,
 which writes those feeds' documents anew and deletes the ones before
-(e7492ae). A lean library stays as it is, so it happens once. With the 53
+(e7492ae). A lean library stays as it is, so it happens once. (Since the
+review before the release on 27 October, the documents keep the feeds
+whole, and the library leans a feed as it reads it, with the config's
+`:lean?`, so these figures for the reads and decoding are from before
+that.) With the 53
 shows of the benchmark, whose feeds were all from before #46, the heap
 after the start is 173–176 MB rather than 268, IndexedDB's reads take
 118–134 ms rather than 149–165, decoding takes 1,355–1,397 ms rather than
