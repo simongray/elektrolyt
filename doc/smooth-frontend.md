@@ -548,6 +548,27 @@ review. Each names its item and commit, and the Portfolio scene that shows
 it, where there's one. The motion shows only where the device allows
 motion, and with reduced motion each of them changes at once.
 
+You reviewed them on 27 October, on the page Smoothness UI review, and
+kept most as they are. On the branch `feature/ui-review`, as you chose:
+
+- A slow load shows its stand-ins alone, which breathe faintly, and its
+  status only to a screen reader. The moving line (#35) is gone, and the
+  picks (#45), Search's lists, a lookup and a transcript get stand-ins
+  too (`ui/loading`).
+- The bookmark pulses without the drop (#58), and its drawing is a little
+  bigger, down to the bottom of the byline's line.
+- New episodes go into the list at once (#62), and once the listener has
+  scrolled, the rows in view stay where they are.
+- Prefetching on a pointer or the focus that rests on a link is one
+  behaviour for any link to use (`ui/prefetch`), which waits one at a
+  time and not at all on a connection that saves data. Linked shows'
+  cards (#24) already used it.
+- TODOs mark the ring around Pause (#5) and the look of dialogs (#60) for
+  later, and a comment says that Chrome, Firefox and Safari all move the
+  Library's artwork (#78).
+
+The list below describes the changes as they were before the review.
+
 While something loads:
 
 - **A line moves under the status of a slow load** (#35, d17234d). A
