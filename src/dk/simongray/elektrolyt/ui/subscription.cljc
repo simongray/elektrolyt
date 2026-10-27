@@ -1,7 +1,8 @@
 (ns dk.simongray.elektrolyt.ui.subscription
   "The bookmark that subscribes to a show, the mark of a show that's
   subscribed, and the error of a subscription that failed."
-  (:require [dk.simongray.podcast.profile :as profile]
+  (:require [clojure.string :as str]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]))
@@ -30,24 +31,27 @@
 ;; 132 in its box, goes in the middle of the bookmark's body, at 112,
 ;; between the top and the point of the notch. The bookmark of a show to
 ;; subscribe to is the Thin weight's outline alone, whose lines are about
-;; as thin as the microphone's.
+;; as thin as the microphone's, and the filled one fills that outline's
+;; outer edge, which is the first part of its path: the Fill weight's own
+;; reaches 4 units further on each side, and looked the bigger of the two.
 ;; https://emojipedia.org/studio-microphone
 (def filled-bookmark
   "The bookmark of a show in the library, filled, with the microphone cut
   out of it."
-  (let [scale 0.46]
-    (str icons/bookmark-simple-fill " "
+  (let [path  icons/bookmark-simple-thin
+        scale 0.46]
+    (str (subs path 0 (inc (str/index-of path "Z"))) " "
          (controls/placed icons/microphone-fill scale
                           (- 128 (* scale 128))
                           (- 112 (* scale 132))))))
 
 (defn bookmark
   "The icon of the bookmark `path` in a box of the drawing alone, as the
-  Fill weight draws it, so that the drawing's edges are the box's and can
-  meet the lines of a title (layout.css). Its even-odd rule cuts out what
-  lies inside the filled bookmark."
+  Thin weight's outline bounds it, so that the drawing's edges are the
+  box's and can meet the lines of a title (layout.css). Its even-odd rule
+  cuts out what lies inside the filled bookmark."
   [path]
-  [controls/icon {:icon path :viewBox "56 32 144 199" :fill-rule "evenodd"}])
+  [controls/icon {:icon path :viewBox "60 36 136 192" :fill-rule "evenodd"}])
 
 ;; A bookmark keeps a show in the library, and fills in once it's there.
 ;; NN/g finds the star and the heart often misread, since sites use them

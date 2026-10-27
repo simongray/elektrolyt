@@ -164,7 +164,7 @@ button.disclosure {
 .icon-button.bookmark .icon {
   width: auto;
   height: calc(var(--title-size) * var(--cap-height) + var(--to-byline) + 2 * var(--overhang));
-  aspect-ratio: 144 / 199;
+  aspect-ratio: 136 / 192;
 }
 
 /* the mark of a show that's subscribed, its bookmark among the words of
