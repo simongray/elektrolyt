@@ -292,8 +292,9 @@ Deferred, by what was measured:
   task, so the save doesn't hold up a click's frame.
 - #10, for later: after #85, the page is blank only while its scripts run,
   0.3 s in dev. It's worth doing if a phone shows that gap.
-- #44: a render while only the clock ticks takes 0.30 ms, and the lock
-  screen's case needs playback with sound to measure.
+- #44's render once a task: a render while only the clock ticks takes
+  0.30 ms, and the lock screen's Next needs playback with sound to
+  measure. Its skip of the clock's renders is done (see below).
 - #47, with #18: the contention it targets measured small.
 - #53: WebKit fetched /api/server twice with a preload.
 - #76: the Library's content for 54 shows builds in 2.7 ms and its sort
@@ -497,6 +498,13 @@ an episode with the screen off, the page renders every second for no one
 to see, which is #44's case. The simulator's lock needs its panel, so
 opening Settings sent Safari to the background in its place.
 
+Done since, the first part of #44: while the page is hidden, a change of
+the player's clock alone doesn't render, as `player/clock-only?` tells,
+and the page renders once it's shown again. The same run with sound made
+14 renders in 3 minutes rather than 193, in 155 ms rather than 1,150:
+about as many as the reports of the position to the library, one every
+15 seconds. Rendering once a task, for a lock screen's Next, isn't done.
+
 #93 in Safari, with the same library and after a garbage collection: the
 JavaScript heap was 259 MB after the start, 293 MB after ten outside
 shows and 298 MB after ten more, so it keeps no more than the five feeds
@@ -654,7 +662,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 41 | [Measure drop-in-search's merges, then cap them so one add never rewrites the whole index](#41-measure-drop-in-searchs-merges-then-cap-them-so-one-add-never-rewrites-the-whole-index) | Main thread | 6 | 2 | 6 | low | Done |
 | 42 | [Read only new index segments when catching up with another tab](#42-read-only-new-index-segments-when-catching-up-with-another-tab) | Main thread | 7 | 2 | 6 | medium | Done |
 | 43 | [Build a benchmark library of 50 shows for repeatable profiling](#43-build-a-benchmark-library-of-50-shows-for-repeatable-profiling) | Measurement | 7 | 2 | 6 | medium | Done |
-| 44 | [While hidden, skip clock-only renders, render once per task, and catch up when shown](#44-while-hidden-skip-clock-only-renders-render-once-per-task-and-catch-up-when-shown) | Rendering | 7 | 2 | 6 | medium | Deferred |
+| 44 | [While hidden, skip clock-only renders, render once per task, and catch up when shown](#44-while-hidden-skip-clock-only-renders-render-once-per-task-and-catch-up-when-shown) | Rendering | 7 | 2 | 6 | medium | Part done |
 | 45 | [Find the picks after the paint and keep them in the store](#45-find-the-picks-after-the-paint-and-keep-them-in-the-store) | Main thread | 8 | 2 | 6 | medium | Done |
 | 46 | [Keep only the notes field that resolve/description shows, as the worker parses](#46-keep-only-the-notes-field-that-resolvedescription-shows-as-the-worker-parses) | Rendering | 8 | 2 | 6 | medium | Done |
 | 47 | [Keep two of the proxy's four slots for the listener's own requests](#47-keep-two-of-the-proxys-four-slots-for-the-listeners-own-requests) | Network | 8 | 2 | 6 | low | Deferred |
