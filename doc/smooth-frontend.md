@@ -417,6 +417,17 @@ runs it in a job of its own that doesn't fail the run until the budgets
 are calibrated on its machines. Firefox and Safari have neither the
 throttling nor long animation frames, so the budgets are Chrome's alone.
 
+Done since, the second document: podcast-clj writes each feed's document
+with only the notes that `resolve/description` reads, and the others in
+a document beside it, `feed-<id>-<ms>.notes.<ext>`. A lean library reads
+the first alone, and `library/whole-feed!` reads both, so nothing is
+dropped. On a timed release with the bench's 50 shows, freshly seeded
+each way, Home appears in 476–518 ms with split documents against
+572–590 with whole ones, with a longest task of 210–221 ms against
+285–300. At 4x, it's 1.55–1.58 s against 1.93–1.95, and 760–781 ms
+against 1.06–1.08 s, the same as the lean documents before. It's in
+podcast-clj's checkout, unreleased.
+
 Also new, and fixed: drop-in-search read each document's id as EDN at the
 start. A vector of plain strings, as the app's ids are, is now split at its
 quotes (drop-in-search 9ca9ed8), so decoding the library of 53 shows takes

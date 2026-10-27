@@ -2,8 +2,9 @@ import { test, expect, announcement, episodePath, episodes, feedUrl, navLink, sh
   stored } from './fixtures.mjs';
 
 // The library keeps only the fullest of an episode's notes once it reads a
-// feed, which the page shows, while the feed's document keeps them all, so
-// a refresh of the same feed finds nothing changed and writes no document
+// feed, which the page shows, from the feed's document, while a document
+// beside it keeps the others, so a refresh of the same feed finds nothing
+// changed and writes neither
 test('an episode shows its fullest notes, which a refresh finds unchanged', async ({ page }) => {
   const main = page.getByRole('main');
   const feeds = async () => (await stored(page)).filter((name) => name.startsWith('feed-')).sort();
@@ -17,7 +18,8 @@ test('an episode shows its fullest notes, which a refresh finds unchanged', asyn
 
   await navLink(page, 'Library').click();
   const before = await feeds();
-  expect(before).toHaveLength(1);
+  expect(before.map(name => name.includes('.notes.')), 'the feed and its other notes')
+    .toEqual([true, false]);
   await main.getByRole('button', { name: 'Check for new episodes' }).click();
   await expect(announcement(page)).toHaveText('No new episodes');
   expect(await feeds()).toEqual(before);
