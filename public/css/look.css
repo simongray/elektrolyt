@@ -1122,7 +1122,9 @@ search p {
   }
 
   /* WCAG 2.2.2 lets a sign of loading move for longer than 5 seconds
-     https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html */
+     https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
+     TODO: reconsider the ring's effect, which the review of the visible
+     changes kept for now */
   .player-play[data-waiting]::after,
   .with-icon[data-waiting]::before {
     border-style: solid;
@@ -1152,7 +1154,9 @@ search p {
   /* a dialog and its backdrop ease in, and go at once: a fade out needs
      the overlay property, which Firefox and Safari lack, and Clear the
      queue's text would change under it as the queue clears
-     https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style */
+     https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style
+     TODO: give dialogs the look of the rest of the app, which the
+     browser's default box doesn't have */
   dialog[open] {
     transition: opacity 0.2s, translate 0.2s;
   }
@@ -1179,7 +1183,9 @@ search p {
      colours cross-fades the page (elektrolyt.cljs). The artwork is named
      rather than its tile, since a name would isolate the tile, and its
      artwork would no longer multiply into the paper. Clicks go through to
-     the page meanwhile.
+     the page meanwhile. Chrome, Firefox and Safari all move the artwork,
+     and a browser without view transitions changes the page at once
+     (runtime/transition!).
      https://developer.mozilla.org/en-US/docs/Web/CSS/view-transition-name */
   .library-show img {
     view-transition-name: match-element;
