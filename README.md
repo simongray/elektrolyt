@@ -37,6 +37,12 @@ The app is at http://localhost:8400, and its views are at
 http://localhost:8402, in [Portfolio](https://github.com/cjohansen/portfolio),
 with a scene for each state of each view.
 
+To listen with the app as a listener gets it, call `(listen!)` in the
+JVM's REPL. It builds a release into `target/release` and serves it at the
+same address, so it opens the same library, and a tab gets it when it
+reloads. Your edits don't show there until you call it again, and
+`(develop!)` serves the watch's build once more.
+
 The server listens on localhost alone, since it has no login yet and its
 proxy fetches any public URL for whoever reaches it. It also makes small
 thumbnails of artwork at `/artwork`, since most feeds name a single artwork

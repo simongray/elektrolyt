@@ -1,6 +1,7 @@
 // The end-to-end tests, in Firefox and in your installed Chrome, against
 // the app's own server on a free port. The server serves the app that the
-// watch built into public/.
+// watch built into public/, or with E2E_RELEASE=1, the release that
+// user/release! built into target/release/.
 //
 //     npm run e2e
 
@@ -26,8 +27,11 @@ process.env.E2E_PORT ||= String(await freePort());
 const port = process.env.E2E_PORT;
 
 // without the secrets of the Podcast Index, which no test searches
+const release = process.env.E2E_RELEASE
+  ? ' :client-dir \\"target/release\\" :release? true'
+  : '';
 const start = '((requiring-resolve \'dk.simongray.elektrolyt.server/start!)'
-  + ` {:port ${port} :secrets nil})`;
+  + ` {:port ${port} :secrets nil${release}})`;
 
 // the libraries from the checkouts beside this one, like the watch's,
 // unless E2E_ALIASES names other aliases, e.g. ':server' on GitHub

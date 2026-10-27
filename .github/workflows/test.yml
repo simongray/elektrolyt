@@ -57,14 +57,16 @@ jobs:
           sudo apt-get install -y -qq pulseaudio
           pulseaudio --start --exit-idle-time=-1
 
-      # The tests run against the app built into public/, in Playwright's
-      # Firefox and the runner's own Chrome, with the libraries of deps.edn
-      # rather than checkouts beside this one
+      # The tests run against a release of the app in target/release/, as a
+      # listener gets it, in Playwright's Firefox and the runner's own
+      # Chrome, with the libraries of deps.edn rather than checkouts beside
+      # this one. Locally, npm run e2e runs them against the watch's build.
       - name: End-to-end tests
         env:
           E2E_ALIASES: ':server'
+          E2E_RELEASE: '1'
         run: |
-          clojure -M:cljs compile app
+          clojure -M:cljs clj-run user/release!
           npx playwright install --with-deps firefox
           npm run e2e
 

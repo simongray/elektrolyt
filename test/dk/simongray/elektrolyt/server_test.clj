@@ -25,7 +25,15 @@
         (is (= 200 status))
         (is (= index body))
         (is (str/includes? (get headers "Content-Security-Policy")
-                           "object-src 'none'")))
+                           "object-src 'none'"))
+        (is (str/includes? (get headers "Content-Security-Policy")
+                           "script-src 'self' 'unsafe-eval'")
+            "with eval for a development build"))
+      (is (not (str/includes? (-> (server/connector {:port 8400 :client-dir "public" :release? true})
+                                  (response-for :get "/" :headers page)
+                                  (get-in [:headers "Content-Security-Policy"]))
+                              "unsafe-eval"))
+          "but none for a release")
       (let [{:keys [status body]} (response-for connector :get "/search?q=x"
                                                 :headers page)]
         (is (= 200 status))

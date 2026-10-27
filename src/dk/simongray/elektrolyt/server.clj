@@ -327,11 +327,13 @@
 
   - :port, on localhost
   - :client-dir, the folder of the app's files
+  - :release?, whether they're a release build, which needs no eval
   - :podcastindex, the credentials of the Podcast Index, or nil
   - :artwork-dir, the folder of the thumbnails of artwork, or nil to keep
     none"
-  [{:keys [port client-dir podcastindex artwork-dir] :as settings}]
-  (let [policy {:object-src "'none'" :script-src "'self' 'unsafe-eval'"}]
+  [{:keys [port client-dir release? podcastindex artwork-dir] :as settings}]
+  (let [policy {:object-src "'none'"
+                :script-src (if release? "'self'" "'self' 'unsafe-eval'")}]
     (-> (conn/default-connector-map "localhost" port)
         (conn/with-interceptors
           [interceptors/not-found
@@ -358,6 +360,7 @@
 
   - :port, 8400 by default
   - :client-dir, the folder of the app's files, public/ by default
+  - :release?, whether they're a release build, false by default
   - :secrets, an EDN file with the Podcast Index's credentials under
     :podcastindex, by default the file that PODCAST_APP_SECRETS names, if
     any
@@ -365,7 +368,7 @@
     by default"
   ([]
    (start! {}))
-  ([{:keys [port client-dir secrets artwork-dir]
+  ([{:keys [port client-dir release? secrets artwork-dir]
      :or   {port        8400
             client-dir  "public"
             secrets     (System/getenv "PODCAST_APP_SECRETS")
@@ -374,11 +377,15 @@
      (let [podcastindex (podcastindex-credentials secrets)]
        (reset! server (conn/start! (connector {:port         port
                                                :client-dir   client-dir
+                                               :release?     release?
                                                :podcastindex podcastindex
                                                :artwork-dir  artwork-dir})))
        (tel/log! {:level :info :id :server/started
-                  :data  {:port port :podcastindex? (some? podcastindex)}}
+                  :data  {:port          port
+                          :release?      (boolean release?)
+                          :podcastindex? (some? podcastindex)}}
                  (str "The app is on http://localhost:" port "/"
+                      (when release? ", as a release build")
                       (when podcastindex ", with the Podcast Index")))))
    @server))
 

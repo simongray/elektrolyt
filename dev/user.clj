@@ -5,8 +5,10 @@
   Every JVM with dev/ on its classpath loads this namespace, including the
   shadow-cljs CLI, which runs without the :server alias, so the server's
   functions are resolved only when they're called."
-  (:require [shadow.cljs.devtools.api :as shadow]
-            [shadow.cljs.devtools.server :as shadow.server]))
+  (:require [clojure.java.io :as io]
+            [shadow.cljs.devtools.api :as shadow]
+            [shadow.cljs.devtools.server :as shadow.server])
+  (:import [java.io File]))
 
 (defn watch!
   "Start the shadow-cljs watch of the :app and :portfolio builds in this
@@ -47,8 +49,47 @@
   ((requiring-resolve 'dk.simongray.elektrolyt.server/stop!))
   (start!))
 
+(def release-dir
+  "Where a release of the app goes, as the :release of the :app build
+  says, with the other files of public/ beside its scripts."
+  "target/release")
+
+(defn release!
+  "Build a release of the app into release-dir, with a copy of the files
+  of public/ but its scripts, so that the folder serves the app as public/
+  does. It returns :done, as shadow-cljs's release does, and throws when
+  the build fails."
+  []
+  (let [root (.toPath (io/file "public"))]
+    (doseq [^File f (file-seq (io/file "public"))
+            :let  [path (.relativize root (.toPath f))]
+            :when (and (.isFile f) (not (.startsWith path "js")))]
+      (io/make-parents (io/file release-dir (str path)))
+      (io/copy f (io/file release-dir (str path)))))
+  (shadow/release! :app)
+  :done)
+
+;; The library is kept in the browser by origin, so a release served on
+;; another port would open with none
+(defn listen!
+  "Build a release of the app and serve it on the same origin, in place
+  of the watch's build, which develop! serves again. A tab gets the
+  release when it reloads."
+  []
+  (release!)
+  ((requiring-resolve 'dk.simongray.elektrolyt.server/stop!))
+  ((requiring-resolve 'dk.simongray.elektrolyt.server/start!)
+   {:secrets secrets :client-dir release-dir :release? true}))
+
+(defn develop!
+  "Serve the watch's build again, after listen!."
+  []
+  (restart!))
+
 (comment
   (start!)
   (restart!)
   (stop!)
+  (listen!)
+  (develop!)
   #_.)
