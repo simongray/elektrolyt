@@ -10,13 +10,15 @@
 // otherwise. The time from a
 // click on Subscribe to its next paint must stay under 200 ms, which the
 // app's paint before the work gives. The budgets come from the machine
-// that calibrated them, so a slower one may need its own.
+// that calibrated them, so CI's runners, which are slower, keep their own
+// in perf-budgets-ci.json.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { test, expect, announcement, episodePath, navLink, playsPast, showPath, showTitle }
   from './fixtures.mjs';
 
-const budgetsFile = new URL('perf-budgets.json', import.meta.url);
+const budgetsFile = new URL(process.env.CI ? 'perf-budgets-ci.json' : 'perf-budgets.json',
+                            import.meta.url);
 const calibrating = Boolean(process.env.PERF_CALIBRATE);
 const runs = calibrating ? 5 : 1;
 const budgets = calibrating ? {} : JSON.parse(readFileSync(budgetsFile, 'utf8'));

@@ -209,7 +209,9 @@ full, played and checked for new episodes, in Chrome at a quarter of the
 CPU's speed. A flow's longest frame must stay under its budget in
 `test/e2e/perf-budgets.json`, which `PERF_CALIBRATE=1 npm run perf`
 measures over five runs and writes. The budgets are a release's, so run
-it with `E2E_RELEASE=1`.
+it with `E2E_RELEASE=1`. CI's runners are slower, and keep budgets of
+their own in `test/e2e/perf-budgets-ci.json`, which CI measures and
+prints when the file is missing.
 
 To check the size of the release build, evaluate `(sizes/check!)` in the
 watch's nREPL, or run `clojure -M:cljs clj-run sizes/check!` without the

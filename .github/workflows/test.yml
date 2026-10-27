@@ -91,9 +91,10 @@ jobs:
           if-no-files-found: ignore
 
   # The budgets of the key flows, in the runner's Chrome at a quarter of its
-  # CPU's speed, against a release. They were calibrated on a faster
-  # machine, so the job reports without failing the run until they're
-  # calibrated here.
+  # CPU's speed, against a release. The runners keep budgets of their own,
+  # in test/e2e/perf-budgets-ci.json, which the job measures over five runs
+  # and prints when the file is missing. It reports without failing the
+  # run until they're calibrated here.
   perf:
     name: Performance budgets
     runs-on: ubuntu-24.04
@@ -130,7 +131,11 @@ jobs:
         run: |
           npm ci
           clojure -M:cljs clj-run user/release!
-          npm run perf
+          if [ -f test/e2e/perf-budgets-ci.json ]; then
+            npm run perf
+          else
+            PERF_CALIBRATE=1 npm run perf
+          fi
 
       - name: The traces of the flows over budget
         if: failure()
