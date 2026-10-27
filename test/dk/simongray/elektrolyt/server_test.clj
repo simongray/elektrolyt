@@ -62,6 +62,11 @@
                                                  "/fonts/charis-7.000/Charis-Bold.woff2")]
       (is (= 200 status))
       (is (= "public, max-age=31536000, immutable" (get headers "Cache-Control")))))
+  (testing "or a release's file named by its content"
+    (is (= "public, max-age=31536000, immutable" (server/cache-control "/js/main.3f9a0c1d2e4b5a69.js")))
+    (is (= "public, max-age=31536000, immutable" (server/cache-control "/css/app.3f9a0c1d2e4b5a69.css")))
+    (is (= "no-cache" (server/cache-control "/js/main.js")))
+    (is (= "no-cache" (server/cache-control "/index.html"))))
   (testing "a missing file is a 404, even for a browser"
     (is (= 404 (:status (response-for connector :get "/js/missing.js"
                                       :headers page)))))

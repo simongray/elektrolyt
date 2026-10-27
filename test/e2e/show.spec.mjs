@@ -142,7 +142,8 @@ test('a double click on Subscribe subscribes once', async ({ page }) => {
 test('a worker that failed to load starts again at the next fetch', async ({ page, context }) => {
   const main = page.getByRole('main');
   let loads = 0;
-  await context.route(url => url.pathname === '/js/worker.js', route =>
+  // a release names it by its content (server/release.clj)
+  await context.route(url => /^\/js\/worker(\.[0-9a-f]{16})?\.js$/.test(url.pathname), route =>
     ++loads === 1 ? route.abort() : route.continue());
 
   // the start of the feed comes without the worker, and the whole feed

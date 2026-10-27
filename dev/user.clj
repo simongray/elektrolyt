@@ -6,6 +6,7 @@
   shadow-cljs CLI, which runs without the :server alias, so the server's
   functions are resolved only when they're called."
   (:require [clojure.java.io :as io]
+            [dk.simongray.elektrolyt.server.release :as release]
             [shadow.cljs.devtools.api :as shadow]
             [shadow.cljs.devtools.server :as shadow.server])
   (:import [java.io File]))
@@ -57,9 +58,9 @@
 (defn release!
   "Build a release of the app into release-dir with the `opts` of
   shadow-cljs's release, e.g. timed, and a copy of the files of public/
-  but its scripts, so that the folder serves the app as public/ does. It
-  returns :done, as shadow-cljs's release does, and throws when the build
-  fails."
+  but its scripts, so that the folder serves the app as public/ does, with
+  its scripts and stylesheets named by their content too. It returns
+  :done, as shadow-cljs's release does, and throws when the build fails."
   ([]
    (release! {}))
   ([opts]
@@ -70,6 +71,7 @@
        (io/make-parents (io/file release-dir (str path)))
        (io/copy f (io/file release-dir (str path)))))
    (shadow/release! :app opts)
+   (release/name-by-content! release-dir)
    :done))
 
 (def timed

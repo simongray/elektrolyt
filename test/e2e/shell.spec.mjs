@@ -98,11 +98,12 @@ test('the bold of the headings and the buttons comes with the page, before they 
   // is of when the file was asked for, rather than of document.fonts: before
   // the app's script arrived, which no render can come before. Firefox names
   // a preload's initiator other rather than link.
-  const started = name => page.evaluate(n => performance.getEntriesByType('resource')
-    .find(r => r.name.endsWith(n)), name);
-  await expect.poll(async () => (await started('/Charis-Bold.woff2'))?.startTime).toBeDefined();
-  const bold = await started('/Charis-Bold.woff2');
-  const script = await started('/js/main.js');
+  const started = pattern => page.evaluate(p => performance.getEntriesByType('resource')
+    .find(r => new RegExp(p).test(r.name)), pattern);
+  await expect.poll(async () => (await started('/Charis-Bold\\.woff2$'))?.startTime).toBeDefined();
+  const bold = await started('/Charis-Bold\\.woff2$');
+  // a release names it by its content (server/release.clj)
+  const script = await started('/js/main(\\.[0-9a-f]{16})?\\.js$');
   expect(bold.startTime).toBeLessThan(script.responseEnd);
 });
 

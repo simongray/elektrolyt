@@ -13,6 +13,7 @@
             [dk.simongray.podcast.util.client :as client]
             [dk.simongray.podcast.util.ring :as ring]
             [dk.simongray.elektrolyt.server.artwork :as artwork]
+            [dk.simongray.elektrolyt.server.release :as release]
             [dk.simongray.elektrolyt.server.timing :as timing]
             [dk.simongray.wary-fetch.proxy :as proxy]
             [dk.simongray.wary-fetch.secret :as secret]
@@ -123,14 +124,16 @@
 
 ;; RFC 9111, sections 4.2.2 and 5.2.2.4: without no-cache, a browser may
 ;; judge a file fresh by itself and run an older build's code. RFC 8246: a
-;; font's folder is named for its version, so another version has another
-;; URL, and a font is kept for a year without a question.
+;; font's folder is named for its version, and a release's scripts and
+;; stylesheets by their content, so another version has another URL, and
+;; such a file is kept for a year without a question.
 ;; https://www.rfc-editor.org/rfc/rfc8246
 (defn cache-control
-  "The Cache-Control of the app's file at `uri`: immutable for a font, and
-  else no-cache, so that the browser checks with the server first."
+  "The Cache-Control of the app's file at `uri`: immutable for a font or a
+  file named by its content, and else no-cache, so that the browser checks
+  with the server first."
   [uri]
-  (if (str/starts-with? uri "/fonts/")
+  (if (or (str/starts-with? uri "/fonts/") (release/content-named? uri))
     "public, max-age=31536000, immutable"
     "no-cache"))
 
