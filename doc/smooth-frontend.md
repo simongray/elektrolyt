@@ -417,11 +417,12 @@ runs it in a job of its own that doesn't fail the run until the budgets
 are calibrated on its machines. Firefox and Safari have neither the
 throttling nor long animation frames, so the budgets are Chrome's alone.
 
-Done since, the second document: podcast-clj writes each feed's document
-with only the notes that `resolve/description` reads, and the others in
-a document beside it, `feed-<id>-<ms>.notes.<ext>`. A lean library reads
-the first alone, and `library/whole-feed!` reads both, so nothing is
-dropped. On a timed release with the bench's 50 shows, freshly seeded
+Done since, the second document: with `:lean?`, podcast-clj writes each
+feed's document with only the notes that `resolve/description` reads,
+and the others in a document beside it, `feed-<id>-<ms>.notes.<ext>`.
+The library reads the first alone, and `library/whole-feed!` reads both,
+so nothing is dropped. A library without `:lean?` keeps a feed in one
+document, as before. On a timed release with the bench's 50 shows, freshly seeded
 each way, Home appears in 476–518 ms with split documents against
 572–590 with whole ones, with a longest task of 210–221 ms against
 285–300. At 4x, it's 1.55–1.58 s against 1.93–1.95, and 760–781 ms
