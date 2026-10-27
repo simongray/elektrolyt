@@ -149,17 +149,14 @@
 
 (defn status-text
   "The text of the episodes' status line for the feed's load `status`, with
-  `n` episodes so far, the `error` of a failed fetch and the count of
-  `newer` episodes that wait."
-  [status n error newer]
+  `n` episodes so far and the `error` of a failed fetch."
+  [status n error]
   (case status
     :loading "Loading episodes…"
     :failed  (str/join " " (remove nil? ["The feed couldn't be fetched."
                                          (failure-text error)
                                          (when (pos? n) (str (text/counted n "episode") " from before."))]))
-    (str (text/counted n "episode") "."
-         (when newer
-           (str " " (text/counted newer "new episode") (if (= 1 newer) " is in." " are in."))))))
+    (str (text/counted n "episode") ".")))
 
 ;; The button goes as the feed is fetched again, so the focus moves to the
 ;; heading at `refocus`
@@ -169,7 +166,7 @@
   to try again that gives the focus to the heading at `refocus`."
   [state n error refocus]
   (notices/line {}
-                (status-text :failed n error nil)
+                (status-text :failed n error)
                 [controls/button {:icon         icons/arrows-clockwise
                                   :data-refocus refocus
                                   :on           {:click [[:show/retry (guid state) (:url (source state))]]}}
@@ -181,45 +178,28 @@
 
 ;; A button that lists more, rather than a list that grows as it scrolls,
 ;; whose end a keyboard or a voice can't reach (GitLab's audit of infinite
-;; scrolling, issue 1196 of gitlab-ui, and Deque on role=feed). New
-;; episodes that arrive while the list shows wait for a button, as in the
-;; offline cookbook, so that the list doesn't move by itself.
-;; https://web.dev/articles/offline-cookbook#cache-then-network
+;; scrolling, issue 1196 of gitlab-ui, and Deque on role=feed). It goes
+;; once it has done its part, so the focus moves on to the first episode
+;; that the last page listed. New episodes that a fetch finds while the
+;; list shows go in at once (show/refetched).
 ;;
 ;; A show in the library is there whole, so a load of its feed from before
 ;; the subscription, e.g. a prefetch, doesn't apply to it.
-;;
-;; Both buttons go once they've done their part, so the focus moves on: to
-;; the list's heading once the new episodes show, and to the first episode
-;; that the last page listed.
-;;
-;; The button for the new episodes takes the status line's place, whose
-;; text a screen reader still hears, so that the list barely moves when
-;; they arrive, which is often soon after the page opens and could put a
-;; tap on another row
-;; https://web.dev/articles/cls
 (defn episodes
   "The episodes of the show `page` in `state`, a page at a time, with the
-  status of the load and buttons for newer episodes that wait and for
-  more."
+  status of the load and a button for more."
   [state {rows :episodes n :episode-count :keys [language] :as page}]
-  (let [g                             (guid state)
-        {:keys [key url error newer]} (source state)
-        url                           (when-not key url)
-        status                        (show/status state g)
-        shown                         (get-in state [:episodes-shown g] show/page-size)
-        newer                         (when-not key (:count newer))
-        lang                          (text/lang language)]
+  (let [g                       (guid state)
+        {:keys [key url error]} (source state)
+        url                     (when-not key url)
+        status                  (show/status state g)
+        shown                   (get-in state [:episodes-shown g] show/page-size)
+        lang                    (text/lang language)]
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
        (failure state n error "#episodes")
-       [(if (or (= :loading status) newer) :p.visually-hidden :p)
-        {:role "status"}
-        (status-text status n error newer)])
-     (when newer
-       [:button {:type "button" :data-refocus "#episodes" :on {:click [[:show/newer g]]}}
-        (str "Show the " (text/plural newer "new episode"))])
+       [(if (= :loading status) :p.visually-hidden :p) {:role "status"} (status-text status n error)])
      (when (and (= :loading status) (zero? n))
        skeleton-rows)
      (when (seq rows)

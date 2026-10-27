@@ -256,23 +256,18 @@
         later  #inst "2026-10-18T14:00:00Z"
         titles #(map :title (:episodes (show/page % "g")))]
     (is (= 1 (show/new-episodes (feed "A Show" "One") (feed "A Show" "Two" "One"))))
-    (let [waiting (show/refetched state "g" url newer later)]
-      (is (= ["One"] (titles waiting)) "the list on screen stays as it is")
-      (is (= 1 (get-in waiting [:feeds url :newer :count])))
-      (is (= newer (show/whole-feed waiting url)) "though a subscription takes the newer feed")
-      (let [shown (show/newer-shown waiting "g")]
-        (is (= ["Two" "One"] (titles shown)) "until the listener asks for the new episodes")
-        (is (nil? (get-in shown [:feeds url :newer])))
-        (is (= {:etag "\"v2\""} (get-in shown [:feeds url :validators])))))
-    (is (= ["Two" "One"]
-           (titles (show/refetched (assoc-in state [:route :name] :route/episode) "g" url newer later)))
-        "or at once where the page doesn't list them, e.g. an episode's")
-    (is (= ["One, edited"]
-           (titles (show/refetched state "g" url
-                                   {:feed (assoc-in (feed "A Show" "One")
-                                                    [:rss/items 0 :rss/title] "One, edited")}
-                                   later)))
-        "and at once when the feed brings no new episode, e.g. an edit")))
+    (let [fetched (show/refetched state "g" url newer later)]
+      (is (= ["Two" "One"] (titles fetched)) "the new episodes go in at once")
+      (is (= {:etag "\"v2\""} (get-in fetched [:feeds url :validators])))
+      (is (= "1 new episode is in." (:announcement fetched)) "and a screen reader hears how many"))
+    (let [elsewhere (show/refetched (assoc-in state [:route :name] :route/episode) "g" url newer later)]
+      (is (= ["Two" "One"] (titles elsewhere)))
+      (is (nil? (:announcement elsewhere)) "but not where the page doesn't list them, e.g. an episode's"))
+    (let [edited (show/refetched state "g" url
+                                 {:feed (assoc-in (feed "A Show" "One") [:rss/items 0 :rss/title] "One, edited")}
+                                 later)]
+      (is (= ["One, edited"] (titles edited)))
+      (is (nil? (:announcement edited)) "nor when the feed brings no new episode, e.g. an edit"))))
 
 (deftest a-feed-that-moved
   (let [moved   "https://example.org/moved.xml"
@@ -325,9 +320,4 @@
         "or a subscription under way")
     (let [few (assoc state :feeds (select-keys (:feeds state) (map feed-url [3 4])))]
       (is (identical? few (show/forgotten few))
-          "and the same state when it needs them all, which renders nothing"))
-    (let [newer  {:fetched {:feed (feed "7" "New")} :fetched-at #inst "2026-10-09" :count 1}
-          folded (show/forgotten (assoc-in state [:feeds (feed-url 7) :newer] newer))]
-      (is (= (feed "7" "New") (get-in folded [:feeds (feed-url 7) :feed]))
-          "with new episodes that wait in place of the old ones, off the page")
-      (is (nil? (get-in folded [:feeds (feed-url 7) :newer]))))))
+          "and the same state when it needs them all, which renders nothing"))))

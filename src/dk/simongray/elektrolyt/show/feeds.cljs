@@ -183,7 +183,8 @@
                      (and (:feed fetched) (not (feeds/emptied? feed (:feed fetched))))
                      ;; the page holds new episodes without the string they
                      ;; came as, which the cache writes at idle
-                     (do (swap! store show/refetched guid url (with-meta fetched nil) (js/Date.))
+                     (do (runtime/kept-in-place! "ol.episodes > li"
+                                                 #(swap! store show/refetched guid url (with-meta fetched nil) (js/Date.)))
                          (keep-show! url fetched))
 
                      ;; the old :not-before has passed, so only the 304's

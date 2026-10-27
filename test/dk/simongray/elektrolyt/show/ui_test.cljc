@@ -33,19 +33,17 @@
          more))
 
 (deftest the-status-of-the-episodes
-  (is (= "Loading episodes…" (show/status-text :loading 20 nil nil))
+  (is (= "Loading episodes…" (show/status-text :loading 20 nil))
       "while the whole feed is fetched, or the cache is read")
-  (is (= "207 episodes." (show/status-text :done 207 nil nil)))
-  (is (= "207 episodes." (show/status-text :checking 207 nil nil)) "and while it's fetched again")
+  (is (= "207 episodes." (show/status-text :done 207 nil)))
+  (is (= "207 episodes." (show/status-text :checking 207 nil)) "and while it's fetched again")
   (is (= "The feed couldn't be fetched. Its server answered with an error, 404."
-         (show/status-text :failed 0 {:id :fetch/status :status 404 :message "The feed stays as it was."} nil))
+         (show/status-text :failed 0 {:id :fetch/status :status 404 :message "The feed stays as it was."}))
       "in the listener's words, not the library's")
-  (is (= "The feed couldn't be fetched." (show/status-text :failed 0 {:id :fetch/other} nil)))
+  (is (= "The feed couldn't be fetched." (show/status-text :failed 0 {:id :fetch/other})))
   (is (= "The feed couldn't be fetched. Its server answered with an error, 410. 207 episodes from before."
-         (show/status-text :failed 207 {:id :fetch/status :status 410} nil))
-      "with the episodes of the copy kept from before")
-  (is (= "207 episodes. 2 new episodes are in." (show/status-text :done 207 nil 2)))
-  (is (= "207 episodes. 1 new episode is in." (show/status-text :done 207 nil 1))))
+         (show/status-text :failed 207 {:id :fetch/status :status 410}))
+      "with the episodes of the copy kept from before"))
 
 (deftest a-show-that-is-still-on-its-way
   (let [unlinked {:route {:name :route/show :path-params {:guid "g"} :query-params {}}}]
@@ -253,14 +251,3 @@
       "its heading, with no article around it, over a status that only a screen reader hears and rows in the place of the episodes")
   (is (= "true" (get-in show/skeleton-rows [1 :aria-hidden])) "which a screen reader skips"))
 
-(deftest new-episodes-on-request
-  (let [rows      [{:guid "1" :title "Episode 1"}]
-        state     (show-page {:feeds {url {:feed (fed "A Show" {} "Episode 1") :whole? true :newer {:count 2}}}})
-        [_ & xs]  (show/episodes state {:episodes rows :episode-count 1})
-        buttons   (filter #(and (vector? %) (= :button (first %))) xs)]
-    (is (= [[[:show/newer "g"]] "Show the new episodes"]
-           ((juxt #(get-in % [1 :on :click]) last) (first buttons)))
-        "a button above the list, which stays as it is until it's pressed")
-    (is (= "#episodes" (get-in (first buttons) [1 :data-refocus]))
-        "and then gives the focus to the list's heading")
-    (is (= 1 (count buttons)))))

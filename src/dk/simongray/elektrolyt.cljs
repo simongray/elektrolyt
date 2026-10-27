@@ -179,10 +179,6 @@
   (fn [_ _]
     (feeds/prefetch-cancel!)))
 
-(nxr/register-effect! :show/newer
-  (fn [_ store guid]
-    (swap! store show/newer-shown guid)))
-
 ;; Dispatched as the linked shows mount, so the store changes after the
 ;; render
 (nxr/register-effect! :show/fetch-linked

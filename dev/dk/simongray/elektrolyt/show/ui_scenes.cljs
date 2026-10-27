@@ -82,14 +82,6 @@
   "Every episode, of which the page lists 20 at a time."
   (ui/page (whole (assoc podcasting :rss/items (items 207)) {:episodes-shown {guid 40}})))
 
-(defscene new-episodes-that-wait
-  "A feed from the cache that was fetched again while the page showed it,
-  and brought new episodes, which wait for the button so that the list
-  doesn't move by itself."
-  (ui/page (show-page {:feeds {url {:feed   (assoc podcasting :rss/items (items 207))
-                                    :whole? true
-                                    :newer  {:count 2}}}})))
-
 (def pc20
   "A feed like that of Podcasting 2.0, with what it says of itself, where
   it's made and its licence, and 20 episodes a week apart."

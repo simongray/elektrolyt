@@ -274,6 +274,28 @@
   (when-let [k (some-> js/globalThis .-navigation .-currentEntry .-key)]
     (get @scroll-positions k)))
 
+;; CSS Scroll Anchoring keeps what's in view in place as content goes in
+;; above it, but on a Show page Firefox anchored to something else, so the
+;; app keeps the rows in place itself. A scroll by script drops the
+;; browser's own anchor, so the two never add up.
+;; https://drafts.csswg.org/css-scroll-anchoring/
+(defn kept-in-place!
+  "Call `f`, which renders a change of the page, and keep the first of the
+  elements in main that `selector` names whose top is in view where it
+  was, once main has scrolled."
+  [selector f]
+  (let [main   (js/document.getElementById "main")
+        top    (some-> main .getBoundingClientRect .-top)
+        el     (when (some-> main .-scrollTop pos?)
+                 (some #(when (<= top (.-top (.getBoundingClientRect %))) %)
+                       (array-seq (.querySelectorAll main selector))))
+        before (some-> el .getBoundingClientRect .-top)]
+    (f)
+    (when (some-> el .-isConnected)
+      (let [moved (- (.-top (.getBoundingClientRect el)) before)]
+        (when-not (zero? moved)
+          (set! (.-scrollTop main) (+ (.-scrollTop main) moved)))))))
+
 (defn watch!
   "Call `f` with the old and the new state at each change of the atom
   `store`, as the watch `k`."

@@ -8,8 +8,8 @@
   - :feeds has each feed by URL, as a map of the :feed and whether it's
     :whole?, the :validators and :fetched-at of a whole fetch, with its
     :permanent-url, :new-feed-url and :websub for a subscription, whether
-    this visit has :checked? it, the :error of a whole fetch that failed,
-    and a :newer feed that waits for the listener.
+    this visit has :checked? it, and the :error of a whole fetch that
+    failed.
   - :feed-urls has each show's feed URL by guid, as a map of the :url and
     where it came :from, :cache or :index, or else :not-found?.
   - :requests has the requests in flight: [:open url] while the cache is
@@ -24,8 +24,10 @@
             [dk.simongray.podcast.feed.schedule :as schedule]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.search :as search]
+            [dk.simongray.elektrolyt.ui.announcement :as announcement]
             [dk.simongray.elektrolyt.ui.links :as links]
-            [dk.simongray.elektrolyt.ui.memo :as memo]))
+            [dk.simongray.elektrolyt.ui.memo :as memo]
+            [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def page-size
   "How many episodes the page lists at first, and how many more each time
@@ -395,20 +397,18 @@
   [{{:keys [name path-params]} :route :as state} guid]
   (and (= :route/show name) (= guid (:guid path-params))))
 
-;; web.dev, CLS: a shift that follows the listener's own tap within 500 ms
-;; doesn't count, but one that comes on its own does
-;; https://web.dev/articles/cls#user-initiated_layout_shifts
+;; New episodes go in at once. Once the listener has scrolled, the rows in
+;; view stay where they are (show/feeds.cljs), and at the top of the page
+;; the list grows in place.
 (defn refetched
   "The `state` with the feed of the show `guid` at `url`, `fetched` again
-  at the instant `at`, in place of the old one. While the episodes are
-  listed, a feed with new episodes waits as :newer until the listener
-  asks for it."
+  at the instant `at`, in place of the old one, and while the episodes are
+  listed, how many are new, for a screen reader."
   [state guid url fetched at]
   (let [n (new-episodes (get-in state [:feeds url :feed]) (:feed fetched))]
-    (if (and (pos? n) (listed? state guid))
-      (assoc-in state [:feeds url :newer]
-                {:fetched fetched :fetched-at at :count n})
-      (whole state url fetched at true))))
+    (cond-> (whole state url fetched at true)
+      (and (pos? n) (listed? state guid))
+      (announcement/announced (str (text/counted n "new episode") (if (= 1 n) " is in." " are in."))))))
 
 (defn more-shown
   "The actions that list another page of the `total` episodes of the show
@@ -432,8 +432,7 @@
 
   It keeps the page's own feed, those that a request in flight or a
   subscription or unsubscription under way needs, and the kept-feeds
-  whole feeds fetched last. A kept feed that waits as :newer takes the
-  place of the one it updates, unless it's the page's own."
+  whole feeds fetched last."
   [{:keys [feeds requests subscribing unsubscribing route] :as state}]
   (let [page    (some->> (get-in route [:path-params :guid]) (source state) :url)
         needed  (-> #{page}
@@ -450,29 +449,12 @@
                      (into needed))]
     (if (every? kept (keys feeds))
       state
-      (reduce (fn [state [url {:keys [newer]}]]
-                (cond-> state
-                  (and newer (not= url page))
-                  (whole url (:fetched newer) (:fetched-at newer) true)))
-              (assoc state :feeds (select-keys feeds kept))
-              (select-keys feeds kept)))))
+      (assoc state :feeds (select-keys feeds kept)))))
 
 (defn whole-feed
   "The whole feed at `url` in `state`, as a fetch returns it with its
-  validators, where it moved to and its hubs, or nil. A :newer feed that
-  waits comes first, since a subscription should start from the newest."
+  validators, where it moved to and its hubs, or nil."
   [state url]
-  (let [{:keys [feed whole? validators newer] :as entry} (get-in state [:feeds url])]
+  (let [{:keys [feed whole? validators] :as entry} (get-in state [:feeds url])]
     (when whole?
-      (or (:fetched newer)
-          (merge validators (select-keys entry location-keys) {:feed feed})))))
-
-(defn newer-shown
-  "The `state` with the :newer feed of the show `guid` in place of the one
-  on the page."
-  [state guid]
-  (let [url             (:url (source state guid))
-        {:keys [newer]} (get-in state [:feeds url])]
-    (if newer
-      (whole state url (:fetched newer) (:fetched-at newer) true)
-      state)))
+      (merge validators (select-keys entry location-keys) {:feed feed}))))

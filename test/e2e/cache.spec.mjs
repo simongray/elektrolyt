@@ -8,7 +8,7 @@
 // between two loads, and a feed's server says max-age=1 where a show
 // should be past its time.
 
-import { test, expect, cached, episodes, feedUrl, navLink, showPath } from './fixtures.mjs';
+import { test, expect, announcement, cached, episodes, feedUrl, navLink, showPath } from './fixtures.mjs';
 
 const noon = new Date('2026-10-18T12:00:00Z');
 
@@ -103,7 +103,7 @@ test('a show outside the library opens from the cache, with no request while it 
   expect(fetched.n, 'a feed whose server names no time is fresh for an hour').toBe(before);
 });
 
-test('a show from the cache past its time is fetched again, and its new episodes wait for a button', async ({ page, show }) => {
+test('a show from the cache past its time is fetched again, and its new episodes go in at once', async ({ page, show }) => {
   show.headers = { 'Cache-Control': 'max-age=1' };
   const fetched = countFeedRequests(page);
   const main = page.getByRole('main');
@@ -116,21 +116,17 @@ test('a show from the cache past its time is fetched again, and its new episodes
 
   show.publish({ guid: 'test-episode-4', title: 'Fourth episode', published: '2026-10-18T08:00:00Z' });
   await page.reload();
-  const button = main.getByRole('button', { name: 'Show the new episode' });
-  await expect(button).toBeVisible();
-  expect(fetched.n, 'the feed alone, whole, not its start first').toBe(before + 1);
-  await expect(main.getByRole('status').filter({ hasText: '3 episodes. 1 new episode is in.' })).toBeAttached();
-  await expect(main.getByRole('link', { name: 'Fourth episode' })).toHaveCount(0);
-
-  await button.click();
   await expect(main.getByRole('link', { name: 'Fourth episode' })).toBeVisible();
-  await expect(main.getByRole('heading', { name: 'Episodes', level: 2 })).toBeFocused();
+  expect(fetched.n, 'the feed alone, whole, not its start first').toBe(before + 1);
+  await expect(announcement(page)).toHaveText('1 new episode is in.');
+  await expect(main.getByText('4 episodes.', { exact: true })).toBeVisible();
 });
 
+// The rows in view stay where they are (runtime/kept-in-place!)
 for (const width of [320, 900]) {
-  test(`the button for new episodes takes the status line's place, so the list stays put, ${width} px wide`, async ({ page, show }) => {
+  test(`new episodes go in above a listener who has scrolled, who stays where they were, ${width} px wide`, async ({ page, show }) => {
     show.headers = { 'Cache-Control': 'max-age=1' };
-    await page.setViewportSize({ width, height: 800 });
+    await page.setViewportSize({ width, height: 420 });
     const main = page.getByRole('main');
     const first = main.getByRole('link', { name: episodes[2].title }).first();
 
@@ -143,9 +139,12 @@ for (const width of [320, 900]) {
     const release = show.hold();
     await page.reload();
     await expect(first).toBeVisible();
+    // into the list, so that its heading is out of view
+    await first.evaluate(a => a.closest('li').scrollIntoView({ block: 'start' }));
+    expect(await main.evaluate(m => m.scrollTop), 'scrolled down').toBeGreaterThan(0);
     const before = (await first.boundingBox()).y;
     release();
-    await expect(main.getByRole('button', { name: 'Show the new episode' })).toBeVisible();
+    await expect(main.getByRole('link', { name: 'Fourth episode' })).toBeAttached();
     expect(Math.abs((await first.boundingBox()).y - before)).toBeLessThan(8);
   });
 }
