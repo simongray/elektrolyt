@@ -11,7 +11,7 @@
  ;; arrive in stages do. Switch back to the release on Clojars once #83 is
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
- :deps  {dk.simongray/podcast-clj {:mvn/version "0.5.1"}
+ :deps  {dk.simongray/podcast-clj {:mvn/version "0.5.2"}
          dk.simongray/play-nice   {:mvn/version "0.7.0"}
          dk.simongray/colour-coded {:mvn/version "0.1.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"

@@ -430,7 +430,7 @@ each way, Home appears in 476–518 ms with split documents against
 572–590 with whole ones, with a longest task of 210–221 ms against
 285–300. At 4x, it's 1.55–1.58 s against 1.93–1.95, and 760–781 ms
 against 1.06–1.08 s, the same as the lean documents before. It's in
-podcast-clj's checkout, unreleased.
+podcast-clj 0.5.2.
 
 Also new, and fixed: drop-in-search read each document's id as EDN at the
 start. A vector of plain strings, as the app's ids are, is now split at its
@@ -537,8 +537,7 @@ applied at the first reload, and the scripts that didn't change kept
 their names, and so the browser's copies.
 
 The libraries' commits went out in their releases of 27 October, which
-the app's deps.edn pins, all but podcast-clj's second document, which the
-app has only with the `:local` alias.
+the app's deps.edn pins.
 
 
 ## Changes you can see
