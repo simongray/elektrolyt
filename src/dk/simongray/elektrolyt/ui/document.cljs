@@ -4,6 +4,7 @@
   scroll."
   (:require [dk.simongray.colour-coded :as cc]
             [dk.simongray.elektrolyt.library.settings :as settings]
+            [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.ui :as ui]
@@ -128,12 +129,18 @@
 
 ;; ClojureScript's atoms tell their watches of a swap that changes nothing
 ;; too, e.g. the player's answer to a Play, which it keeps only when it's a
-;; refusal
+;; refusal. A hidden page, e.g. with the screen off as an episode plays,
+;; would render once a second for nobody to see the position move.
+;; https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilityState
 (defn rendered!
-  "Render the page for the `new` state, unless it's the `old` one."
+  "Render the page for the `new` state and return true, unless it's the
+  `old` one, or the page is hidden and only the player's clock changed,
+  which a render once it's shown catches up on."
   [old new]
-  (when-not (identical? old new)
-    (render! new)))
+  (when-not (or (identical? old new)
+                (and (not (runtime/visible?)) (player/clock-only? old new)))
+    (render! new)
+    true))
 
 (defn canonicalize!
   "Replace the URL in the address bar with the canonical path of the page

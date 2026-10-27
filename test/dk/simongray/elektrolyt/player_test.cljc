@@ -174,6 +174,24 @@
         "or failed, e.g. at a dead file")
     (is (nil? (player/playing here nil)))))
 
+(deftest a-change-of-the-clock-alone
+  (let [here  (state {})
+        there (state {:media {:paused true :current-time 30} :elsewhere playing-there :now 12000})]
+    (is (player/clock-only? here (assoc-in here [:player :media :current-time] 76))
+        "the position of the episode that plays here")
+    (is (player/clock-only? there (assoc-in there [:player :now] 13000))
+        "or of the one that plays in another tab, as the clock moves it on")
+    (is (not (player/clock-only? here (assoc-in here [:player :media :paused] true))) "but not a pause")
+    (is (not (player/clock-only? here (assoc-in here [:player :media :duration] 3601)))
+        "nor a new duration")
+    (is (not (player/clock-only? here (assoc-in here [:player :buffering?] true))) "nor a wait for data")
+    (is (not (player/clock-only? there (assoc-in there [:player :now] 16000)))
+        "nor the other tab falling silent")
+    (is (not (player/clock-only? here (-> here
+                                          (assoc-in [:player :media :current-time] 76)
+                                          (assoc :episodes (into {} episodes)))))
+        "nor a change of any other part of the state, even to an equal value")))
+
 (deftest a-start-before-the-end
   (is (= 754 (player/start-time 3600 754)))
   (is (nil? (player/start-time 3600 3600)) "not at the end, which would only mark it played")

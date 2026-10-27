@@ -123,3 +123,30 @@ test('Pause shows that the episode waits for its file, until it plays', async ({
   await expect(main.getByRole('button', { name: 'Pause' })).not.toHaveAttribute('data-waiting');
   await expect(player.getByRole('button', { name: 'Pause' })).not.toHaveAttribute('data-waiting');
 });
+
+/** Make the `page` seem hidden, as with the screen off, or shown again. */
+function seemHidden(page, hidden) {
+  return page.evaluate(hidden => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => (hidden ? 'hidden' : 'visible'),
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, hidden);
+}
+
+// nobody sees the position move on a hidden page (ui/document.cljs)
+test('a hidden page leaves the position where it was, and catches up once shown', async ({ page }) => {
+  await page.goto(episodePath(episodes[0]));
+  const seekBar = page.getByRole('region', { name: 'Player' }).getByRole('slider', { name: 'Position' });
+  await page.getByRole('main').getByRole('button', { name: 'Play', exact: true }).click();
+  await playsPast(page, 1);
+
+  await seemHidden(page, true);
+  const hiddenAt = Number(await seekBar.inputValue());
+  await playsPast(page, hiddenAt + 2);
+  expect(Number(await seekBar.inputValue()), 'as nothing renders the clock').toBe(hiddenAt);
+
+  await seemHidden(page, false);
+  await expect.poll(async () => Number(await seekBar.inputValue())).toBeGreaterThanOrEqual(hiddenAt + 2);
+});

@@ -168,30 +168,29 @@
               "The page's work while it was hidden")))
 
 (defn timed-render
-  "The watch `f` of the store that renders the page, measured as render
-  with the page's route, the top-level keys that changed and the renders
-  in its frame, when the app times itself."
+  "The watch `f` of the store that renders the page and returns whether it
+  did, each render measured as render with the page's route, the
+  top-level keys that changed and the renders in its frame, when the app
+  times itself."
   [f]
   (if-not ^boolean on?
     f
     (fn [old new]
-      (if (identical? old new)
-        (f old new)
-        (let [start (js/performance.now)
-              _     (f old new)
-              props {:route   (get-in new [:route :name])
-                     :changed (changed-keys old new)
-                     :renders (rendered!)}
-              ms    (measure! "render" props start)]
-          (tallied! :renders)
-          (tallied! :render-ms ms)
-          (if (< 16 ms)
-            (tel/log! {:level :info :id :perf/slow-render
-                       :data  (assoc props :ms (js/Math.round ms))}
-                      "A render took longer than a frame")
-            (tel/log! {:level :debug :id :perf/render
-                       :data  (assoc props :ms (js/Math.round ms))}
-                      "A render")))))))
+      (let [start (js/performance.now)]
+        (when (f old new)
+          (let [props {:route   (get-in new [:route :name])
+                       :changed (changed-keys old new)
+                       :renders (rendered!)}
+                ms    (measure! "render" props start)]
+            (tallied! :renders)
+            (tallied! :render-ms ms)
+            (if (< 16 ms)
+              (tel/log! {:level :info :id :perf/slow-render
+                         :data  (assoc props :ms (js/Math.round ms))}
+                        "A render took longer than a frame")
+              (tel/log! {:level :debug :id :perf/render
+                         :data  (assoc props :ms (js/Math.round ms))}
+                        "A render"))))))))
 
 (defn action-keys
   "The keywords of the `actions`, never their arguments, which hold titles

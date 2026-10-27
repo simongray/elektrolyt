@@ -526,6 +526,9 @@
       (.finally (fn []
                   (perf/mark! "startup/colors")
                   (runtime/watch! store ::render (perf/timed-render document/rendered!))
+                  ;; the player's clock, which a hidden page doesn't render
+                  (runtime/on-visible! #(document/render! @store))
+                  (runtime/on-pageshow! #(document/render! @store))
                   (runtime/watch! store ::colors
                                   (fn [_ state]
                                     (perf/measured! "colors" {:route (get-in state [:route :name])}

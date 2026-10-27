@@ -176,6 +176,21 @@
   [(:id player) (shown-id player) (:paused media) (boolean (:error media)) (boolean buffering?)
    (:id (elsewhere player))])
 
+(defn clock-only?
+  "Whether the state `new` differs from `old` in the player's clock alone:
+  the position of the episode that it shows, here or in another tab, and
+  the time that moves that on."
+  [old new]
+  (let [p        (:player old)
+        q        (:player new)
+        timeless #(dissoc % :current-time)]
+    (and (every? #(or (= :player %) (identical? (get old %) (get new %)))
+                 (into (set (keys old)) (keys new)))
+         (= (dissoc p :media :now :elsewhere) (dissoc q :media :now :elsewhere))
+         (= (content-facts p) (content-facts q))
+         (= (timeless (:media p)) (timeless (:media q)))
+         (= (timeless (shown-media p)) (timeless (shown-media q))))))
+
 (def shown-keys
   "The keys of an element's media state that the page reads: the told-keys,
   and whether it seeks or failed."
