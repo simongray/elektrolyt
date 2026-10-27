@@ -377,6 +377,34 @@ alone: `:advanced` renamed the `refocus` key of an element's dataset, so
 the focus never moved where `data-refocus` named, e.g. to Up next's
 heading when another tab left an Undo nothing to undo.
 
+Done since, #83: `(listen! timed)` serves a release that marks its work as
+the dev build does, with readable names, and the bench takes
+`BENCH_PROFILE` and `BENCH_CPU`. On the bench's 50 shows in headless
+Chrome, freshly seeded:
+
+| | Dev | Release | Release at 4x |
+| --- | --- | --- | --- |
+| Home appears | 0.77–0.80 s | 0.57–0.60 s | 1.92–1.94 s |
+| Longest task at the start | 303–314 ms | 291–305 ms | 1.06–1.08 s |
+| The picks | 2.00–2.05 s | 1.75–1.82 s | 3.32–3.38 s |
+| Longest task of subscribing to 4,575 episodes | 402–432 ms | 393–417 ms | 1.61–1.69 s |
+
+A release shows Home about 0.2 s sooner, almost all of it from loading
+its scripts faster. The longest tasks are the same in both builds, since
+they run code that's optimized either way: Transit decoding the library's
+feeds at the start, and building the index's segments when subscribing.
+At 4x, 0.65 s of the 2.1 s before Home is Transit's reader and decoder,
+0.35 s is IndexedDB handing over the documents, and 0.12 s is garbage
+collection. Firefox and Safari aren't profiled yet.
+
+Since the review before the release, the feeds' documents are whole, and
+that costs the start: the bench's old library, whose documents are lean,
+opens Home on a release in 0.47–0.56 s with a longest task of 209–227 ms,
+and in 1.54–1.58 s with one of 755–779 ms at 4x. So whole documents add
+about 0.1 s, and 0.4 s at 4x, as a task of over a second on a slow phone.
+A second document of each feed, of the notes that the library leaves
+out, which a start doesn't read, would win that back.
+
 Also new, and fixed: drop-in-search read each document's id as EDN at the
 start. A vector of plain strings, as the app's ids are, is now split at its
 quotes (drop-in-search 9ca9ed8), so decoding the library of 53 shows takes
@@ -601,7 +629,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 80 | [Build an open transcript's and chapter list's Hiccup once, not every render](#80-build-an-open-transcripts-and-chapter-lists-hiccup-once-not-every-render) | Rendering | 3 | 2 | 8 | low | Done |
 | 81 | [Make the queue, inbox and shows cheap to recompute at each progress report](#81-make-the-queue-inbox-and-shows-cheap-to-recompute-at-each-progress-report) | Rendering | 6 | 2 | 6 | low | Part done |
 | 82 | [Time each Nexus dispatch and count its renders in dev](#82-time-each-nexus-dispatch-and-count-its-renders-in-dev) | Measurement | 2 | 1 | 4 | high | Done |
-| 83 | [Profile a release build, with the listener's library, not the dev build](#83-profile-a-release-build-with-the-listeners-library-not-the-dev-build) | Measurement | 3 | 1 | 4 | medium | Later |
+| 83 | [Profile a release build, with the listener's library, not the dev build](#83-profile-a-release-build-with-the-listeners-library-not-the-dev-build) | Measurement | 3 | 1 | 4 | medium | Done |
 | 84 | [Mark each startup stage and log the time to the first render](#84-mark-each-startup-stage-and-log-the-time-to-the-first-render) | Measurement | 3.5 | 1 | 4 | high | Done |
 | 85 | [Render the page's frame at init, before the library is read](#85-render-the-pages-frame-at-init-before-the-library-is-read) | Startup | 4.5 | 2 | 6 | low | Done |
 | 86 | [Decode each feed document as its fetch resolves in podcast-clj's read!](#86-decode-each-feed-document-as-its-fetch-resolves-in-podcast-cljs-read) | Startup | 3 | 1 | 4 | low | Deferred |
