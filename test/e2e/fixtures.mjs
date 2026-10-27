@@ -98,8 +98,18 @@ export function navLink(page, title) {
  * like-minded opens it, so that a test that comes first makes it the same.
  */
 export function cached(page) {
-  return page.evaluate(() => new Promise((resolve, reject) => {
-    const request = indexedDB.open('dk.simongray.elektrolyt.cache', 1);
+  return documentNames(page, 'dk.simongray.elektrolyt.cache');
+}
+
+/** The names of the documents in the library's database, as cached has them. */
+export function stored(page) {
+  return documentNames(page, 'dk.simongray.elektrolyt.library');
+}
+
+/** The names of the documents in the like-minded database `name`. */
+function documentNames(page, name) {
+  return page.evaluate((name) => new Promise((resolve, reject) => {
+    const request = indexedDB.open(name, 1);
     request.onupgradeneeded = () => {
       request.result.createObjectStore('bodies');
       request.result.createObjectStore('versions');
@@ -113,7 +123,7 @@ export function cached(page) {
         resolve(keys.result);
       };
     };
-  }));
+  }), name);
 }
 
 /**

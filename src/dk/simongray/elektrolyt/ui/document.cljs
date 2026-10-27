@@ -114,9 +114,10 @@
   [state]
   (let [^js focused js/document.activeElement]
     (r/render (js/document.getElementById "app") (ui/page state))
+    ;; by its name, since a release build renames a key of the dataset
     (when-let [selector (and focused
                              (not (.-isConnected focused))
-                             (some-> focused .-dataset .-refocus))]
+                             (.getAttribute focused "data-refocus"))]
       (some-> (js/document.querySelector selector) .focus)))
   (let [title (ui/document-title state)]
     (when (not= title js/document.title)

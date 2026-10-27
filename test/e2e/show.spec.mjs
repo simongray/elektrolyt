@@ -1,16 +1,12 @@
-import { test, expect, announcement, episodePath, episodes, feedUrl, navLink, showPath, showTitle }
-  from './fixtures.mjs';
+import { test, expect, announcement, episodePath, episodes, feedUrl, navLink, showPath, showTitle,
+  stored } from './fixtures.mjs';
 
-// The worker keeps only the fullest of an episode's notes, which the page
-// shows, and so a refresh of the same feed finds nothing changed
+// The library keeps only the fullest of an episode's notes once it reads a
+// feed, which the page shows, while the feed's document keeps them all, so
+// a refresh of the same feed finds nothing changed and writes no document
 test('an episode shows its fullest notes, which a refresh finds unchanged', async ({ page }) => {
   const main = page.getByRole('main');
-  const changed = () => page.evaluate(() => {
-    const c = window.cljs.core;
-    const k = c.keyword;
-    const status = c.get(c.deref(window.dk.simongray.elektrolyt.store), k('refresh-status'));
-    return c.get(c.get(c.get(status, k('result')), k('counts')), k('changed'));
-  });
+  const feeds = async () => (await stored(page)).filter((name) => name.startsWith('feed-')).sort();
 
   await page.goto(showPath);
   await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
@@ -20,9 +16,11 @@ test('an episode shows its fullest notes, which a refresh finds unchanged', asyn
   await expect(main.getByText(`A summary of ${episodes[0].title}.`)).toHaveCount(0);
 
   await navLink(page, 'Library').click();
+  const before = await feeds();
+  expect(before).toHaveLength(1);
   await main.getByRole('button', { name: 'Check for new episodes' }).click();
   await expect(announcement(page)).toHaveText('No new episodes');
-  expect(await changed()).toBe(0);
+  expect(await feeds()).toEqual(before);
 });
 
 test('unsubscribing keeps the page by the URL of its feed', async ({ page }) => {
