@@ -398,7 +398,6 @@ input[type="file"]:focus-visible::file-selector-button {
 button.primary {
   color: var(--accent-ink);
   background: var(--grain) 0 0 / var(--grain-size), var(--accent);
-  border-color: var(--accent);
 }
 
 button.primary:focus-visible,
