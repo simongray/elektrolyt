@@ -115,7 +115,7 @@ test('the bookmark pulses while a subscription works, unless motion is reduced',
   await page.goto(showPath);
   await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
   await expect(bookmark).toHaveClass(/subscribing/);
-  expect(await animation()).toBe('drop, pulse');
+  expect(await animation()).toBe('pulse');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await animation()).toBe('none');
 

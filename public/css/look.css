@@ -1144,11 +1144,11 @@ search p {
     animation: busy 1s ease-in-out 1s 4 alternate;
   }
 
-  /* the bookmark drops into place as it fills in, and pulses three times
-     while the subscription works, which stops within 5 seconds (WCAG
-     2.2.2). Only its drawing moves, so the focus ring stays still. */
+  /* the bookmark pulses three times while the subscription works, which
+     stops within 5 seconds (WCAG 2.2.2). Only its drawing fades, so the
+     focus ring stays as it is. */
   .icon-button.bookmark.subscribing .icon {
-    animation: drop 0.2s ease-out, pulse 1.2s ease-in-out 0.4s 3;
+    animation: pulse 1.2s ease-in-out 3;
   }
 
   /* a dialog and its backdrop ease in, and go at once: a fade out needs
@@ -1198,12 +1198,6 @@ search p {
 
   ::view-transition-group(*) {
     animation-duration: 0.25s;
-  }
-}
-
-@keyframes drop {
-  from {
-    translate: 0 -10%;
   }
 }
 

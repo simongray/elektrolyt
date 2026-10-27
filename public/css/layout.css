@@ -117,8 +117,8 @@ button.disclosure {
    so that the title and its byline keep one edge, and with its drawing
    as far from the title as the artwork is. As a drop cap spans its
    lines, its drawing spans the title and the first line of the byline,
-   from the top of the title's capitals to the byline's baseline, or to
-   the title's own where there's no byline. The lengths come from the
+   from the top of the title's capitals to the bottom of the byline's
+   line, or of the title's own where there's no byline. The lengths come from the
    type of each (look.css) and from Charis's metrics (tokens.css): a
    line's middle is its leading's half from its edges, and --line-middle
    above its baseline. Between the two lines is the hgroup's margin
@@ -130,6 +130,7 @@ button.disclosure {
    https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
 .with-bookmark {
   --to-byline: 0px;
+  --below-baseline: calc(var(--title-size) * (var(--title-leading) / 2 - var(--line-middle)));
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: calc(1em - var(--space-1) - 1px);
@@ -139,6 +140,7 @@ button.disclosure {
 .with-bookmark:has(> hgroup > p) {
   --to-byline: calc(var(--title-size) * (var(--title-leading) / 2 - var(--line-middle)) + var(--space-1)
                     + var(--byline-size) * (var(--byline-leading) / 2 + var(--line-middle)));
+  --below-baseline: calc(var(--byline-size) * (var(--byline-leading) / 2 - var(--line-middle)));
 }
 
 .with-bookmark > :not(.bookmark) {
@@ -158,7 +160,7 @@ button.disclosure {
 /* the drawing alone, in a box of its own size (ui/subscription.cljc) */
 .icon-button.bookmark .icon {
   width: auto;
-  height: calc(var(--title-size) * var(--cap-height) + var(--to-byline));
+  height: calc(var(--title-size) * var(--cap-height) + var(--to-byline) + var(--below-baseline));
   aspect-ratio: 144 / 199;
 }
 
