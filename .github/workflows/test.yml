@@ -92,9 +92,10 @@ jobs:
 
   # The budgets of the key flows, in the runner's Chrome at a quarter of its
   # CPU's speed, against a release. The runners keep budgets of their own,
-  # in test/e2e/perf-budgets-ci.json, which the job measures over five runs
-  # and prints when the file is missing. It reports without failing the
-  # run until they're calibrated here.
+  # in test/e2e/perf-budgets-ci.json. When the file is missing, the job
+  # measures them over five runs, prints them and fails, since it has
+  # nothing to check. It reports without failing the run until they're
+  # calibrated here.
   perf:
     name: Performance budgets
     runs-on: ubuntu-24.04
@@ -135,6 +136,9 @@ jobs:
             npm run perf
           else
             PERF_CALIBRATE=1 npm run perf
+            echo "No budgets of CI's own to check. Keep these as test/e2e/perf-budgets-ci.json:"
+            cat test/e2e/perf-budgets-ci.json
+            exit 1
           fi
 
       - name: The traces of the flows over budget
