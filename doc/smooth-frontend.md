@@ -416,8 +416,9 @@ and at least 100 ms, and a click on Subscribe must paint within 200 ms.
 On this Mac the medians were 150 ms to open the show, 367 ms to subscribe,
 17 ms to go to the Library and back, 17 ms to show more, 50 ms to play and
 67 ms to check for new episodes, and Subscribe painted within 56–64 ms. CI
-runs it in a job of its own that doesn't fail the run until the budgets
-are calibrated on its machines. Firefox and Safari have neither the
+runs it in a job of its own that doesn't fail the run. Its runners were
+two to three times slower and went over this Mac's budgets, so they keep
+budgets of their own, which the job calibrated over five runs on CI. Firefox and Safari have neither the
 throttling nor long animation frames, so the budgets are Chrome's alone.
 
 Done since, the second document: with `:lean?`, podcast-clj writes each
