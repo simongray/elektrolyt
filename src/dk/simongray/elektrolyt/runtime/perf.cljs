@@ -140,6 +140,14 @@
   [_]
   (tallied! :timeupdates))
 
+;; the same function each time, which an element adds only once
+(defn tally-timeupdates!
+  "Count the timeupdate events of the player's `element` while the page is
+  hidden, when the app times itself."
+  [^js element]
+  (when ^boolean on?
+    (.addEventListener element "timeupdate" timeupdated!)))
+
 (defn hidden!
   "Start a tally of the page's work while it's hidden, when the app times
   itself."

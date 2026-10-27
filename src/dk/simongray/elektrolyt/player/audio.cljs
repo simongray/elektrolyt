@@ -754,9 +754,7 @@
       ;; buttons are there for it
       (runtime/idle! 2000 #(read-library-files! store id)))
     (media/volume! element (or volume 1) {:curve :cubic})
-    ;; the same function each time, which an element adds only once
-    (when ^boolean perf/on?
-      (.addEventListener element "timeupdate" perf/timeupdated!))
+    (perf/tally-timeupdates! element)
     (runtime/attach-player! element {:on-media     #(changed! store %)
                                      :on-report    (reporter store)
                                      :lock         player/element-name
