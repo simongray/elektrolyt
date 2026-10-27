@@ -94,11 +94,10 @@ jobs:
   # CPU's speed, against a release. The runners keep budgets of their own,
   # in test/e2e/perf-budgets-ci.json. When the file is missing, the job
   # measures them over five runs, prints them and fails, since it has
-  # nothing to check. It reports without failing the run.
+  # nothing to check.
   perf:
     name: Performance budgets
     runs-on: ubuntu-24.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
 

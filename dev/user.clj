@@ -85,7 +85,7 @@
 (defn listen!
   "Build a release of the app with the `opts` that release! takes, and
   serve it on the same origin, in place of the watch's build, which
-  develop! serves again. A tab gets the release when it reloads."
+  restart! serves again. A tab gets the release when it reloads."
   ([]
    (listen! {}))
   ([opts]
@@ -94,16 +94,10 @@
    ((requiring-resolve 'dk.simongray.elektrolyt.server/start!)
     {:secrets secrets :client-dir release-dir :release? true})))
 
-(defn develop!
-  "Serve the watch's build again, after listen!."
-  []
-  (restart!))
-
 (comment
   (start!)
   (restart!)
   (stop!)
   (listen!)
   (listen! timed)
-  (develop!)
   #_.)
