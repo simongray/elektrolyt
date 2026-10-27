@@ -116,6 +116,57 @@
     (js/requestAnimationFrame #(swap! render-counts assoc :frame 0)))
   (:frame @render-counts))
 
+;; What the page does while it's hidden, e.g. with the screen locked during
+;; playback, is logged once it's shown, since a remote inspector that
+;; watches can keep the page awake itself
+(defonce ^{:doc "The tally of the page's work since it was hidden, or nil
+  while it's shown: when it was hidden, as :since, and a count of each
+  kind of work, e.g. :renders."}
+  hidden-tally
+  (atom nil))
+
+(defn tallied!
+  "Add `n`, or one, to `k` in the tally of the page's work while it's
+  hidden."
+  ([k]
+   (tallied! k 1))
+  ([k n]
+   (when @hidden-tally
+     (swap! hidden-tally update k (fnil + 0) n))))
+
+(defn timeupdated!
+  "Count a timeupdate event of the player's element while the page is
+  hidden."
+  [_]
+  (tallied! :timeupdates))
+
+(defn hidden!
+  "Start a tally of the page's work while it's hidden, when the app times
+  itself."
+  []
+  (when ^boolean on?
+    (reset! hidden-tally {:since (js/Date.now)})))
+
+(defn tally-summary
+  "The `tally` of the page's work while it was hidden until `now`: the
+  minutes it was hidden, and each count with its rate a minute."
+  [{:keys [since] :as tally} now]
+  (let [minutes (/ (- now since) 60000)
+        tenths  #(/ (js/Math.round (* 10 %)) 10)]
+    (into {:minutes (tenths minutes)}
+          (for [[k n] (dissoc tally :since)]
+            [k {:count (js/Math.round n) :per-minute (tenths (/ n minutes))}]))))
+
+(defn shown!
+  "End the tally of the page's work while it was hidden, and log it as
+  :perf/hidden-tally."
+  []
+  (when-let [tally @hidden-tally]
+    (reset! hidden-tally nil)
+    (tel/log! {:level :info :id :perf/hidden-tally
+               :data  (tally-summary tally (js/Date.now))}
+              "The page's work while it was hidden")))
+
 (defn timed-render
   "The watch `f` of the store that renders the page, measured as render
   with the page's route, the top-level keys that changed and the renders
@@ -132,6 +183,8 @@
                      :changed (changed-keys old new)
                      :renders (rendered!)}
               ms    (measure! "render" props start)]
+          (tallied! :renders)
+          (tallied! :render-ms ms)
           (if (< 16 ms)
             (tel/log! {:level :info :id :perf/slow-render
                        :data  (assoc props :ms (js/Math.round ms))}

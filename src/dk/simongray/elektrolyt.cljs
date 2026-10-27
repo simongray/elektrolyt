@@ -496,7 +496,10 @@
   (perf/mark! "startup/init")
   (log/start! js/window)
   (when ^boolean perf/on?
-    (nxr/register-interceptor! perf/dispatch-interceptor))
+    (nxr/register-interceptor! perf/dispatch-interceptor)
+    (runtime/watch! store ::tally (fn [_ _] (perf/tallied! :changes)))
+    (runtime/on-hidden! perf/hidden!)
+    (runtime/on-visible! perf/shown!))
   (perf/observed! #(get-in @store [:route :name]))
   (r/set-dispatch! #(nxr/dispatch store %1 %2))
   ;; the page's frame at once, while the library is read

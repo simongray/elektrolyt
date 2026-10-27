@@ -64,6 +64,20 @@
   (is (= "a" (perf/target #js {:tagName "A" :id ""})) "without its label")
   (is (nil? (perf/target nil))))
 
+(deftest a-tally-while-hidden
+  (perf/tallied! :renders)
+  (is (nil? @perf/hidden-tally) "nothing while the page is shown")
+  (perf/hidden!)
+  (perf/tallied! :renders)
+  (perf/tallied! :render-ms 2.5)
+  (perf/tallied! :render-ms 4)
+  (is (= {:renders 1 :render-ms 6.5} (dissoc @perf/hidden-tally :since)))
+  (is (= {:minutes 2 :renders {:count 3 :per-minute 1.5} :render-ms {:count 7 :per-minute 3.3}}
+         (perf/tally-summary {:since 0 :renders 3 :render-ms 6.5} 120000))
+      "and once it's shown, each count with its rate a minute")
+  (perf/shown!)
+  (is (nil? @perf/hidden-tally) "which ends it"))
+
 (deftest a-measure-in-the-dev-build
   (is perf/on? "since the tests run in a dev build")
   (is (= 3 (perf/measured! "test/sum" {:n 2} #(+ 1 2))))

@@ -27,6 +27,7 @@
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.local :as local]
+            [dk.simongray.elektrolyt.runtime.perf :as perf]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [taoensso.telemere :as tel]))
@@ -56,6 +57,7 @@
 (defn post!
   "Send the `message` to the other tabs on the player's channel."
   [message]
+  (perf/tallied! :posts)
   (runtime/post! player/channel-name message))
 
 (defn tell!
@@ -736,6 +738,9 @@
       ;; buttons are there for it
       (runtime/idle! 2000 #(read-library-files! store id)))
     (media/volume! element (or volume 1) {:curve :cubic})
+    ;; the same function each time, which an element adds only once
+    (when ^boolean perf/on?
+      (.addEventListener element "timeupdate" perf/timeupdated!))
     (runtime/attach-player! element {:on-media     #(changed! store %)
                                      :on-report    (reporter store)
                                      :lock         player/element-name
