@@ -485,11 +485,17 @@ them as a phone would.
 Done since, #55's tally in the dev build: while the page is hidden, it
 counts the timeupdates, the store's changes, the renders with their
 milliseconds and the posts on the player's channel, and logs them as
-`:perf/hidden-tally` once the page is shown. In the simulator, with the
-episode muted so that it played without sound, Safari suspended the page
-in the background: 1 timeupdate and 2 renders in 3 minutes, and the
-episode's position barely moved. What it does while an episode plays
-with sound needs a run with sound.
+`:perf/hidden-tally` once the page is shown. In the simulator, an episode
+that played with sound for 3 minutes, with Safari in the background, kept
+the page at work: 713 timeupdates, about four a second, and 193 store
+changes, 193 renders and 180 posts on the player's channel, each about
+one a second. The renders took 1,150 ms in all, about 6 ms each, as on
+the same page while it's visible, where the median was 5 ms. A muted
+episode was suspended with the page instead: 1 timeupdate and 2 renders
+in 3 minutes, and its position barely moved. So while a listener plays
+an episode with the screen off, the page renders every second for no one
+to see, which is #44's case. The simulator's lock needs its panel, so
+opening Settings sent Safari to the background in its place.
 
 #93 in Safari, with the same library and after a garbage collection: the
 JavaScript heap was 259 MB after the start, 293 MB after ten outside
