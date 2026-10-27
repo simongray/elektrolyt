@@ -199,6 +199,18 @@ Without them, name `:server` alone:
 E2E_ALIASES=:server npm run e2e
 ```
 
+To run them against a release, as CI does, build one with `(release!)` in
+the watch's nREPL, or `clojure -M:cljs clj-run user/release!` without the
+watch, and set `E2E_RELEASE=1`.
+
+`npm run perf` checks the key flows against their budgets: a show of 2,500
+episodes opened, subscribed to, left for the Library and back, shown in
+full, played and checked for new episodes, in Chrome at a quarter of the
+CPU's speed. A flow's longest frame must stay under its budget in
+`test/e2e/perf-budgets.json`, which `PERF_CALIBRATE=1 npm run perf`
+measures over five runs and writes. The budgets are a release's, so run
+it with `E2E_RELEASE=1`.
+
 To check the size of the release build, evaluate `(sizes/check!)` in the
 watch's nREPL, or run `clojure -M:cljs clj-run sizes/check!` without the
 watch. It builds a release into a snapshot of its own, prints each
@@ -207,7 +219,10 @@ namespace's share of it and writes shadow-cljs's report to
 budget in `dev/sizes.edn`, raw or gzipped, so raise a budget only for a
 dependency you add on purpose.
 
-CI runs all four, and lints `src`, `test` and `dev` with clj-kondo first.
+CI runs all four, the end-to-end tests against a release, and lints
+`src`, `test` and `dev` with clj-kondo first. A job of its own checks the
+performance budgets, without failing the run until they're calibrated on
+CI's machines.
 
 To time the app with a library the size of a listener's, there's a
 benchmark of 50 shows from podcast-clj's sweep corpus, 27,575 episodes in
@@ -222,7 +237,8 @@ node test/e2e/bench/bench.mjs open 5
 
 It takes the corpus from a podcast-clj checkout beside this one, unless
 `BENCH_CORPUS` names another folder, and the app from port 8400, unless
-`BENCH_URL` names another. Its `shows.opml` imports the same shows with
+`BENCH_URL` names another. `BENCH_CPU=4` slows the CPU down four times,
+and `BENCH_PROFILE` names the folder of another library to keep. Its `shows.opml` imports the same shows with
 their real feeds too, e.g. to profile the app in your own browser.
 
 Every build marks the stages of the page's start on its timeline, e.g.

@@ -89,3 +89,52 @@ jobs:
           name: build-report
           path: target/build-report.html
           if-no-files-found: ignore
+
+  # The budgets of the key flows, in the runner's Chrome at a quarter of its
+  # CPU's speed, against a release. They were calibrated on a faster
+  # machine, so the job reports without failing the run until they're
+  # calibrated here.
+  perf:
+    name: Performance budgets
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: DeLaGuardo/setup-clojure@13.7.0
+        with:
+          cli: latest
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            .cpcache
+          key: clojure-${{ runner.os }}-${{ hashFiles('deps.edn') }}
+
+      - name: The key flows within their budgets
+        env:
+          E2E_ALIASES: ':server'
+          E2E_RELEASE: '1'
+        run: |
+          npm ci
+          clojure -M:cljs clj-run user/release!
+          npm run perf
+
+      - name: The traces of the flows over budget
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-traces
+          path: target/perf

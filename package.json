@@ -2,7 +2,8 @@
   "name": "elektrolyt",
   "private": true,
   "scripts": {
-    "e2e": "playwright test -c test/e2e"
+    "e2e": "playwright test -c test/e2e",
+    "perf": "playwright test -c test/e2e/perf.config.mjs"
   },
   "devDependencies": {
     "@phosphor-icons/core": "2.1.1",
