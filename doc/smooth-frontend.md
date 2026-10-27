@@ -292,9 +292,11 @@ Deferred, by what was measured:
   task, so the save doesn't hold up a click's frame.
 - #10, for later: after #85, the page is blank only while its scripts run,
   0.3 s in dev. It's worth doing if a phone shows that gap.
-- #44's render once a task: a render while only the clock ticks takes
-  0.30 ms, and the lock screen's Next needs playback with sound to
-  measure. Its skip of the clock's renders is done (see below).
+- #44's render once a task: in the iOS Simulator, an autoplay in the
+  background set the next episode's source 11 ms after the end, with 6
+  renders between, so batching them would save a few milliseconds on the
+  Mac's CPU. Its
+  skip of the clock's renders is done (see below).
 - #47, with #18: the contention it targets measured small.
 - #53: WebKit fetched /api/server twice with a preload.
 - #76: the Library's content for 54 shows builds in 2.7 ms and its sort
@@ -503,7 +505,10 @@ the player's clock alone doesn't render, as `player/clock-only?` tells,
 and the page renders once it's shown again. The same run with sound made
 14 renders in 3 minutes rather than 193, in 155 ms rather than 1,150:
 about as many as the reports of the position to the library, one every
-15 seconds. Rendering once a task, for a lock screen's Next, isn't done.
+15 seconds. Rendering once a task, for a lock screen's Next, isn't done:
+an autoplay with Safari in the background rendered 6 times between the
+end of one episode and the next one's source, which the element had 11
+ms after the end.
 
 #93 in Safari, with the same library and after a garbage collection: the
 JavaScript heap was 259 MB after the start, 293 MB after ten outside
