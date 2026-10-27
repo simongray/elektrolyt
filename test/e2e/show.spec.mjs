@@ -72,27 +72,27 @@ test('unsubscribing after a reload keeps the episodes', async ({ page, context }
   await expect(main.getByRole('link', { name: episodes[0].title })).toBeVisible();
 });
 
-// WCAG 2.2.2: the line under the status of a slow load moves for 5
-// seconds at most, and not at all where the listener asks for less motion.
-// The rows in the place of the episodes are for the eye alone.
-test('a slow load moves a line under its status, unless motion is reduced', async ({ page, show }) => {
+// A slow load shows rows in the place of the episodes, for the eye alone,
+// which breathe unless the listener asks for less motion, while its status
+// is for a screen reader alone (ui/loading.cljc)
+test('a slow load shows rows in its place, and its status only to a screen reader', async ({ page, show }) => {
   const main = page.getByRole('main');
   const loading = main.getByRole('status').filter({ hasText: 'Loading the show…' });
-  const animation = () => loading.evaluate(p => getComputedStyle(p, '::after').animationName);
   const skeleton = main.locator('ol.skeleton-rows');
+  const animation = () => skeleton.locator('.show-episode > div').first().evaluate(b => getComputedStyle(b).animationName);
   const release = show.hold();
 
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto(showPath);
-  await expect(loading).toBeVisible();
-  expect(await animation()).toBe('busy');
+  await expect(loading).toHaveClass(/visually-hidden/);
+  await expect(skeleton).toHaveAttribute('aria-hidden', 'true');
+  expect(await animation()).toBe('breathe');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await animation()).toBe('none');
-  await expect(skeleton).toHaveAttribute('aria-hidden', 'true');
   await expect(main.getByRole('listitem')).toHaveCount(0);
 
   release();
-  await expect(main.getByText(`${episodes.length} episodes.`, { exact: true })).not.toHaveClass(/busy/);
+  await expect(main.getByText(`${episodes.length} episodes.`, { exact: true })).not.toHaveClass(/visually-hidden/);
   await expect(skeleton).toHaveCount(0);
 });
 

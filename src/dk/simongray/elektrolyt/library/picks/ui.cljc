@@ -8,6 +8,7 @@
   (:require [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (defn search-link
@@ -54,17 +55,19 @@
 
 ;; The picks are found after the page paints, so a section shows the last
 ;; ones while the next are found, and before the first, its heading over a
-;; line that says they're on the way
+;; row in their place. Each section's words stay out of the status role,
+;; since several read out at once are read as badly as none.
 (defn kept-section
   "The `picks-section` in `state` of the picks `kept` there, as picks/kept
-  gives them, as section shows them, or else its heading over a line that
-  says they're on the way."
+  gives them, as section shows them, or else its heading over a row in
+  their place."
   [state {:keys [id heading] :as picks-section} kept]
   (if kept
     (section state picks-section (:picks kept))
     [:section.picks {:aria-labelledby id :aria-busy "true"}
      [:h2 {:id id :tabindex -1} heading]
-     [:p.busy "Looking for episodes…"]]))
+     [:p.visually-hidden "Looking for episodes…"]
+     (loading/rows 1)]))
 
 (defn folded
   "The `section` in `state` of the picks at `place`, e.g. [:show guid],
@@ -74,4 +77,5 @@
                       #(if-let [picks (picks-fn)]
                          (picks-list state lead none picks)
                          ;; before the library's index is made
-                         [:p.busy {:role "status"} "Looking for episodes like it…"])))
+                         (list (loading/status "Looking for episodes like it…")
+                               (loading/rows 1)))))

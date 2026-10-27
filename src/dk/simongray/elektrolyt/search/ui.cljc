@@ -12,6 +12,7 @@
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
             [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
@@ -101,7 +102,11 @@
   "The status line of the `search` for `q`, on the page even before the
   search starts."
   [q search]
-  [(if (some-> search search/searching?) :p.busy :p) {:role "status"} (status-text q search)])
+  (if (some-> search search/searching?)
+    ;; a line of its own still, so that the lists don't move once it sums
+    ;; them up
+    [:p.searching {:role "status"} [:span.visually-hidden (status-text q search)]]
+    [:p {:role "status"} (status-text q search)]))
 
 (defn show-link
   "The link to the page of the show in the search `result`, which fetches
@@ -199,8 +204,10 @@
                                      :data-refocus (str "#" (list-id source))
                                      :on           {:click [[:search/retry q source]]}}
                     "Try again" [:span.visually-hidden " " (search/source-name source)]])
-     [(if (= :searching status) :p.busy :p) (list-text q l)])
-   (results state :h3 (:results l))])
+     [(if (= :searching status) :p.visually-hidden :p) (list-text q l)])
+   (if (and (= :searching status) (empty? (:results l)))
+     (loading/rows 3)
+     (results state :h3 (:results l)))])
 
 (defn jump-label
   "What a link in the jump row shows of the list `l` after its directory's

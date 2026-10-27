@@ -22,6 +22,7 @@
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (def app-name
@@ -201,16 +202,13 @@
   [:p.visually-hidden {:role "status"}
    [:span {:replicant/key announcements} announcement]])
 
-;; NN/g: a skeleton screen shows the shape of a page as it loads, and a
-;; wait of less than a second needs no sign, so it shows only after one
-;; (look.css)
-;; https://www.nngroup.com/articles/skeleton-screens/
+;; NN/g: a wait of less than a second needs no sign, so the skeleton shows
+;; only after one (look.css)
 ;; https://www.nngroup.com/articles/progress-indicators/
 (def skeleton
   "The content of a page while the app starts: a line for a screen reader,
   and blocks in the place of the content, hidden from it."
-  (list [:p.visually-hidden "Loading…"]
-        [:div.skeleton {:aria-hidden "true"} [:div] [:div] [:div]]))
+  (list [:p.visually-hidden "Loading…"] loading/lines))
 
 (def library-pages
   "The names of the routes whose pages need the listener's library."

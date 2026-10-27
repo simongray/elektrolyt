@@ -443,6 +443,12 @@ search p {
   margin-top: var(--space-2);
 }
 
+/* the search's status line keeps its line while it searches, though only
+   a screen reader hears what it says then (search/ui.cljc) */
+p.searching {
+  min-block-size: 1lh;
+}
+
 /* A result has its artwork beside its title and author, whether or not it
    has artwork */
 .search-results > li {
@@ -477,9 +483,9 @@ main h1,
   overflow-wrap: anywhere;
 }
 
-/* The skeleton of a page while the app starts (ui.cljc), or while an
-   Episode page's feed loads: three lines of text below the heading, each
-   shorter than the one before */
+/* The skeleton of a page while the app starts or its text loads
+   (ui/loading.cljc): three lines of text below the heading, each shorter
+   than the one before */
 .skeleton {
   display: grid;
   gap: var(--space-3);
@@ -499,8 +505,8 @@ main h1,
   width: 60%;
 }
 
-/* The rows in the place of a show's episodes while they load
-   (show/ui.cljc): the artwork's square beside a title and a line of
+/* The rows in the place of a list of episodes or shows while it loads
+   (ui/loading.cljc): the artwork's square beside a title and a line of
    facts, in the grid of an episode's row */
 .skeleton-rows .show-episode > div:first-child {
   grid-column: 1;
@@ -518,22 +524,6 @@ main h1,
 .skeleton-rows .show-episode > div:last-child {
   width: 40%;
   margin-top: var(--space-2);
-}
-
-/* The line just below the status of a wait on the network, apart from
-   its letters so that it isn't taken for an underline, which moves across
-   it (look.css) */
-.busy {
-  position: relative;
-}
-
-.busy::after {
-  content: "";
-  position: absolute;
-  bottom: calc(-1 * var(--space-1));
-  left: 0;
-  width: 30%;
-  height: 2px;
 }
 
 /* The notes apart from the header above them, and their own headings and

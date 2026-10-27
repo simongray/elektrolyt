@@ -18,6 +18,7 @@
             [dk.simongray.elektrolyt.ui.links :as links]
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]
             [dk.simongray.wary-fetch.url :as url]))
@@ -272,8 +273,9 @@
         ;; read on mount, so that an open transcript whose read was dropped
         ;; from the state is read again when its page shows once more
         (not= :read transcript-status)
-        [:p.busy {:role "status" :replicant/on-mount [[:episode/read-transcript id view]]}
-         "Loading the transcript…"]
+        (list (loading/status {:replicant/on-mount [[:episode/read-transcript id view]]}
+                               "Loading the transcript…")
+              loading/lines)
 
         (or error (empty? (:segments document)))
         [:p {:role "status"} "The transcript couldn't be read."]
@@ -293,10 +295,9 @@
   [state]
   (let [{:keys [guid]} (get-in state [:route :path-params])]
     (case (episode/status state guid)
-      :looking-up show-ui/looking-up
       ;; lines in the place of the notes, as the page's skeleton has them
-      :loading    (list [:p.busy {:role "status"} "Loading the episode…"]
-                        [:div.skeleton {:aria-hidden "true"} [:div] [:div] [:div]])
+      :looking-up (list show-ui/looking-up loading/lines)
+      :loading    (list (loading/status "Loading the episode…") loading/lines)
       :no-show    show-ui/not-found
       :failed     [:p {:role "status"}
                    (show-ui/status-text :failed 0 (:error (show-ui/source state)) nil)]

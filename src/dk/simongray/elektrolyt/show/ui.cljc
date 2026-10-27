@@ -20,6 +20,7 @@
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
             [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
@@ -174,16 +175,9 @@
                                   :on           {:click [[:show/retry (guid state) (:url (source state))]]}}
                  "Try again" [:span.visually-hidden " to fetch the feed"]]))
 
-;; NN/g: rows in the place of the episodes hold the page's shape while they
-;; load, and like the page's skeleton as the app starts, they show only
-;; after a second (look.css)
-;; https://www.nngroup.com/articles/skeleton-screens/
 (def skeleton-rows
-  "Rows in the place of a show's episodes while they load, hidden from a
-  screen reader, which hears the status line over them."
-  [:ol.episodes.skeleton-rows {:role "list" :aria-hidden "true"}
-   (for [i (range 5)]
-     [:li {:replicant/key i} [:div.show-episode [:div] [:div] [:div]]])])
+  "Rows in the place of a show's episodes while they load."
+  (loading/rows 5))
 
 ;; A button that lists more, rather than a list that grows as it scrolls,
 ;; whose end a keyboard or a voice can't reach (GitLab's audit of infinite
@@ -220,9 +214,7 @@
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
        (failure state n error "#episodes")
-       [(cond (= :loading status) :p.busy
-              newer               :p.visually-hidden
-              :else               :p)
+       [(if (or (= :loading status) newer) :p.visually-hidden :p)
         {:role "status"}
         (status-text status n error newer)])
      (when newer
@@ -244,7 +236,7 @@
 (def looking-up
   "The status line of a show or an episode page during a lookup in the
   Podcast Index."
-  [:p.busy {:role "status"} "Looking for the show in the Podcast Index…"])
+  (loading/status "Looking for the show in the Podcast Index…"))
 
 (def not-found
   "The content of a show's page when neither the library, the link to it
@@ -359,8 +351,8 @@
               [:div.with-bookmark (unsubscribe-button state) heading]
               heading)
             (case status
-              :looking-up looking-up
-              :loading    (list [:p.busy {:role "status"} "Loading the show…"] skeleton-rows)
+              :looking-up (list looking-up skeleton-rows)
+              :loading    (list (loading/status "Loading the show…") skeleton-rows)
               :failed     (failure state 0 (:error (source state)) "main h1")
               not-found))
       (let [aside (details/aside (details-rows page) (:people page))

@@ -36,11 +36,14 @@
   (is (= "2 podcast feeds."
          (search/status-text "freakshow.fm" {:status :done :results [{} {}]}))
       "the feeds at a link can be those of one show")
-  (is (= [:p.busy :p :p]
+  (is (= [:p.searching :p :p]
          (map first [(search/status-line "x" (listed [:apple :fyyd] {:apple (shows 2)}))
                      (search/status-line "x" (listed [:apple :fyyd] {:apple (shows 2) :fyyd (shows 1)}))
                      (search/status-line nil nil)]))
-      "with a line that moves only while it searches"))
+      "with a line that keeps its place while it searches")
+  (is (= [:span.visually-hidden "Searching…"]
+         (last (search/status-line "x" (listed [:apple :fyyd] {:apple (shows 2)}))))
+      "though only a screen reader hears it then"))
 
 (defn paragraphs
   "The texts of the paragraphs in the Hiccup `x`."
