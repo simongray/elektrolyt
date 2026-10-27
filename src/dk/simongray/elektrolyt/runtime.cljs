@@ -164,14 +164,18 @@
   (.-matches (js/matchMedia "(prefers-reduced-motion: no-preference)")))
 
 ;; CSS View Transitions: the browser draws the page as it was, calls `f`,
-;; and then moves to the page as it is
+;; and then moves to the page as it is. A transition that the next one
+;; skips, e.g. at two quick changes of the Library's view, still calls its
+;; `f`, but rejects its ready promise, which would else go unhandled.
 ;; https://developer.mozilla.org/en-US/docs/Web/API/Document/startViewTransition
+;; https://drafts.csswg.org/css-view-transitions-1/#skip-the-view-transition
 (defn transition!
   "Call `f`, which changes the page, in a view transition where the
   browser has them and the listener allows motion, or else at once."
   [f]
   (if (and (fn? (.-startViewTransition js/document)) (motion?))
-    (.startViewTransition js/document f)
+    (doto (.startViewTransition js/document f)
+      (-> .-ready (.catch (fn [_]))))
     (f)))
 
 (defn on-pagehide!
