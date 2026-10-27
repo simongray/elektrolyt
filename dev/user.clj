@@ -55,31 +55,42 @@
   "target/release")
 
 (defn release!
-  "Build a release of the app into release-dir, with a copy of the files
-  of public/ but its scripts, so that the folder serves the app as public/
-  does. It returns :done, as shadow-cljs's release does, and throws when
-  the build fails."
-  []
-  (let [root (.toPath (io/file "public"))]
-    (doseq [^File f (file-seq (io/file "public"))
-            :let  [path (.relativize root (.toPath f))]
-            :when (and (.isFile f) (not (.startsWith path "js")))]
-      (io/make-parents (io/file release-dir (str path)))
-      (io/copy f (io/file release-dir (str path)))))
-  (shadow/release! :app)
-  :done)
+  "Build a release of the app into release-dir with the `opts` of
+  shadow-cljs's release, e.g. timed, and a copy of the files of public/
+  but its scripts, so that the folder serves the app as public/ does. It
+  returns :done, as shadow-cljs's release does, and throws when the build
+  fails."
+  ([]
+   (release! {}))
+  ([opts]
+   (let [root (.toPath (io/file "public"))]
+     (doseq [^File f (file-seq (io/file "public"))
+             :let  [path (.relativize root (.toPath f))]
+             :when (and (.isFile f) (not (.startsWith path "js")))]
+       (io/make-parents (io/file release-dir (str path)))
+       (io/copy f (io/file release-dir (str path)))))
+   (shadow/release! :app opts)
+   :done))
+
+(def timed
+  "The options of a release that times itself, as the dev build does, and
+  keeps readable names, e.g. to profile it."
+  {:config-merge [{:closure-defines {'dk.simongray.elektrolyt.runtime.perf/enabled? true}}]
+   :pseudo-names true})
 
 ;; The library is kept in the browser by origin, so a release served on
 ;; another port would open with none
 (defn listen!
-  "Build a release of the app and serve it on the same origin, in place
-  of the watch's build, which develop! serves again. A tab gets the
-  release when it reloads."
-  []
-  (release!)
-  ((requiring-resolve 'dk.simongray.elektrolyt.server/stop!))
-  ((requiring-resolve 'dk.simongray.elektrolyt.server/start!)
-   {:secrets secrets :client-dir release-dir :release? true}))
+  "Build a release of the app with the `opts` that release! takes, and
+  serve it on the same origin, in place of the watch's build, which
+  develop! serves again. A tab gets the release when it reloads."
+  ([]
+   (listen! {}))
+  ([opts]
+   (release! opts)
+   ((requiring-resolve 'dk.simongray.elektrolyt.server/stop!))
+   ((requiring-resolve 'dk.simongray.elektrolyt.server/start!)
+    {:secrets secrets :client-dir release-dir :release? true})))
 
 (defn develop!
   "Serve the watch's build again, after listen!."
@@ -91,5 +102,6 @@
   (restart!)
   (stop!)
   (listen!)
+  (listen! timed)
   (develop!)
   #_.)

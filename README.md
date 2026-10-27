@@ -41,7 +41,11 @@ To listen with the app as a listener gets it, call `(listen!)` in the
 JVM's REPL. It builds a release into `target/release` and serves it at the
 same address, so it opens the same library, and a tab gets it when it
 reloads. Your edits don't show there until you call it again, and
-`(develop!)` serves the watch's build once more.
+`(develop!)` serves the watch's build once more. To profile a release,
+`(listen! timed)` builds one that marks its work in the Performance panel
+of the browser's DevTools, as the dev build does, and keeps readable
+names. `test/e2e/bench/bench.mjs` times the start and a subscription with
+a library of 50 shows.
 
 The server listens on localhost alone, since it has no login yet and its
 proxy fetches any public URL for whoever reaches it. It also makes small

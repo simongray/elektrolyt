@@ -10,9 +10,13 @@
 //                                                colours change 5 times, with CPU
 //                                                throttling, or a show's with show
 //
-// BENCH_URL is the app, http://localhost:8400 by default, and BENCH_CORPUS
+// BENCH_URL is the app, http://localhost:8400 by default, BENCH_CORPUS
 // the folder of the corpus's feeds, ../podcast-clj/dev-resources/corpus/sweep
-// by default.
+// by default, BENCH_PROFILE the folder of the profile, target/bench/profile
+// by default, and BENCH_CPU how many times to slow the CPU of open and
+// subscribe down, e.g. 4. Seeding reads the dev build's store, so seed
+// against the watch's build; the other modes time any build, e.g. one that
+// (listen! timed) serves.
 import { readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
@@ -22,7 +26,8 @@ const root = new URL('../../../', here);
 const base = process.env.BENCH_URL ?? 'http://localhost:8400';
 const corpus = process.env.BENCH_CORPUS
   ?? fileURLToPath(new URL('../podcast-clj/dev-resources/corpus/sweep/', root));
-const profile = fileURLToPath(new URL('target/bench/profile', root));
+const profile = process.env.BENCH_PROFILE ?? fileURLToPath(new URL('target/bench/profile', root));
+const cpu = Number(process.env.BENCH_CPU ?? 1);
 const opml = readFileSync(new URL('shows.opml', here));
 const files = JSON.parse(readFileSync(new URL('feeds.json', here), 'utf8'));
 const [mode, n = '3'] = process.argv.slice(2);
@@ -65,6 +70,16 @@ function measure() {
       observer.disconnect();
     }
   }).observe(document, { childList: true, subtree: true, attributes: true });
+}
+
+/** The `page` with its CPU slowed down BENCH_CPU times, through Chrome's
+    DevTools protocol. */
+async function throttled(page) {
+  if (cpu > 1) {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpu });
+  }
+  return page;
 }
 
 const tasks = long => ({
@@ -133,7 +148,7 @@ try {
     console.log(JSON.stringify({ shows, importSeconds: Math.round((t1 - t0) / 100) / 10, ...tasks(long) }));
   } else if (mode === 'open') {
     for (let i = 1; i <= Number(n); i++) {
-      const page = await context.newPage();
+      const page = await throttled(await context.newPage());
       await page.goto(`${base}/`);
       await page.waitForFunction(() => window.__bench.picks, null, { timeout: 120_000 });
       await sleep(3000);
@@ -148,7 +163,7 @@ try {
     }
   } else if (mode === 'subscribe') {
     const title = /text="([^"]*)"/.exec(opml.toString())[1].replaceAll('&amp;', '&');
-    const page = await context.newPage();
+    const page = await throttled(await context.newPage());
     const main = page.getByRole('main');
     await page.goto(`${base}/library`);
     await main.getByRole('link', { name: title, exact: true }).click();
