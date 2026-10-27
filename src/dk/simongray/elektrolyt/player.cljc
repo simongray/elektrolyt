@@ -188,7 +188,6 @@
                  (into (set (keys old)) (keys new)))
          (= (dissoc p :media :now :elsewhere) (dissoc q :media :now :elsewhere))
          (= (content-facts p) (content-facts q))
-         (= (timeless (:media p)) (timeless (:media q)))
          (= (timeless (shown-media p)) (timeless (shown-media q))))))
 
 (def shown-keys

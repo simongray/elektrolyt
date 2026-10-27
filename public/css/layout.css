@@ -118,8 +118,8 @@ button.disclosure {
    as far from the title as the artwork is. As a drop cap spans its
    lines, its drawing spans the title and the first line of the byline,
    from the top of the title's capitals to the bottom of the byline's
-   line, or of the title's own where there's no byline. The lengths come from the
-   type of each (look.css) and from Charis's metrics (tokens.css): a
+   line, or of the title's own where there's no byline. The lengths come
+   from the type of each (look.css) and from Charis's metrics (tokens.css): a
    line's middle is its leading's half from its edges, and --line-middle
    above its baseline. Between the two lines is the hgroup's margin
    (above). The target is the drawing and its padding, which it sheds

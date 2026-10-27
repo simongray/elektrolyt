@@ -16,9 +16,9 @@
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.links :as links]
+            [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.memo :as memo]
             [dk.simongray.elektrolyt.ui.routes :as routes]
-            [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]
             [dk.simongray.wary-fetch.url :as url]))

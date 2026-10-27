@@ -7,11 +7,10 @@
 // stay under its budget in perf-budgets.json: three times the median of
 // five runs, which PERF_CALIBRATE=1 measures and writes, and at least
 // 100 ms, so that a pause for garbage doesn't fail a flow that's quick
-// otherwise. The time from a
-// click on Subscribe to its next paint must stay under 200 ms, which the
-// app's paint before the work gives. The budgets come from the machine
-// that calibrated them, so CI's runners, which are slower, keep their own
-// in perf-budgets-ci.json.
+// otherwise. The time from a click on Subscribe to its next paint must
+// stay under 200 ms, which the app's paint before the work gives. The
+// budgets come from the machine that calibrated them, so CI's runners,
+// which are slower, keep their own in perf-budgets-ci.json.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { test, expect, announcement, episodePath, navLink, playsPast, showPath, showTitle }

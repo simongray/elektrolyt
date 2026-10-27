@@ -16,22 +16,19 @@
            [java.security MessageDigest]
            [java.util HexFormat]))
 
-(def content-name
-  "The pattern of a file name with the start of the SHA-256 of the file's
-  content before its extension."
-  #"\.[0-9a-f]{16}\.(?:css|js)$")
-
 (defn content-named?
-  "Whether the `path` names a file by its content."
+  "Whether the `path` names a file by its content, as named-by-content
+  does."
   [path]
-  (boolean (re-find content-name path)))
+  (boolean (re-find #"\.[0-9a-f]{16}\.(?:css|js)$" path)))
 
 (defn named-by-content
   "The `path` of a script or stylesheet with the start of the SHA-256 of
   its `text` before its extension, e.g. js/main.3f9a0c1d2e4b5a69.js."
   [path ^String text]
-  (let [digest (.digest (MessageDigest/getInstance "SHA-256") (.getBytes text "UTF-8"))]
-    (str/replace path #"\.(css|js)$" (str "." (subs (.formatHex (HexFormat/of) digest) 0 16) ".$1"))))
+  (let [digest (.digest (MessageDigest/getInstance "SHA-256") (.getBytes text "UTF-8"))
+        hash   (subs (.formatHex (HexFormat/of) digest) 0 16)]
+    (str/replace path #"\.(css|js)$" (str "." hash ".$1"))))
 
 (defn references
   "The quoted strings by which a file at `from` refers to the file at
@@ -87,7 +84,8 @@
 (defn name-by-content!
   "Copy each script and stylesheet in the release's folder `dir` to a name
   of its content, write index.html with the new names, and delete the
-  files named by their content but by this release and the one before."
+  files named by their content but those of this release and the one
+  before."
   [dir]
   (let [path-of #(str (.relativize (.toPath (io/file dir)) (.toPath ^File %)))
         files   (into {} (for [^File f (file-seq (io/file dir))

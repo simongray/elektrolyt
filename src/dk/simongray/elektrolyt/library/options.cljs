@@ -22,9 +22,10 @@
 ;; in its settings, for the apps that offer one.
 ;;
 ;; Hosts often put an episode's notes in three or four fields at once, and
-;; the app shows only the one that resolve/description reads, so a feed
-;; read in keeps that one alone, while its document keeps them all: a
-;; library of 53 shows took 268 MB of heap after the start, and 173 MB lean
+;; the app shows only the one that resolve/description reads, so a lean
+;; library keeps that one alone in memory and in a feed's document, and
+;; the others in a document beside it: a library of 53 shows took 268 MB
+;; of heap after the start, and 173 MB lean
 (def config
   "The library's config, the same in every tab and the worker."
   {:new-episodes :inbox

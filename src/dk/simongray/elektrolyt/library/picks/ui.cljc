@@ -7,8 +7,8 @@
   and the buttons that queue it."
   (:require [dk.simongray.elektrolyt.ui.controls :as controls-ui]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
-            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.loading :as loading]
+            [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.text :as text]))
 
 (defn search-link
