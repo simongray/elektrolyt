@@ -319,14 +319,15 @@ time,
 /* Controls: one button, one field, and a filled button for the main
    action of a place, e.g. Play. A field is an outline on the paper, and
    the paper's grain lies over every fill.
-   A plain button has no edge, since its words, and its icon where it has
-   one, identify it (WCAG 2.2, SC 1.4.11). NN/g found that weak signifiers
-   cost the reader effort and certainty, so its words are bold, unlike the
-   text around it. Under the pointer or the keyboard's focus it becomes a
-   key that lifts off the paper, and a press sinks the key flat. A touch
-   screen has no hover, so there a key shows only its press. The border
-   stays, transparent, for forced colours, which draw it while they drop
-   every shadow.
+   A plain button has no outline, since its words, and its icon where it
+   has one, identify it (WCAG 2.2, SC 1.4.11). NN/g found that weak
+   signifiers cost the reader effort and certainty, so its words are bold,
+   unlike the text around it, and outside the player it's a key lifted off
+   the paper even at rest, touch screens included. The pointer or the
+   keyboard's focus tints the key, and a press sinks it flat. The player's
+   buttons lie flat on the bar until the pointer or the focus lifts them.
+   The border stays, transparent, for forced colours, which draw it while
+   they drop every shadow.
    https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
    https://www.nngroup.com/articles/flat-ui-less-attention-cause-uncertainty/
    https://developer.mozilla.org/en-US/docs/Web/CSS/@media/hover
@@ -351,10 +352,14 @@ button,
   cursor: pointer;
 }
 
-/* the file's button a key even at rest, since the browser's words for the
-   file follow it and would else run into its own */
+/* outside the player, a key at rest, whose shadow stays as the pointer or
+   the focus tints it, except a heading that opens what's below it, the
+   bookmark, which meets the lines of the show's title, and a button that
+   can't act yet (below) */
+button:where(:not(#player *, .disclosure, .bookmark, [aria-disabled="true"])),
 ::file-selector-button {
-  background: var(--key);
+  --lift: var(--raised);
+  box-shadow: var(--lift);
 }
 
 button:focus-visible {
@@ -369,7 +374,7 @@ button:focus-visible {
   }
 
   ::file-selector-button:hover {
-    box-shadow: var(--lift);
+    background: var(--key);
   }
 }
 
@@ -379,10 +384,11 @@ button:active {
 }
 
 input[type="file"]:focus-visible::file-selector-button {
-  box-shadow: var(--lift);
+  background: var(--key);
 }
 
 ::file-selector-button:active {
+  background: var(--key);
   box-shadow: none;
 }
 
