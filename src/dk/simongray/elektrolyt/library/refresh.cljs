@@ -118,11 +118,6 @@
                                           :result   (dissoc result :library)})
       summary (announcement/announced summary))))
 
-(def part-episodes
-  "How many episodes of the feeds that a refresh found are applied to the
-  library in one task, at most, unless a feed has more."
-  500)
-
 (defn merged
   "The result of a refresh from the `results` of its parts, as
   library/found-parts gives them: the first has the counts, the seconds and
@@ -148,7 +143,7 @@
   `store`, a few at a time with a pause between them, and of saving it,
   given whether the listener `asked?` for the refresh."
   [store found asked?]
-  (let [parts (library/found-parts found part-episodes)]
+  (let [parts (library/found-parts found)]
     (perf/measured!
      "library/refreshed" {:parts (count parts)}
      #(-> (reduce (fn [results part]

@@ -538,10 +538,6 @@
                            (perf/mark! "startup/painted")
                            (perf/started! (count (get-in @store [:library :feeds])))
                            (runtime/idle! 2000 #(first-refresh!))
-                           ;; a one-off for the feeds kept from before the
-                           ;; worker leaned them, which library/leaned!
-                           ;; explains
-                           (runtime/idle! 5000 #(app-library/leaned! store))
                            ;; the counts of each show, which the first click
                            ;; into the Library made: 115 ms of it rather
                            ;; than 40, with 53 shows in dev

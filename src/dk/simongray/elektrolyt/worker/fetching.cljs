@@ -25,7 +25,6 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.discovery :as discovery]
-            [dk.simongray.podcast.feed.resolve :as resolve]
             [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.runtime.perf :as perf]
             [dk.simongray.elektrolyt.search.drpodcast :as drpodcast]))
@@ -172,28 +171,15 @@
   items fit in the 64 KB that a fetch of a start reads at least."
   {:items 20})
 
-;; Hosts often put an episode's notes in three or four fields at once, and
-;; the app reads only the one that resolve/description picks, so the
-;; worker keeps that one alone, e.g. a third of the text of the library's
-;; feeds, which a tab decodes at each open
-(defn leaned
-  "A version of the fetch `f`, a function of a URL and its options, whose
-  answer's feed keeps only the notes that resolve/description reads."
-  [f]
-  (fn [url opts]
-    (.then (js/Promise.resolve (f url opts))
-           #(cond-> % (:feed %) (update :feed resolve/lean)))))
-
 (defn fetches
-  "The :fetch and :fetch-head of the worker, whose feeds keep only the
-  notes that resolve/description reads, and which supplement DR's own
+  "The :fetch and :fetch-head of the worker, which supplement DR's own
   feeds when the `opts` of a request have :alternative-feeds?."
   [opts]
   (if (:alternative-feeds? opts)
-    {:fetch      (leaned (supplementing podcast/fetch! {}))
-     :fetch-head (leaned (supplementing discovery/fetch-head! sibling-start))}
-    {:fetch      (leaned podcast/fetch!)
-     :fetch-head (leaned discovery/fetch-head!)}))
+    {:fetch      (supplementing podcast/fetch! {})
+     :fetch-head (supplementing discovery/fetch-head! sibling-start)}
+    {:fetch      podcast/fetch!
+     :fetch-head discovery/fetch-head!}))
 
 (defn found!
   "A promise of what a refresh of the feeds that are `due` found, fetched

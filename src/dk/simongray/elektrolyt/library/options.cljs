@@ -20,9 +20,15 @@
 ;; The app offers no choice of where new episodes go, so they all go to the
 ;; inbox. A show's own choice from an earlier version or another app stays
 ;; in its settings, for the apps that offer one.
+;;
+;; Hosts often put an episode's notes in three or four fields at once, and
+;; the app shows only the one that resolve/description reads, so a feed
+;; read in keeps that one alone, while its document keeps them all: a
+;; library of 53 shows took 268 MB of heap after the start, and 173 MB lean
 (def config
   "The library's config, the same in every tab and the worker."
-  {:new-episodes :inbox})
+  {:new-episodes :inbox
+   :lean?        true})
 
 (def options
   "The options of every call to the library: its requests go through the

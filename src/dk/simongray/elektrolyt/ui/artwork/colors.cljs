@@ -139,7 +139,7 @@
   [store]
   (let [route  (routes/match->route (reitit/match-by-path routes/router js/location.pathname))
         wanted (colors/wanted (assoc @store :route route))]
-    (-> (app-cache/fetch-all! app-cache/colors (map :artwork wanted))
+    (-> (app-cache/fetch-keys! app-cache/colors (map :artwork wanted))
         (.then (fn [kept]
                  (swap! store update :colors merge
                         (into {} (keep (fn [[artwork k]] (some->> (cached-colors k) (vector artwork))))

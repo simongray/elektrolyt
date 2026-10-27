@@ -80,13 +80,13 @@
       (.then #(cache/fetch! c k))
       (.catch (constantly nil))))
 
-(defn fetch-all!
+(defn fetch-keys!
   "A promise of the entries under the keys `ks` in the cache `c`, as a map
   of each key that has one to a map of its :value and the :at when it was
   kept, or of nil, from one listing of the cache's database."
   [c ks]
   (-> (js/Promise.resolve nil)
-      (.then #(cache/fetch-all! c ks))
+      (.then #(cache/fetch-keys! c ks))
       (.catch (constantly nil))))
 
 (defn write!

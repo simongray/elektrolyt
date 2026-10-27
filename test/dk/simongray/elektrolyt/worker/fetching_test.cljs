@@ -224,24 +224,6 @@
                           {:status 200 :feed feed}
                           {:status 404 :error {:id :fetch/unreachable}}))))
 
-(deftest a-feed-with-its-notes-once
-  (async done
-    (let [url   "https://example.org/feed.xml"
-          feed  {:rss/title "A Show"
-                 :rss/items [{:rss/title       "One"
-                              :content/encoded "<p>Notes</p>"
-                              :rss/description "Notes"
-                              :itunes/summary  "Notes"}]}
-          fetch (fetching/leaned (answering {url feed} (atom [])))]
-      (-> (js/Promise.all #js [(fetch url {}) (fetch "https://example.org/gone.xml" {})])
-          (.then (fn [[answer gone]]
-                   (is (= [{:rss/title "One" :content/encoded "<p>Notes</p>"}]
-                          (get-in answer [:feed :rss/items]))
-                       "keeps only the notes that resolve/description reads")
-                   (is (= 404 (:status gone)) "and leaves an answer without a feed as it is")))
-          (.catch #(is false (str "rejected: " %)))
-          (.finally done)))))
-
 (deftest a-feed-of-drs-own
   (async done
     (let [dr     "https://api.dr.dk/podcasts/v1/feeds/hjernekassen-pa-p1.xml"

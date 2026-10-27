@@ -11,7 +11,7 @@
  ;; arrive in stages do. Switch back to the release on Clojars once #83 is
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
- :deps  {dk.simongray/podcast-clj {:mvn/version "0.5.0"}
+ :deps  {dk.simongray/podcast-clj {:mvn/version "0.5.1"}
          dk.simongray/play-nice   {:mvn/version "0.7.0"}
          dk.simongray/colour-coded {:mvn/version "0.1.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
@@ -21,8 +21,8 @@
          com.taoensso/telemere    {:mvn/version "1.4.0"}
          ;; the caches of searches and shows and the id of the browser, and
          ;; the cache mode of their requests, which the app requires itself
-         dk.simongray/like-minded {:mvn/version "0.9.1"}
-         dk.simongray/wary-fetch  {:mvn/version "0.16.0"}
+         dk.simongray/like-minded {:mvn/version "0.9.2"}
+         dk.simongray/wary-fetch  {:mvn/version "0.16.1"}
          ;; what the app's server tells the page, as transit
          com.cognitect/transit-cljs {:mvn/version "0.8.280"}}
 
