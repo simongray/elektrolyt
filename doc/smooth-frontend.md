@@ -292,7 +292,6 @@ Deferred, by what was measured:
   task, so the save doesn't hold up a click's frame.
 - #10, for later: after #85, the page is blank only while its scripts run,
   0.3 s in dev. It's worth doing if a phone shows that gap.
-- The rest of #8: a release now opens Home only about 0.35 s sooner.
 - #44: a render while only the clock ticks takes 0.30 ms, and the lock
   screen's case needs playback with sound to measure.
 - #47, with #18: the contention it targets measured small.
@@ -313,8 +312,9 @@ Deferred, by what was measured:
 
 Later, with the item they need:
 
-- #74 with #10, #83, #88, #97 and #100 with #8's release on the same
-  origin, #55, #90 and #91 with runs on phones, and #59, which is polish.
+- #74 with #10, #55, #90 and #91 with runs on phones, and #59, which is
+  polish. #83, #88, #97 and #100 needed #8's release on the same origin,
+  which is done now.
 
 Your calls, made on 26 October:
 
@@ -365,6 +365,17 @@ download. An end-to-end test sees the HEAD before the end and the file's
 request after it, in Firefox and Chrome. How much sooner the next episode
 starts is unmeasured in a browser: curl took 0.2–0.7 s less over open
 connections.
+
+Done since, the rest of #8: `(listen!)` in the JVM's REPL builds a
+release and serves it at http://localhost:8400 in place of the watch's
+build, so that it opens the same library, and `(develop!)` goes back. A
+release's Content Security Policy allows no eval. CI runs the end-to-end
+tests against a release, and `npm run e2e` against the watch's build, or
+with `E2E_RELEASE=1` against a release. All 132 pass on both, 1.4 min on a
+release against 2.1 on the watch's build. One bug showed on a release
+alone: `:advanced` renamed the `refocus` key of an element's dataset, so
+the focus never moved where `data-refocus` named, e.g. to Up next's
+heading when another tab left an Undo nothing to undo.
 
 Also new, and fixed: drop-in-search read each document's id as EDN at the
 start. A vector of plain strings, as the app's ids are, is now split at its
@@ -515,7 +526,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 5 | [Show a visible wait in the player while the episode buffers](#5-show-a-visible-wait-in-the-player-while-the-episode-buffers) | Perceived | 3 | 3 | 12 | medium | Done |
 | 6 | [Restore the main content's scroll position on Back and Forward](#6-restore-the-main-contents-scroll-position-on-back-and-forward) | Perceived | 5 | 4 | 12 | medium | Done |
 | 7 | [Build the search documents of a refresh's changed feeds in the worker](#7-build-the-search-documents-of-a-refreshs-changed-feeds-in-the-worker) | Main thread | 8 | 4 | 12 | medium | Done |
-| 8 | [Listen on a release build, and run the end-to-end tests against it](#8-listen-on-a-release-build-and-run-the-end-to-end-tests-against-it) | Load | 8 | 4 | 12 | medium | Measured |
+| 8 | [Listen on a release build, and run the end-to-end tests against it](#8-listen-on-a-release-build-and-run-the-end-to-end-tests-against-it) | Load | 8 | 4 | 12 | medium | Done |
 | 9 | [Skip rebuilding the main content when only the player's clock ticks](#9-skip-rebuilding-the-main-content-when-only-the-players-clock-ticks) | Rendering | 5 | 3 | 9 | medium | Done |
 | 10 | [Paint the shell's frame and placeholders from index.html](#10-paint-the-shells-frame-and-placeholders-from-indexhtml) | Startup | 6 | 3 | 9 | low | Later |
 | 11 | [Stop reading the index's ids and stored fields as EDN per document at open](#11-stop-reading-the-indexs-ids-and-stored-fields-as-edn-per-document-at-open) | Main thread | 7 | 3 | 9 | low | Done |
