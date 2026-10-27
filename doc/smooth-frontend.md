@@ -520,8 +520,21 @@ background needs a phone, since the simulator runs on the Mac's memory.
 Also seen in the simulator: Safari kept the stylesheets that app.css
 imports in its memory cache across a reload, though the server sends them
 with no-cache. After a change to look.css, a reload kept the old rules,
-and only a restart of Safari loaded the new ones. A release whose files
-are named by their content, as #97 would make them, avoids it.
+and only a restart of Safari loaded the new ones.
+
+Done since, #97 by its second way, with the stylesheets too: after
+shadow-cljs builds a release, `server.release/name-by-content!` copies
+each script and stylesheet to a name with the start of the SHA-256 of
+its content, e.g. js/main.54c284817614c172.js, and writes the new names
+into the files that refer to them: worker.js's importScripts, main.js's
+URL of the worker, app.css's imports and index.html. The server lets a
+browser keep such a file for a year without asking, and the release
+keeps the files of the one before, so that a tab that's still open loads
+its own worker. A release built the old way showed the same stale
+stylesheets in the simulator: two reloads kept the old look.css that the
+server had changed. With names by content, a next release's look.css
+applied at the first reload, and the scripts that didn't change kept
+their names, and so the browser's copies.
 
 The libraries' commits went out in their releases of 27 October, which
 the app's deps.edn pins, all but podcast-clj's second document, which the
@@ -720,7 +733,7 @@ Before the ranking, on 24 and 25 October, the branch had these already:
 | 94 | [Keep only the last few outside shows' whole feeds in the store](#94-keep-only-the-last-few-outside-shows-whole-feeds-in-the-store) | Main thread | 5 | 1 | 3 | low | Done |
 | 95 | [Measure each script's compile and evaluate time and coverage before splitting](#95-measure-each-scripts-compile-and-evaluate-time-and-coverage-before-splitting) | Measurement | 5.5 | 1 | 3 | high | Measured |
 | 96 | [Build the libraries' load-time tables at first use](#96-build-the-libraries-load-time-tables-at-first-use) | Startup | 4 | 1 | 4 | low | Deferred |
-| 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Later |
+| 97 | [Version the release's scripts by content and cache them as immutable](#97-version-the-releases-scripts-by-content-and-cache-them-as-immutable) | Load | 6 | 1 | 3 | low | Done |
 | 98 | [Warm the next episode's redirect chain with a HEAD request before the end](#98-warm-the-next-episodes-redirect-chain-with-a-head-request-before-the-end) | Network | 6.5 | 1 | 3 | low | Done |
 | 99 | [Keep the search index in the worker and ask it for picks](#99-keep-the-search-index-in-the-worker-and-ask-it-for-picks) | Main thread | 50 | 3 | 3 | low | Part done |
 | 100 | [Cache the release build's app shell in a service worker](#100-cache-the-release-builds-app-shell-in-a-service-worker) | Load | 14 | 1 | 2 | medium | Later |
