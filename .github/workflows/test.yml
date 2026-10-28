@@ -70,12 +70,14 @@ jobs:
           npx playwright install --with-deps firefox
           npm run e2e
 
+      # also when a test failed only once, and passed on its retry
       - name: The traces of the end-to-end tests that failed
-        if: failure()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: e2e-traces
           path: target/e2e
+          if-no-files-found: ignore
 
       # A release build into a snapshot of its own, which fails where a
       # module is over its budget in dev/sizes.edn

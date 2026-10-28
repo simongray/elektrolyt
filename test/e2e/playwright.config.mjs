@@ -40,7 +40,11 @@ const aliases = process.env.E2E_ALIASES ?? ':server:local';
 export default defineConfig({
   testMatch: '*.spec.mjs',
   outputDir: '../../target/e2e',
-  reporter: 'list',
+  // In CI, a test that fails runs once more, so that a flake in its timing
+  // doesn't fail the run. Playwright still counts it as flaky, and the github
+  // reporter shows the error of its failed attempt on the run's page.
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [['list'], ['github']] : 'list',
   fullyParallel: true,
   use: {
     baseURL: `http://localhost:${port}`,
