@@ -102,7 +102,8 @@
       (set! (.-Worker js/globalThis) (stand-in made))
       (reset! fetching/web-worker nil)
       (let [failed   (fetching/fetch-due! [] {} nil)
-            _        (fire! (first @made) "error" #js {:message "The script didn't load"})
+            _        (fire! (first @made) "error" #js {:message        "The script didn't load"
+                                                       :preventDefault (fn [])})
             answered (fetching/fetch-due! [] {} nil)
             another  (second @made)]
         (is @(:terminated (first @made)) "stops")
@@ -119,6 +120,26 @@
             (.finally #(do (reset! fetching/web-worker nil)
                            (js-delete js/globalThis "Worker")
                            (done))))))))
+
+(deftest an-error-before-the-worker-started
+  (let [made      (atom [])
+        reported? (fn [worker]
+                    (let [prevented (atom false)]
+                      (fire! worker "error" #js {:message        "NS_BINDING_ABORTED"
+                                                 :preventDefault #(reset! prevented true)})
+                      (not @prevented)))]
+    (set! (.-Worker js/globalThis) (stand-in made))
+    (reset! fetching/web-worker nil)
+    (try
+      (.catch (fetching/fetch-due! [] {} nil) (fn [_]))
+      (is (not (reported? (first @made)))
+          "is a failure to load, which the next request recovers from")
+      (.catch (fetching/fetch-due! [] {} nil) (fn [_]))
+      (fire! (second @made) "message" #js {:data (fetching/packed {:started? true})})
+      (is (reported? (second @made)) "while an error after it started is reported")
+      (finally
+        (reset! fetching/web-worker nil)
+        (js-delete js/globalThis "Worker")))))
 
 (def codec
   "The library's codec, which a feed and its documents travel in."

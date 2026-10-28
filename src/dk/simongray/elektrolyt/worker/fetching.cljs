@@ -256,11 +256,13 @@
       (.catch (fn [e] (post! {:id id :failed (str e)})))))
 
 (defn serve!
-  "Answer the page's requests in this web worker."
+  "Answer the page's requests in this web worker, and tell the page that
+  the worker started."
   []
   (set! (.-onmessage js/self)
         (fn [^js e]
-          (answer! (unpacked (.-data e))))))
+          (answer! (unpacked (.-data e)))))
+  (post! {:started? true}))
 
 (defn segment-file
   "The segment `o` that decoded-segments! posted, an object of its name and
@@ -278,6 +280,7 @@
   [url on-failed]
   (let [worker  (js/Worker. url)
         pending (atom {})
+        started (atom false)
         settle! (fn [id f]
                   (when-let [{:keys [resolve reject]} (get @pending id)]
                     (swap! pending dissoc id)
@@ -287,10 +290,11 @@
                         (reject e)))))]
     (.addEventListener worker "message"
                        (fn [^js e]
-                         (let [{:keys [id progress encoded parts failed] :as answer}
+                         (let [{:keys [id started? progress encoded parts failed] :as answer}
                                (unpacked (.-data e))
                                {:keys [on-progress keep?]} (get @pending id)]
                            (cond
+                             started? (reset! started true)
                              progress (some-> on-progress (apply [progress]))
                              failed   (settle! id #(throw (js/Error. failed)))
                              encoded  (settle! id #(cond-> (decoded encoded)
@@ -299,10 +303,16 @@
                              :else    (settle! id #(dissoc answer :id))))))
     ;; HTML, sections 10.2.4 and 10.2.5: a worker fires error when its
     ;; script fails to load, and then never runs, or when nothing catches
-    ;; what it throws, which may have dropped any request
+    ;; what it throws, which may have dropped any request. A script that it
+    ;; imports fails as if the worker threw, e.g. in Firefox when the page
+    ;; navigates while the worker loads, NS_BINDING_ABORTED. Either way a
+    ;; worker that never started failed to load, which the next request
+    ;; recovers from, so that error isn't reported as uncaught.
     ;; https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model
     (.addEventListener worker "error"
                        (fn [^js e]
+                         (when-not @started
+                           (.preventDefault e))
                          (.terminate worker)
                          (doseq [[id _] @pending]
                            (settle! id #(throw (js/Error. (or (.-message e)
