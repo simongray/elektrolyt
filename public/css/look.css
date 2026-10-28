@@ -324,8 +324,9 @@ time,
    signifiers cost the reader effort and certainty, so its words are bold,
    unlike the text around it, and outside the player it's a key lifted off
    the paper even at rest, touch screens included. The pointer or the
-   keyboard's focus tints the key, and a press sinks it flat. The player's
-   buttons lie flat on the bar until the pointer or the focus lifts them.
+   keyboard's focus lifts the key higher, and a press sinks it flat. The
+   player's buttons lie flat on the bar until the pointer or the focus
+   tints and lifts them.
    The border stays, transparent, for forced colours, which draw it while
    they drop every shadow.
    https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
@@ -352,14 +353,16 @@ button,
   cursor: pointer;
 }
 
-/* outside the player, a key at rest, whose shadow stays as the pointer or
-   the focus tints it, except a heading that opens what's below it, the
+/* Outside the player, a key at rest, which the pointer or the focus lifts
+   higher without a tint, so that a filled button and a plain one change
+   alike. A heading that opens what's below it lies flat, as do the
    bookmark, which meets the lines of the show's title, and a button that
-   can't act yet (below) */
+   can't act yet (below). */
 button:where(:not(#player *, .disclosure, .bookmark, [aria-disabled="true"])),
 ::file-selector-button {
-  --lift: var(--raised);
-  box-shadow: var(--lift);
+  --key: transparent;
+  --lift: var(--raised-high);
+  box-shadow: var(--raised);
 }
 
 button:focus-visible {
@@ -374,7 +377,7 @@ button:focus-visible {
   }
 
   ::file-selector-button:hover {
-    background: var(--key);
+    box-shadow: var(--lift);
   }
 }
 
@@ -384,31 +387,17 @@ button:active {
 }
 
 input[type="file"]:focus-visible::file-selector-button {
-  background: var(--key);
+  box-shadow: var(--lift);
 }
 
 ::file-selector-button:active {
-  background: var(--key);
   box-shadow: none;
 }
 
-/* A filled button lifts the same way, with its key over its fill. The key
-   shows where the shadow doesn't, on the dark paper and on a touch
-   screen. */
+/* a filled button, whose fill stays as it lifts and sinks */
 button.primary {
   color: var(--accent-ink);
   background: var(--grain) 0 0 / var(--grain-size), var(--accent);
-}
-
-button.primary:focus-visible,
-button.primary:active {
-  background: var(--grain) 0 0 / var(--grain-size), linear-gradient(var(--key), var(--key)), var(--accent);
-}
-
-@media (hover: hover) {
-  button.primary:hover {
-    background: var(--grain) 0 0 / var(--grain-size), linear-gradient(var(--key), var(--key)), var(--accent);
-  }
 }
 
 /* A heading that opens what's below it: its own words, with a caret
