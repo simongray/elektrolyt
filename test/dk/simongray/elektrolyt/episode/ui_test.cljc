@@ -99,19 +99,20 @@
 
 (deftest the-buttons-that-queue-it
   (let [page    (episode-ui/route-page (episode-page nil))
-        texts   #(map text-of (episode-ui/queue-buttons page %))]
+        buttons #(episode-ui/queue-buttons page %)
+        texts   #(map text-of (buttons %))]
     (is (= ["Play next" "Play last"] (texts nil)))
-    (is (= ["Play next" "Remove from queue"] (texts :queued)))
+    (is (= ["Unqueue"] (texts :queued)) "which turn into one once it's queued")
     (is (empty? (texts :current)) "none for the episode that plays")
-    (is (= [[:queue/add (episode/playable page) (:title page) true]]
-           (get-in (first (episode-ui/queue-buttons page nil)) [1 :on :click])))
-    (is (= [icons/rows-plus-top icons/rows-plus-bottom icons/minus]
-           (map (comp :icon second) (concat (episode-ui/queue-buttons page nil)
-                                            (rest (episode-ui/queue-buttons page :queued)))))
-        "with icons that add a row at the top or the bottom, or take one away")
+    (is (= (controls/single-click [[:queue/add (episode/playable page) (:title page) true]])
+           (get-in (first (buttons nil)) [1 :on :click]))
+        "Play next once for a double click on Unqueue, which turns into it")
+    (is (= [icons/rows-plus-top icons/rows-plus-bottom icons/x]
+           (map (comp :icon second) (concat (buttons nil) (buttons :queued))))
+        "with icons that add a row at the top or the bottom, or take it out")
     (is (= (controls/single-click [[:queue/remove (:id page)]])
-           (get-in (second (episode-ui/queue-buttons page :queued)) [1 :on :click]))
-        "Remove once for a double click on Add, which turns into it")))
+           (get-in (first (buttons :queued)) [1 :on :click]))
+        "Unqueue once for a double click on Play next, which turns into it")))
 
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]

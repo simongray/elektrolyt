@@ -102,26 +102,33 @@
 
 ;; Apple, Pocket Casts, Castro and Overcast queue an episode in two places,
 ;; right after the one that plays or at the end, which Apple Podcasts named
-;; Play Next and Play Last. Play next moves an episode that's queued
-;; already. Remove has the minus of Unsubscribe, and a double click on Play
-;; last doesn't reach it.
+;; Play Next and Play Last. Once it's queued, Unqueue takes the place of
+;; both, since the Queue page moves it, and has the x of the inbox's
+;; Dismiss. Each ignores the second click of a double click, which would
+;; land on its opposite, and the focus on Play last, which goes, moves to
+;; Unqueue.
 ;; https://support.apple.com/en-ca/guide/podcasts/use-up-next-poddfb50a470/1.1.0/mac/13.0
 (defn queue-buttons
-  "The buttons that queue the episode `page` by its place in the queue,
-  `queued`: nil, :queued, or :current, which needs none."
-  [{:keys [title] :as page} queued]
-  (let [playable (episode/playable page)]
-    (when-not (= :current queued)
+  "The buttons that queue the episode `page`, or unqueue it, by its place
+  in the queue, `queued`: nil, :queued, or :current, which needs none."
+  [{:keys [id title] :as page} queued]
+  (let [playable (episode/playable page)
+        unqueue  "main .episode-actions > :last-child"]
+    (case queued
+      :current nil
+      :queued  (list
+                [controls-ui/button {:icon icons/x
+                                     :on   {:click (controls-ui/single-click [[:queue/remove id]])}}
+                 "Unqueue"])
       (list
-       [controls-ui/button {:icon icons/rows-plus-top :on {:click [[:queue/add playable title true]]}}
+       [controls-ui/button {:icon         icons/rows-plus-top
+                            :data-refocus unqueue
+                            :on           {:click (controls-ui/single-click [[:queue/add playable title true]])}}
         "Play next"]
-       (if (= :queued queued)
-         [controls-ui/button {:icon icons/minus
-                              :on   {:click (controls-ui/single-click [[:queue/remove (:id page)]])}}
-          "Remove from queue"]
-         [controls-ui/button {:icon icons/rows-plus-bottom
-                              :on   {:click (controls-ui/single-click [[:queue/add playable title false]])}}
-          "Play last"])))))
+       [controls-ui/button {:icon         icons/rows-plus-bottom
+                            :data-refocus unqueue
+                            :on           {:click (controls-ui/single-click [[:queue/add playable title false]])}}
+        "Play last"]))))
 
 (defn number-text
   "The number `n` of a season or an episode as text, e.g. 3 for 3.0."

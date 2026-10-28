@@ -33,6 +33,24 @@ function titles(page) {
   return upNext(page).getByRole('listitem').getByRole('heading', { level: 3 });
 }
 
+test('Play next and Play last turn into Unqueue, which keeps the focus', async ({ page }) => {
+  const main = page.getByRole('main');
+  const unqueue = main.getByRole('button', { name: 'Unqueue' });
+  await page.goto(episodePath(first));
+
+  for (const [name, added] of [['Play next', `Playing ${first.title} next`],
+                               ['Play last', `Added ${first.title} to the queue`]]) {
+    await main.getByRole('button', { name }).press('Enter');
+    await expect(announcement(page)).toHaveText(added);
+    await expect(main.getByRole('button', { name: /^Play (next|last)$/ })).toHaveCount(0);
+    await expect(unqueue).toBeFocused();
+
+    await unqueue.press('Enter');
+    await expect(announcement(page)).toHaveText(`Removed ${first.title} from the queue`);
+    await expect(main.getByRole('button', { name: 'Play next' })).toBeFocused();
+  }
+});
+
 test('moving and removing an episode keep the focus in Up next', async ({ page }) => {
   await queueTwo(page);
   await expect(titles(page)).toHaveText([first.title, second.title]);
