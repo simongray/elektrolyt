@@ -150,16 +150,15 @@
      tint show */
   --field: transparent;
   /* A key, the fill of a button under the pointer or the keyboard's
-     focus: the colour of its own words, so faint that the paper, the bar
-     or a filled button's fill still shows through. Material 3 calls it a
-     state layer, and gives a press and the focus 10%.
+     focus: the colour of its own words, so faint that the paper or the bar
+     still shows through. Material 3 calls it a state layer, and gives a
+     press and the focus 10%. The keys outside the player take their own
+     (look.css).
      https://m3.material.io/foundations/interaction/states/state-layers */
   --key: color-mix(in srgb, currentColor 10%, transparent);
-  /* the shadow of a key that lies lifted at rest, as --lift's, but light
-     on the dark paper, where a dark one hardly shows, and of one that the
-     pointer or the keyboard's focus lifts higher */
-  --raised: 0 0 5px light-dark(oklch(0% 0 0 / 0.3), oklch(100% 0 0 / 0.25));
-  --raised-high: 0 0 12px light-dark(oklch(0% 0 0 / 0.5), oklch(100% 0 0 / 0.45));
+  /* the shadow of a key that lies lifted at rest, fainter than --lift's,
+     and light on the dark paper, where a dark one hardly shows */
+  --raised: 0 0 4px light-dark(oklch(0% 0 0 / 0.24), oklch(100% 0 0 / 0.2));
   /* the line of an hr */
   --divider: light-dark(oklch(80% 0.004 80), oklch(40% 0.004 80));
 

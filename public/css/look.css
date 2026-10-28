@@ -147,6 +147,10 @@ time,
   /* the accent of the seed, on the paper: its links, buttons and focus
      ring, and the tone of the rail */
   --seed-accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
+  /* and a lighter tone of it, for a filled button under the pointer or
+     the focus, as light as its words allow at 4.5:1 for every hue, or at
+     7:1 with more contrast (below) */
+  --seed-accent-hover: light-dark(oklch(from var(--seed) 55% min(c, 0.075) h), oklch(from var(--seed) 94% min(c, 0.09) h));
   --tint: light-dark(oklch(from var(--seed) 96.5% min(c, 0.022) h / calc(c * 12)), oklch(from var(--seed) 22.5% min(c, 0.022) h / calc(c * 12)));
   background: linear-gradient(to left, var(--tint), transparent 70%) var(--paper);
 }
@@ -324,7 +328,7 @@ time,
    signifiers cost the reader effort and certainty, so its words are bold,
    unlike the text around it, and outside the player it's a key lifted off
    the paper even at rest, touch screens included. The pointer or the
-   keyboard's focus lifts the key higher, and a press sinks it flat. The
+   keyboard's focus lightens its face, and a press sinks it flat. The
    player's buttons lie flat on the bar until the pointer or the focus
    tints and lifts them.
    The border stays, transparent, for forced colours, which draw it while
@@ -353,15 +357,19 @@ button,
   cursor: pointer;
 }
 
-/* Outside the player, a key at rest, which the pointer or the focus lifts
-   higher without a tint, so that a filled button and a plain one change
-   alike. A heading that opens what's below it lies flat, as do the
-   bookmark, which meets the lines of the show's title, and a button that
-   can't act yet (below). */
+/* Outside the player, a key, whose face the pointer or the focus lightens
+   in the accent's hue while its shadow stays. A plain key's face is the
+   paper, bare or under a faint layer of the accent. The layer darkens the
+   light paper and lightens the dark, so the key rests in whichever is
+   darker. A filled key's fill takes a lighter tone of the accent (below).
+   A heading that opens what's below it lies flat, as do the bookmark,
+   which meets the lines of the show's title, and a button that can't act
+   yet (below). */
 button:where(:not(#player *, .disclosure, .bookmark, [aria-disabled="true"])),
 ::file-selector-button {
-  --key: transparent;
-  --lift: var(--raised-high);
+  --key: light-dark(transparent, color-mix(in oklch, var(--accent) 12%, transparent));
+  --lift: var(--raised);
+  background: light-dark(color-mix(in oklch, var(--accent) 8%, transparent), transparent);
   box-shadow: var(--raised);
 }
 
@@ -377,7 +385,7 @@ button:focus-visible {
   }
 
   ::file-selector-button:hover {
-    box-shadow: var(--lift);
+    background: var(--key);
   }
 }
 
@@ -387,17 +395,29 @@ button:active {
 }
 
 input[type="file"]:focus-visible::file-selector-button {
-  box-shadow: var(--lift);
+  background: var(--key);
 }
 
 ::file-selector-button:active {
+  background: var(--key);
   box-shadow: none;
 }
 
-/* a filled button, whose fill stays as it lifts and sinks */
+/* a filled button, whose fill lightens as a plain key's face does */
 button.primary {
   color: var(--accent-ink);
   background: var(--grain) 0 0 / var(--grain-size), var(--accent);
+}
+
+button.primary:focus-visible,
+button.primary:active {
+  background: var(--grain) 0 0 / var(--grain-size), var(--seed-accent-hover);
+}
+
+@media (hover: hover) {
+  button.primary:hover {
+    background: var(--grain) 0 0 / var(--grain-size), var(--seed-accent-hover);
+  }
 }
 
 /* A heading that opens what's below it: its own words, with a caret
@@ -979,6 +999,7 @@ search p {
 
   :root:not([data-contrast="standard"]) .shell {
     --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+    --seed-accent-hover: light-dark(oklch(from var(--seed) 45% min(c, 0.075) h), oklch(from var(--seed) 96% min(c, 0.07) h));
   }
 
   :root:not([data-contrast="standard"]) a {
@@ -1013,6 +1034,7 @@ search p {
 
 :root[data-contrast="more"] .shell {
   --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
+  --seed-accent-hover: light-dark(oklch(from var(--seed) 45% min(c, 0.075) h), oklch(from var(--seed) 96% min(c, 0.07) h));
 }
 
 :root[data-contrast="more"] a {
@@ -1082,6 +1104,12 @@ search p {
   a,
   ::file-selector-button {
     transition: background-color 0.15s, box-shadow 0.15s, text-decoration-color 0.33s, text-decoration-thickness 0.15s;
+  }
+
+  /* a key's face lightens quicker than the player's buttons lift */
+  button:where(:not(#player *, .disclosure, .bookmark, [aria-disabled="true"])),
+  ::file-selector-button {
+    transition: background-color 0.1s, box-shadow 0.1s;
   }
 
   /* a press shows at once, since a tap can be shorter than the fade */
