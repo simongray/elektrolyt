@@ -172,6 +172,7 @@ time,
   --accent-ink: var(--on-bar-fill);
   --accent-soft: oklch(from var(--on-bar) l c h / 0.14);
   --focus: var(--on-bar);
+  --menu-surface: var(--bar-deck);
 }
 
 /* The navigation lies on a paper of its own, as a book's contents would:
@@ -353,9 +354,9 @@ button,
    light paper and lightens the dark, so the key rests in whichever is
    darker. A filled key's fill takes a lighter tone of the accent (below).
    A heading that opens what's below it lies flat, as do the bookmark,
-   which meets the lines of the show's title, and a button that can't act
-   yet (below). */
-button:where(:not(#player *, .disclosure, .bookmark, [aria-disabled="true"])),
+   which meets the lines of the show's title, a button that can't act yet
+   (below), and the actions of a menu, which lie flat in it. */
+button:where(:not(#player *, .disclosure, .bookmark, .menu-list *, [aria-disabled="true"])),
 ::file-selector-button {
   --key: light-dark(transparent, color-mix(in oklch, var(--accent) 12%, transparent));
   --lift: var(--raised);
@@ -952,6 +953,7 @@ hgroup > p {
    https://tobiasahlin.com/blog/layered-smooth-box-shadows/ */
 .stack-fan {
   --halo: oklch(0% 0 0 / 0.85);
+  --icon-halo: drop-shadow(0 0 1px var(--halo)) drop-shadow(0 0 2px var(--halo)) drop-shadow(0 0 4px var(--halo));
 }
 
 /* The scrim's box reaches 100vh above the body (layout.css): 30% up to
@@ -1006,14 +1008,55 @@ hgroup > p {
 }
 
 /* the icon of what a press does, light in a halo like the titles, and a
-   little bigger under the pointer or the focus */
-.stack-artwork .icon {
+   little bigger under the pointer or the focus, and the grip beside it in
+   the same halo */
+.stack-artwork .icon,
+.stack-fan .grip > .icon-button .icon {
   color: var(--on-bar);
-  filter: drop-shadow(0 0 1px var(--halo)) drop-shadow(0 0 2px var(--halo)) drop-shadow(0 0 4px var(--halo));
+  filter: var(--icon-halo);
 }
 
 .stack-item:is(:hover, :focus-visible) .stack-artwork .icon {
   scale: 1.15;
+}
+
+/* A menu's list (ui/menu.cljc), a panel like the volume's: a piece of what
+   it opens from, in its --menu-surface, the paper's unless the place
+   around it sets another, e.g. the player its deck (above), with the
+   paper's grain, in the ink around it, lifted off the page by the bar's
+   shadow, and outlined where colours are forced. Its actions lie flat in
+   it, in the weight of the text, and take the key's tint under the
+   pointer or the focus, in the colours around them too. */
+.menu-list {
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--grain) 0 0 / var(--grain-size), var(--menu-surface, var(--paper));
+  box-shadow: var(--lift);
+}
+
+.menu-list button {
+  font-weight: normal;
+  border-radius: 0;
+}
+
+.menu-list button:is(:hover, :focus-visible, :active) {
+  box-shadow: none;
+}
+
+/* A row's grip, which a pointer grabs. A row that's dragged on a page's
+   list lifts off the paper. */
+.grip > button {
+  cursor: grab;
+}
+
+[data-sorting],
+[data-sorting] * {
+  cursor: grabbing;
+}
+
+.queue > [data-dragging] {
+  background: var(--paper);
+  box-shadow: var(--lift);
 }
 
 /* WCAG technique C40: the light focus ring between two dark ones, so that
@@ -1253,6 +1296,11 @@ search p {
     transition: scale 0.15s;
   }
 
+  /* the rows that make room for the one that's dragged slide aside */
+  [data-sorting] > :not([data-dragging]) {
+    transition: transform 0.15s;
+  }
+
   /* WCAG 2.2.2 lets a sign of loading move for longer than 5 seconds
      https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
      TODO: reconsider the ring's effect, which the review of the visible
@@ -1319,12 +1367,12 @@ search p {
     transition: opacity 0.2s;
   }
 
-  .stack-fan li {
+  .stack-fan ol > li {
     transition: opacity 0.15s calc(var(--above) * 0.03s), translate 0.2s calc(var(--above) * 0.03s);
   }
 
   @starting-style {
-    .stack-fan:not([hidden]) li {
+    .stack-fan:not([hidden]) ol > li {
       opacity: 0;
       translate: 0 0.75rem;
     }

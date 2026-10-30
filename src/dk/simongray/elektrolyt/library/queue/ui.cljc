@@ -2,8 +2,8 @@
   "The views of the Queue page: what plays now, and the episodes up next,
   which the listener plays, moves and removes.
 
-  After a move, the focus stays on the button that made it, and after a
-  removal it moves to the next row's, so that keyboard and screen reader
+  After a move, the focus goes back to the row's grip, and after a removal
+  it moves to the next row's Remove, so that keyboard and screen reader
   users keep their place."
   (:require [dk.simongray.elektrolyt.library.inbox :as inbox]
             [dk.simongray.elektrolyt.library.picks :as picks]
@@ -32,9 +32,10 @@
       (pos? position) (conj " left"))))
 
 (defn actions
-  "The buttons of the `episode` at `position` of the `n` episodes up next,
-  with `next-focus`, the id of the button to focus after a removal."
-  [{:keys [id title] :as episode} position n next-focus]
+  "The buttons of the `episode` at `position` of the `n` episodes up next
+  in `state`, with `next-focus`, the id of the button to focus after a
+  removal: Play, Remove, and the grip that moves the row."
+  [state {:keys [id title] :as episode} position n next-focus]
   [:div.queue-actions
    ;; the episode moves to Now playing, and its button goes with it
    (rows/button "Play" title {:id           (control-id id :play)
@@ -42,13 +43,15 @@
                               :data-refocus "#now-playing"
                               :on           {:click (controls/single-click
                                                      [[:player/play {:id id} nil]])}})
-   (rows/move-buttons title position n
-                      #(control-id id %)
-                      #(vector :queue/move id %))
    (rows/button "Remove" title {:id (control-id id :remove)
                                 :on {:click (controls/single-click
                                              [[:queue/remove id]
-                                              [:page/focus next-focus]])}})])
+                                              [:page/focus next-focus]])}})
+   (rows/grip state "queue" {:id       id
+                             :title    title
+                             :position position
+                             :n        n
+                             :move     [:queue/move id]})])
 
 (defn row
   "The row of the queued `episode` in `state`, with the `marks` before its
@@ -127,7 +130,7 @@
     [:li {:replicant/key (pr-str id)}
      [:article.queue-episode
       (row state episode)
-      (actions episode (inc i) (count episodes)
+      (actions state episode (inc i) (count episodes)
                (if next-one (control-id (:id next-one) :remove) "up-next"))]]))
 
 (defn up-next

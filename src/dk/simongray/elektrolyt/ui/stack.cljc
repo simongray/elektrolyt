@@ -2,7 +2,8 @@
   "A stack of items with artwork, like a stack in the Dock of a Mac: a
   button that shows their artwork piled up, which opens a fan of the first
   few above it, each its title beside its artwork, and a link to them all."
-  (:require [dk.simongray.elektrolyt.ui.controls :as controls]))
+  (:require [dk.simongray.elektrolyt.ui.controls :as controls]
+            [dk.simongray.elektrolyt.ui.rows :as rows]))
 
 (defn place
   "Where the state keeps whether the fan of the stack `id` is open, under
@@ -49,23 +50,26 @@
 ;; over the artwork shows it too, e.g. that a press plays the item rather
 ;; than opens its page.
 (defn fan-item
-  "The list item of the `item`, `n` places above the button of the stack
-  that the `opts` describe: a button with its title beside its artwork,
-  whose press closes the fan and dispatches the item's actions. The verb,
-  e.g. Play, comes before the title for a screen reader, and its icon, if
-  any, lies over the artwork."
-  [{:keys [id verb icon]} n {:keys [key title img actions]}]
+  "The list item of the `item` at index `i` of the stack in `state` that
+  the `opts` describe: a button with its title beside its artwork, whose
+  press closes the fan and dispatches the item's actions, and the grip
+  that moves it, with a :move. The verb, e.g. Play, comes before the title
+  for a screen reader, and its icon, if any, lies over the artwork."
+  [state {:keys [id verb icon items total]} i {:keys [key title img actions move]}]
   (let [tooltip (str verb " " title)]
     [:li {:replicant/key key
-          ;; a string, since Replicant adds px to a number
-          :style         {:--above (str n)}}
+          ;; how far above the button it is, as a string, since Replicant
+          ;; adds px to a number
+          :style         {:--above (str (- (count items) i))}}
      [:button.stack-item {:type "button"
                           :on   {:click (into (closed id) actions)}}
       [:span.stack-title {:title tooltip} [:span.visually-hidden verb " "] title]
       (when img
         [:span.stack-artwork {:title tooltip}
          img
-         (some-> icon controls/icon-of)])]]))
+         (some-> icon controls/icon-of)])]
+     (when move
+       (rows/grip state id {:id key :title title :position (inc i) :n total :move move}))]))
 
 ;; The fan comes right after its button in the page, so that the focus goes
 ;; from the button into it. It lists the items from the top down, in their
@@ -77,15 +81,15 @@
 ;; the link has a text for each, which says how many it leaves out of the
 ;; total, and the page shows only the one that matches.
 (defn fan
-  "The fan of the stack that the `opts` describe, hidden unless it's
-  `open`: its items as a list, the first at the top, and then, with :more,
-  the link to its href, whose text its function gives for how many of the
-  :total the fan leaves out."
-  [open {:keys [id items total more] :as opts}]
-  [:div.stack-fan {:id id :hidden (not open)}
+  "The fan in `state` of the stack that the `opts` describe, hidden unless
+  it's open: its items as a list, the first at the top, and then, with
+  :more, the link to its href, whose text its function gives for how many
+  of the :total the fan leaves out."
+  [state {:keys [id items total more] :as opts}]
+  [:div.stack-fan {:id id :hidden (not (controls/open? state (place id)))}
    [:div.stack-fan-body
     [:ol {:role "list"}
-     (map-indexed #(fan-item opts (- (count items) %1) %2) items)]
+     (map-indexed #(fan-item state opts %1 %2) items)]
     (when-let [[href more-text] more]
       [:a.stack-more {:href href
                       :on   {:click [(kept-open id false)]}}
@@ -99,14 +103,12 @@
 ;; The label is the button's tooltip too, so that a voice user says what a
 ;; pointer user reads. The rest is its description, which takes the
 ;; tooltip's place there, so that a screen reader doesn't read the name
-;; twice. As in the APG's disclosure menus, the fan closes as the focus
-;; leaves it, and at Escape, which gives the focus back to the button. A
-;; press on the button gives it the focus, which Safari doesn't, so that a
-;; press elsewhere takes the focus from the stack there too.
+;; twice. As a menu (ui/menu.cljc), the fan closes at a press outside the
+;; stack, as the focus moves out of it, e.g. at Tab, and at Escape, which
+;; gives the focus back to the button.
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/examples/disclosure-navigation/
 ;; https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html
-;; https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#clicking_and_focus
 (defn stack
   "The stack in `state` with the `opts` below, or nil without items: the
   button that shows the artwork of the first few items piled up, and
@@ -123,7 +125,8 @@
     artwork in the fan, or nil
   - :items, the first few items, as many as the fan shows in a tall
     window, as maps of a :key, a :title, the :img of its artwork or nil,
-    and the :actions of a press
+    the :actions of a press, and the :move of its grip, an action that
+    takes the new position as its last argument, or nil for no grip
   - :total, how many items there are in all
   - :more, the href of the link to them all, and the function of how many
     the fan leaves out to its text, e.g. \"4 more\", or nil for no link,
@@ -144,11 +147,14 @@
                                      :aria-describedby described
                                      :aria-expanded    (str open)
                                      :aria-controls    id
-                                     :on               {:click [(kept-open id (not open))
-                                                                [:page/focus (button-id id)]]}}
+                                     :on               {:click (if open
+                                                                 [(kept-open id false)]
+                                                                 [(kept-open id true)
+                                                                  [:page/dismiss-outside [(button-id id) id]
+                                                                   [(kept-open id false)]]])}}
                                     attrs)
         (if-let [artwork (pile items)]
           (list artwork [:span.visually-hidden label])
           label)]
        [:span.visually-hidden {:id described} description]
-       (fan open opts)])))
+       (fan state opts)])))

@@ -40,10 +40,13 @@
   (let [x                    (of {} (items 1 2 4 5) 7)
         [_ attrs :as button] (first (elements :button.stack-button x))]
     (is (= ["false" "s"] ((juxt :aria-expanded :aria-controls) attrs)) "discloses the fan")
-    (is (= [(stack/kept-open "s" true) [:page/focus "s-button"]]
-           (get-in attrs [:on :click]))
-        "which a press opens, and gives the button the focus, which Safari doesn't")
-    (is (= "true" (:aria-expanded (second (first (elements :button.stack-button (of opened (items 1) 1)))))))
+    (is (= {:click [(stack/kept-open "s" true)
+                    [:page/dismiss-outside ["s-button" "s"] [(stack/kept-open "s" false)]]]}
+           (:on attrs))
+        "which a press opens, until a press outside the button and the fan")
+    (let [[_ attrs] (first (elements :button.stack-button (of opened (items 1) 1)))]
+      (is (= ["true" [(stack/kept-open "s" false)]] [(:aria-expanded attrs) (get-in attrs [:on :click])])
+          "and closes"))
     (is (= ["Queue" "Queue"] [(text-of button) (:title attrs)])
         "named by its label beside its artwork, which is decorative, and the label its tooltip too")
     (is (= ["Next: Item 1"]
@@ -87,9 +90,17 @@
           "and then the link to them all, which closes the fan too")
       (is (= ["6 more" "5 more" "4 more" "3 more" "2 more"] (map last (apply concat texts)))
           "with a text for each number of items that the window lets the fan show"))
-    (let [bare (stack/fan true {:id "s" :verb "Open" :items (items 1 2) :total 2})]
+    (let [bare (stack/fan opened {:id "s" :verb "Open" :items (items 1 2) :total 2})]
       (is (empty? (elements :a.stack-more bare)) "or no link, without one to go to")
-      (is (empty? (elements controls/icon bare)) "and no icon without one"))
+      (is (empty? (elements controls/icon bare)) "and no icon without one")
+      (is (empty? (elements :span.menu bare)) "nor a grip without a :move"))
+    (is (= ["Move Item 1" "Move Item 2"]
+           (map #(text-of (first (elements :button %)))
+                (elements :span.menu (stack/fan opened {:id    "s"
+                                                        :verb  "Open"
+                                                        :items (map #(assoc % :move [:item/move (:key %)]) (items 1 2))
+                                                        :total 5}))))
+        "but one beside each item with a :move, which moves it among them all")
     (is (= {:focusout [[:event/when [:event/focus-left?] [(stack/kept-open "s" false)]]]
             :keydown  [[:event/when [:event/key? "Escape"] (stack/closed "s")]]}
            (:on (second x)))

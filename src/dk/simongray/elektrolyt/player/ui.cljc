@@ -288,7 +288,8 @@
                       ;; at its size in the pile on a desktop, inside the
                       ;; mat (layout.css)
                       :img     (artwork/img episode 68 (colors/placeholder state episode))
-                      :actions [[:player/play {:id id} nil]]})
+                      :actions [[:player/play {:id id} nil]]
+                      :move    [:queue/move id]})
       :total       n
       ;; none on the Queue page, where a press would only add the page to
       ;; the history again

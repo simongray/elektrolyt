@@ -103,6 +103,10 @@
     (is (= (conj (stack/closed "up-next-stack") [:player/play {:id (queue-test/id 2)} nil])
            (get-in (first (elements :button.stack-item x)) [1 :on :click]))
         "each played at a press, which closes the fan")
+    (is (= [[:page/drag-row [:queue/move (queue-test/id 2)]]]
+           (map #(take 2 (first (get-in % [1 :on :pointerdown])))
+                (take 1 (elements :button (elements :span.menu x)))))
+        "and moved in the queue by its grip")
     (is (= ["/queue" ["2 more in the queue" "1 more in the queue" "View Queue"]] (more x))
         "and then links to the queue, saying how many the window leaves out")
     (with-redefs [player-ui/stack-size 2]

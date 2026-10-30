@@ -9,6 +9,7 @@
             [dk.simongray.elektrolyt.runtime.local :as local]
             [dk.simongray.elektrolyt.ui :as ui]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.rows :as rows]
             [replicant.dom :as r]))
 
 (def theme-key
@@ -167,6 +168,64 @@
   [id]
   (some-> (js/document.getElementById id) .focus))
 
+(defn swallow-click!
+  "Keep the click that follows the release of a press from reaching the
+  page, e.g. from opening the menu of the grip that a drag began on."
+  []
+  (let [swallow #(doto ^js % .stopPropagation .preventDefault)]
+    (.addEventListener js/window "click" swallow #js {:capture true :once true})
+    (js/setTimeout #(.removeEventListener js/window "click" swallow true) 0)))
+
+;; A menu closes at a press anywhere else, as the platform's own do, which
+;; the focus can't tell: Safari doesn't focus a button that's pressed. The
+;; press does nothing more, as at a native menu, e.g. on a button under
+;; the dimmed page around a stack's fan, unless the browser takes it for a
+;; scroll. A press inside, e.g. on the button that opened it, leaves it to
+;; the button, and one after it closed some other way closes nothing more.
+(defn dismiss-outside!
+  "Call `f` at the next press outside the elements `ids`, e.g. those of a
+  menu's button and list, to close it, and keep the press from clicking."
+  [ids f]
+  (letfn [(pressed [^js e]
+            (when-not (some #(some-> (js/document.getElementById %) (.contains (.-target e))) ids)
+              (js/document.removeEventListener "pointerdown" pressed true)
+              (f)
+              (js/window.addEventListener "pointerup" released true)
+              (js/window.addEventListener "pointercancel" released true)))
+          (released [^js e]
+            (js/window.removeEventListener "pointerup" released true)
+            (js/window.removeEventListener "pointercancel" released true)
+            (when (= "pointerup" (.-type e))
+              (swallow-click!)))]
+    (js/document.addEventListener "pointerdown" pressed true)))
+
+(defn clip-box
+  "The box that `el` shows inside: its nearest ancestor's that doesn't let
+  its content overflow, e.g. a scroller, or else the window's."
+  [^js el]
+  (or (some (fn [^js parent]
+              (when (not= "visible" (.-overflowY (js/getComputedStyle parent)))
+                (.getBoundingClientRect parent)))
+            (take-while some? (iterate #(.-parentElement ^js %) (.-parentElement el))))
+      #js {:top 0 :bottom js/innerHeight}))
+
+(defn place-menu!
+  "Drop the menu list `id` below its button, or raise it above where only
+  that has room in the box that it shows in, e.g. a stack's fan, and
+  scroll it into view as far as it's out of it."
+  [id]
+  (when-let [^js list (js/document.getElementById id)]
+    (.removeAttribute list "data-above")
+    (let [area   (clip-box list)
+          box    (.getBoundingClientRect list)
+          button (.getBoundingClientRect (.-parentElement list))
+          gap    (- (.-top box) (.-bottom button))]
+      (when (and (< (.-bottom area) (.-bottom box))
+                 (<= (+ (.-height box) gap) (- (.-top button) (.-top area))))
+        (.setAttribute list "data-above" ""))
+      (.scrollIntoView list #js {:block    "nearest"
+                                 :behavior (if (runtime/motion?) "smooth" "auto")}))))
+
 (defn focus-heading!
   "Move the focus to the heading of the page."
   []
@@ -265,6 +324,158 @@
               (.then done done)))
         (.animate target #js [#js {:scale 1} #js {:scale 1.08} #js {:scale 1}]
                   #js {:duration 200 :delay 400 :easing "ease-out"})))))
+
+(defn scroller
+  "The nearest element around `el` whose content scrolls, or nil."
+  [^js el]
+  (some (fn [^js parent]
+          (when (and (< (.-clientHeight parent) (.-scrollHeight parent))
+                     (#{"auto" "scroll"} (.-overflowY (js/getComputedStyle parent))))
+            parent))
+        (take-while some? (iterate #(.-parentElement ^js %) (.-parentElement el)))))
+
+(defn row-boxes
+  "The :top and :height of each of the `rows`, from the top of their
+  `list`."
+  [^js list rows]
+  (let [top (.-top (.getBoundingClientRect list))]
+    (mapv (fn [^js row]
+            (let [box (.getBoundingClientRect row)]
+              {:top (- (.-top box) top) :height (.-height box)}))
+          rows)))
+
+;; A render that moves a row puts it into the document again, which starts
+;; any entrance of its own, e.g. the rise of an item of a stack's fan
+;; (look.css), so the rows finish theirs at once, after a move by a drag
+;; or by a row's menu. Element.getAnimations works out the style first,
+;; so it has the ones just started.
+;; https://developer.mozilla.org/en-US/docs/Web/API/Element/getAnimations
+(defn entered!
+  "Finish at once the animations of the rows of the `list`."
+  [^js list]
+  (doseq [^js r (array-seq (.-children list))
+          ^js a (.getAnimations r)]
+    (.finish a)))
+
+(defn row-moved!
+  "Finish the entrances of the rows around the element `id` once a move
+  of its row has rendered."
+  [id]
+  (some-> (js/document.getElementById id) (.closest "li") .-parentElement entered!))
+
+(defn settled!
+  "Let the `row`, which a drag left `dy` pixels from its place in its
+  `list`, slide into it, and then lose its mark of being dragged, without
+  the slide where the listener asks for less motion."
+  [^js list ^js row dy]
+  (entered! list)
+  (let [done #(.removeAttribute row "data-dragging")]
+    (if (and (runtime/motion?) (.-isConnected row) (not (zero? dy)))
+      (-> (.animate row #js [#js {:transform (str "translateY(" dy "px)")} #js {:transform "none"}]
+                    #js {:duration 150 :easing "ease-out"})
+          .-finished
+          (.then done done))
+      (done))))
+
+;; Pointer events, so that a mouse, a pen and a finger drag alike. The grip
+;; takes no touch gesture of the browser's (layout.css), so a drag on it
+;; doesn't scroll, and needs no long press, while the rest of the row
+;; scrolls as ever, and selects no text. The row follows the pointer by
+;; its transform, and the others make room by theirs, which the browser
+;; animates without laying out the page again; the scroller around them
+;; scrolls as the pointer nears an edge. At the drop, the transforms go
+;; and the move renders the rows in their new order in the same task,
+;; which the browser paints at once, so that the others stay where they
+;; made room, and the page keeps its rows in place as for any other move,
+;; by where they lie without the transforms. The row then slides into its
+;; place from where it was let go, the only motion that the drop makes.
+;; Escape slides it back, in the capture phase, before the disclosure
+;; around it, e.g. a stack's fan, would close.
+;; https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events
+;; https://developer.mozilla.org/en-US/docs/Web/CSS/touch-action
+(defn drag-row!
+  "Follow the drag of the row of the grip that the pointer pressed in the
+  `event`, among the rows of its list that show: call `started` as it
+  starts, a few pixels from the press, and `f` with the row's new
+  position, counted from 1, at a drop that moves it."
+  [^js event started f]
+  (let [^js grip (.-currentTarget event)]
+    (when (and (.-isPrimary event) (zero? (.-button event)))
+      (let [^js row    (.closest grip "li")
+            ^js list   (.-parentElement row)
+            rows       (filterv #(.-offsetParent ^js %) (array-seq (.-children list)))
+            from       (.indexOf rows row)
+            boxes      (row-boxes list rows)
+            ^js scroll (scroller list)
+            list-top   #(.-top (.getBoundingClientRect list))
+            start      (- (.-clientY event) (list-top))
+            ;; :pressed, then :dragging past a few pixels, or :cancelled at
+            ;; Escape, until the pointer is let go
+            drag       (atom {:phase :pressed :y (.-clientY event) :to from})
+            moved!     (fn []
+                         (let [dy          (- (:y @drag) (list-top) start)
+                               [to shifts] (rows/dragged boxes from dy)]
+                           (swap! drag assoc :to to)
+                           (doseq [[^js r shift] (map vector rows shifts)]
+                             (set! (.. r -style -transform) (if (zero? shift) "" (str "translateY(" shift "px)"))))
+                           (set! (.. row -style -transform) (str "translateY(" dy "px)"))))
+            ;; a frame at a time, which scrolls by the pointer's place
+            frame!     (fn frame! []
+                         (when (and scroll (= :dragging (:phase @drag)))
+                           (let [box   (.getBoundingClientRect scroll)
+                                 speed (rows/edge-speed (.-top box) (.-bottom box) (:y @drag))]
+                             (when-not (zero? speed)
+                               (.scrollBy scroll 0 speed)
+                               (moved!)))
+                           (js/requestAnimationFrame frame!)))
+            ;; at the index `to`, or back in its place for nil, from where
+            ;; the row was let go
+            dropped!   (fn [to]
+                         (let [top      #(.-top (.getBoundingClientRect row))
+                               released (top)]
+                           (.removeAttribute list "data-sorting")
+                           (doseq [^js r rows]
+                             (set! (.. r -style -transform) ""))
+                           (when to
+                             (f (inc to)))
+                           (settled! list row (- released (top)))))
+            listeners  (atom nil)
+            ;; a click follows the pointer's release, but not its cancel
+            ended!     (fn [released?]
+                         (let [{:keys [phase to]} @drag]
+                           (reset! drag nil)
+                           (doseq [[target type handler capture] @listeners]
+                             (.removeEventListener target type handler capture))
+                           (when (and released? (not= :pressed phase))
+                             (swallow-click!))
+                           (when (= :dragging phase)
+                             (dropped! (when (and released? (not= to from)) to)))))]
+        (reset! listeners
+                [[grip "pointermove"
+                  (fn [^js e]
+                    (swap! drag assoc :y (.-clientY e))
+                    (when (and (= :pressed (:phase @drag))
+                               (< 4 (js/Math.abs (- (.-clientY e) (.-clientY event)))))
+                      (swap! drag assoc :phase :dragging)
+                      (started)
+                      (.setAttribute list "data-sorting" "")
+                      (.setAttribute row "data-dragging" "")
+                      (frame!))
+                    (when (= :dragging (:phase @drag))
+                      (moved!)))
+                  false]
+                 [grip "pointerup" #(ended! true) false]
+                 [grip "pointercancel" #(ended! false) false]
+                 [js/window "keydown"
+                  (fn [^js e]
+                    (when (and (= :dragging (:phase @drag)) (= "Escape" (.-key e)))
+                      (.preventDefault e)
+                      (dropped! nil)
+                      (swap! drag assoc :phase :cancelled)))
+                  true]])
+        (.setPointerCapture grip (.-pointerId event))
+        (doseq [[target type handler capture] @listeners]
+          (.addEventListener target type handler capture))))))
 
 ;; WCAG 2.2, SC 1.4.13 Content on Hover or Focus: what shows on hover or
 ;; focus hides on Escape without the pointer or the focus moving, as

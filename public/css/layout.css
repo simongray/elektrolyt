@@ -271,13 +271,11 @@ hgroup > p {
 
 /* Positioned, so that the text that only a screen reader reads, which is
    positioned absolutely, stays in the main content's scroller, rather than
-   make the whole page scroll past the end of the shell. An anchor, whose
-   foot is where a stack's fan ends, at the top of the player. */
+   make the whole page scroll past the end of the shell. */
 .shell > main {
   grid-area: main;
   overflow-y: auto;
   position: relative;
-  anchor-name: --main;
 }
 
 /* The paper (look.css), as tall as main at least, so that a short page
@@ -857,6 +855,8 @@ main h1,
     "transport transport transport";
   align-items: center;
   column-gap: var(--player-space);
+  /* the box of the fan of what's next, which reaches above it */
+  position: relative;
 }
 
 /* The player's buttons are icons alone, whose lines are as heavy as the
@@ -871,7 +871,10 @@ main h1,
   padding: 0;
 }
 
-#player .icon {
+/* their icons, but a menu's, which are the size of any button's with
+   words (above), and as specific as ever, so that the speed's caret keeps
+   its own size (below) */
+#player .icon:where(:not(.menu-list .icon)) {
   width: var(--player-icon);
   height: var(--player-icon);
 }
@@ -1175,27 +1178,18 @@ main h1,
    Its scrim (look.css) lies behind the body and lightens in the room
    above it, to the top of the window, so that every title lies where the
    scrim is dark. The halos of the titles have room inside the box that
-   cuts them short. Only its items and its link take a press, so that one
-   anywhere else goes to the page and closes it. A title on one line is
-   as wide as it is, so it's cut short where the window is narrower. The
-   fan lies in the player, under the volume's panel, fixed from the top
-   of the window to the main content's foot, the top of the player, by
-   the main content's anchor. Where a browser can't anchor it, it lies on
-   the player, as tall as its items.
-   https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning */
+   cuts them short. Only its items, their grips and its link take a press,
+   so that one anywhere else goes to the page and closes it. A title on one
+   line is as wide as it is, so it's cut short where the window is
+   narrower. The fan lies in the player, under the volume's panel, from
+   the top of the window, a window's height above the player's foot, to
+   the top of the player. */
 .stack-fan {
+  container: stack-fan / size;
   position: absolute;
-  inset: auto 0 100%;
+  inset: calc(100% - 100dvh) 0 100%;
   overflow: auto;
   pointer-events: none;
-}
-
-@supports (anchor-name: --main) {
-  .stack-fan {
-    container: stack-fan / size;
-    position: fixed;
-    inset: 0 0 anchor(--main bottom);
-  }
 }
 
 .stack-fan :is(button, a) {
@@ -1240,8 +1234,55 @@ main h1,
   list-style: none;
 }
 
-.stack-fan li {
+/* An item's grip lies a little left of its artwork, as tall as it, so that
+   it looks attached, and the artworks stay in line above the pile. The
+   button keeps room for it, but for the end of the title's padding, which
+   lies under it, so that the title ends as near the grip as the button's
+   gap. The grip is narrower than a target alone elsewhere, but wider than
+   WCAG 2.2's 24px (SC 2.5.8 Target Size).
+   https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
+.stack-fan ol > li {
+  --grip-gap: 0.375rem;
+  position: relative;
   max-inline-size: 100%;
+}
+
+.stack-fan .grip {
+  position: absolute;
+  inset-block-start: 50%;
+  /* past the button's padding and border, and the artwork */
+  inset-inline-end: calc(var(--space-2) + 1px + 4.25rem + var(--grip-gap));
+  translate: 0 -50%;
+}
+
+#player .stack-fan .grip > .icon-button {
+  min-width: 0;
+  min-height: 0;
+  inline-size: 2rem;
+  block-size: 4.25rem;
+}
+
+.stack-fan .grip > .icon-button .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.stack-fan li:has(.grip) .stack-artwork {
+  margin-inline-start: calc(2rem + var(--grip-gap) - var(--space-3));
+}
+
+/* without artwork, the grip ends the item, as near its title, as tall as
+   a target alone */
+.stack-fan li:not(:has(.stack-artwork)) .grip {
+  inset-inline-end: calc(var(--space-2) + 1px);
+}
+
+#player .stack-fan li:not(:has(.stack-artwork)) .grip > .icon-button {
+  block-size: var(--icon-alone-target);
+}
+
+.stack-fan li:has(.grip):not(:has(.stack-artwork)) .stack-title {
+  margin-inline-end: calc(2rem + var(--space-2) - var(--space-3));
 }
 
 .stack-item {
@@ -1306,7 +1347,7 @@ main h1,
 }
 
 @container stack-fan (height < 58.75rem) {
-  .stack-fan li:nth-child(n + 8),
+  .stack-fan ol > li:nth-child(n + 8),
   .stack-more > :is(:nth-child(8), :last-child:nth-child(-n + 8)) {
     display: none;
   }
@@ -1317,7 +1358,7 @@ main h1,
 }
 
 @container stack-fan (height < 52.375rem) {
-  .stack-fan li:nth-child(n + 7),
+  .stack-fan ol > li:nth-child(n + 7),
   .stack-more > :is(:nth-child(7), :last-child:nth-child(-n + 7)) {
     display: none;
   }
@@ -1328,7 +1369,7 @@ main h1,
 }
 
 @container stack-fan (height < 46rem) {
-  .stack-fan li:nth-child(n + 6),
+  .stack-fan ol > li:nth-child(n + 6),
   .stack-more > :is(:nth-child(6), :last-child:nth-child(-n + 6)) {
     display: none;
   }
@@ -1339,7 +1380,7 @@ main h1,
 }
 
 @container stack-fan (height < 39.625rem) {
-  .stack-fan li:nth-child(n + 5),
+  .stack-fan ol > li:nth-child(n + 5),
   .stack-more > :is(:nth-child(5), :last-child:nth-child(-n + 5)) {
     display: none;
   }
@@ -1350,7 +1391,7 @@ main h1,
 }
 
 @container stack-fan (height < 33.25rem) {
-  .stack-fan li:nth-child(n + 4),
+  .stack-fan ol > li:nth-child(n + 4),
   .stack-more > :is(:nth-child(4), :last-child:nth-child(-n + 4)) {
     display: none;
   }
@@ -1361,7 +1402,7 @@ main h1,
 }
 
 @container stack-fan (height < 26.875rem) {
-  .stack-fan li:nth-child(n + 3),
+  .stack-fan ol > li:nth-child(n + 3),
   .stack-more > :is(:nth-child(3), :last-child:nth-child(-n + 3)) {
     display: none;
   }
@@ -1372,7 +1413,7 @@ main h1,
 }
 
 @container stack-fan (height < 20.5rem) {
-  .stack-fan li:nth-child(n + 2),
+  .stack-fan ol > li:nth-child(n + 2),
   .stack-more > :is(:nth-child(2), :last-child:nth-child(-n + 2)) {
     display: none;
   }
@@ -1574,6 +1615,55 @@ main h1,
     column-gap: var(--space-5);
     align-items: start;
   }
+}
+
+/* A menu (ui/menu.cljc): its list drops from its button, at its end, over
+   what follows, or rises above it where there's no room below
+   (ui/document.cljs), its actions one to a line, as wide as the longest,
+   whatever the width of the button that it hangs from. An open one lies
+   over the rows after it, whose own menus, e.g. a fan's grips, are drawn
+   later. */
+.menu {
+  position: relative;
+}
+
+.menu:has(> [aria-expanded="true"]) {
+  z-index: 2;
+}
+
+.menu-list {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-1));
+  inset-inline-end: 0;
+  inline-size: max-content;
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.menu-list[data-above] {
+  inset-block: auto calc(100% + var(--space-1));
+}
+
+.menu-list button {
+  inline-size: 100%;
+  justify-content: start;
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-3);
+}
+
+/* A drag on a row's grip (ui/rows.cljc) is the page's, not a scroll of the
+   browser's, and selects no text, nor does any drag of a row. The row
+   that's dragged lies over the others. */
+.grip > button,
+[data-sorting] {
+  touch-action: none;
+  user-select: none;
+}
+
+[data-dragging] {
+  position: relative;
+  z-index: 1;
 }
 
 .queue-actions,

@@ -83,18 +83,20 @@
   (fn [{:replicant/keys [dom-event]}]
     (some-> dom-event .-detail)))
 
+;; unless a handler nearer the element already took the key, e.g. the
+;; Escape of a row's menu of moves, or of its drag, inside a stack's fan
 (nxr/register-placeholder! :event/key?
   (fn [{:replicant/keys [dom-event]} k]
-    (= k (some-> dom-event .-key))))
+    (and (= k (some-> dom-event .-key))
+         (not (.-defaultPrevented dom-event)))))
 
-;; The focus of a focusout goes to its relatedTarget, or to nothing, e.g.
-;; for a press on the page that nothing in it takes. As the window loses
-;; the focus, e.g. to another app, the focus stays where it was.
+;; The focus of a focusout goes to its relatedTarget, e.g. at a Tab, or to
+;; nothing, e.g. as the window loses it, or at a press that Safari doesn't
+;; focus, which :page/dismiss-outside follows instead
 (nxr/register-placeholder! :event/focus-left?
   (fn [{:replicant/keys [dom-event]}]
-    (when (and dom-event (js/document.hasFocus))
-      (let [to (.-relatedTarget dom-event)]
-        (not (and to (.contains (.-currentTarget dom-event) to)))))))
+    (let [to (some-> dom-event .-relatedTarget)]
+      (and (some? to) (not (.contains (.-currentTarget dom-event) to))))))
 
 ;; The actions that expand into others
 
@@ -153,6 +155,24 @@
 (nxr/register-effect! :page/fly
   (fn [_ _ from to]
     (document/fly! from to)))
+
+(nxr/register-effect! :page/dismiss-outside
+  (fn [{:keys [dispatch]} _ ids actions]
+    (document/dismiss-outside! ids #(dispatch actions))))
+
+(nxr/register-effect! :page/place-menu
+  (fn [_ _ id]
+    (document/place-menu! id)))
+
+(nxr/register-effect! :page/row-moved
+  (fn [_ _ id]
+    (document/row-moved! id)))
+
+(nxr/register-effect! :page/drag-row
+  (fn [{:keys [dispatch dispatch-data]} _ move grip-id started]
+    (document/drag-row! (:replicant/dom-event dispatch-data)
+                        #(dispatch started)
+                        #(dispatch [(conj move %) [:page/focus grip-id]]))))
 
 (nxr/register-effect! :hover/dismiss-on-escape
   (fn [{:keys [dispatch-data]} _]

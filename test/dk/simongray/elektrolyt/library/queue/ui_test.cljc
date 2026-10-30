@@ -26,11 +26,11 @@
     (is (= ["Episode 2" "Episode 3"] (map text-of (elements :h3 (elements :ol.queue x)))))
     (testing "the buttons of a row, named by the episode"
       (is (some? (button-of x "Remove Episode 2")))
-      (is (= "true" (:aria-disabled (button-of x "Move up Episode 2"))) "no way up from the top")
-      (is (= "true" (:aria-disabled (button-of x "Move down Episode 3"))) "nor down from the end")
-      (is (= [[:queue/move (id 2) 2] [:page/focus (queue-ui/control-id (id 2) :down)]]
-             (get-in (button-of x "Move down Episode 2") [:on :click]))
-          "a move keeps the focus on the button that moved it")
+      (is (= [["Move Episode 2" "Move down Episode 2"] ["Move Episode 3" "Move up Episode 3"]]
+             (map #(map text-of (buttons %)) (elements :span.menu x)))
+          "and the grip that drags it, or opens the menu of its moves, with no way up from the top, nor down from the end")
+      (is (= [:queue/move (id 2) 2] (first (get-in (button-of x "Move down Episode 2") [:on :click])))
+          "a move of the episode to its new place in Up next")
       (is (= [[:queue/remove (id 2)] [:page/focus (queue-ui/control-id (id 3) :remove)]]
              (clicked x "Remove Episode 2"))
           "and a removal moves it to the next row's")
