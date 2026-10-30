@@ -246,7 +246,8 @@
 (defn hold-links!
   "Until `routed?` gives true, keep a plain click on a link of the
   navigation from loading its page: push its path to the history instead,
-  and call `f` with the path, e.g. to render the frame there."
+  unless it's the page's own (elektrolyt.cljs), and call `f` with the
+  path, e.g. to render the frame there."
   [routed? f]
   (letfn [(held [^js e]
             (if (routed?)
@@ -255,7 +256,8 @@
                 (when-not (or (pos? (.-button e)) (.-metaKey e) (.-ctrlKey e)
                               (.-shiftKey e) (.-altKey e))
                   (.preventDefault e)
-                  (.pushState js/history nil "" (.-href a))
+                  (when-not (= js/location.href (.-href a))
+                    (.pushState js/history nil "" (.-href a)))
                   (f (.-pathname a))))))]
     (.addEventListener js/document "click" held)))
 

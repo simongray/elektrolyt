@@ -82,6 +82,9 @@ test('the frame of the page shows while the app starts, and a tap in it opens th
   await expect(page).toHaveTitle('Library – Elektrolyt');
 
   await page.evaluate(() => { window.loadedOnce = true; });
+  const length = await page.evaluate(() => history.length);
+  await navLink(page, 'Library').click();
+  expect(await page.evaluate(() => history.length), 'nothing for a tap on the page that shows').toBe(length);
   await navLink(page, 'Queue').click();
   await expect(page).toHaveURL(/\/queue$/);
   await expect(main.getByRole('heading', { level: 1, name: 'Queue' })).toBeVisible();
@@ -89,6 +92,16 @@ test('the frame of the page shows while the app starts, and a tap in it opens th
   await expect(main).not.toHaveAttribute('aria-busy');
   await expect(main.getByRole('heading', { level: 1, name: 'Queue' })).toBeVisible();
   expect(await page.evaluate(() => window.loadedOnce), 'without loading the page again').toBe(true);
+});
+
+test("a link to the page that shows adds nothing to the history, as a browser's doesn't", async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('main')).not.toHaveAttribute('aria-busy');
+  await navLink(page, 'Library').click();
+  await expect(navLink(page, 'Library')).toHaveAttribute('aria-current', 'page');
+  await navLink(page, 'Library').click();
+  await page.goBack();
+  await expect(navLink(page, 'Home')).toHaveAttribute('aria-current', 'page');
 });
 
 test('the bold of the headings and the buttons comes with the page, before they render', async ({ page }) => {

@@ -416,13 +416,25 @@
 
 ;; The start
 
-(defn routed-click?
+;; HTML: following a link to the document's own URL replaces its history
+;; entry, but reitit adds one for each link that it takes, e.g. the
+;; navigation's to the page that shows, after which Back seems to do
+;; nothing
+;; https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate
+(defn routed-click!
   "Whether the `router` takes over the `click` on the `anchor` to `uri`:
   when reitit would, unless a handler already prevented the click's
-  default action, e.g. the skip link's."
-  [router ^goog.events.BrowserEvent click anchor uri]
+  default action, e.g. the skip link's. The app follows a link to the
+  page's own URL itself, to the page again without a history entry, e.g.
+  to the part that its fragment names."
+  [router ^goog.events.BrowserEvent click ^js anchor uri]
   (and (not (.. click getBrowserEvent -defaultPrevented))
-       (rfh/ignore-anchor-click? router click anchor uri)))
+       (rfh/ignore-anchor-click? router click anchor uri)
+       (if (= js/location.href (.-href anchor))
+         (do (.preventDefault click)
+             (nxr/dispatch store {} [[:route/navigated (:route @store)]])
+             false)
+         true)))
 
 (defn start-router!
   "Follow the window's history and dispatch a navigation to each path,
@@ -436,7 +448,7 @@
                                                       (routes/match->route match)
                                                       (runtime/scroll-position)]]))
                            {:use-fragment         false
-                            :ignore-anchor-click? routed-click?}))
+                            :ignore-anchor-click? routed-click!}))
 
 (defn restore-library!
   "Read this browser's saved library into the store and follow what the
