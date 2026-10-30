@@ -319,7 +319,9 @@ time,
    signifiers cost the reader effort and certainty, so its words are bold,
    unlike the text around it, and outside the player it's a key lifted off
    the paper even at rest, touch screens included. The pointer or the
-   keyboard's focus lightens its face, and a press sinks it flat. The
+   keyboard's focus lightens its face, and a press sinks it flat, under
+   the layer of the accent (below), so that a key whose icon is all it
+   shows, e.g. a row's grip, doesn't vanish into the paper. The
    player's buttons lie flat on the bar until the pointer or the focus
    tints and lifts them.
    The border stays, transparent, for forced colours, which draw it while
@@ -359,6 +361,7 @@ button,
 button:where(:not(#player *, .disclosure, .bookmark, .menu-list *, [aria-disabled="true"])),
 ::file-selector-button {
   --key: light-dark(transparent, color-mix(in oklch, var(--accent) 12%, transparent));
+  --key-pressed: light-dark(color-mix(in oklch, var(--accent) 8%, transparent), var(--key));
   --lift: var(--raised);
   background: light-dark(color-mix(in oklch, var(--accent) 8%, transparent), transparent);
   box-shadow: var(--raised);
@@ -381,7 +384,7 @@ button:focus-visible {
 }
 
 button:active {
-  background: var(--key);
+  background: var(--key-pressed, var(--key));
   box-shadow: none;
 }
 
@@ -390,7 +393,7 @@ input[type="file"]:focus-visible::file-selector-button {
 }
 
 ::file-selector-button:active {
-  background: var(--key);
+  background: var(--key-pressed, var(--key));
   box-shadow: none;
 }
 
