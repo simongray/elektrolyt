@@ -39,11 +39,13 @@
    :route/settings "Settings"})
 
 ;; Material 3's navigation bar has three to five destinations, so the Inbox
-;; is part of the Library, whose page shows the start of it
+;; is part of the Library, whose page shows the start of it. The Queue
+;; page is reached from the player's stack of what plays next
+;; (player/ui.cljc), and from Home, whose page shows the start of it.
 ;; https://m3.material.io/components/navigation-bar/guidelines
 (def destinations
   "The names of the routes that the main navigation links to, in order."
-  [:route/home :route/queue :route/library :route/search :route/settings])
+  [:route/home :route/library :route/search :route/settings])
 
 (def part-of
   "The page in the navigation that each page outside it is part of, by
@@ -53,13 +55,12 @@
 (def nav-icons
   "The icon of each page in the main navigation, by route name."
   {:route/home     icons/house
-   :route/queue    icons/queue
    :route/library  icons/books
    :route/search   icons/magnifying-glass
    :route/settings icons/gear-six})
 
 (defn page-name
-  "The name of the route `route-name`, e.g. \"queue\", or nil when the
+  "The name of the route `route-name`, e.g. \"library\", or nil when the
   navigation doesn't link to it."
   [route-name]
   (when (some #{route-name} destinations)

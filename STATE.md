@@ -44,7 +44,7 @@ as long as the tab.
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `library.settings.ui` | At each check |
 | `:save-status` | While this tab's writes fail: when the oldest change that waits was made, how many writes in a row failed and why, which holds back the next try | `library`, through `library.saves` | `library`, `library.saves.ui`, for `ui` and `library.settings.ui` | Once a write goes through |
 | `:library-view` | The Library page's order and layout | `elektrolyt` | `library.shows`, `library.ui` | Never |
-| `:open` | The sections that the listener unfolded | `ui.controls` | `ui.controls` | Never, so that Back finds a section as the listener left it |
+| `:open` | The sections that the listener unfolded, and the fan of a stack that they opened, e.g. the player's of what plays next | `ui.controls`, `ui.stack` | `ui.controls`, `ui.stack` | A section's never, so that Back finds it as the listener left it; a fan's as the focus leaves its stack, at Escape, and at a press in it |
 
 
 In the tab, outside the store

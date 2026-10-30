@@ -91,10 +91,10 @@
 (defn wanted
   "The artworks on the page in `state` whose colours aren't in the :colors
   yet, as maps of :artwork and :artwork-sizes, each once. Those that colour
-  the page come first, and what plays next is among them on every page,
-  for its square in the player."
+  the page come first, and the first four artworks up next are among them
+  on every page, for the corners of the player's square of them."
   [state]
-  (->> (concat [(playing state) (first (queue/up-next state)) (page-show state)]
+  (->> (concat [(playing state)] (take 4 (once-each (queue/up-next state))) [(page-show state)]
                (listed state))
        (filter :artwork)
        (remove #(contains? (:colors state) (:artwork %)))

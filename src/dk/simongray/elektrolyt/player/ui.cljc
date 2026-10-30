@@ -13,6 +13,7 @@
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.stack :as stack]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
 
 ;; at the player's height on a desktop, 7rem (layout.css)
@@ -228,22 +229,74 @@
                  :on             {:input (cond-> [[:player/volume [:event/target-number]]]
                                            muted (conj [:player/mute false]))}}]])]))
 
+(def stack-size
+  "How many of the episodes up next the player's stack fans out at most,
+  in a window tall enough for them (layout.css)."
+  8)
+
+;; WCAG 2.2, SC 2.4.4 Link Purpose (In Context): a screen reader can list a
+;; page's links apart from what's around them, so the link's name says
+;; where it goes
+;; https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+(defn more-text
+  "The text of the stack's link to the queue, when its fan leaves out `n`
+  episodes, e.g. \"4 more\", and \"in the queue\" for a screen reader."
+  [n]
+  (if (pos? n)
+    (list (str n " more") [:span.visually-hidden " in the queue"])
+    "View Queue"))
+
+(defn corner-seeds
+  "The style of the stack's button in `state`: the seeds of the bars that
+  the `episodes` up next will give the player, as --seed-1 to --seed-4,
+  the first four that differ from each other, as far down the queue as it
+  takes. Those that aren't known count as none."
+  [state episodes]
+  (->> episodes
+       (keep #(colors/bar-seed state %))
+       (distinct)
+       (take 4)
+       (map-indexed #(vector (keyword (str "--seed-" (inc %1))) %2))
+       (into {})))
+
 ;; Pocket Casts, Apple Podcasts and Spotify all reach the queue from the
-;; player. The episode's title is for a screen reader alone, and the link
-;; has the colour that the player will take from its artwork.
-(defn next-up
-  "The episode that plays next in `state`, as a link to the queue with its
-  artwork, or nil."
+;; player, which is where the app reaches it too, in place of the
+;; navigation. Here it's a stack, as in the Dock of a Mac (ui/stack.cljc),
+;; whose fan plays an episode at a press, as its page's Play does. The
+;; button has the colours that the player will take from the first four
+;; up next (look.css). With nothing up next, there's no stack, and the
+;; rest of the player takes its room, since an empty queue has nothing to
+;; go to; the focus goes to Play as the last episode goes.
+(defn up-next
+  "The stack of the episodes up next in `state`, or nil when there are
+  none."
   [state]
-  (when-let [{:keys [title] :as episode} (first (queue/up-next state))]
-    (let [seed (colors/bar-seed state episode)]
-      [:a.player-next (cond-> {:href (routes/href :route/queue)}
-                        seed (assoc :style {:--bar-seed seed}))
-       [:span.player-next-label "Next" [:span.player-next-colon ":"]]
-       [:span.player-next-title " " title]
-       ;; at its size on a desktop, inside the mat (layout.css)
-       (artwork/img episode 68 (merge {:class "player-next-artwork"}
-                                      (colors/placeholder state episode)))])))
+  (let [episodes (queue/up-next state)
+        n        (count episodes)]
+    (stack/stack
+     state
+     ;; not up-next, which the Queue page's heading has
+     {:id          "up-next-stack"
+      :label       "Queue"
+      :description (str "Next: " (:title (first episodes))
+                        (when (< 1 n) (str ", and " (dec n) " more")))
+      :verb        "Play"
+      :icon        icons/play
+      :items       (for [{:keys [id title] :as episode} (take stack-size episodes)]
+                     {:key     (pr-str id)
+                      :title   title
+                      ;; at its size in the pile on a desktop, inside the
+                      ;; mat (layout.css)
+                      :img     (artwork/img episode 68 (colors/placeholder state episode))
+                      :actions [[:player/play {:id id} nil]]})
+      :total       n
+      ;; none on the Queue page, where a press would only add the page to
+      ;; the history again
+      :more        (when-not (= :route/queue (get-in state [:route :name]))
+                     [(routes/href :route/queue) more-text])
+      :attrs       {:class        "player-next"
+                    :data-refocus "#player .player-play"
+                    :style        (corner-seeds state episodes)}})))
 
 ;; For a screen reader alone, like the page's announcer: the controls show
 ;; the player's state, and a line that came and went would move the player
@@ -282,7 +335,7 @@
       (chapter-button playback :previous)
       (seek-bar (player/with-duration media playback) seeking playback)
       (chapter-button playback :next)]
-     (next-up state)
+     (up-next state)
      (status-line player))))
 
 ;; WAI-ARIA APG, landmark regions: a labelled section is a region, the

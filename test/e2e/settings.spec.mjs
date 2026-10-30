@@ -107,9 +107,9 @@ test("the colours are the device's, or light or dark as the listener chooses, in
   expect(await page.evaluate(() => localStorage.getItem('dk.simongray.elektrolyt.theme'))).toBeNull();
 });
 
-/** The colour of the link to the Queue in the navigation of `page`. */
+/** The colour of the link to Search in the navigation of `page`. */
 function linkColour(page) {
-  return navLink(page, 'Queue').evaluate(a => getComputedStyle(a).color);
+  return navLink(page, 'Search').evaluate(a => getComputedStyle(a).color);
 }
 
 test('more contrast follows the device, or the listener, and darkens the labels', async ({ page }) => {
@@ -145,10 +145,10 @@ test('the colours from the artwork are a switch that the profile keeps', async (
   await expect(colours).not.toBeChecked();
 });
 
-/** Whether the links to the Queue and the Library in the navigation of `page` have the same colour. */
+/** Whether the links to Search and the Library in the navigation of `page` have the same colour. */
 async function labelsAlike(page) {
-  const [queue, library] = await Promise.all(['Queue', 'Library'].map(t => navLink(page, t).evaluate(a => getComputedStyle(a).color)));
-  return queue === library;
+  const [search, library] = await Promise.all(['Search', 'Library'].map(t => navLink(page, t).evaluate(a => getComputedStyle(a).color)));
+  return search === library;
 }
 
 test("the navigation's colours are a page's, the player's, or none, which leaves its labels in the same ink", async ({ page }) => {

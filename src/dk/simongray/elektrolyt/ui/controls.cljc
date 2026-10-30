@@ -149,6 +149,13 @@
   (when (<= (or click-count 0) 1)
     actions))
 
+(defn when-true
+  "The `actions` of an event, or nil unless `test` holds, e.g. that its key
+  is Escape, whatever the `_state`."
+  [_state test actions]
+  (when test
+    actions))
+
 ;; WAI-ARIA APG, disclosure: a button in the heading, with the heading's
 ;; words, that says whether its content is expanded. The heading can take
 ;; the focus, for a link to the section.

@@ -94,6 +94,16 @@ export function navLink(page, title) {
 }
 
 /**
+ * Open the Queue page in the `page` without a reload, from Home's start of
+ * the queue, since the navigation has no link to it, and the player has
+ * one only while an episode is in it.
+ */
+export async function openQueue(page) {
+  await navLink(page, 'Home').click();
+  await page.getByRole('main').getByRole('link', { name: 'The whole queue' }).click();
+}
+
+/**
  * The names of the documents in the cache's database, which is opened as
  * like-minded opens it, so that a test that comes first makes it the same.
  */

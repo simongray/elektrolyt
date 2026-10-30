@@ -2,11 +2,13 @@
   (:require [clojure.test :refer [deftest is testing]]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.elektrolyt.library.queue-test :as queue-test]
+            [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.player-test :refer [id lib state]]
             [dk.simongray.elektrolyt.player.ui :as player-ui]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
+            [dk.simongray.elektrolyt.ui.stack :as stack]
             [dk.simongray.elektrolyt.ui-test :refer [elements nodes text-of]]))
 
 (defn buttons
@@ -86,10 +88,44 @@
       "has a name for its link nonetheless"))
 
 (deftest what-plays-next
-  (let [x (player-ui/next-up (queue-test/state true 1 2))]
-    (is (= "/queue" (:href (second x))) "a link to the queue")
-    (is (= "Next: Episode 2" (text-of x)) "named by what plays next"))
-  (is (nil? (player-ui/next-up (queue-test/state true 1))) "and nothing after the last"))
+  (let [x    (player-ui/up-next (queue-test/state true 1 2 3 4))
+        more #(let [[_ {:keys [href]} & texts] (first (elements :a.stack-more %))]
+                [href (map text-of (apply concat texts))])]
+    (is (= "Queue" (:title (second (first (elements :button.stack-button x)))))
+        "a stack named Queue")
+    (is (= ["Next: Episode 2, and 2 more"]
+           (keep #(when (= "up-next-stack-description" (:id (second %))) (text-of %))
+                 (elements :span.visually-hidden x)))
+        "and described by what plays next")
+    (is (= ["Play Episode 2" "Play Episode 3" "Play Episode 4"]
+           (map text-of (elements :button.stack-item x)))
+        "which fans them out")
+    (is (= (conj (stack/closed "up-next-stack") [:player/play {:id (queue-test/id 2)} nil])
+           (get-in (first (elements :button.stack-item x)) [1 :on :click]))
+        "each played at a press, which closes the fan")
+    (is (= ["/queue" ["2 more in the queue" "1 more in the queue" "View Queue"]] (more x))
+        "and then links to the queue, saying how many the window leaves out")
+    (with-redefs [player-ui/stack-size 2]
+      (is (= ["/queue" ["2 more in the queue" "1 more in the queue"]]
+             (more (player-ui/up-next (queue-test/state true 1 2 3 4))))
+          "though there are more than the fan can show"))
+    (is (empty? (elements :a.stack-more (player-ui/up-next (assoc (queue-test/state true 1 2 3 4)
+                                                                  :route {:name :route/queue}))))
+        "except on the Queue page, which a press would only add to the history again"))
+  (is (nil? (player-ui/up-next (queue-test/state true 1)))
+      "and nothing after the last, since an empty queue has nothing to go to"))
+
+(deftest the-colours-of-the-stack
+  (let [own   (:artwork (player/shown-playback (state {})))
+        state (assoc (state {}) :colors {own     {:seed "#000000"}
+                                         "a.jpg" {:seed "#111111"}
+                                         "b.jpg" {:seed "#111111"}
+                                         "d.jpg" {:seed "#444444"}
+                                         "e.jpg" {:seed "#555555"}})]
+    (is (= {:--seed-1 "#111111" :--seed-2 "#000000" :--seed-3 "#444444" :--seed-4 "#555555"}
+           (player-ui/corner-seeds state (for [artwork ["a.jpg" own "a.jpg" "b.jpg" "c.jpg" "d.jpg" "e.jpg"]]
+                                           {:artwork artwork})))
+        "for the corners of its square, the first four seeds up next that are known and differ from each other, the player's own among them")))
 
 (deftest the-status-line
   (is (= [:p.visually-hidden {:role "status"} "Loading…"]

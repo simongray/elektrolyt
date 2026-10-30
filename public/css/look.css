@@ -102,10 +102,6 @@ time,
   --page: var(--home);
 }
 
-[data-page="queue"] {
-  --page: var(--queue);
-}
-
 [data-page="library"] {
   --page: var(--library);
 }
@@ -124,9 +120,7 @@ time,
    lightness of its own for each token, so that the contrast holds at
    every hue. The app's own near-black has no hue, so it stays a dark
    grey. The bar is the same in light and dark, and its controls are
-   drawn for a dark ground. The player's square of what plays next takes
-   the bar that its own seed gives, so it has the tokens too. */
-.player-next,
+   drawn for a dark ground. */
 .shell {
   --bar: oklch(from var(--bar-seed) 33% min(c, 0.1) calc(h + 180));
   /* the deck of the player's controls below the episode, a little deeper */
@@ -219,10 +213,6 @@ time,
    https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html */
 .shell[data-palette="color-blind"] [data-page="home"] {
   --label: light-dark(#bf3a00, #e06623);
-}
-
-.shell[data-palette="color-blind"] [data-page="queue"] {
-  --label: light-dark(#87182f, #ef8f94);
 }
 
 .shell[data-palette="color-blind"] [data-page="library"] {
@@ -650,8 +640,10 @@ img {
 /* Artwork that links where the title after it does is a little brighter
    under the pointer, and the title is underlined as it is under the
    pointer itself. A keyboard and a screen reader skip the artwork for
-   the title (ui/artwork.cljc). */
-.artwork-link:hover img {
+   the title (ui/artwork.cljc). So is an item's artwork in a stack's fan,
+   whose title is underlined too (below). */
+.artwork-link:hover img,
+.stack-item:hover img {
   filter: brightness(1.12);
 }
 
@@ -888,26 +880,148 @@ hgroup > p {
   font-variant-numeric: tabular-nums;
 }
 
-/* "Next" in small caps, as the navigation's labels are, a little smaller,
-   to fit the mat above the artwork */
-.player-next-label {
-  font-size: 0.875em;
-  font-variant-caps: all-small-caps;
-  line-height: 1;
-  letter-spacing: var(--caps-tracking);
-}
-
-/* what's next on the bar that the player will take from its artwork, as
-   a mat that frames it, with the grain of the bar over it */
+/* What's next, a mat that frames the pile, in the colours of the bars that
+   the first four up next will give the player, made as the bar is
+   (above): the first fills it, and the rest come from its other corners,
+   clockwise from the top right, to meet in the middle, mixed in OKLab. A
+   corner without a seed takes the first's, and the first without one
+   takes the player's bar. The grain of the bar lies over them, from the
+   edge of its border, which forced colours draw, and which would else
+   repeat their edges around it. It's flush with the bar's edges, and
+   tinted under the pointer or the focus and while its fan is open, as a
+   lift would draw a seam. */
 .player-next {
-  background: var(--grain) 0 0 / var(--grain-size), var(--bar);
+  --corner-1: oklch(from var(--seed-1, var(--bar-seed)) 33% min(c, 0.1) calc(h + 180));
+  --corner-2: oklch(from var(--seed-2, var(--seed-1, var(--bar-seed))) 33% min(c, 0.1) calc(h + 180));
+  --corner-3: oklch(from var(--seed-3, var(--seed-1, var(--bar-seed))) 33% min(c, 0.1) calc(h + 180));
+  --corner-4: oklch(from var(--seed-4, var(--seed-1, var(--bar-seed))) 33% min(c, 0.1) calc(h + 180));
+  --corners: radial-gradient(in oklab farthest-side at 100% 0, var(--corner-2), transparent),
+             radial-gradient(in oklab farthest-side at 100% 100%, var(--corner-3), transparent),
+             radial-gradient(in oklab farthest-side at 0 100%, var(--corner-4), transparent),
+             var(--corner-1);
+  font-weight: normal;
   text-decoration: none;
+  border-radius: 0;
+  background: var(--grain) 0 0 / var(--grain-size), var(--corners);
+  background-origin: border-box;
 }
 
-.player-next:hover {
+.player-next:is(:hover, :focus-visible, :active),
+.player-next[aria-expanded="true"] {
   background: var(--grain) 0 0 / var(--grain-size),
               linear-gradient(var(--accent-soft), var(--accent-soft)),
-              var(--bar);
+              var(--corners);
+  background-origin: border-box;
+  box-shadow: none;
+}
+
+/* A stack's pile askew, as the Dock piles a folder's items, each artwork
+   apart from the one under it by a faint shadow, and gone while they're
+   out in its fan */
+.stack-pile > * {
+  box-shadow: 0 0 3px oklch(0% 0 0 / 0.4);
+}
+
+.stack-button[aria-expanded="true"] .stack-pile {
+  opacity: 0;
+}
+
+.stack-pile > :nth-last-child(2) {
+  rotate: -6deg;
+}
+
+.stack-pile > :nth-last-child(3) {
+  rotate: 5deg;
+}
+
+/* A stack's fan floats over the page, as the Dock's fan floats over the
+   desktop, on a scrim of translucent black over the whole window, darkest
+   at the player and lighter toward the top, where it's still 30%, so that
+   the page dims as a whole and the fade from the top to the items is
+   gentle however little room the items leave it. The fade eases, as a
+   scrim's shadow does, since a straight one ends in a visible edge. The
+   scrim is at least 66% black behind every title, where its words, light
+   in a dark halo, stay legible on whatever lies below, paper or artwork,
+   in either theme: over white paper, that's a contrast of over 6:1. Its
+   artworks float on a shadow of a few layers, as something held above the
+   page would cast. Under the pointer, a title is underlined, as a list's
+   titles are.
+   https://www.nngroup.com/articles/text-over-images/
+   https://larsenwork.com/easing-gradients/
+   https://www.joshwcomeau.com/css/designing-shadows/
+   https://tobiasahlin.com/blog/layered-smooth-box-shadows/ */
+.stack-fan {
+  --halo: oklch(0% 0 0 / 0.85);
+}
+
+/* The scrim's box reaches 100vh above the body (layout.css): 30% up to
+   60vh above the body, then one curve, a sine's, that eases in and out to
+   85% 40vh below the body's top, 66% at the top itself. Its steepness
+   changes nowhere at once, which the eye would see as a line, as it would
+   where a flat fade met a ramp over a body of one item. The window shows
+   the part below its top, which is lighter the more room the items leave,
+   and the body's foot cuts the curve short where it's shorter than
+   40vh. */
+.stack-fan-body::before {
+  background: linear-gradient(oklch(0% 0 0 / 0.3) 40vh,
+                              oklch(0% 0 0 / 0.314) 50vh,
+                              oklch(0% 0 0 / 0.353) 60vh,
+                              oklch(0% 0 0 / 0.413) 70vh,
+                              oklch(0% 0 0 / 0.49) 80vh,
+                              oklch(0% 0 0 / 0.575) 90vh,
+                              oklch(0% 0 0 / 0.66) 100vh,
+                              oklch(0% 0 0 / 0.737) 110vh,
+                              oklch(0% 0 0 / 0.798) 120vh,
+                              oklch(0% 0 0 / 0.837) 130vh,
+                              oklch(0% 0 0 / 0.85) 140vh);
+}
+
+/* the items' titles, and the link to them all at the fan's foot, light on
+   the scrim, each in a halo */
+.stack-item,
+.stack-more {
+  color: var(--on-bar);
+  font-size: var(--step-0);
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  text-shadow: 0 0 1px var(--halo), 0 0 2px var(--halo), 0 0 4px var(--halo), 0 0 8px var(--halo);
+}
+
+.stack-item,
+.stack-item:is(:hover, :focus-visible, :active) {
+  background: none;
+  box-shadow: none;
+}
+
+.stack-item:hover .stack-title,
+.stack-more:hover {
+  text-decoration: underline;
+}
+
+.stack-item img {
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.2),
+              0 3px 6px oklch(0% 0 0 / 0.2),
+              0 8px 16px oklch(0% 0 0 / 0.2),
+              0 16px 24px -6px oklch(0% 0 0 / 0.3);
+}
+
+/* the icon of what a press does, light in a halo like the titles, and a
+   little bigger under the pointer or the focus */
+.stack-artwork .icon {
+  color: var(--on-bar);
+  filter: drop-shadow(0 0 1px var(--halo)) drop-shadow(0 0 2px var(--halo)) drop-shadow(0 0 4px var(--halo));
+}
+
+.stack-item:is(:hover, :focus-visible) .stack-artwork .icon {
+  scale: 1.15;
+}
+
+/* WCAG technique C40: the light focus ring between two dark ones, so that
+   one of them stands out on any background
+   https://www.w3.org/WAI/WCAG21/Techniques/css/C40 */
+.stack-item:focus-visible,
+.stack-more:focus-visible {
+  box-shadow: 0 0 0 6px var(--halo);
 }
 
 /* The speed as bare text, e.g. 1.5×, with only the caret of its menu, as
@@ -991,7 +1105,6 @@ search p {
    further from it, the links' underlines in their full colour, and the
    paper's plain buttons outlined again, in the stronger rule */
 @media (prefers-contrast: more) {
-  :root:not([data-contrast="standard"]) .player-next,
   :root:not([data-contrast="standard"]) .shell {
     --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
     --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
@@ -1026,7 +1139,6 @@ search p {
   }
 }
 
-:root[data-contrast="more"] .player-next,
 :root[data-contrast="more"] .shell {
   --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
   --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
@@ -1132,8 +1244,13 @@ search p {
     transition: --knob 0.15s, background-color 0.15s, border-color 0.15s;
   }
 
-  .artwork-link img {
+  .artwork-link img,
+  .stack-item img {
     transition: filter 0.15s;
+  }
+
+  .stack-artwork .icon {
+    transition: scale 0.15s;
   }
 
   /* WCAG 2.2.2 lets a sign of loading move for longer than 5 seconds
@@ -1189,6 +1306,30 @@ search p {
 
   @starting-style {
     dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /* A stack's fan fades in as its pile fades out, and its items rise from
+     its button over the scrim, the nearest first and the first item last,
+     at the top. It goes at once, as a dialog does. Each item waits by how
+     far above the button it is (ui/stack.cljc). */
+  .stack-fan,
+  .stack-pile {
+    transition: opacity 0.2s;
+  }
+
+  .stack-fan li {
+    transition: opacity 0.15s calc(var(--above) * 0.03s), translate 0.2s calc(var(--above) * 0.03s);
+  }
+
+  @starting-style {
+    .stack-fan:not([hidden]) li {
+      opacity: 0;
+      translate: 0 0.75rem;
+    }
+
+    .stack-fan:not([hidden]) {
       opacity: 0;
     }
   }

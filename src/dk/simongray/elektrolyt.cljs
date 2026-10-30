@@ -83,6 +83,19 @@
   (fn [{:replicant/keys [dom-event]}]
     (some-> dom-event .-detail)))
 
+(nxr/register-placeholder! :event/key?
+  (fn [{:replicant/keys [dom-event]} k]
+    (= k (some-> dom-event .-key))))
+
+;; The focus of a focusout goes to its relatedTarget, or to nothing, e.g.
+;; for a press on the page that nothing in it takes. As the window loses
+;; the focus, e.g. to another app, the focus stays where it was.
+(nxr/register-placeholder! :event/focus-left?
+  (fn [{:replicant/keys [dom-event]}]
+    (when (and dom-event (js/document.hasFocus))
+      (let [to (.-relatedTarget dom-event)]
+        (not (and to (.contains (.-currentTarget dom-event) to)))))))
+
 ;; The actions that expand into others
 
 (nxr/register-expansion! :route/navigated routes/navigated)
@@ -92,6 +105,8 @@
 (nxr/register-expansion! :show/more show/more-shown)
 
 (nxr/register-expansion! :event/single-click controls-ui/unless-repeated)
+
+(nxr/register-expansion! :event/when controls-ui/when-true)
 
 ;; The store and the page
 
@@ -134,6 +149,10 @@
 (nxr/register-effect! :dialog/open
   (fn [_ _ id]
     (document/open-dialog! id)))
+
+(nxr/register-effect! :page/fly
+  (fn [_ _ from to]
+    (document/fly! from to)))
 
 (nxr/register-effect! :hover/dismiss-on-escape
   (fn [{:keys [dispatch-data]} _]

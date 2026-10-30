@@ -33,9 +33,10 @@
     (is (empty? (colors/wanted (assoc-in state [:colors (:artwork playing)] {:status :loading}))))
     (is (empty? (colors/wanted (assoc-in state [:colors (:artwork playing)] {:seed nil})))))
   (is (empty? (colors/wanted {:route {:name :route/queue}})) "and none while nothing plays")
-  (with-redefs [queue/up-next (constantly [{:artwork "https://example.org/next.jpg"}])]
-    (is (= [(:artwork playing) "https://example.org/next.jpg"] (map :artwork (colors/wanted state)))
-        "and of what plays next, for the player's square of it"))
+  (with-redefs [queue/up-next (constantly (for [i [1 1 2 1 3 4 5]] {:artwork (str "https://example.org/" i ".jpg")}))]
+    (is (= (cons (:artwork playing) (for [i (range 1 5)] (str "https://example.org/" i ".jpg")))
+           (map :artwork (colors/wanted state)))
+        "and the first four artworks of what plays next, for the corners of the player's square of them"))
   (with-redefs [show/page (constantly (select-keys playing [:artwork]))]
     (is (= [(:artwork playing)]
            (map :artwork (colors/wanted (assoc state :route {:name :route/show :path-params {:guid "g"}}))))

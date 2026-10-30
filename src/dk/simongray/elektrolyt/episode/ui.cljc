@@ -100,14 +100,22 @@
                          :on    {:click [[:player/play (episode/playable page) t]]}}
      (play-label entry t)]))
 
+(def queued-flight
+  "The action that sends the episode's artwork into the player's stack as
+  it's queued, its pile or else its square, or nowhere while nothing
+  plays."
+  [:page/fly "main .episode-intro > img" ["#player .stack-pile" "#player .player-next"]])
+
 ;; Apple, Pocket Casts, Castro and Overcast queue an episode in two places,
 ;; right after the one that plays or at the end, which Apple Podcasts named
 ;; Play Next and Play Last. Once it's queued, Unqueue takes the place of
 ;; both, since the Queue page moves it, and has the x of the inbox's
 ;; Dismiss. Each ignores the second click of a double click, which would
 ;; land on its opposite, and the focus on Play last, which goes, moves to
-;; Unqueue.
+;; Unqueue. The artwork flies to where the episode went, as a shop's
+;; product flies into its cart.
 ;; https://support.apple.com/en-ca/guide/podcasts/use-up-next-poddfb50a470/1.1.0/mac/13.0
+;; https://www.shopify.com/partners/blog/css-animation
 (defn queue-buttons
   "The buttons that queue the episode `page`, or unqueue it, by its place
   in the queue, `queued`: nil, :queued, or :current, which needs none."
@@ -123,11 +131,13 @@
       (list
        [controls-ui/button {:icon         icons/rows-plus-top
                             :data-refocus unqueue
-                            :on           {:click (controls-ui/single-click [[:queue/add playable title true]])}}
+                            :on           {:click (controls-ui/single-click [[:queue/add playable title true]
+                                                                             queued-flight])}}
         "Play next"]
        [controls-ui/button {:icon         icons/rows-plus-bottom
                             :data-refocus unqueue
-                            :on           {:click (controls-ui/single-click [[:queue/add playable title false]])}}
+                            :on           {:click (controls-ui/single-click [[:queue/add playable title false]
+                                                                             queued-flight])}}
         "Play last"]))))
 
 (defn number-text

@@ -2,6 +2,7 @@
   "Scenes of the player, from nothing playing to the ways an episode can
   fail to play."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.elektrolyt.scenes :refer [artwork feed url]]
             [dk.simongray.elektrolyt.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
@@ -80,6 +81,15 @@
   "A play before the page may play, e.g. after a reload, which the
   listener's own press starts."
   (ui/page (playing {:media (assoc media :paused true) :answer {:refused :not-allowed}})))
+
+(defscene with-episodes-up-next
+  "The stack of the three episodes that play after this one, whose fan of
+  them rises above it at a press."
+  (ui/page (update (playing {}) :library
+                   (fn [lib]
+                     (reduce #(library/update-profile %1 profile.queue/enqueue [(first id) (str "PC20-" %2)])
+                             lib
+                             [273 275 274 272])))))
 
 (defscene in-the-colours-of-its-artwork
   "The player in the colours of the artwork of what plays, once they're

@@ -90,11 +90,12 @@
         "or the app's own, for artwork without a hue")))
 
 (deftest each-link-of-the-navigation-names-its-page
-  (is (= ["home" "queue" "library" "search" "settings"]
-         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}})))))
-  (is (= ["queue" "library" nil]
+  (is (= ["home" "library" "search" "settings"]
+         (map (comp :data-page second) (elements :li (ui/main-nav {:route {:name :route/queue}}))))
+      "but the Queue, which the player reaches")
+  (is (= ["library" "library" nil nil]
          (map #(:data-page (second (ui/main-nav {:route {:name %}})))
-              [:route/queue :route/inbox :route/show]))
+              [:route/library :route/inbox :route/queue :route/show]))
       "and the navigation names the page that it's on, for its tone, e.g. the Library on the Inbox page")
   (let [preferring #(-> {:route {:name :route/queue} :library inbox-test/lib}
                         (operations/changed (settings/preferred {::settings/navigation-palette %})))]
@@ -105,7 +106,7 @@
 
 (deftest each-link-of-the-navigation-has-its-pages-title-and-icon
   (let [links (elements :a (ui/main-nav {:route {:name :route/queue}}))]
-    (is (= ["Home" "Queue" "Library" "Search" "Settings"] (map text-of links) (map (comp :title second) links))
+    (is (= ["Home" "Library" "Search" "Settings"] (map text-of links) (map (comp :title second) links))
         "which is its tooltip too, for where it shows its icon alone")
     (is (= (map ui/nav-icons ui/destinations)
            (map #(:icon (second (first (elements controls/icon %)))) links))

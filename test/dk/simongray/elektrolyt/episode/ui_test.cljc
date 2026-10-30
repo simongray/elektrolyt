@@ -104,9 +104,10 @@
     (is (= ["Play next" "Play last"] (texts nil)))
     (is (= ["Unqueue"] (texts :queued)) "which turn into one once it's queued")
     (is (empty? (texts :current)) "none for the episode that plays")
-    (is (= (controls/single-click [[:queue/add (episode/playable page) (:title page) true]])
+    (is (= (controls/single-click [[:queue/add (episode/playable page) (:title page) true]
+                                   episode-ui/queued-flight])
            (get-in (first (buttons nil)) [1 :on :click]))
-        "Play next once for a double click on Unqueue, which turns into it")
+        "Play next once for a double click on Unqueue, which turns into it, as its artwork flies to the queue")
     (is (= [icons/rows-plus-top icons/rows-plus-bottom icons/x]
            (map (comp :icon second) (concat (buttons nil) (buttons :queued))))
         "with icons that add a row at the top or the bottom, or take it out")

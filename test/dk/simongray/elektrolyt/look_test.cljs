@@ -105,14 +105,14 @@
 
 (def pages
   "The colour of each page of the navigation that has one."
-  (into {} (for [p ["home" "queue" "library" "search" "settings"]]
+  (into {} (for [p ["home" "library" "search" "settings"]]
              [p (get root (str "--" p))])))
 
 (deftest the-stylesheets-have-the-tokens
   (is (= {:space :oklch :l 0.33 :c 0.1 :turn 180} (first (tokens shell "--bar"))))
   (is (= {:space :lch :l 42 :c 50 :turn 0}
          (first (tokens (declarations look ".shell > nav li" 0) "--label"))))
-  (is (= 5 (count (filter some? (vals pages)))))
+  (is (= 4 (count (filter some? (vals pages)))))
   (is (= "oklch(20% 0 0)" (get root "--app")))
   (is (= ["oklch(100% 0 0)" "oklch(17.5% 0.003 80)"] paper)))
 

@@ -223,6 +223,49 @@
     (set! (.-returnValue dialog) "")
     (.showModal dialog)))
 
+(defn flight
+  "The keyframes of a copy of the box `a` that flies into the box `b` and
+  fades out as it gets there, as big as the shorter side of `b`, in its
+  middle."
+  [^js a ^js b]
+  (let [s (/ (min (.-width b) (.-height b)) (.-width a))
+        x (- (+ (.-left b) (/ (- (.-width b) (* s (.-width a))) 2)) (.-left a))
+        y (- (+ (.-top b) (/ (- (.-height b) (* s (.-height a))) 2)) (.-top a))]
+    #js [#js {:transform "none" :opacity 1}
+         #js {:opacity 1 :offset 0.7}
+         #js {:transform (str "translate(" x "px, " y "px) scale(" s ")") :opacity 0}]))
+
+;; NN/g: motion makes a change seen, which change blindness can else hide,
+;; and stays brief. FLIP, after Paul Lewis: the copy moves by its transform
+;; and fades by its opacity alone, which the browser animates without
+;; laying out the page again. It takes no clicks and goes once it has
+;; landed, as the target swells a little to take it.
+;; https://www.nngroup.com/articles/animation-purpose-ux/
+;; https://aerotwist.com/blog/flip-your-animations/
+;; https://developer.mozilla.org/en-US/docs/Web/API/Element/animate
+(defn fly!
+  "Send a copy of the element at the selector `from` into the first element
+  in the page at the `to` selectors, where it fades out, unless the
+  listener asks for less motion."
+  [from to]
+  (let [^js source (js/document.querySelector from)
+        ^js target (some #(js/document.querySelector %) to)]
+    (when (and source target (runtime/motion?))
+      (let [a        (.getBoundingClientRect source)
+            ^js copy (.cloneNode source true)]
+        (set! (.. copy -style -cssText)
+              (str "position: fixed; z-index: 2; margin: 0; pointer-events: none;"
+                   " transform-origin: 0 0; left: " (.-left a) "px; top: " (.-top a) "px;"
+                   " width: " (.-width a) "px; height: " (.-height a) "px"))
+        (.append js/document.body copy)
+        (let [done #(.remove copy)]
+          (-> (.animate copy (flight a (.getBoundingClientRect target))
+                        #js {:duration 500 :easing "ease-in-out"})
+              .-finished
+              (.then done done)))
+        (.animate target #js [#js {:scale 1} #js {:scale 1.08} #js {:scale 1}]
+                  #js {:duration 200 :delay 400 :easing "ease-out"})))))
+
 ;; WCAG 2.2, SC 1.4.13 Content on Hover or Focus: what shows on hover or
 ;; focus hides on Escape without the pointer or the focus moving, as
 ;; Video.js hides its volume. The focus goes to the element's button, since

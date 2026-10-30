@@ -3,7 +3,7 @@
 // onto what the other wrote when the other wrote first, so that neither
 // writes over the other.
 
-import { test, expect, announcement, episodePath, episodes, navLink, showPath, showTitle }
+import { test, expect, announcement, episodePath, episodes, navLink, openQueue, showPath, showTitle }
   from './fixtures.mjs';
 
 const [first, second] = episodes;
@@ -54,7 +54,7 @@ test('two tabs keep what each other queued', async ({ page, context }) => {
   await other.getByRole('main').getByRole('button', { name: 'Play last' }).click();
   await expect(announcement(other)).toHaveText(`Added ${second.title} to the queue`);
 
-  await navLink(page, 'Queue').click();
+  await openQueue(page);
   await expect(upNext(page)).toHaveText([first.title, second.title]);
   // after a reload, the first in the queue is the one playing
   await page.reload();
@@ -81,7 +81,7 @@ test('an undo that another tab left nothing to put back gives its focus to the h
   await subscribe(page);
   await queue(page, first);
   await queue(page, second);
-  await navLink(page, 'Queue').click();
+  await openQueue(page);
   const region = page.getByRole('region', { name: 'Up next' });
   await region.getByRole('button', { name: `Remove ${second.title}` }).press('Enter');
   const undo = region.getByRole('button', { name: `Undo removing ${second.title}` });
@@ -146,7 +146,7 @@ test('two tabs that change the library at once keep both changes', async ({ page
   await expect(announcement(other)).toHaveText(`Added ${second.title} to the queue`);
 
   for (const tab of [page, other]) {
-    await navLink(tab, 'Queue').click();
+    await openQueue(tab);
     await expect(upNext(tab)).toHaveCount(2);
     expect(await queued(tab), 'the queue of each tab').toEqual([first.title, second.title]);
   }
@@ -173,7 +173,7 @@ test('a refresh in one tab and a change in the other at once keep both', async (
   for (const tab of [page, other]) {
     await navLink(tab, 'Library').click();
     await expect(inbox(tab), 'the new episode in the inbox of each tab').toHaveText([fourth.title]);
-    await navLink(tab, 'Queue').click();
+    await openQueue(tab);
     await expect(upNext(tab), 'and the queue of each').toHaveText([first.title]);
   }
   await page.reload();

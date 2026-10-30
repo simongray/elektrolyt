@@ -271,11 +271,13 @@ hgroup > p {
 
 /* Positioned, so that the text that only a screen reader reads, which is
    positioned absolutely, stays in the main content's scroller, rather than
-   make the whole page scroll past the end of the shell. */
+   make the whole page scroll past the end of the shell. An anchor, whose
+   foot is where a stack's fan ends, at the top of the player. */
 .shell > main {
   grid-area: main;
   overflow-y: auto;
   position: relative;
+  anchor-name: --main;
 }
 
 /* The paper (look.css), as tall as main at least, so that a short page
@@ -1065,10 +1067,11 @@ main h1,
 /* The volume's slider rises from the speaker on a panel that lies under
    it, as wide as its target, so that the speaker is the panel's foot. The
    speaker and its panel lie over the seek bar, since the bar comes later
-   in the page and would else cross the panel. The slider is upright, loud
-   at the top and silent at the bottom, in a column whose items are
-   centred, since Firefox doesn't centre an upright slider by its auto
-   margins.
+   in the page and would else cross the panel, and over the fan of what
+   plays next, which lies in the player too (ui/stack.cljc). The slider is
+   upright, loud at the top and silent at the bottom, in a column whose
+   items are centred, since Firefox doesn't centre an upright slider by
+   its auto margins.
    https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Writing_modes/Vertical_controls */
 .player-volume {
   position: relative;
@@ -1143,55 +1146,260 @@ main h1,
   }
 }
 
-/* What's next, a square at the player's right edge, as tall as the
-   episode's row, as the artwork is at its left: "Next" and the artwork
-   below it in the middle of the square together, with a mat as wide on
-   either side of the artwork. The label's box is trimmed to its letters,
-   so that it's they that are centred, and not the room above and below
-   them in the line. */
+/* A stack (ui/stack.cljc): its button lies in its parent's layout as if
+   the stack weren't there, and its fan over the window. The pile's
+   artworks lie on top of each other, each as big as the pile, and in
+   their order, though the look tilts those below: a transform would else
+   paint them over the one on top, which has none. */
+.stack {
+  display: contents;
+}
+
+.stack-pile {
+  display: grid;
+}
+
+.stack-pile > * {
+  position: relative;
+  grid-area: 1 / 1;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+/* The fan covers the whole window above the player, its body at the foot,
+   above the stack: the first item at the top, as the page of them all has
+   it, each item at the end of its line, with its title beside its
+   artwork, as big as the pile's, and the link to them all at its foot.
+   Its scrim (look.css) lies behind the body and lightens in the room
+   above it, to the top of the window, so that every title lies where the
+   scrim is dark. The halos of the titles have room inside the box that
+   cuts them short. Only its items and its link take a press, so that one
+   anywhere else goes to the page and closes it. A title on one line is
+   as wide as it is, so it's cut short where the window is narrower. The
+   fan lies in the player, under the volume's panel, fixed from the top
+   of the window to the main content's foot, the top of the player, by
+   the main content's anchor. Where a browser can't anchor it, it lies on
+   the player, as tall as its items.
+   https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning */
+.stack-fan {
+  position: absolute;
+  inset: auto 0 100%;
+  overflow: auto;
+  pointer-events: none;
+}
+
+@supports (anchor-name: --main) {
+  .stack-fan {
+    container: stack-fan / size;
+    position: fixed;
+    inset: 0 0 anchor(--main bottom);
+  }
+}
+
+.stack-fan :is(button, a) {
+  pointer-events: auto;
+}
+
+.stack-fan:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The body at the foot by its auto margin, which drops to nothing in a fan
+   too tall for the window, so that it scrolls from the top. Its scrim
+   (look.css) is one box behind it, from its foot to a window's height
+   above its top, which the fan cuts off at the top of the window, so that
+   the scrim has no edge inside the window but the player's. */
+.stack-fan-body {
+  position: relative;
+  margin-block-start: auto;
+  padding: var(--space-3);
+}
+
+.stack-fan-body::before {
+  content: "";
+  position: absolute;
+  inset: -100vh 0 0;
+  z-index: -1;
+}
+
+.stack-fan-body,
+.stack-fan ol {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.stack-fan ol {
+  max-inline-size: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stack-fan li {
+  max-inline-size: 100%;
+}
+
+.stack-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-inline-size: 100%;
+  min-height: 0;
+  padding: var(--space-2);
+}
+
+.stack-title {
+  min-inline-size: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* An item's artwork, with the icon of what a press does in its middle.
+   Both are positioned, since the artwork's filter under the pointer
+   (look.css) would else paint it over the icon. */
+.stack-artwork {
+  display: grid;
+  flex: none;
+}
+
+.stack-artwork > * {
+  position: relative;
+  grid-area: 1 / 1;
+}
+
+.stack-item img {
+  width: 4.25rem;
+  height: 4.25rem;
+  object-fit: cover;
+}
+
+.stack-artwork .icon {
+  place-self: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+/* the link to them all at the foot, its text flush with the artworks'
+   right edges */
+.stack-more {
+  padding: var(--space-2);
+}
+
+/* The fan shows only the items that fit in the window, the first ones,
+   and its link says how many it leaves out, in the one of its texts that
+   matches, or its last where it shows them all (ui/stack.cljc). An item
+   takes 6.375rem: its artwork, its padding and border, and the gap after
+   it, but for the last. The body's padding takes 2rem, the link at most
+   3.75rem with the gap above it, and the fade at least 3rem above the
+   body, so k items fit in 6.375k + 7.75rem. A query can't read a custom
+   property, so the heights are written out, the smallest last, since it
+   wins. */
+.stack-more > :not(:last-child) {
+  display: none;
+}
+
+@container stack-fan (height < 58.75rem) {
+  .stack-fan li:nth-child(n + 8),
+  .stack-more > :is(:nth-child(8), :last-child:nth-child(-n + 8)) {
+    display: none;
+  }
+
+  .stack-more > :is(:nth-child(7), :last-child:nth-child(-n + 7)) {
+    display: inline;
+  }
+}
+
+@container stack-fan (height < 52.375rem) {
+  .stack-fan li:nth-child(n + 7),
+  .stack-more > :is(:nth-child(7), :last-child:nth-child(-n + 7)) {
+    display: none;
+  }
+
+  .stack-more > :is(:nth-child(6), :last-child:nth-child(-n + 6)) {
+    display: inline;
+  }
+}
+
+@container stack-fan (height < 46rem) {
+  .stack-fan li:nth-child(n + 6),
+  .stack-more > :is(:nth-child(6), :last-child:nth-child(-n + 6)) {
+    display: none;
+  }
+
+  .stack-more > :is(:nth-child(5), :last-child:nth-child(-n + 5)) {
+    display: inline;
+  }
+}
+
+@container stack-fan (height < 39.625rem) {
+  .stack-fan li:nth-child(n + 5),
+  .stack-more > :is(:nth-child(5), :last-child:nth-child(-n + 5)) {
+    display: none;
+  }
+
+  .stack-more > :is(:nth-child(4), :last-child:nth-child(-n + 4)) {
+    display: inline;
+  }
+}
+
+@container stack-fan (height < 33.25rem) {
+  .stack-fan li:nth-child(n + 4),
+  .stack-more > :is(:nth-child(4), :last-child:nth-child(-n + 4)) {
+    display: none;
+  }
+
+  .stack-more > :is(:nth-child(3), :last-child:nth-child(-n + 3)) {
+    display: inline;
+  }
+}
+
+@container stack-fan (height < 26.875rem) {
+  .stack-fan li:nth-child(n + 3),
+  .stack-more > :is(:nth-child(3), :last-child:nth-child(-n + 3)) {
+    display: none;
+  }
+
+  .stack-more > :is(:nth-child(2), :last-child:nth-child(-n + 2)) {
+    display: inline;
+  }
+}
+
+@container stack-fan (height < 20.5rem) {
+  .stack-fan li:nth-child(n + 2),
+  .stack-more > :is(:nth-child(2), :last-child:nth-child(-n + 2)) {
+    display: none;
+  }
+
+  .stack-more > :is(:nth-child(1), :last-child:nth-child(-n + 1)) {
+    display: inline;
+  }
+}
+
+/* What's next, the button of a stack, a square at the player's right
+   edge, as tall as the episode's row, as the artwork is at its left: the
+   pile in the middle of the square, with a mat as wide on every side */
 .player-next {
   --next-mat: 0.875rem;
   display: flex;
   grid-area: upnext;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
   align-self: stretch;
   inline-size: var(--player-height);
+  min-height: 0;
+  padding: 0;
   overflow: hidden;
 }
 
-.player-next-label {
-  text-box: trim-both ex alphabetic;
-}
-
-.player-next-artwork {
-  display: block;
+.player-next .stack-pile {
   width: calc(var(--player-height) - 2 * var(--next-mat));
-  height: auto;
-  aspect-ratio: 1;
-}
-
-/* the colon after "Next", and the episode's title, for a screen reader */
-.player-next-colon,
-.player-next-title {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* but the title in the artwork's place, for an episode without one */
-.player-next:not(:has(.player-next-artwork)) .player-next-title {
-  position: static;
-  width: auto;
-  height: auto;
-  clip-path: none;
-  white-space: normal;
-  text-align: center;
 }
 
 /* with nothing next, the title takes its place */
@@ -1229,7 +1437,6 @@ main h1,
 
   .player-next {
     --next-mat: 1.375rem;
-    gap: var(--space-2);
     margin-inline-start: var(--player-inset);
   }
 

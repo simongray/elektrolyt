@@ -1,7 +1,7 @@
 // The tests press the buttons of the queue with Enter, as a keyboard user
 // does, since the focus stays in place for them.
 
-import { test, expect, announcement, episodePath, episodes, navLink, playsPast, showTitle }
+import { test, expect, announcement, episodePath, episodes, openQueue, playsPast, showTitle }
   from './fixtures.mjs';
 
 const [first, second] = episodes;
@@ -20,7 +20,7 @@ async function queueTwo(page) {
   await main.getByRole('link', { name: second.title }).click();
   await main.getByRole('button', { name: 'Play next' }).click();
   await expect(announcement(page)).toHaveText(`Playing ${second.title} next`);
-  await navLink(page, 'Queue').click();
+  await openQueue(page);
 }
 
 /** The section of the episodes up next. */

@@ -1,4 +1,4 @@
-import { test, expect, announcement, navLink, showPath, showTitle } from './fixtures.mjs';
+import { test, expect, announcement, navLink, openQueue, showPath, showTitle } from './fixtures.mjs';
 
 const fourth = { guid: 'test-episode-4', title: 'Fourth episode', published: '2026-10-16T08:00:00Z' };
 
@@ -47,6 +47,6 @@ test('a new episode arrives in the inbox, and leaves it once dismissed or queued
   await main.getByRole('button', { name: `Play last ${fourth.title}` }).click();
   await expect(announcement(page)).toHaveText(`Added ${fourth.title} to the queue`);
   await expect(main).toContainText('No new episodes');
-  await navLink(page, 'Queue').click();
+  await openQueue(page);
   await expect(main.getByRole('heading', { name: fourth.title })).toBeVisible();
 });

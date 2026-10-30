@@ -21,7 +21,7 @@ test('the rail keeps its width from page to page, so the content stays put', asy
   // before Firefox asks for it
   await page.evaluate(() => document.fonts.load('1rem Charis').then(() => document.fonts.ready));
   const first = await shell(page);
-  for (const title of ['Queue', 'Library', 'Search', 'Home']) {
+  for (const title of ['Library', 'Search', 'Settings', 'Home']) {
     await navLink(page, title).click();
     await expect(navLink(page, title)).toHaveAttribute('aria-current', 'page');
     expect(await shell(page), title).toEqual(first);
@@ -85,12 +85,12 @@ test('the frame of the page shows while the app starts, and a tap in it opens th
   const length = await page.evaluate(() => history.length);
   await navLink(page, 'Library').click();
   expect(await page.evaluate(() => history.length), 'nothing for a tap on the page that shows').toBe(length);
-  await navLink(page, 'Queue').click();
-  await expect(page).toHaveURL(/\/queue$/);
-  await expect(main.getByRole('heading', { level: 1, name: 'Queue' })).toBeVisible();
+  await navLink(page, 'Settings').click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(main.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
   release();
   await expect(main).not.toHaveAttribute('aria-busy');
-  await expect(main.getByRole('heading', { level: 1, name: 'Queue' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
   expect(await page.evaluate(() => window.loadedOnce), 'without loading the page again').toBe(true);
 });
 
