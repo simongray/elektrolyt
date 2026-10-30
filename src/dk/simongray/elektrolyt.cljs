@@ -158,7 +158,7 @@
 
 (nxr/register-effect! :page/dismiss-outside
   (fn [{:keys [dispatch]} _ ids actions]
-    (document/dismiss-outside! ids #(dispatch actions))))
+    (runtime/dismiss-outside! ids #(dispatch actions))))
 
 (nxr/register-effect! :page/place-menu
   (fn [_ _ id]

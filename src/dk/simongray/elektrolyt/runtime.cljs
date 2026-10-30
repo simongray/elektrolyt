@@ -261,6 +261,66 @@
                   (f (.-pathname a))))))]
     (.addEventListener js/document "click" held)))
 
+(defn swallow-click!
+  "Keep the click that follows the release of a press from reaching the
+  page, e.g. from opening the menu of the grip that a drag began on."
+  []
+  (let [swallow #(doto ^js % .stopPropagation .preventDefault)]
+    (.addEventListener js/window "click" swallow #js {:capture true :once true})
+    (js/setTimeout #(.removeEventListener js/window "click" swallow true) 0)))
+
+;; A menu closes at a press anywhere else, as the platform's own do, which
+;; the focus can't tell: Safari doesn't focus a button that's pressed. The
+;; press does nothing more, as at a native menu, e.g. on a button under
+;; the dimmed page around a stack's fan, unless the browser takes it for a
+;; scroll. A press inside, e.g. on the button that opened it, leaves it to
+;; the button, and one after it closed some other way closes nothing more.
+(defn dismiss-outside!
+  "Call `f` at the next press outside the elements `ids`, e.g. those of a
+  menu's button and list, to close it, and keep the press from clicking."
+  [ids f]
+  (letfn [(pressed [^js e]
+            (when-not (some #(some-> (js/document.getElementById %) (.contains (.-target e))) ids)
+              (js/document.removeEventListener "pointerdown" pressed true)
+              (f)
+              (js/window.addEventListener "pointerup" released true)
+              (js/window.addEventListener "pointercancel" released true)))
+          (released [^js e]
+            (js/window.removeEventListener "pointerup" released true)
+            (js/window.removeEventListener "pointercancel" released true)
+            (when (= "pointerup" (.-type e))
+              (swallow-click!)))]
+    (js/document.addEventListener "pointerdown" pressed true)))
+
+;; Pointer events, so that a mouse, a pen and a finger press alike. The
+;; element captures the pointer, so that its moves reach it wherever the
+;; pointer goes, and Escape is heard in the capture phase, before the
+;; page's own handlers.
+;; https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events
+(defn follow-press!
+  "Follow the press of the pointer in the pointerdown `event` until it's
+  let go: call `moved` with each pointermove, `escaped` with each keydown
+  of Escape, and `ended` with whether the pointer was released, rather
+  than cancelled, e.g. by a scroll."
+  [^js event moved escaped ended]
+  (let [^js element (.-currentTarget event)]
+    (letfn [(escape [^js e]
+              (when (= "Escape" (.-key e))
+                (escaped e)))
+            (released [_] (end true))
+            (cancelled [_] (end false))
+            (end [released?]
+              (.removeEventListener element "pointermove" moved)
+              (.removeEventListener element "pointerup" released)
+              (.removeEventListener element "pointercancel" cancelled)
+              (.removeEventListener js/window "keydown" escape true)
+              (ended released?))]
+      (.setPointerCapture element (.-pointerId event))
+      (.addEventListener element "pointermove" moved)
+      (.addEventListener element "pointerup" released)
+      (.addEventListener element "pointercancel" cancelled)
+      (.addEventListener js/window "keydown" escape true))))
+
 (defonce ^{:doc "The scroll position of the main content as each history
   entry was left, by the entry's key."}
   scroll-positions

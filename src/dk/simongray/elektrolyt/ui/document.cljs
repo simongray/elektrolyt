@@ -168,37 +168,6 @@
   [id]
   (some-> (js/document.getElementById id) .focus))
 
-(defn swallow-click!
-  "Keep the click that follows the release of a press from reaching the
-  page, e.g. from opening the menu of the grip that a drag began on."
-  []
-  (let [swallow #(doto ^js % .stopPropagation .preventDefault)]
-    (.addEventListener js/window "click" swallow #js {:capture true :once true})
-    (js/setTimeout #(.removeEventListener js/window "click" swallow true) 0)))
-
-;; A menu closes at a press anywhere else, as the platform's own do, which
-;; the focus can't tell: Safari doesn't focus a button that's pressed. The
-;; press does nothing more, as at a native menu, e.g. on a button under
-;; the dimmed page around a stack's fan, unless the browser takes it for a
-;; scroll. A press inside, e.g. on the button that opened it, leaves it to
-;; the button, and one after it closed some other way closes nothing more.
-(defn dismiss-outside!
-  "Call `f` at the next press outside the elements `ids`, e.g. those of a
-  menu's button and list, to close it, and keep the press from clicking."
-  [ids f]
-  (letfn [(pressed [^js e]
-            (when-not (some #(some-> (js/document.getElementById %) (.contains (.-target e))) ids)
-              (js/document.removeEventListener "pointerdown" pressed true)
-              (f)
-              (js/window.addEventListener "pointerup" released true)
-              (js/window.addEventListener "pointercancel" released true)))
-          (released [^js e]
-            (js/window.removeEventListener "pointerup" released true)
-            (js/window.removeEventListener "pointercancel" released true)
-            (when (= "pointerup" (.-type e))
-              (swallow-click!)))]
-    (js/document.addEventListener "pointerdown" pressed true)))
-
 (defn clip-box
   "The box that `el` shows inside: its nearest ancestor's that doesn't let
   its content overflow, e.g. a scroller, or else the window's."
@@ -377,10 +346,9 @@
           (.then done done))
       (done))))
 
-;; Pointer events, so that a mouse, a pen and a finger drag alike. The grip
-;; takes no touch gesture of the browser's (layout.css), so a drag on it
-;; doesn't scroll, and needs no long press, while the rest of the row
-;; scrolls as ever, and selects no text. The row follows the pointer by
+;; The grip takes no touch gesture of the browser's (layout.css), so a drag
+;; on it doesn't scroll, and needs no long press, while the rest of the
+;; row scrolls as ever, and selects no text. The row follows the pointer by
 ;; its transform, and the others make room by theirs, which the browser
 ;; animates without laying out the page again; the scroller around them
 ;; scrolls as the pointer nears an edge. At the drop, the transforms go
@@ -389,9 +357,8 @@
 ;; made room, and the page keeps its rows in place as for any other move,
 ;; by where they lie without the transforms. The row then slides into its
 ;; place from where it was let go, the only motion that the drop makes.
-;; Escape slides it back, in the capture phase, before the disclosure
-;; around it, e.g. a stack's fan, would close.
-;; https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events
+;; Escape slides it back, before the disclosure around it, e.g. a stack's
+;; fan, would close.
 ;; https://developer.mozilla.org/en-US/docs/Web/CSS/touch-action
 (defn drag-row!
   "Follow the drag of the row of the grip that the pointer pressed in the
@@ -438,44 +405,33 @@
                              (set! (.. r -style -transform) ""))
                            (when to
                              (f (inc to)))
-                           (settled! list row (- released (top)))))
-            listeners  (atom nil)
-            ;; a click follows the pointer's release, but not its cancel
-            ended!     (fn [released?]
-                         (let [{:keys [phase to]} @drag]
-                           (reset! drag nil)
-                           (doseq [[target type handler capture] @listeners]
-                             (.removeEventListener target type handler capture))
-                           (when (and released? (not= :pressed phase))
-                             (swallow-click!))
-                           (when (= :dragging phase)
-                             (dropped! (when (and released? (not= to from)) to)))))]
-        (reset! listeners
-                [[grip "pointermove"
-                  (fn [^js e]
-                    (swap! drag assoc :y (.-clientY e))
-                    (when (and (= :pressed (:phase @drag))
-                               (< 4 (js/Math.abs (- (.-clientY e) (.-clientY event)))))
-                      (swap! drag assoc :phase :dragging)
-                      (started)
-                      (.setAttribute list "data-sorting" "")
-                      (.setAttribute row "data-dragging" "")
-                      (frame!))
-                    (when (= :dragging (:phase @drag))
-                      (moved!)))
-                  false]
-                 [grip "pointerup" #(ended! true) false]
-                 [grip "pointercancel" #(ended! false) false]
-                 [js/window "keydown"
-                  (fn [^js e]
-                    (when (and (= :dragging (:phase @drag)) (= "Escape" (.-key e)))
-                      (.preventDefault e)
-                      (dropped! nil)
-                      (swap! drag assoc :phase :cancelled)))
-                  true]])
-        (.setPointerCapture grip (.-pointerId event))
-        (doseq [[target type handler capture] @listeners]
-          (.addEventListener target type handler capture))))))
+                           (settled! list row (- released (top)))))]
+        (runtime/follow-press!
+         event
+         (fn [^js e]
+           (swap! drag assoc :y (.-clientY e))
+           (when (and (= :pressed (:phase @drag))
+                      (< 4 (js/Math.abs (- (.-clientY e) (.-clientY event)))))
+             (swap! drag assoc :phase :dragging)
+             (started)
+             (.setAttribute list "data-sorting" "")
+             (.setAttribute row "data-dragging" "")
+             (frame!))
+           (when (= :dragging (:phase @drag))
+             (moved!)))
+         (fn [^js e]
+           (when (= :dragging (:phase @drag))
+             (.preventDefault e)
+             (dropped! nil)
+             (swap! drag assoc :phase :cancelled)))
+         ;; a click follows the pointer's release, but not its cancel
+         (fn [released?]
+           (let [{:keys [phase to]} @drag]
+             (reset! drag nil)
+             (when (and released? (not= :pressed phase))
+               (runtime/swallow-click!))
+             (when (= :dragging phase)
+               (dropped! (when (and released? (not= to from)) to))))))))))
 
 ;; WCAG 2.2, SC 1.4.13 Content on Hover or Focus: what shows on hover or
 ;; focus hides on Escape without the pointer or the focus moving, as
