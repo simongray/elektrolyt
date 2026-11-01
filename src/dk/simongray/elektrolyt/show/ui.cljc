@@ -8,6 +8,7 @@
             [dk.simongray.podcast.feed.spec :as spec]
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
+            [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.linked :as linked]
@@ -75,13 +76,16 @@
 ;; The order of Apple's Information and Pocket Casts' details: what the
 ;; show is and where to find it first, then when it publishes, and the
 ;; fine print last. Like Wikipedia's infoboxes, the rows keep to key
-;; facts, and the count of episodes is left to their list.
+;; facts, and the count of episodes is left to their list. A serial's
+;; order is the listener's place in it, once its whole feed is there.
 ;; https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Infoboxes
 (defn details-rows
   "The rows of the Details of the show `page`, without its website and
-  feed, which the line under its title links to."
+  feed, which the line under its title links to, with the `order` of a
+  serial, if any."
   [{:keys [funding categories language latest serial? locations license copyright]
-    :as   page}]
+    :as   page}
+   order]
   (let [names (distinct (map last categories))]
     (concat
      [["Support" (details/support funding)]
@@ -89,7 +93,7 @@
       ["Language" [(some-> language text/language-name)]]
       ["Latest episode" [(some-> latest time-ui/date)]]
       ["Schedule" [(schedule-text page)]]
-      ["Order" [(when serial? "Serial, from the first episode")]]]
+      ["Order" [(or order (when serial? "Serial, from the first episode"))]]]
      (details/location-rows locations)
      [["License" [(details/license license)]]
       ["Copyright" [copyright]]])))
@@ -108,6 +112,27 @@
            [(details/web-link link "Website")
             (some-> url (details/web-link "Feed" icons/rss))])))
 
+(defn place
+  "The place of the listener in the serial show `page` in `state`, as
+  show/place gives it, or nil."
+  [state page]
+  (show/serial-place (:library state) (source state) page))
+
+(defn place-facts
+  "The place `p` of the listener in a serial show in words, e.g. Episode 7
+  of 24 · 9h 12m left, or 24 episodes · All heard, with the episode linked
+  to `href`, its page, if any."
+  [{:keys [total heard number left unknown]} href]
+  (let [unheard (- total heard)]
+    (if number
+      [(cond->> (str "Episode " number " of " total)
+         href (vector :a {:href href}))
+       (cond
+         (= unknown unheard) (str (text/counted unheard "episode") " left")
+         (pos? unknown)      (list "At least " (conj (time-ui/duration left) " left"))
+         :else               (conj (time-ui/duration left) " left"))]
+      [(text/counted total "episode") "All heard"])))
+
 (defn episode-href
   "The path of the page of the episode `row` of the show `show-guid`, with
   the feed's `url` for a show outside the library, or nil for an item
@@ -116,18 +141,33 @@
   (when guid
     (routes/episode-href show-guid guid title url)))
 
+;; Libby gives the time left in a book. The place links to the next
+;; episode, which the list from the first can have far down.
+;; https://help.libbyapp.com/en-us/6047.htm
+(defn order
+  "The listener's place in the serial show `page` in `state` for the Order
+  row of its Details, its facts between middle dots and its episode linked
+  to its page, or nil."
+  [state page]
+  (when-let [p (place state page)]
+    (let [{:keys [key url]} (source state)
+          href              (episode-href (or key (guid state)) (:next p) (when-not key url))]
+      (interpose facts-ui/separator (place-facts p href)))))
+
 (defn episode-row
   "The episode `row` in the list of episodes in `state`: its artwork, or
   else the `show`'s, and its title in the language `lang`, both linking to
   `href` when there is one, with its date, duration and source. A trailer
-  or a bonus says so, since the list puts the trailers first."
-  [state href {:keys [type title published duration supplement] :as row} lang show]
+  or a bonus says so, since the list puts the trailers first, and a row
+  marked :played? is in a lighter ink and says so."
+  [state href {:keys [type title published duration supplement played?] :as row} lang show]
   (let [img   (lists-ui/thumbnail state (if (:artwork row) row show))
         facts [(case type "trailer" "Trailer" "bonus" "Bonus" nil)
                (some-> published time-ui/date)
                (some-> duration time-ui/duration)
-               (facts-ui/source supplement)]]
-    [:article.show-episode
+               (facts-ui/source supplement)
+               (when played? "Played")]]
+    [(if played? :article.show-episode.played :article.show-episode)
      (if href
        (lists-ui/linked-row href img :h3 title lang facts)
        ;; the focus can go to the title, as to a link's, e.g. from Show more
@@ -187,14 +227,17 @@
 ;; the subscription, e.g. a prefetch, doesn't apply to it.
 (defn episodes
   "The episodes of the show `page` in `state`, a page at a time, with the
-  status of the load and a button for more."
+  status of the load and a button for more. Those of a serial that are
+  heard are marked."
   [state {rows :episodes n :episode-count :keys [language] :as page}]
-  (let [g                       (guid state)
-        {:keys [key url error]} (source state)
-        url                     (when-not key url)
-        status                  (show/status state g)
-        shown                   (get-in state [:episodes-shown g] show/page-size)
-        lang                    (text/lang language)]
+  (let [g                               (guid state)
+        {:keys [key url error] :as src} (source state)
+        url                             (when-not key url)
+        status                          (show/status state g)
+        shown                           (get-in state [:episodes-shown g] show/page-size)
+        lang                            (text/lang language)
+        p                               (place state page)
+        played?                         #(and p (:played? (player/entry (:library state) (show/episode-id src %))))]
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
@@ -206,7 +249,7 @@
        [:ol.episodes {:role "list"}
         (for [[i row] (map-indexed vector (take shown rows))]
           [:li {:replicant/key (or (:guid row) i)}
-           (episode-row state (episode-href (or key g) row url) row lang page)])])
+           (episode-row state (episode-href (or key g) row url) (assoc row :played? (played? row)) lang page)])])
      (when (< shown n)
        [:button {:type         "button"
                  :data-refocus (str "ol.episodes > li:nth-child(" (inc shown) ") :is(h3 a, h3[tabindex])")
@@ -335,7 +378,7 @@
               :loading    (list (loading/status "Loading the show…") skeleton-rows)
               :failed     (failure state 0 (:error (source state)) "main h1")
               not-found))
-      (let [aside (details/aside (details-rows page) (:people page))
+      (let [aside (details/aside (details-rows page (order state page)) (:people page))
             src   (source state)]
         (list
          (details/article

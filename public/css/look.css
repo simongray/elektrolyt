@@ -587,6 +587,11 @@ input[role="switch"]:checked {
   text-decoration: none;
 }
 
+/* the episodes of a serial already heard, in a lighter ink */
+.show-episode.played h3 a {
+  color: var(--ink-2);
+}
+
 .queue-episode h3 a:hover,
 .inbox-episode :is(h2, h3) a:hover,
 .pick h3 a:hover,
