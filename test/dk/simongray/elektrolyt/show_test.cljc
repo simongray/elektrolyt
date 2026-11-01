@@ -59,6 +59,33 @@
     (is (= (* 7 24 3600 1000) (:cadence page)) "how often it publishes, up to its latest episode")
     (is (nil? (:cadence (show/feed->page url (feed "A Show" "One")))) "but not without dates")))
 
+(deftest the-place-in-a-serial
+  (let [rows    [{:guid "t" :type "trailer" :duration 60}
+                 {:guid "1" :duration 1800}
+                 {:guid "2" :duration 1800}
+                 {:guid "b" :type "bonus" :duration 600}
+                 {:guid "3" :duration 3600}]
+        place   #(show/place rows (comp % :guid))
+        entries {"1" {:played? true} "2" {:position 600}}]
+    (is (= {:total 3 :heard 1 :next (rows 2) :number 2 :left 4800 :unknown 0}
+           (place entries))
+        "the first full episode not yet heard, and the time left from where it was left")
+    (is (= {:total 3 :heard 0 :next (rows 1) :number 1 :left 7200 :unknown 0}
+           (place {}))
+        "the first, before any is heard, with neither the trailer nor the bonus")
+    (is (= {:total 3 :heard 3 :left 0 :unknown 0}
+           (place (zipmap ["1" "2" "3"] (repeat {:played? true}))))
+        "no next once all are heard")
+    (is (= 2 (:number (place {"1" {:played? true} "3" {:played? true}})))
+        "an earlier one that was skipped comes first")
+    (is (= 6600 (:left (place {"1" {:duration 1200}})))
+        "the length that the player measured over the feed's")
+    (is (= {:left 5400 :unknown 1}
+           (select-keys (show/place (update rows 1 dissoc :duration) (constantly nil))
+                        [:left :unknown]))
+        "the lengths that are missing counted apart")
+    (is (nil? (show/place [(first rows)] (constantly nil))) "and no place without full episodes")))
+
 (deftest a-feed-that-arrives-in-stages
   (let [guid  "g"
         state (show/requested (on-page guid) [:whole url])

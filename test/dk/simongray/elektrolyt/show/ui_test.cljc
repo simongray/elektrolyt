@@ -3,6 +3,7 @@
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.library.inbox-test :as inbox-test]
+            [dk.simongray.elektrolyt.show :as show-model]
             [dk.simongray.elektrolyt.show.ui :as show]
             [dk.simongray.elektrolyt.ui :as ui]
             [dk.simongray.elektrolyt.ui.controls :as controls]
@@ -118,6 +119,34 @@
         "a trailer says so, since it comes first in the list")
     (is (nil? (facts {:title "One" :type "full"})))))
 
+(deftest the-place-in-a-serial
+  (let [items   (vec (for [[g t] [["1" "One"] ["2" "Two"] ["3" "Three"]]]
+                       {:rss/title t :rss/guid {:content g} :itunes/duration 1800}))
+        feed    {:rss/title "A Serial" :itunes/type "serial" :rss/items items}
+        id      #(show-model/episode-id {:feed feed :url url} {:guid %})
+        lib     (library/update-profile (library/make "test") profile/mark-all-played [(id "1")])
+        state   (show-page {:library lib :feeds {url {:feed feed :whole? true}}})
+        x       (show/content state [:h1 "A Serial"])
+        order   (fn [x]
+                  (some #(when (= [:dt "Order"] (nth % 2 nil)) (nth % 3))
+                        (elements :div (elements :aside.details x))))
+        [one]   (elements :li (elements :ol.episodes x))]
+    (is (= "Episode 2 of 3, 1h left" (spoken (order x)))
+        "in the Details, the first full episode not yet heard and the time left")
+    (is (= " · " (text-of (elements :span.separator (order x)))) "between middle dots")
+    (is (= [[:a {:href (show/episode-href "g" {:guid "2" :title "Two"} url)} "Episode 2 of 3"]]
+           (elements :a (order x)))
+        "with a link to the episode")
+    (is (seq (elements :article.show-episode.played one)) "the one heard in a lighter ink")
+    (is (re-find #"Played$" (spoken (elements :p one))) "which says so")
+    (is (nil? (order (show/content (show-page {:library lib :feeds {url {:feed (dissoc feed :itunes/type) :whole? true}}})
+                                   [:h1 "A Serial"])))
+        "and no order in a show that isn't serial")
+    (is (= "Serial, from the first episode"
+           (text-of (order (show/content (show-page {:library lib :feeds {url {:feed feed :whole? false}}})
+                                         [:h1 "A Serial"]))))
+        "nor a place before its whole feed has arrived")))
+
 (deftest how-often-a-show-publishes
   (let [day (* 24 3600 1000)]
     (is (= ["More than once a day" "About every day" "About every 3 days" "About every week"
@@ -141,7 +170,8 @@
                                               {:content "Birmingham" :rel "subject"}
                                               {:content "Marlow" :rel "Creator"}]
                                  :copyright  "Podcast Index LLC 2026"
-                                 :funding    [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]})]
+                                 :funding    [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]}
+                                nil)]
     (is (= ["Support" "Categories" "Language" "Latest episode" "Schedule" "Order"
             "Made in" "Location" "License" "Copyright"]
            (map first rows))
