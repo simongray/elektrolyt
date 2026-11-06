@@ -4,7 +4,26 @@
   (:require [clojure.string :as str]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.icons :as icons]
+            [dk.simongray.elektrolyt.ui.time :as time-ui]
             [dk.simongray.wary-fetch.url :as url]))
+
+(defn started?
+  "Whether an episode's `entry` in the profile is started and not yet
+  played."
+  [{:keys [position played?]}]
+  (and (number? position) (pos? position) (not played?)))
+
+;; The time left is among the episode's facts, like in the rows of the
+;; queue and the inbox, rather than in Resume, which it made wide
+(defn time-left
+  "How long an episode of `duration` seconds lasts, or has left once its
+  `entry` in the profile is started, e.g. 50m left, or nil when the
+  duration is unknown."
+  [duration {:keys [position] :as entry}]
+  (when (number? duration)
+    (if (started? entry)
+      (conj (time-ui/duration (max 0 (- duration position))) " left")
+      (time-ui/duration duration))))
 
 (defn source-host
   "The domain of the feed `supplement` that an episode came from, without

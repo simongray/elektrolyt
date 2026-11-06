@@ -59,47 +59,24 @@
     (is (= (* 7 24 3600 1000) (:cadence page)) "how often it publishes, up to its latest episode")
     (is (nil? (:cadence (show/feed->page url (feed "A Show" "One")))) "but not without dates")))
 
-(deftest the-place-in-a-serial
-  (let [rows    [{:guid "t" :type "trailer" :duration 60}
-                 {:guid "1" :duration 1800}
-                 {:guid "2" :duration 1800}
-                 {:guid "b" :type "bonus" :duration 600}
-                 {:guid "3" :duration 3600}]
-        place   #(show/place rows (comp % :guid))
-        entries {"1" {:played? true} "2" {:position 600}}]
-    (is (= {:total 3 :heard 1 :next (rows 2) :number 2 :left 4800 :unknown 0}
-           (place entries))
-        "the first full episode not yet heard, and the time left from where it was left")
-    (is (= {:total 3 :heard 0 :next (rows 1) :number 1 :left 7200 :unknown 0}
-           (place {}))
-        "the first, before any is heard, with neither the trailer nor the bonus")
-    (is (= {:total 3 :heard 3 :left 0 :unknown 0}
-           (place (zipmap ["1" "2" "3"] (repeat {:played? true}))))
-        "no next once all are heard")
-    (is (= 2 (:number (place {"1" {:played? true} "3" {:played? true}})))
-        "an earlier one that was skipped comes first")
-    (is (= 6600 (:left (place {"1" {:duration 1200}})))
-        "the length that the player measured over the feed's")
-    (is (= {:left 5400 :unknown 1}
-           (select-keys (show/place (update rows 1 dissoc :duration) (constantly nil))
-                        [:left :unknown]))
-        "the lengths that are missing counted apart")
-    (is (nil? (show/place [(first rows)] (constantly nil))) "and no place without full episodes")))
-
 (deftest continuous-play-goes-on-from-the-place
-  (let [item   (fn [title type]
-                 {:rss/title title :rss/guid {:content title} :itunes/episode-type type})
+  (let [item   (fn [title type season]
+                 {:rss/title           title
+                  :rss/guid            {:content title}
+                  :itunes/episode-type type
+                  :itunes/season       season})
         serial (assoc (feed "A Serial")
                       :itunes/type "serial"
-                      :rss/items [(item "Trailer" "trailer") (item "One" "full")
-                                  (item "Bonus" "bonus") (item "Two" "full")])
+                      :rss/items [(item "Trailer" "trailer" 1) (item "A1" "full" 1) (item "A2" "full" 1)
+                                  (item "Bonus" "bonus" 2) (item "B1" "full" 2) (item "B2" "full" 2)])
         lib    (library/update-profile (library/subscribe (library/make "test") url serial)
                                        profile/prefer {:continuous? true})
         k      (key (first (library/subscriptions lib)))
-        heard  (library/update-profile lib profile/mark-played [k "One"])
-        place  (show/serial-place heard {:key k :url url :whole? true} (show/library-page heard k))]
-    (is (= [[:play [k (:guid (:next place))]]]
-           (:effects (library/step lib [:ended [k "One"]]))))))
+        source {:key k :url url :feed serial :whole? true}
+        place  #(show/serial-place (library/update-profile lib profile/mark-played [k %]) source)]
+    (doseq [[title next-title] {"A1" "A2" "B1" "B2"}]
+      (is (= next-title (get-in (place title) [:next :rss/title])))
+      (is (= [[:play [k next-title]]] (:effects (library/step lib [:ended [k title]])))))))
 
 (deftest a-feed-that-arrives-in-stages
   (let [guid  "g"

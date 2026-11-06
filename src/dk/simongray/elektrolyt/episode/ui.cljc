@@ -52,24 +52,6 @@
            (str "?t=")
            (fragment/link-time)))
 
-(defn started?
-  "Whether an episode's `entry` in the profile is started and not yet
-  played."
-  [{:keys [position played?]}]
-  (and (number? position) (pos? position) (not played?)))
-
-;; The time left is among the episode's facts, like in the rows of the
-;; queue and the inbox, rather than in Resume, which it made wide
-(defn time-left
-  "How long an episode of `duration` seconds lasts, or has left once its
-  `entry` in the profile is started, e.g. 50m left, or nil when the
-  duration is unknown."
-  [duration {:keys [position] :as entry}]
-  (when (number? duration)
-    (if (started? entry)
-      (conj (time-ui/duration (max 0 (- duration position))) " left")
-      (time-ui/duration duration))))
-
 ;; WAI-ARIA APG, button pattern: a button whose label changes from Play to
 ;; Pause has no aria-pressed, which would mean the opposite
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/button/
@@ -79,9 +61,9 @@
   \"Play\"."
   [entry t]
   (cond
-    t                (str "Play from " (time-ui/clock-text t))
-    (started? entry) "Resume"
-    :else            "Play"))
+    t                         (str "Play from " (time-ui/clock-text t))
+    (facts-ui/started? entry) "Resume"
+    :else                     "Play"))
 
 (defn play-button
   "The button that plays the episode `page` from `t` seconds or from where
@@ -181,7 +163,7 @@
       (facts-ui/line
        (concat (numbering-facts numbering)
                [(some-> published time-ui/date)
-                (time-left duration entry)
+                (facts-ui/time-left duration entry)
                 (when explicit? "Explicit")
                 (when ai-content? "Made with AI")
                 (facts-ui/labelled-source supplement)

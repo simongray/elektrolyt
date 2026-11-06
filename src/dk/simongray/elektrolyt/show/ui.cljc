@@ -112,26 +112,38 @@
            [(details/web-link link "Website")
             (some-> url (details/web-link "Feed" icons/rss))])))
 
-(defn place
-  "The place of the listener in the serial show `page` in `state`, as
-  show/place gives it, or nil."
-  [state page]
-  (show/serial-place (:library state) (source state) page))
+(defn at-least
+  "The `length` of some episodes, marked as at least that when the count
+  `unknown` of them have no length, e.g. At least 9h 12m."
+  [unknown length]
+  (if (pos? unknown) (list "At least " length) length))
 
 (defn place-facts
-  "The place `p` of the listener in a serial show in words, e.g. Episode 7
-  of 24 · 9h 12m left, or 24 episodes · All heard, with the episode linked
-  to `href`, its page, if any."
-  [{:keys [total heard number left unknown]} href]
-  (let [unheard (- total heard)]
-    (if number
-      [(cond->> (str "Episode " number " of " total)
+  "The place `p` of the listener in a serial show in words, some of which
+  can be nil: Serial · 19 episodes · 14h 45m until they begin, Season 2 ·
+  Episode 2 of 3 · 1h left with the episode linked to `href`, its page, and
+  19 episodes · All heard at the end. A show of one season doesn't name it."
+  [{:keys [total left unknown started? seasons] :as p} href]
+  (cond
+    (not started?)
+    ["Serial"
+     (text/counted total "episode")
+     (when (< unknown total)
+       (at-least unknown (time-ui/duration left)))]
+
+    (:next p)
+    (let [{:keys [number total heard left unknown] :as season} (:season p)
+          unheard                                              (- total heard)]
+      [(when (< 1 seasons)
+         (or (:name season) (some->> (:season season) (str "Season "))))
+       (cond->> (str "Episode " number " of " total)
          href (vector :a {:href href}))
-       (cond
-         (= unknown unheard) (str (text/counted unheard "episode") " left")
-         (pos? unknown)      (list "At least " (conj (time-ui/duration left) " left"))
-         :else               (conj (time-ui/duration left) " left"))]
-      [(text/counted total "episode") "All heard"])))
+       (if (= unknown unheard)
+         (str (text/counted unheard "episode") " left")
+         (at-least unknown (conj (time-ui/duration left) " left")))])
+
+    :else
+    [(text/counted total "episode") "All heard"]))
 
 (defn episode-href
   "The path of the page of the episode `row` of the show `show-guid`, with
@@ -141,32 +153,34 @@
   (when guid
     (routes/episode-href show-guid guid title url)))
 
-;; Libby gives the time left in a book. The place links to the next
-;; episode, which the list from the first can have far down.
-;; https://help.libbyapp.com/en-us/6047.htm
+;; The place links to the next episode, which the list from the first can
+;; have far down
 (defn order
-  "The listener's place in the serial show `page` in `state` for the Order
-  row of its Details, its facts between middle dots and its episode linked
-  to its page, or nil."
-  [state page]
-  (when-let [p (place state page)]
+  "The listener's place in the serial show in `state` for the Order row of
+  its Details, its facts between middle dots and its episode linked to its
+  page, or nil."
+  [state]
+  (when-let [p (show/serial-place (:library state) (source state))]
     (let [{:keys [key url]} (source state)
-          href              (episode-href (or key (guid state)) (:next p) (when-not key url))]
-      (interpose facts-ui/separator (place-facts p href)))))
+          next-row          (some-> (:next p) show/episode-row)
+          href              (episode-href (or key (guid state)) next-row (when-not key url))]
+      (interpose facts-ui/separator (remove nil? (place-facts p href))))))
 
 (defn episode-row
   "The episode `row` in the list of episodes in `state`: its artwork, or
   else the `show`'s, and its title in the language `lang`, both linking to
-  `href` when there is one, with its date, duration and source. A trailer
-  or a bonus says so, since the list puts the trailers first, and a row
-  marked :played? is in a lighter ink and says so."
-  [state href {:keys [type title published duration supplement played?] :as row} lang show]
-  (let [img   (lists-ui/thumbnail state (if (:artwork row) row show))
-        facts [(case type "trailer" "Trailer" "bonus" "Bonus" nil)
-               (some-> published time-ui/date)
-               (some-> duration time-ui/duration)
-               (facts-ui/source supplement)
-               (when played? "Played")]]
+  `href` when there is one, with its date, length and source. A trailer or
+  a bonus says so, since the list puts the trailers first. By its :entry in
+  the profile, a started row says what's left of it, and a played one is in
+  a lighter ink and says so."
+  [state href {:keys [type title published duration supplement entry] :as row} lang show]
+  (let [img     (lists-ui/thumbnail state (if (:artwork row) row show))
+        played? (:played? entry)
+        facts   [(case type "trailer" "Trailer" "bonus" "Bonus" nil)
+                 (some-> published time-ui/date)
+                 (facts-ui/time-left (or (:duration entry) duration) entry)
+                 (facts-ui/source supplement)
+                 (when played? "Played")]]
     [(if played? :article.show-episode.played :article.show-episode)
      (if href
        (lists-ui/linked-row href img :h3 title lang facts)
@@ -227,17 +241,16 @@
 ;; the subscription, e.g. a prefetch, doesn't apply to it.
 (defn episodes
   "The episodes of the show `page` in `state`, a page at a time, with the
-  status of the load and a button for more. Those of a serial that are
-  heard are marked."
+  status of the load and a button for more."
   [state {rows :episodes n :episode-count :keys [language] :as page}]
   (let [g                               (guid state)
         {:keys [key url error] :as src} (source state)
+        feed-id                         (show/feed-id src)
         url                             (when-not key url)
         status                          (show/status state g)
         shown                           (get-in state [:episodes-shown g] show/page-size)
         lang                            (text/lang language)
-        p                               (place state page)
-        played?                         #(and p (:played? (player/entry (:library state) (show/episode-id src %))))]
+        entry-of                        #(player/entry (:library state) [feed-id (:guid %)])]
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
@@ -249,7 +262,7 @@
        [:ol.episodes {:role "list"}
         (for [[i row] (map-indexed vector (take shown rows))]
           [:li {:replicant/key (or (:guid row) i)}
-           (episode-row state (episode-href (or key g) row url) (assoc row :played? (played? row)) lang page)])])
+           (episode-row state (episode-href (or key g) row url) (assoc row :entry (entry-of row)) lang page)])])
      (when (< shown n)
        [:button {:type         "button"
                  :data-refocus (str "ol.episodes > li:nth-child(" (inc shown) ") :is(h3 a, h3[tabindex])")
@@ -378,7 +391,7 @@
               :loading    (list (loading/status "Loading the show…") skeleton-rows)
               :failed     (failure state 0 (:error (source state)) "main h1")
               not-found))
-      (let [aside (details/aside (details-rows page (order state page)) (:people page))
+      (let [aside (details/aside (details-rows page (order state)) (:people page))
             src   (source state)]
         (list
          (details/article

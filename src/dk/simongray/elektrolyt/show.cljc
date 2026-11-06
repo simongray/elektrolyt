@@ -109,65 +109,31 @@
    :episodes      []
    :episode-count 0})
 
-(defn episode-id
-  "The id of the episode `row` of the show from `source` in the profile:
-  the key of its feed in the library, or else the feed's own, and its
-  guid, as the Episode page has it."
-  [{:keys [key feed url]} row]
-  [(or key (guid/feed-key feed url)) (:guid row)])
+(defn feed-id
+  "The key of the feed of the show from `source` in the profile: its key in
+  the library, or else the feed's own."
+  [{:keys [key feed url]}]
+  (or key (guid/feed-key feed url)))
 
-(defn full?
-  "Whether the episode `row` is a full one, not a trailer or a bonus."
-  [{:keys [type]}]
-  (not (#{"trailer" "bonus"} type)))
-
-(defn time-left
-  "The seconds of the episode `row` left to hear by its `entry` in the
-  profile, or nil when its length is unknown."
-  [{:keys [duration]} {:keys [position] :as entry}]
-  (when-let [length (or (:duration entry) duration)]
-    (max 0 (- length (or position 0)))))
-
-;; The place in a serial is its first full episode not yet heard, the one
-;; that library/step continues it with, and the time left counts what
-;; follows, as Libby's does for a book. Trailers and bonuses stand aside
-;; from the story, so they count for neither.
-;; https://help.libbyapp.com/en-us/6047.htm
-(defn place
-  "Where the listener is in a serial show whose `rows` are its episodes in
-  listening order, by `entry-of`, which gives a row's entry in the
-  profile, or nil when it has no full episodes.
-
-  The place has the :total of full episodes and how many are :heard, the
-  :next row to hear and its :number among them from 1 unless all are
-  heard, and the seconds :left in those not yet heard, of which an
-  :unknown number have no length."
-  [rows entry-of]
-  (let [episodes (filterv full? rows)
-        entries  (mapv entry-of episodes)
-        unheard  (remove #(:played? (entries %)) (range (count episodes)))
-        lefts    (map #(time-left (episodes %) (entries %)) unheard)]
-    (when (seq episodes)
-      (cond-> {:total   (count episodes)
-               :heard   (- (count episodes) (count unheard))
-               :left    (reduce + (remove nil? lefts))
-               :unknown (count (filter nil? lefts))}
-        (seq unheard) (assoc :next (episodes (first unheard))
-                             :number (inc (first unheard)))))))
+(def listening-order
+  "The items of `feed` in listening order, sorted again only for another
+  feed, since each report of the position asks for them."
+  (memo/remember-last resolve/episodes))
 
 ;; The place changes with each report of the position, which changes the
-;; profile, and the page stays the same object while its feed does
+;; profile, while its feed stays the same object
 (def serial-place
-  "The place of the listener in the serial show `page` from `source`, with
-  the profile of the library `lib`, as place gives it, or nil for a show
+  "The place of the listener in the serial show from `source`, with the
+  profile of the library `lib`, as show/place gives it, or nil for a show
   that isn't serial or whose whole feed hasn't arrived."
-  (memo/remember-last (fn [lib source page]
-                        (when (and (:serial? page) (:whole? source))
-                          (let [profile (:profile lib)]
-                            (place (:episodes page)
-                                   #(profile/episode-entry profile (episode-id source %))))))
-                      (fn [lib source page]
-                        [(:profile lib) (:key source) (:url source) page])))
+  (memo/remember-last (fn [lib {:keys [feed whole?] :as source}]
+                        (when (and whole? (resolve/serial? feed))
+                          (let [profile (:profile lib)
+                                k       (feed-id source)]
+                            (show/place (listening-order feed)
+                                        #(profile/episode-entry profile [k (guid/item-guid %)])))))
+                      (fn [lib {:keys [key url feed whole?]}]
+                        [(:profile lib) key url feed whole?])))
 
 ;; A Show or Episode page looks its show up about twelve times a render,
 ;; and each lookup went over every subscription, while only a change of the
