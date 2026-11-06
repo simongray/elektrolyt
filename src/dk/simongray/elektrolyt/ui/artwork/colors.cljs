@@ -23,7 +23,7 @@
   "A promise of the :seed and :dominant colour of the image in the bytes
   `b`, as hex, or of nil when the image can't be decoded."
   [b]
-  (image/then (image/colours b)
+  (image/then (image/scheme b)
               (fn [{:keys [seed background]}]
                 {:seed     (some-> seed cc/hex)
                  :dominant (some-> background cc/hex)})))
