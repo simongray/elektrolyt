@@ -411,6 +411,14 @@
   (fn [_ store]
     (changed! store (played/undone @store))))
 
+(nxr/register-effect! :show/order
+  (fn [_ store k choice]
+    (changed! store (show/order-chosen @store k choice))))
+
+(nxr/register-effect! :show/hide-later
+  (fn [_ store k on?]
+    (changed! store (show/configured k {:hide-later? on?}))))
+
 ;; The settings
 
 ;; a change of the colours cross-fades the page, rather than flip it

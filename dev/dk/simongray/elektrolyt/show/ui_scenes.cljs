@@ -248,6 +248,35 @@
   is started: that row says what's left of it."
   (ui/page (heard pc20 ["ep20"] "ep19")))
 
+(defn configured
+  "The `state` of a show in the library with the `settings` configured, and
+  its settings open."
+  [state settings]
+  (let [k (first (keys (get-in state [:library :feeds])))]
+    (-> state
+        (update :library library/update-profile profile/configure k settings)
+        (assoc :open {[:show-settings k] true}))))
+
+(defscene a-show-with-its-settings-open
+  "A show in the library with the fold at the end of its Details open: the
+  order of its episodes, newest first as its feed has them."
+  (ui/page (configured (heard pc20 []) {})))
+
+(defscene a-show-heard-from-the-first
+  "A show that isn't serial, which the listener chose to hear from the first:
+  it has a place in its Details, and a switch that hides its later episodes."
+  (ui/page (configured (heard pc20 ["ep1"]) {:order :oldest})))
+
+(defscene a-serial-heard-newest-first
+  "A serial that the listener chose to hear newest first, e.g. since its feed
+  says it's a serial by mistake: it has no place, and no switch."
+  (ui/page (configured (heard serial []) {:order :newest})))
+
+(defscene a-serial-hiding-its-later-episodes
+  "A serial whose later episodes the listener keeps out of its list: it stops
+  at the next episode, with a button for the rest."
+  (ui/page (configured (heard serial ["s1e1"]) {:hide-later? true})))
+
 (defscene a-show-from-a-link-on-its-way
   "A link to a show outside the library that names its feed, which is on
   its way, with no search that found it: rows in the place of its

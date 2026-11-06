@@ -63,6 +63,7 @@
          :played/unmark       (changed profile/mark-all-unplayed)
          :played/restore      (changed played/restore)
          :settings/prefer     (changed profile/prefer)
+         :show/configure      (changed profile/configure)
          :opml/subscribe      (changed profile.opml/from-opml)
          :opml/mark-played    (let [[list] args]
                                 (library/episodes-from-opml library list {:at at}))

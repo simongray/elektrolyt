@@ -93,19 +93,25 @@
 ;; https://design-system.service.gov.uk/components/summary-list/
 (defn aside
   "The Details of the `rows`, pairs of a name and its values, and the
-  `people`, or nil when none of them has a value."
-  [rows people]
-  (when-let [rows (seq (keep (fn [[k vs]]
-                               (when-let [vs (seq (remove nil? vs))]
-                                 [k vs]))
-                             (concat rows [(people-row people)])))]
-    [:aside.details {:aria-labelledby id}
-     ;; hidden, since the page shows what the aside is
-     [:h2.visually-hidden {:id id} "Details"]
-     [:dl
-      (for [[k vs] rows]
-        (into [:div {:replicant/key k} [:dt k]]
-              (map #(vector :dd %) vs)))]]))
+  `people`, with `more` after them, e.g. a show's settings, or nil when
+  none of them has a value."
+  ([rows people]
+   (aside rows people nil))
+  ([rows people more]
+   (let [rows (seq (keep (fn [[k vs]]
+                           (when-let [vs (seq (remove nil? vs))]
+                             [k vs]))
+                         (concat rows [(people-row people)])))]
+     (when (or rows more)
+       [:aside.details {:aria-labelledby id}
+        ;; hidden, since the page shows what the aside is
+        [:h2.visually-hidden {:id id} "Details"]
+        (when rows
+          [:dl
+           (for [[k vs] rows]
+             (into [:div {:replicant/key k} [:dt k]]
+                   (map #(vector :dd %) vs)))])
+        more]))))
 
 ;; HTML, the article element: a self-contained composition that is
 ;; "independently distributable or reusable, e.g. in syndication", as a

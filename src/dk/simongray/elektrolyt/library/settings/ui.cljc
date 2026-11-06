@@ -65,10 +65,11 @@
 ;; the same as it turns on and off.
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/switch/
 ;; https://webkit.org/blog/15054/an-html-switch-control/
-(defn switch
+(defn action-switch
   "A switch with the `id`, labelled `label` and described by the `hint`,
-  on when `on?`, whose change sets the listener's preference `k`."
-  [id label hint on? k]
+  on when `on?`, whose change dispatches the `action`, which holds a
+  placeholder for the new value."
+  [id label hint on? action]
   [:div.setting
    [:input {:type             "checkbox"
             :switch           true
@@ -76,9 +77,15 @@
             :id               id
             :checked          (boolean on?)
             :aria-describedby (str id "-hint")
-            :on               {:change [[:settings/prefer k [:event/target-checked]]]}}]
+            :on               {:change [action]}}]
    [:label {:for id} label]
    [:p {:id (str id "-hint")} hint]])
+
+(defn switch
+  "A switch as action-switch makes it with the `id`, `label`, `hint` and
+  `on?`, whose change sets the listener's preference `k`."
+  [id label hint on? k]
+  (action-switch id label hint on? [:settings/prefer k [:event/target-checked]]))
 
 (defn appearance
   "The settings of the app's colours in `state`: light or dark, the
