@@ -57,7 +57,7 @@
   About first for a listener with no shows yet."
   [{:keys [library] :as state}]
   (let [lists (when library
-                [:div.home-lists
+                [:div.columns
                  (up-next state)
                  (picks-ui/kept-section state picks-section (picks/kept state [:home]))])]
     ;; the subscriptions alone, since the Library page's shows count every

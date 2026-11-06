@@ -241,7 +241,7 @@
 (defn content
   "The content of the Settings page for `state`, below its heading."
   [state]
-  [:div.settings-page
+  [:div.columns
    [:div
     (appearance state)
     (playback state)

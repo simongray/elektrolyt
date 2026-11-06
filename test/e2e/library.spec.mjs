@@ -2,6 +2,33 @@ import { test, expect, announcement, navLink, showPath, showTitle } from './fixt
 
 const fourth = { guid: 'test-episode-4', title: 'Fourth episode', published: '2026-10-16T08:00:00Z' };
 
+test('the shows take the room under one line of choices, which wraps on a phone', async ({ page }) => {
+  const main = page.getByRole('main');
+  const middle = async locator => {
+    const { y, height } = await locator.boundingBox();
+    return y + height / 2;
+  };
+  const sort = main.getByLabel('Sort by');
+  const check = main.getByRole('button', { name: 'Check for new episodes' });
+  const shows = main.getByRole('region', { name: 'Shows' }).getByRole('list');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(showPath);
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
+  await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
+  await navLink(page, 'Library').click();
+  await expect(shows.getByRole('heading', { name: showTitle })).toBeVisible();
+
+  expect(Math.abs(await middle(sort) - await middle(check))).toBeLessThan(2);
+  const { width } = await shows.boundingBox();
+  const inbox = await main.getByRole('heading', { name: 'Inbox' }).boundingBox();
+  expect(width).toBeGreaterThan(inbox.width);
+
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(await middle(check)).toBeGreaterThan(await middle(sort));
+  expect(await main.evaluate(m => m.scrollWidth <= m.clientWidth), 'with nothing wider than the phone').toBe(true);
+});
+
 test('checking for new episodes marks the shows busy, then says what it found', async ({ page, show }) => {
   const main = page.getByRole('main');
   await page.goto(showPath);

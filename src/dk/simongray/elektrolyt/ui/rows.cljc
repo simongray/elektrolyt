@@ -19,18 +19,15 @@
   [rows i]
   (or (get rows (inc i)) (get rows (dec i))))
 
-;; GOV.UK Design System, summary list: a visible label first, then the
-;; name of what it acts on in visually hidden text, e.g. "Remove Episode
-;; 3", so that the name begins with what a voice user says (WCAG 2.2, SC
-;; 2.5.3 Label in Name)
+;; GOV.UK Design System, summary list: what a button does, then the name of
+;; what it acts on, e.g. "Remove Episode 3", so that a screen reader can
+;; tell a list's buttons apart
 (defn button
-  "A button that says `label` for the row titled `title`, with the icon
-  that `attrs` has as :icon, if any, and the rest of `attrs` merged in."
-  [label title {:keys [icon] :as attrs}]
-  (if icon
-    [controls/button attrs label [:span.visually-hidden " " title]]
-    [:button (merge {:type "button"} attrs)
-     label [:span.visually-hidden " " title]]))
+  "A button of the row titled `title` that shows the icon that `attrs` has
+  as :icon, with the rest of `attrs` merged in, and says `label` and the
+  title to a screen reader and in its tooltip."
+  [label title attrs]
+  [controls/icon-button attrs label " " title])
 
 ;; The APG's rearrangeable list: Move up and Move down, with aria-disabled
 ;; at either end, which keeps the focus on the button, and the focus on
@@ -44,12 +41,11 @@
   `move-to` for the new position and keeps the focus on the button."
   [title position n id-of move-to]
   (letfn [(arrow [icon k words end to]
-            [controls/icon-button
-             (merge {:icon icon :id (id-of k)}
-                    (if (= end position)
-                      {:aria-disabled "true"}
-                      {:on {:click [(move-to to) [:page/focus (id-of k)]]}}))
-             words " " title])]
+            (button words title
+                    (merge {:icon icon :id (id-of k)}
+                           (if (= end position)
+                             {:aria-disabled "true"}
+                             {:on {:click [(move-to to) [:page/focus (id-of k)]]}}))))]
     (list (arrow icons/arrow-up :up "Move up" 1 (dec position))
           (arrow icons/arrow-down :down "Move down" n (inc position)))))
 

@@ -295,10 +295,11 @@ time,
 }
 
 /* Lines of reading text no longer than a measure, while the wrappers of
-   the Search lists and the articles with their Details beside them take
-   the room. The whole of an article's content keeps to the measure, so
-   that e.g. a show's episodes end where its description does. */
-.shell > main > .paper > :not(div, article, search, .search-jump),
+   the Search lists, the articles with their Details beside them and what
+   isn't reading text, e.g. the Library's tiles, take the room. The whole of
+   an article's content keeps to the measure, so that e.g. a show's episodes
+   end where its description does. */
+.shell > main > .paper > :not(div, article, .wide, .search-jump),
 .with-details > :first-child {
   max-inline-size: var(--measure);
 }
@@ -1126,10 +1127,21 @@ search p {
 }
 
 
-/* Settings: each group under a rule, rather than in the fieldset's box */
+/* Settings: each group under a rule, rather than in the fieldset's box, but
+   for the first of a page, or of each column, which no other page has */
 .settings-group {
   border: 0;
   border-top: 1px solid var(--rule-soft);
+}
+
+.columns > div:first-child > .settings-group:first-child {
+  border-top: 0;
+}
+
+@container (inline-size >= 51em) {
+  .columns > div > .settings-group:first-child {
+    border-top: 0;
+  }
 }
 
 .setting p,

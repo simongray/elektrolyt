@@ -95,7 +95,7 @@
   `refocus` when another tab left nothing to put back."
   [episodes undo refocus]
   (when (or (seq episodes) undo)
-    [:div.inbox-tools
+    [:div.toolbar-buttons
      (when (seq episodes)
        (list
         [:button {:type "button"
@@ -145,10 +145,13 @@
   (let [episodes (inbox/episodes state)
         n        (count episodes)]
     (list
-     (if (zero? n)
-       empty-inbox
-       [:p (text/counted n "new episode")])
-     (tools episodes (inbox/offered state) "main h1")
+     (when (zero? n)
+       empty-inbox)
+     (when-let [buttons (tools episodes (inbox/offered state) "main h1")]
+       [:div.toolbar
+        (when (pos? n)
+          [:p (text/counted n "new episode")])
+        buttons])
      (when (seq episodes)
        (episode-list state episodes :h2)))))
 
@@ -167,7 +170,8 @@
         n        (count episodes)]
     [:section {:aria-labelledby "inbox"}
      [:h2#inbox {:tabindex -1} "Inbox"]
-     (tools nil (inbox/offered state) "#inbox")
+     (when-let [buttons (tools nil (inbox/offered state) "#inbox")]
+       [:div.toolbar buttons])
      (if (zero? n)
        [:p "No new episodes."]
        (list

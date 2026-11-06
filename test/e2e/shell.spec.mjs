@@ -1,6 +1,6 @@
 // The shell around every page: the header, the navigation and the player.
 
-import { test, expect, navLink } from './fixtures.mjs';
+import { test, expect, navLink, showPath, showTitle } from './fixtures.mjs';
 
 /** Where the main content starts, and how wide the rail is, on the `page`. */
 function shell(page) {
@@ -26,6 +26,27 @@ test('the rail keeps its width from page to page, so the content stays put', asy
     await expect(navLink(page, title)).toHaveAttribute('aria-current', 'page');
     expect(await shell(page), title).toEqual(first);
   }
+});
+
+test('the first heading lies as far under the title on every page', async ({ page }) => {
+  const main = page.getByRole('main');
+  const spaceAbove = async name => {
+    const heading = main.getByRole('heading', { name, level: 2 });
+    await expect(heading).toBeVisible();
+    const [title, box] = [await main.getByRole('heading', { level: 1 }).boundingBox(), await heading.boundingBox()];
+    return Math.round(box.y - title.y - title.height);
+  };
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(showPath);
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
+  await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
+
+  for (const [link, first] of [['Home', 'Up next'], ['Library', 'Inbox'], ['Settings', 'Appearance']]) {
+    await navLink(page, link).click();
+    expect(await spaceAbove(first), link).toBe(48);
+  }
+  await page.goto('/queue');
+  expect(await spaceAbove('Up next'), 'Queue').toBe(48);
 });
 
 test('in a narrow window, the rail shows icons alone, and their titles name them', async ({ page }) => {

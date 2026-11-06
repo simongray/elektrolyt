@@ -26,7 +26,7 @@ h1 {
 }
 
 h2 {
-  margin: var(--space-5) 0 var(--space-2);
+  margin: var(--space-5) 0 var(--space-3);
 }
 
 p {
@@ -612,6 +612,12 @@ main h1,
 .search-list h2 {
   margin: var(--space-3) 0 0;
   padding-bottom: var(--space-2);
+}
+
+/* the rows in a list's place while it loads, with no heading's space to take
+   back (below) */
+.search-list > .episodes {
+  margin-block-start: 0;
 }
 
 
@@ -1547,12 +1553,26 @@ main h1,
 }
 
 /* The queue, the inbox and a show's episodes: each episode's artwork
-   beside its title, show and times, with its buttons below, which wrap
-   on a phone */
+   beside its title, show and times, with its buttons at the end where
+   there's room, and below on a phone */
 .queue > li,
 .inbox > li,
 .episodes > li {
   padding-block: var(--space-3);
+}
+
+/* The first row starts at a heading's own space, rather than adding to it.
+   The list takes that back as a whole, so that every row keeps its height,
+   e.g. the first as a new episode goes in above it. */
+.queue,
+.inbox,
+.episodes {
+  margin-block-start: calc(-1 * var(--space-3));
+}
+
+/* as far from a list as its heading is from it */
+section > h2 + p[role="status"] {
+  margin-block-end: var(--space-3);
 }
 
 .queue-episode,
@@ -1613,14 +1633,31 @@ main h1,
   margin-block: var(--space-2) 0;
 }
 
-/* Home's start of the queue and its picks, side by side where the main
-   content has room for two columns of rows */
-@container (min-width: 46rem) {
-  .home-lists {
-    display: grid;
+/* A page's columns, e.g. the Settings page's groups and the queue beside its
+   picks: one column, or two where each still has room for a control beside
+   its words, and none wider than a measure. The first heading of each lies
+   as far under the page's title as another page's first section. */
+.columns,
+.columns > div {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+}
+
+.columns {
+  max-inline-size: var(--measure);
+  margin-block-start: var(--space-5);
+}
+
+.columns > section > h2,
+.columns > div > section > h2 {
+  margin-block-start: 0;
+}
+
+@container (inline-size >= 51em) {
+  .columns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--space-5);
-    align-items: start;
+    max-inline-size: calc(2 * var(--measure) + var(--space-5));
   }
 }
 
@@ -1677,29 +1714,73 @@ main h1,
 .inbox-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5em;
+  gap: var(--space-2);
   margin-top: var(--space-2);
 }
 
+/* the icons of a row, no larger than the other controls */
+:is(.setting-control, .queue-actions, .inbox-actions) .icon-button {
+  min-inline-size: var(--control-height);
+  min-block-size: var(--control-height);
+}
 
-/* The Library page's choices and its refresh, and the Inbox page's
-   buttons, in rows that wrap */
-.library-tools,
-.library-refresh,
-.inbox-tools {
+:is(.setting-control, .queue-actions, .inbox-actions) .icon-button .icon {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+/* an episode's buttons at the end of its row, where the page has room for
+   them beside its title */
+@container (inline-size >= 30em) {
+  .queue-episode:has(> .queue-actions),
+  .inbox-episode {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .queue-episode > .queue-actions,
+  .inbox-episode > .inbox-actions {
+    grid-column: 3;
+    grid-row: 1 / span 3;
+    align-self: center;
+    flex-wrap: nowrap;
+    margin-top: 0;
+  }
+}
+
+
+/* The line above a list: what it counts or chooses, and then its buttons at
+   the end, which wrap under it on a phone */
+.toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5em;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-block-end: var(--space-3);
 }
 
-/* clear of the choices above it, whose keys would otherwise touch its own */
-.library-refresh {
-  margin-block-start: var(--space-2);
+/* the width of the list that it heads, where it's in no section */
+.paper > .toolbar {
+  max-inline-size: var(--measure);
 }
 
-.library-refresh p {
+.toolbar p {
   margin: 0;
+}
+
+.toolbar-buttons,
+.library-tools,
+.library-choice,
+.library-refresh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* each choice's label nearer its own select than the next choice */
+.library-tools {
+  column-gap: var(--space-4);
 }
 
 /* The shows: a list of rows, the artwork beside the title, or a grid of
@@ -1754,10 +1835,13 @@ main h1,
   overflow-wrap: anywhere;
 }
 
-.library-shows.grid {
+.library-shows {
   display: grid;
+  gap: var(--space-3);
+}
+
+.library-shows.grid {
   grid-template-columns: repeat(auto-fill, minmax(min(10em, 100%), 1fr));
-  gap: 1em;
 }
 
 .library-shows.grid .library-show {
@@ -1770,9 +1854,7 @@ main h1,
 
 @media (min-width: 37.5em) {
   .library-shows.auto {
-    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
-    gap: 1em;
   }
 
   .library-shows.auto .library-show {
@@ -1785,26 +1867,6 @@ main h1,
 }
 
 
-/* The Settings page: one column of groups, or two where each still has room
-   for a control beside its words, and none wider than a measure */
-.settings-page,
-.settings-page > div {
-  display: grid;
-  align-content: start;
-  gap: var(--space-5);
-}
-
-.settings-page {
-  max-inline-size: var(--measure);
-}
-
-@container (inline-size >= 51em) {
-  .settings-page {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-inline-size: calc(2 * var(--measure) + var(--space-5));
-  }
-}
-
 /* A group of settings (ui/setting.cljc). Its spaces come from one scale, set
    on the group and its rows rather than on what they hold, and each is wider
    than the one inside it, so that what belongs together looks it.
@@ -1814,6 +1876,17 @@ main h1,
   margin: 0;
   padding: var(--space-3) 0 0;
   min-inline-size: 0;
+}
+
+/* the first group of a page, or of each column, has no rule to clear (look.css) */
+.columns > div:first-child > .settings-group:first-child {
+  padding-block-start: 0;
+}
+
+@container (inline-size >= 51em) {
+  .columns > div > .settings-group:first-child {
+    padding-block-start: 0;
+  }
 }
 
 /* A floated legend leaves the border, which it would otherwise break, so
@@ -1891,17 +1964,6 @@ ol.setting-rows {
 
 .setting:not(:has(> p)) > .setting-control {
   grid-row: 1;
-}
-
-/* The arrows of a row, no larger than the other controls */
-.setting-control > .icon-button {
-  min-inline-size: var(--control-height);
-  min-block-size: var(--control-height);
-}
-
-.setting-control > .icon-button .icon {
-  width: 1.25em;
-  height: 1.25em;
 }
 
 /* In a narrow place, a hint has the row's whole width under its title and a

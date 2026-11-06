@@ -42,7 +42,7 @@ test('the groups sit in two columns where there is room, and in one on a phone',
   const [appearance, search] = [await heading('Appearance'), await heading('Search')];
   expect(search.y).toBe(appearance.y);
   expect(search.x).toBeGreaterThan(appearance.x);
-  const rights = await main.locator('.settings-page > div:first-child .setting-control').evaluateAll(controls =>
+  const rights = await main.locator('.columns > div:first-child .setting-control').evaluateAll(controls =>
     controls.map(control => Math.round(control.getBoundingClientRect().right)));
   expect(new Set(rights).size, 'every control ends on one edge').toBe(1);
 
