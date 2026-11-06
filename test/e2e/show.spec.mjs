@@ -37,7 +37,7 @@ test("a show's settings order its episodes and hide the later ones", async ({ pa
   await expect(main.getByRole('switch', { name: 'Hide later episodes' })).toHaveCount(0);
 
   await main.getByRole('button', { name: 'Settings for this show' }).click();
-  await main.getByRole('combobox', { name: 'Episodes' }).selectOption({ label: 'From the first episode' });
+  await main.getByRole('combobox', { name: 'Episodes' }).selectOption({ label: 'Oldest first' });
   await expect(titles).toHaveText([first.title, second.title, third.title]);
   await expect(main.getByRole('complementary')).toContainText('3 episodes');
 

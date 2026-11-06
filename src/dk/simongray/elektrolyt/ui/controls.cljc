@@ -205,15 +205,21 @@
 ;; Adrian Roselli, Be Careful Using 'menu': a select is the control for
 ;; choosing a value, where a menu is for the commands of an application
 ;; https://adrianroselli.com/2023/05/be-careful-using-menu.html
+;;
+;; The caret is the app's own, since a browser puts its arrow where padding
+;; can't move it, which is against the edge in Chrome.
 (defn select
   "A select with the `id` of the `options`, pairs of a value and its text,
-  with `chosen` selected and the `attrs` merged in. A change dispatches
-  the `action`, which holds a placeholder for the new value."
+  with `chosen` selected, the `attrs` merged in and a caret at its end. A
+  change dispatches the `action`, which holds a placeholder for the new
+  value."
   ([id options chosen action]
    (select id options chosen action nil))
   ([id options chosen action attrs]
-   [:select (merge {:id id :on {:change [action]}} attrs)
-    (for [[v text] options]
-      [:option {:value    (option-value v)
-                :selected (= (option-value v) (option-value chosen))}
-       text])]))
+   [:span.select
+    [:select (merge {:id id :on {:change [action]}} attrs)
+     (for [[v text] options]
+       [:option {:value    (option-value v)
+                 :selected (= (option-value v) (option-value chosen))}
+        text])]
+    [icon {:icon icons/caret-down}]]))

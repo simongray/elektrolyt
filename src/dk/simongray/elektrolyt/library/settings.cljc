@@ -21,15 +21,15 @@
   "What the next and previous buttons on a lock screen or headphones can
   go to, with the text of each."
   [[:chapters "Chapters"]
-   [:queue "The episodes of the queue"]
-   [:chapters-first "Chapters, then the queue"]])
+   [:queue "Queue"]
+   [:chapters-first "Chapters first"]])
 
 ;; web.dev, prefers-color-scheme: follow the device by default, and let the
 ;; listener choose, since some want a dark device but light pages
 ;; https://web.dev/articles/prefers-color-scheme
 (def appearances
   "The colour schemes that the listener can choose, with the text of each."
-  [[:auto "Automatic, as the device"]
+  [[:auto "Automatic"]
    [:light "Light"]
    [:dark "Dark"]])
 
@@ -39,7 +39,7 @@
 ;; https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
 (def contrasts
   "The contrasts that the listener can choose, with the text of each."
-  [[:auto "Automatic, as the device"]
+  [[:auto "Automatic"]
    [:standard "Standard"]
    [:more "More"]])
 
@@ -99,9 +99,9 @@
 (def navigation-palettes
   "The colourings of the navigation's links that the listener can choose,
   with the text of each."
-  [[:pages "A colour for each page"]
-   [:player "The player's colour"]
-   [:color-blind "Colours for colour blindness"]
+  [[:pages "By page"]
+   [:player "By player"]
+   [:color-blind "Colour-blind"]
    [:none "None"]])
 
 (defn navigation-palette

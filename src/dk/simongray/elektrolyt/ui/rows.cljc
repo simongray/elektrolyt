@@ -34,25 +34,24 @@
 
 ;; The APG's rearrangeable list: Move up and Move down, with aria-disabled
 ;; at either end, which keeps the focus on the button, and the focus on
-;; the moved row after a move
+;; the moved row after a move. An arrow is one of the few icons understood
+;; without words, which keeps the row short enough for a phone.
 ;; https://www.w3.org/WAI/ARIA/apg/patterns/listbox/examples/listbox-rearrangeable/
 (defn move-buttons
-  "The Move up and Move down buttons of the row titled `title` at
-  `position` of `n`, counted from 1. Their ids come from `id-of` for :up
-  and :down, and a click dispatches the action from `move-to` for the new
-  position and keeps the focus on the button."
+  "The arrows that say Move up and Move down to a screen reader, for the
+  row titled `title` at `position` of `n`, counted from 1. Their ids come
+  from `id-of` for :up and :down, and a click dispatches the action from
+  `move-to` for the new position and keeps the focus on the button."
   [title position n id-of move-to]
-  (list
-   (button "Move up" title
-           (if (= 1 position)
-             {:id (id-of :up) :aria-disabled "true"}
-             {:id (id-of :up)
-              :on {:click [(move-to (dec position)) [:page/focus (id-of :up)]]}}))
-   (button "Move down" title
-           (if (= n position)
-             {:id (id-of :down) :aria-disabled "true"}
-             {:id (id-of :down)
-              :on {:click [(move-to (inc position)) [:page/focus (id-of :down)]]}}))))
+  (letfn [(arrow [icon k words end to]
+            [controls/icon-button
+             (merge {:icon icon :id (id-of k)}
+                    (if (= end position)
+                      {:aria-disabled "true"}
+                      {:on {:click [(move-to to) [:page/focus (id-of k)]]}}))
+             words " " title])]
+    (list (arrow icons/arrow-up :up "Move up" 1 (dec position))
+          (arrow icons/arrow-down :down "Move down" n (inc position)))))
 
 (defn dragged
   "Where the row at index `from` of the `boxes`, the :top and :height of

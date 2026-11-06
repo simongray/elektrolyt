@@ -51,7 +51,7 @@
        "Change" [:span.visually-hidden " the directories"]]]
      (when dr?
        [:p "Also searches drpodcast.nu for DR's programmes. "
-        [:a {:href (settings-ui/group-href :dr)}
+        [:a {:href (settings-ui/group-href :special)}
          "Change" [:span.visually-hidden " the search of drpodcast.nu"]]])]))
 
 (defn link-text

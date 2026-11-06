@@ -40,12 +40,29 @@ hr {
 /* The controls: room around their labels, and at least --control-height,
    past the 24 px of WCAG 2.2, SC 2.5.8 Target Size (Minimum) */
 button,
-::file-selector-button {
+.file-button {
   padding: 0.3em 0.8em;
 }
 
 select {
-  padding: 0.3em 0.5em;
+  padding: 0.3em calc(2 * var(--space-2) + 1em) 0.3em 0.5em;
+}
+
+/* A select's caret, inside its room at the end of the select, which a press
+   goes through to the select */
+.select {
+  position: relative;
+  display: inline-flex;
+}
+
+.select > .icon {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: var(--space-2);
+  width: 0.75em;
+  height: 0.75em;
+  translate: 0 -50%;
+  pointer-events: none;
 }
 
 input[type="search"] {
@@ -55,7 +72,7 @@ input[type="search"] {
 button,
 select,
 input[type="search"],
-input[type="file"] {
+.file-button {
   min-height: var(--control-height);
 }
 
@@ -872,9 +889,8 @@ main h1,
 }
 
 /* their icons, but a menu's, which are the size of any button's with
-   words (above), and as specific as ever, so that the speed's caret keeps
-   its own size (below) */
-#player .icon:where(:not(.menu-list .icon)) {
+   words (above), and the speed's caret, which is any select's */
+#player .icon:where(:not(.menu-list .icon, .select .icon)) {
   width: var(--player-icon);
   height: var(--player-icon);
 }
@@ -929,18 +945,6 @@ main h1,
 .player-seek-row:not(:has(.player-previous-chapter)) .player-seek {
   grid-column: 1 / -1;
   padding-inline: calc(var(--player-space) - var(--player-inset));
-}
-
-/* the caret of the speed's menu just after its text, inside its room on
-   the right, which a press goes through to the menu */
-#player .player-speed .icon {
-  position: absolute;
-  top: 50%;
-  right: var(--space-2);
-  width: 0.75em;
-  height: 0.75em;
-  translate: 0 -50%;
-  pointer-events: none;
 }
 
 /* The times above the bar, set solid and clear of its thumb, and below it
@@ -1030,8 +1034,11 @@ main h1,
 }
 
 .player-speed {
-  position: relative;
   grid-area: speed;
+}
+
+.player-speed > .select {
+  display: flex;
 }
 
 .player-back {
@@ -1686,6 +1693,11 @@ main h1,
   gap: 0.5em;
 }
 
+/* clear of the choices above it, whose keys would otherwise touch its own */
+.library-refresh {
+  margin-block-start: var(--space-2);
+}
+
 .library-refresh p {
   margin: 0;
 }
@@ -1773,10 +1785,33 @@ main h1,
 }
 
 
-/* The Settings page: a column of groups, each setting a row of its label
-   and its control, which wraps on a phone, with a hint below */
+/* The Settings page: one column of groups, or two where each still has room
+   for a control beside its words, and none wider than a measure */
+.settings-page,
+.settings-page > div {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+}
+
+.settings-page {
+  max-inline-size: var(--measure);
+}
+
+@container (inline-size >= 51em) {
+  .settings-page {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-inline-size: calc(2 * var(--measure) + var(--space-5));
+  }
+}
+
+/* A group of settings (ui/setting.cljc). Its spaces come from one scale, set
+   on the group and its rows rather than on what they hold, and each is wider
+   than the one inside it, so that what belongs together looks it.
+   https://every-layout.dev/layouts/stack/
+   https://www.nngroup.com/articles/gestalt-proximity/ */
 .settings-group {
-  margin: 0 0 1.5em;
+  margin: 0;
   padding: var(--space-3) 0 0;
   min-inline-size: 0;
 }
@@ -1786,6 +1821,7 @@ main h1,
 .settings-group legend {
   float: inline-start;
   inline-size: 100%;
+  margin-block-end: var(--space-3);
   padding: 0;
 }
 
@@ -1797,39 +1833,104 @@ main h1,
   margin: 0;
 }
 
+.settings-group > p {
+  margin: 0;
+}
+
+.settings-group > :not(legend) + * {
+  margin-block-start: var(--space-3);
+}
+
+/* the status line takes no room until it has something to say */
+.settings-group > .settings-status:empty {
+  margin-block-start: 0;
+}
+
+/* a failure's words wrap beside its Dismiss button, in a column's width */
+.settings-group > .notice {
+  flex-wrap: nowrap;
+  margin-block-end: 0;
+}
+
+/* The rows of a group or a fold, a container so that a row follows the width
+   that it has, e.g. in the margin of a show's page. A list of like rows sits
+   closer together. */
+.setting-rows {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+ol.setting-rows {
+  gap: var(--space-2);
+}
+
+/* A row: its title and the hint under it, with the control at its end */
 .setting {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.5em;
-  margin-block: 0.75em;
+  gap: var(--space-1) var(--space-3);
+  min-block-size: var(--control-height);
 }
 
-.setting p {
-  flex: 1 1 100%;
+.setting > p {
+  grid-column: 1;
   margin: 0;
 }
 
-/* On a phone, a select's label goes above it, as in GOV.UK's forms,
-   rather than above some selects and beside others by its length
+.setting-control {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: var(--space-2);
+}
+
+.setting:not(:has(> p)) > .setting-control {
+  grid-row: 1;
+}
+
+/* The arrows of a row, no larger than the other controls */
+.setting-control > .icon-button {
+  min-inline-size: var(--control-height);
+  min-block-size: var(--control-height);
+}
+
+.setting-control > .icon-button .icon {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+/* In a narrow place, a hint has the row's whole width under its title and a
+   switch. A select's label goes above it, as in GOV.UK's forms, rather than
+   above some selects and beside others by its length, and a button goes
+   under its hint, which it would otherwise squeeze.
    https://design-system.service.gov.uk/components/select/ */
-@media (width < 37.5em) {
-  .setting:has(> select) {
-    flex-direction: column;
-    align-items: start;
+@container (inline-size < 24em) {
+  .setting > p {
+    grid-column: 1 / -1;
   }
-}
 
-.setting select,
-.setting input[type=file],
-.setting button,
-.settings-group > button {
-  max-width: 100%;
-}
+  .setting > .setting-control {
+    grid-row: 1;
+  }
 
-/* The directories of a search, a row each */
-.settings-directories {
-  margin: 0;
+  .setting:has(> .setting-control > :is(.select, button:not(.icon-button), .file-button)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Further from the words above it than a hint is from its title, and a
+     block, so that it follows the alignment of those words, e.g. to the end
+     of the margin of a show's page */
+  .setting:has(> .setting-control > :is(.select, button:not(.icon-button), .file-button)) > .setting-control {
+    display: block;
+    grid-column: 1;
+    grid-row: auto;
+    margin-block-start: var(--space-1);
+  }
 }
 
 /* A notice of one line, e.g. of changes that aren't saved: its words,

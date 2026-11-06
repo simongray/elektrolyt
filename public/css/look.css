@@ -75,7 +75,8 @@ a:hover {
    screen reader */
 :focus-visible,
 .search-list h2:focus,
-.settings-group legend h2:focus {
+.settings-group legend h2:focus,
+input[type="file"]:focus-visible + .file-button {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -334,7 +335,7 @@ time,
 button,
 select,
 input[type="search"],
-::file-selector-button {
+.file-button {
   font-family: var(--font-ui);
   font-size: var(--step--1);
   color: var(--ink);
@@ -343,8 +344,34 @@ input[type="search"],
   border-radius: var(--radius);
 }
 
+/* A select is a key too, since it's pressed rather than typed in, and its
+   value and caret identify it (WCAG 2.2, SC 1.4.11). Its value stays in the
+   text's weight, since it says what's chosen rather than what a press does.
+   The caret is the app's own rather than the browser's (controls/select),
+   the same size in every select but the player's, whose icons are larger. */
+select {
+  appearance: none;
+  border-color: transparent;
+  cursor: pointer;
+}
+
+/* a browser can paint a select's list with the select's face, which is
+   translucent, so its options stay on the system's own ground */
+option {
+  color: CanvasText;
+  background: Canvas;
+}
+
+.select {
+  font-size: var(--step--1);
+}
+
+.player-speed > .select {
+  font-size: inherit;
+}
+
 button,
-::file-selector-button {
+.file-button {
   font-weight: var(--weight-strong);
   border-color: transparent;
   cursor: pointer;
@@ -359,7 +386,8 @@ button,
    which meets the lines of the show's title, a button that can't act yet
    (below), and the actions of a menu, which lie flat in it. */
 button:where(:not(#player *, .disclosure, .bookmark, .menu-list *, [aria-disabled="true"])),
-::file-selector-button {
+select:where(:not(#player *)),
+.file-button {
   --key: light-dark(transparent, color-mix(in oklch, var(--accent) 12%, transparent));
   --key-pressed: light-dark(color-mix(in oklch, var(--accent) 8%, transparent), var(--key));
   --lift: var(--raised);
@@ -367,32 +395,25 @@ button:where(:not(#player *, .disclosure, .bookmark, .menu-list *, [aria-disable
   box-shadow: var(--raised);
 }
 
-button:focus-visible {
+button:focus-visible,
+select:focus-visible,
+input[type="file"]:focus-visible + .file-button {
   background: var(--key);
   box-shadow: var(--lift);
 }
 
 @media (hover: hover) {
-  button:hover {
+  button:hover,
+  select:hover,
+  .file-button:hover {
     background: var(--key);
     box-shadow: var(--lift);
   }
-
-  ::file-selector-button:hover {
-    background: var(--key);
-  }
 }
 
-button:active {
-  background: var(--key-pressed, var(--key));
-  box-shadow: none;
-}
-
-input[type="file"]:focus-visible::file-selector-button {
-  background: var(--key);
-}
-
-::file-selector-button:active {
+button:active,
+select:active,
+.file-button:active {
   background: var(--key-pressed, var(--key));
   box-shadow: none;
 }
@@ -770,25 +791,6 @@ hgroup > p {
   outline: 0;
 }
 
-/* the speed a key like the player's buttons (Controls), though it's a
-   menu */
-#player-speed:focus-visible {
-  background: var(--key);
-  box-shadow: var(--lift);
-}
-
-@media (hover: hover) {
-  #player-speed:hover {
-    background: var(--key);
-    box-shadow: var(--lift);
-  }
-}
-
-#player-speed:active {
-  background: var(--key);
-  box-shadow: none;
-}
-
 /* the volume's panel a piece of the deck that it rises from, lifted off
    the page and the bar by the bar's own shadow */
 .player-volume-slider {
@@ -1084,10 +1086,7 @@ hgroup > p {
   min-width: var(--player-target);
   min-height: var(--player-target);
   padding-inline: var(--space-2) calc(var(--space-2) + 1em);
-  border-color: transparent;
-  appearance: none;
   field-sizing: content;
-  cursor: pointer;
 }
 
 /* Type reversed out of the bar, like the text in the coloured panels of
@@ -1139,6 +1138,12 @@ search p {
   font-size: var(--step--1);
 }
 
+/* the words of a row that a label doesn't hold, the size of a label's */
+.setting-title,
+.setting-control {
+  font-size: var(--step--1);
+}
+
 /* A notice of one line, the size of a control's words, with its icon in
    the grey of the headings */
 .notice {
@@ -1171,7 +1176,8 @@ search p {
   }
 
   :root:not([data-contrast="standard"]) .shell > main button:not(.disclosure, .primary, [aria-disabled="true"]),
-  :root:not([data-contrast="standard"]) .shell > main ::file-selector-button {
+  :root:not([data-contrast="standard"]) .shell > main select,
+  :root:not([data-contrast="standard"]) .shell > main .file-button {
     border-color: var(--rule);
   }
 
@@ -1205,7 +1211,8 @@ search p {
 }
 
 :root[data-contrast="more"] .shell > main button:not(.disclosure, .primary, [aria-disabled="true"]),
-:root[data-contrast="more"] .shell > main ::file-selector-button {
+:root[data-contrast="more"] .shell > main select,
+:root[data-contrast="more"] .shell > main .file-button {
   border-color: var(--rule);
 }
 
@@ -1264,24 +1271,21 @@ search p {
 
   button,
   select,
-  a,
-  ::file-selector-button {
+  a {
     transition: background-color 0.15s, box-shadow 0.15s, text-decoration-color 0.33s, text-decoration-thickness 0.15s;
   }
 
   /* a key's face lightens quicker than the player's buttons lift */
   button:where(:not(#player *, .disclosure, .bookmark, [aria-disabled="true"])),
-  ::file-selector-button {
+  select:where(:not(#player *)),
+  .file-button {
     transition: background-color 0.1s, box-shadow 0.1s;
   }
 
   /* a press shows at once, since a tap can be shorter than the fade */
   button:active,
-  #player-speed:active {
-    transition-duration: 0s;
-  }
-
-  ::file-selector-button:active {
+  select:active,
+  .file-button:active {
     transition-duration: 0s;
   }
 
