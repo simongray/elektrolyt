@@ -19,6 +19,7 @@
   (:require [clojure.string :as str]
             [dk.simongray.podcast.app.library :as library]
             [dk.simongray.podcast.app.show :as show]
+            [dk.simongray.podcast.criteria :as criteria]
             [dk.simongray.podcast.feed :as feed]
             [dk.simongray.podcast.feed.guid :as guid]
             [dk.simongray.podcast.feed.resolve :as resolve]
@@ -115,38 +116,84 @@
   [{:keys [key feed url]}]
   (or key (guid/feed-key feed url)))
 
-(def listening-order
-  "The items of `feed` in listening order, sorted again only for another
-  feed, since each report of the position asks for them."
-  (memo/remember-last resolve/episodes))
+(def episodes-in-order
+  "The items of `feed` in the listener's `order`, or else in its listening
+  order, sorted again only when either changes, since each report of the
+  position asks for them."
+  (memo/remember-last #(criteria/episodes %1 {:order %2})))
+
+(defn heard-in-order
+  "The items of the show from `source` in the order that the listener hears
+  them, by the settings in the library `lib`, or nil for a show that they
+  don't hear in order or whose whole feed hasn't arrived."
+  [lib {:keys [key feed whole?]}]
+  (let [order (:order (profile/settings (:profile lib) key))]
+    (when (and whole? (show/in-order? feed order))
+      (episodes-in-order feed order))))
 
 ;; The place changes with each report of the position, which changes the
 ;; profile, while its feed stays the same object
-(def serial-place
-  "The place of the listener in the serial show from `source`, with the
-  profile of the library `lib`, as show/place gives it, or nil for a show
-  that isn't serial or whose whole feed hasn't arrived."
-  (memo/remember-last (fn [lib {:keys [feed whole?] :as source}]
-                        (when (and whole? (resolve/serial? feed))
+(def place
+  "The place of the listener in the show from `source` that they hear in
+  order, with the library `lib`, as show/place gives it, or nil for any
+  other."
+  (memo/remember-last (fn [lib source]
+                        (when-let [items (heard-in-order lib source)]
                           (let [profile (:profile lib)
                                 k       (feed-id source)]
-                            (show/place (listening-order feed)
-                                        #(profile/episode-entry profile [k (guid/item-guid %)])))))
+                            (show/place items #(profile/episode-entry profile [k (guid/item-guid %)])))))
                       (fn [lib {:keys [key url feed whole?]}]
                         [(:profile lib) key url feed whole?])))
 
+(defn next-row
+  "The row of the next episode of the `place`, or nil."
+  [place]
+  (some-> (:next place) episode-row))
+
 (defn earlier-unplayed
   "The ids of the full episodes before the one with the guid `item-guid` in
-  its season that aren't played, in the serial show from `source`, with the
-  profile of the library `lib`, or nil for a show that isn't serial or whose
-  whole feed hasn't arrived."
-  [lib {:keys [feed whole?] :as source} item-guid]
-  (when (and whole? (resolve/serial? feed))
+  its season that aren't played, in the show from `source` that the listener
+  hears in order, with the library `lib`, or nil for any other."
+  [lib source item-guid]
+  (when-let [items (heard-in-order lib source)]
     (let [profile (:profile lib)
           k       (feed-id source)]
-      (->> (show/earlier-in-season (listening-order feed) item-guid)
+      (->> (show/earlier-in-season items item-guid)
            (map #(vector k (guid/item-guid %)))
            (remove #(profile/played? profile %))))))
+
+(def order-choices
+  "The orders that a listener can choose for a show, for a select."
+  [[:from-first "From the first episode"]
+   [:newest "Newest first"]])
+
+;; A serial from the first keeps its own order, by its seasons and numbers
+;; rather than by date, and an episodic show newest first keeps its own too
+(defn order-for
+  "The listener's :order of a show with the `feed` for their `choice` of
+  order-choices, or nil when that's what the feed says."
+  [feed choice]
+  (let [from-first? (= :from-first choice)]
+    (when (not= (resolve/serial? feed) from-first?)
+      (if from-first? :oldest :newest))))
+
+(defn configured
+  "The change that sets the `settings` of the show under the key `k` in the
+  library."
+  [k settings]
+  {:operation [:show/configure k settings]})
+
+(defn order-chosen
+  "The change of `state` that has the listener hear the show under the key
+  `k` by their `choice` of order-choices."
+  [state k choice]
+  (configured k {:order (order-for (get-in state [:library :feeds k :feed]) choice)}))
+
+(defn hide-later?
+  "Whether the listener keeps the later episodes of the show under the key
+  `k` in the library `lib` out of its list."
+  [lib k]
+  (:hide-later? (profile/settings (:profile lib) k)))
 
 ;; A Show or Episode page looks its show up about twelve times a render,
 ;; and each lookup went over every subscription, while only a change of the
@@ -190,22 +237,22 @@
         (some->> url (subscribed-key lib))]
        (some #(when (get-in lib [:feeds % :feed]) %))))
 
-;; library/show reads the whole profile only for an order of the
-;; listener's own, e.g. by when they last heard each episode. Otherwise a
-;; report of the position or a change to the queue leaves the page as it is.
+;; Only the order by when the listener last heard each episode reads the
+;; profile. Otherwise a report of the position or a change to the queue
+;; leaves the page as it is.
 (def library-page
   "The page of the show under a key in a library, made again only when its
   feed, subscription or settings change, since sorting thousands of
-  episodes takes a while. With an order of the listener's own, any change
-  of the profile makes it again. The last four are kept, for going back
-  and forth between shows."
+  episodes takes a while. In the order of what the listener heard last, any
+  change of the profile makes it again. The last four are kept, for going
+  back and forth between shows."
   (memo/remember-recent 4
                         (fn [lib k] (view->page (library/show lib k view-opts)))
                         (fn [{:keys [profile] :as lib} k]
                           [(get-in lib [:feeds k])
                            (get-in profile [:settings k])
                            (get-in profile [:subscriptions k])
-                           (when (:order (profile/settings profile k)) profile)
+                           (when (= :recent (:order (profile/settings profile k))) profile)
                            k])))
 
 (defn requested?

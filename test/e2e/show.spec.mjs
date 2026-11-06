@@ -25,6 +25,32 @@ test('an episode shows its fullest notes, which a refresh finds unchanged', asyn
   expect(await feeds()).toEqual(before);
 });
 
+test("a show's settings order its episodes and hide the later ones", async ({ page }) => {
+  const main = page.getByRole('main');
+  const titles = main.getByRole('region', { name: 'Episodes' }).getByRole('heading', { level: 3 });
+  const [first, second, third] = episodes;
+
+  await page.goto(showPath);
+  await main.getByRole('button', { name: `Subscribe to ${showTitle}` }).click();
+  await expect(main.getByRole('button', { name: `Unsubscribe from ${showTitle}` })).toBeVisible();
+  await expect(titles).toHaveText([third.title, second.title, first.title]);
+  await expect(main.getByRole('switch', { name: 'Hide later episodes' })).toHaveCount(0);
+
+  await main.getByRole('button', { name: 'Settings for this show' }).click();
+  await main.getByRole('combobox', { name: 'Episodes' }).selectOption({ label: 'From the first episode' });
+  await expect(titles).toHaveText([first.title, second.title, third.title]);
+  await expect(main.getByRole('complementary')).toContainText('3 episodes');
+
+  await main.getByRole('switch', { name: 'Hide later episodes' }).check();
+  await expect(titles).toHaveText([first.title]);
+  await main.getByRole('button', { name: 'Show 2 later episodes' }).press('Enter');
+  await expect(titles).toHaveText([first.title, second.title, third.title]);
+  await expect(main.getByRole('link', { name: second.title })).toBeFocused();
+
+  await page.reload();
+  await expect(titles).toHaveText([first.title], { timeout: 10_000 });
+});
+
 test('unsubscribing keeps the page by the URL of its feed', async ({ page }) => {
   const main = page.getByRole('main');
   const subscribe = main.getByRole('button', { name: `Subscribe to ${showTitle}` });

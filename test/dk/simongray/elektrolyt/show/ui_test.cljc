@@ -186,6 +186,70 @@
     (is (= [true false false] (map #(boolean (seq (elements :article.show-episode.played %))) rows))
         "and has the played one in a lighter ink")))
 
+(deftest the-settings-of-a-show
+  (let [items    (vec (for [[g date] [["1" #inst "2026-01-01"] ["2" #inst "2026-01-02"]
+                                      ["3" #inst "2026-01-03"] ["4" #inst "2026-01-04"]]]
+                        {:rss/title       g
+                         :rss/guid        {:content g}
+                         :rss/pub-date    date
+                         :itunes/duration 1800}))
+        feed     {:rss/title "A Show" :rss/items items}
+        lib      (library/subscribe (library/make "test") url feed)
+        k        (first (keys (:feeds lib)))
+        on       (fn [lib more]
+                   (merge {:route   {:name :route/show :path-params {:guid k} :query-params {}}
+                           :library lib
+                           :open    {[:show-settings k] true}}
+                          more))
+        content  #(show/content % [:h1 "A Show"])
+        order    (fn [x]
+                   (some (fn [row] (when (= [:dt "Order"] (nth row 2 nil)) (spoken (nth row 3))))
+                         (elements :div (elements :aside.details x))))
+        titles   (fn [x] (map text-of (elements :h3 (elements :ol.episodes x))))
+        settings #(elements :div.setting (elements :section (elements :aside.details %)))
+        ordered  (library/update-profile lib profile/configure k {:order :oldest})
+        heard    (library/update-profile ordered profile/mark-all-played [[k "1"]])
+        hiding   (library/update-profile heard profile/configure k {:hide-later? true})]
+    (is (= ["4" "3" "2" "1"] (titles (content (on lib {})))) "an episodic show, newest first")
+    (is (nil? (order (content (on lib {})))) "with no order to speak of")
+    (is (= 1 (count (settings (content (on lib {}))))) "and a choice of its order alone")
+    (is (= ["1" "2" "3" "4"] (titles (content (on ordered {})))) "or from the first, as the listener chooses")
+    (is (= "Serial, 4 episodes, 2h" (order (content (on ordered {})))))
+    (is (= "Episode 2 of 4, 1h 30m left" (order (content (on heard {}))))
+        "which gives it a place")
+    (is (= 2 (count (settings (content (on ordered {}))))) "and the switch that hides the later episodes")
+    (is (empty? (elements :section (elements :aside.details (content (show-page {:feeds {url {:feed feed :whole? true}}})))))
+        "for a show in the library alone")
+    (let [x (content (on hiding {}))]
+      (is (= ["1" "2"] (titles x)) "whose list stops at the next episode")
+      (is (= "Show 2 later episodes" (some #(when (re-find #"later" (text-of %)) (text-of %)) (elements :button x))))
+      (is (empty? (filter #(re-find #"^3$" (text-of %)) (elements :h3 x))) "with the later titles out of the page"))
+    (is (= ["1" "2" "3" "4"] (titles (content (on hiding {:open {[:later k] true}}))))
+        "until the listener asks for them")
+    (is (= ["4" "3" "2" "1"]
+           (titles (content (on (library/update-profile hiding profile/configure k {:order nil}) {}))))
+        "and not in a show that they don't hear in order")))
+
+(deftest later-episodes-past-a-page
+  (let [items   (vec (for [i (range 1 46)]
+                       {:rss/title (str i) :rss/guid {:content (str i)} :itunes/episode i}))
+        lib     (library/subscribe (library/make "test") url
+                                   {:rss/title "A Serial" :itunes/type "serial" :rss/items items})
+        k       (first (keys (:feeds lib)))
+        state   {:route   {:name :route/show :path-params {:guid k} :query-params {}}
+                 :library (-> lib
+                              (library/update-profile profile/mark-all-played [[k "1"]])
+                              (library/update-profile profile/configure k {:hide-later? true}))}
+        content #(show/content % [:h1 "A Serial"])
+        titles  #(map text-of (elements :h3 (elements :ol.episodes (content %))))
+        button  (some #(when (re-find #"later" (text-of %)) %) (elements :button (content state)))
+        clicked (reduce (fn [state [_ path v]] (assoc-in state path v))
+                        state
+                        (get-in button [1 :on :click]))]
+    (is (= ["1" "2"] (titles state)))
+    (is (= "Show 43 later episodes" (text-of button)))
+    (is (= 45 (count (titles clicked))) "which lists all of them, rather than a page")))
+
 (deftest how-often-a-show-publishes
   (let [day (* 24 3600 1000)]
     (is (= ["More than once a day" "About every day" "About every 3 days" "About every week"
@@ -210,7 +274,7 @@
                                               {:content "Marlow" :rel "Creator"}]
                                  :copyright  "Podcast Index LLC 2026"
                                  :funding    [{:url "https://paypal.me/podcastindex" :content "Value 4 Value"}]}
-                                nil)]
+                                "Serial, from the first episode")]
     (is (= ["Support" "Categories" "Language" "Latest episode" "Schedule" "Order"
             "Made in" "Location" "License" "Copyright"]
            (map first rows))

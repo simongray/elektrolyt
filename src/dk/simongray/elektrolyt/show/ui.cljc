@@ -8,6 +8,7 @@
             [dk.simongray.podcast.feed.spec :as spec]
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
+            [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.show :as show]
@@ -81,9 +82,9 @@
 ;; https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Infoboxes
 (defn details-rows
   "The rows of the Details of the show `page`, without its website and
-  feed, which the line under its title links to, with the `order` of a
-  serial, if any."
-  [{:keys [funding categories language latest serial? locations license copyright]
+  feed, which the line under its title links to, with the `order` that it's
+  heard in, if any."
+  [{:keys [funding categories language latest locations license copyright]
     :as   page}
    order]
   (let [names (distinct (map last categories))]
@@ -93,7 +94,7 @@
       ["Language" [(some-> language text/language-name)]]
       ["Latest episode" [(some-> latest time-ui/date)]]
       ["Schedule" [(schedule-text page)]]
-      ["Order" [(or order (when serial? "Serial, from the first episode"))]]]
+      ["Order" [order]]]
      (details/location-rows locations)
      [["License" [(details/license license)]]
       ["Copyright" [copyright]]])))
@@ -119,9 +120,9 @@
   (if (pos? unknown) (list "At least " length) length))
 
 (defn place-facts
-  "The place `p` of the listener in a serial show in words, some of which
-  can be nil: Serial · 19 episodes · 14h 45m until they begin, Season 2 ·
-  Episode 2 of 3 · 1h left with the episode linked to `href`, its page, and
+  "The place `p` of the listener in a show heard in order, in words, some of
+  which can be nil: Serial · 19 episodes · 14h 45m until they begin, Season 2
+  · Episode 2 of 3 · 1h left with the episode linked to `href`, its page, and
   19 episodes · All heard at the end. A show of one season doesn't name it."
   [{:keys [total left unknown started? seasons] :as p} href]
   (cond
@@ -156,15 +157,52 @@
 ;; The place links to the next episode, which the list from the first can
 ;; have far down
 (defn order
-  "The listener's place in the serial show in `state` for the Order row of
-  its Details, its facts between middle dots and its episode linked to its
-  page, or nil."
-  [state]
-  (when-let [p (show/serial-place (:library state) (source state))]
-    (let [{:keys [key url]} (source state)
-          next-row          (some-> (:next p) show/episode-row)
-          href              (episode-href (or key (guid state)) next-row (when-not key url))]
-      (interpose facts-ui/separator (remove nil? (place-facts p href))))))
+  "The Order row of the Details of the show `page` in `state`, or nil. It's
+  the listener's place if they hear it in order, with its episode linked to
+  its page, or else that it's a serial while its whole feed is on its way."
+  [state {:keys [serial?]}]
+  (let [{:keys [key url whole?] :as src} (source state)]
+    (if-let [p (show/place (:library state) src)]
+      (let [href (episode-href (or key (guid state)) (show/next-row p) (when-not key url))]
+        (interpose facts-ui/separator (remove nil? (place-facts p href))))
+      (when (and serial? (not whole?))
+        "Serial, from the first episode"))))
+
+;; Apple and Pocket Casts keep a show's order with the show
+;; https://support.apple.com/guide/podcasts/choose-podcast-and-episode-settings-pod48cadb787/mac
+;; https://support.pocketcasts.com/knowledge-base/episode-sorting/
+(defn settings-section
+  "The folded settings of the show in `state`, when it's in the library,
+  since the library keeps settings for its own shows alone, or nil."
+  [{lib :library :as state}]
+  (let [{:keys [key] :as src} (source state)]
+    (when key
+      (controls/folded
+       state
+       {:id "show-settings" :heading "Settings for this show" :place [:show-settings key]}
+       #(let [in-order? (some? (show/heard-in-order lib src))]
+          (list
+           (settings-ui/choice "show-order" "Episodes" show/order-choices
+                               (if in-order? :from-first :newest)
+                               [:show/order key [:event/target-keyword]])
+           (when in-order?
+             (settings-ui/action-switch "hide-later" "Hide later episodes"
+                                        (str "The list stops at your next episode, so that later "
+                                             "titles don't give the story away.")
+                                        (show/hide-later? lib key)
+                                        [:show/hide-later key [:event/target-checked]]))))))))
+
+;; The later titles stay out of the page rather than being blurred or
+;; covered, so that a screen reader or a browser's translation doesn't give
+;; them away either
+(defn listed-to
+  "How many of the `rows` of the show in `state` its list goes up to, while
+  the listener keeps those after their next episode out of it, or nil."
+  [{lib :library :as state} rows]
+  (let [{:keys [key] :as src} (source state)]
+    (when (and (show/hide-later? lib key) (not (controls/open? state [:later key])))
+      (when-let [{next-guid :guid} (show/next-row (show/place lib src))]
+        (some-> (first (keep-indexed #(when (= next-guid (:guid %2)) %1) rows)) inc)))))
 
 (defn episode-row
   "The episode `row` in the list of episodes in `state`: its artwork, or
@@ -236,12 +274,21 @@
 ;; once it has done its part, so the focus moves on to the first episode
 ;; that the last page listed. New episodes that a fetch finds while the
 ;; list shows go in at once (show/refetched).
-;;
+(defn more-button
+  "A button labelled `label` that lists more episodes by the `actions`, and
+  gives the focus to the one after the first `n`."
+  [n actions label]
+  [:button {:type         "button"
+            :data-refocus (str "ol.episodes > li:nth-child(" (inc n) ") :is(h3 a, h3[tabindex])")
+            :on           {:click actions}}
+   label])
+
 ;; A show in the library is there whole, so a load of its feed from before
 ;; the subscription, e.g. a prefetch, doesn't apply to it.
 (defn episodes
   "The episodes of the show `page` in `state`, a page at a time, with the
-  status of the load and a button for more."
+  status of the load, a button for more, and one for the later episodes
+  while the listener keeps those out of the list."
   [state {rows :episodes n :episode-count :keys [language] :as page}]
   (let [g                               (guid state)
         {:keys [key url error] :as src} (source state)
@@ -250,7 +297,9 @@
         status                          (show/status state g)
         shown                           (get-in state [:episodes-shown g] show/page-size)
         lang                            (text/lang language)
-        entry-of                        #(player/entry (:library state) [feed-id (:guid %)])]
+        entry-of                        #(player/entry (:library state) [feed-id (:guid %)])
+        listed-to                       (listed-to state rows)
+        total                           (or listed-to n)]
     [:section {:aria-labelledby "episodes"}
      [:h2#episodes {:tabindex -1} "Episodes"]
      (if (= :failed status)
@@ -260,14 +309,18 @@
        skeleton-rows)
      (when (seq rows)
        [:ol.episodes {:role "list"}
-        (for [[i row] (map-indexed vector (take shown rows))]
+        (for [[i row] (map-indexed vector (take (min shown total) rows))]
           [:li {:replicant/key (or (:guid row) i)}
            (episode-row state (episode-href (or key g) row url) (assoc row :entry (entry-of row)) lang page)])])
-     (when (< shown n)
-       [:button {:type         "button"
-                 :data-refocus (str "ol.episodes > li:nth-child(" (inc shown) ") :is(h3 a, h3[tabindex])")
-                 :on           {:click [[:show/more g n]]}}
-        "Show more episodes"])]))
+     (cond
+       (< shown total)
+       (more-button shown [[:show/more g total]] "Show more episodes")
+
+       (and listed-to (< listed-to n))
+       (more-button listed-to
+                    [[:store/assoc-in [:open [:later key]] true]
+                     [:store/assoc-in [:episodes-shown g] n]]
+                    (str "Show " (text/counted (- n listed-to) "later episode"))))]))
 
 (def looking-up
   "The status line of a show or an episode page during a lookup in the
@@ -391,7 +444,7 @@
               :loading    (list (loading/status "Loading the show…") skeleton-rows)
               :failed     (failure state 0 (:error (source state)) "main h1")
               not-found))
-      (let [aside (details/aside (details-rows page (order state)) (:people page))
+      (let [aside (details/aside (details-rows page (order state page)) (:people page) (settings-section state))
             src   (source state)]
         (list
          (details/article

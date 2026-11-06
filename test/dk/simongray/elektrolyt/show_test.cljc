@@ -73,10 +73,47 @@
                                        profile/prefer {:continuous? true})
         k      (key (first (library/subscriptions lib)))
         source {:key k :url url :feed serial :whole? true}
-        place  #(show/serial-place (library/update-profile lib profile/mark-played [k %]) source)]
+        place  #(show/place (library/update-profile lib profile/mark-played [k %]) source)]
     (doseq [[title next-title] {"A1" "A2" "B1" "B2"}]
       (is (= next-title (get-in (place title) [:next :rss/title])))
       (is (= [[:play [k next-title]]] (:effects (library/step lib [:ended [k title]])))))))
+
+(deftest continuous-play-and-the-place-agree-in-the-listeners-order
+  (let [item     (fn [title date]
+                   {:rss/title title :rss/guid {:content title} :rss/pub-date date :itunes/duration 600})
+        items    [(item "One" #inst "2026-01-01") (item "Two" #inst "2026-01-02") (item "Three" #inst "2026-01-03")]
+        episodic (assoc (feed "A Show") :rss/items items)
+        serial   (assoc episodic :itunes/type "serial")
+        on       (fn [feed order]
+                   (let [lib (library/subscribe (library/make "test") url feed)
+                         k   (key (first (library/subscriptions lib)))]
+                     [(cond-> (library/update-profile lib profile/prefer {:continuous? true})
+                        order (library/update-profile profile/configure k {:order order}))
+                      k]))
+        checked  (fn [feed order]
+                   (let [[lib k] (on feed order)
+                         source  {:key k :url url :feed feed :whole? true}
+                         heard   (library/update-profile lib profile/mark-played [k "One"])]
+                     {:place (get-in (show/place heard source) [:next :rss/title])
+                      :plays (:effects (library/step lib [:ended [k "One"]]))
+                      :k     k}))]
+    (let [{:keys [place plays k]} (checked episodic :oldest)]
+      (is (= "Two" place) "an episodic show that the listener hears from the first")
+      (is (= [[:play [k "Two"]]] plays)))
+    (let [{:keys [place plays k]} (checked serial :newest)]
+      (is (nil? place) "and no place in a serial that they hear newest first")
+      (is (= [[:play [k "Three"]]] plays) "where the newest plays next"))
+    (let [{:keys [place plays k]} (checked serial nil)]
+      (is (= "Two" place) "a serial by what its feed says")
+      (is (= [[:play [k "Two"]]] plays)))))
+
+(deftest the-order-that-a-listener-chooses
+  (let [episodic (feed "A Show")
+        serial   (assoc episodic :itunes/type "serial")]
+    (is (nil? (show/order-for serial :from-first)) "a serial keeps its own order from the first")
+    (is (= :newest (show/order-for serial :newest)))
+    (is (= :oldest (show/order-for episodic :from-first)))
+    (is (nil? (show/order-for episodic :newest)) "and an episodic show newest first")))
 
 (deftest the-episodes-earlier-in-a-serial
   (let [items   (vec (for [t ["One" "Two" "Three"]]
@@ -268,7 +305,11 @@
         "or order")
     (is (not (identical? (show/library-page ordered k)
                          (show/library-page (library/update-profile ordered profile/progress [k "Two"] 5 600) k)))
-        "which reads the whole profile")))
+        "which reads the whole profile")
+    (let [oldest (library/update-profile played profile/configure k {:order :oldest})]
+      (is (identical? (show/library-page oldest k)
+                      (show/library-page (library/update-profile oldest profile/progress [k "Two"] 5 600) k))
+          "unlike any other order"))))
 
 (deftest a-subscription-whose-feed-never-came
   (let [lib (library/update-profile (library/make "test") profile/subscribe "dead" {:url url :title "Dead"})]
