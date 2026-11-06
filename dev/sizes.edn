@@ -1,7 +1,8 @@
 ;; Each module of the release build at most, in bytes before and after gzip:
 ;; the sizes of 2026-10-26 plus 5%, after the worker's namespaces left out
-;; the page's. Raise a budget only for a dependency that's added on
-;; purpose, with (sizes/budgets (sizes/report!)).
-{:main   {:js 746083 :gzip 199369}
+;; the page's, and main's of 2026-11-06 plus 5%, after the show's settings
+;; and the shared rows. Raise a budget only for a dependency or a round of
+;; features that's added on purpose, with (sizes/budgets (sizes/report!)).
+{:main   {:js 794834 :gzip 211002}
  :shared {:js 1314462 :gzip 358102}
  :worker {:js 116338 :gzip 39767}}
