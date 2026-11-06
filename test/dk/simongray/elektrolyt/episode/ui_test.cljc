@@ -138,11 +138,14 @@
     (is (= (controls/single-click [[:played/mark-up-to (:id page) earlier]])
            (get-in (second (buttons serial nil)) [1 :on :click])))
     (is (= ["Mark unplayed"] (texts serial {:played? true})) "but not once it's played")
-    (let [undoing (assoc serial :played-undo {:episode (:id page) :label "Undo marking 2 episodes played" :ids earlier}
+    (let [undoing (assoc serial :played-undo {:episode (:id page) :label "marking 2 episodes played" :ids earlier}
                          :library {:profile (profile/mark-all-played (:profile (library/make "test")) earlier
                                                                      #inst "2026-11-06T12:00:00Z")})]
       (is (= ["Mark played" "Undo marking 2 episodes played"] (texts undoing nil))
-          "whose undo takes its place, since those are played by then"))))
+          "whose undo takes its place, since those are played by then")
+      (is (= [[:span.visually-hidden " marking 2 episodes played"]]
+             (elements :span.visually-hidden (second (buttons undoing nil))))
+          "which shows as Undo alone"))))
 
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]
