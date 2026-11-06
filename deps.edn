@@ -13,7 +13,7 @@
  ;; https://github.com/cjohansen/replicant/pull/83
  :deps  {dk.simongray/podcast-clj {:mvn/version "0.5.2"}
          dk.simongray/play-nice   {:mvn/version "0.7.0"}
-         dk.simongray/colour-coded {:mvn/version "0.1.0"}
+         dk.simongray/colour-coded {:mvn/version "0.2.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
                                    :git/sha "ec3cdd264a6660926cf11bc55c25cac7008b8fd1"}
          no.cjohansen/nexus       {:mvn/version "2026.08.1"}
