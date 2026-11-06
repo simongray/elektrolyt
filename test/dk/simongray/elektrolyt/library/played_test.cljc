@@ -74,7 +74,7 @@
     (is (= [(id 4)] (in-queue marked)) "which leave the queue")
     (is (not (profile.queue/in-inbox? (profile-of marked) (id 2))) "and the inbox")
     (is (= "Marked 3 episodes played" (:announcement marked)))
-    (is (= "Undo marking 3 episodes played" (:label (played/offered marked (id 3)))))
+    (is (= "marking 3 episodes played" (:label (played/offered marked (id 3)))))
     (is (nil? (played/offered marked (id 2))) "offered on the page of the episode alone")
     (let [undone (changed marked (played/undone marked))]
       (is (not-any? #(played? undone %) [1 2 3]) "whose undo takes the marks off")

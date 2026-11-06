@@ -168,7 +168,8 @@
                  :id            undo-id
                  :data-refocus  (str "#" mark-id)
                  :on            {:click [[:played/undo]]}}
-        label]))))
+        "Undo"
+        [:span.visually-hidden (str " " label)]]))))
 
 (defn number-text
   "The number `n` of a season or an episode as text, e.g. 3 for 3.0."

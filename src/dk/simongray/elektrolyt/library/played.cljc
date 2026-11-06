@@ -7,7 +7,7 @@
   here. The state keeps the undo as :played-undo, a map of:
 
   - :episode, the episode whose page offers it
-  - :label, the text of its button
+  - :label, what its button undoes, for a screen reader
   - :ids, the episodes marked
   - :queue, the undo of taking them out of the queue, as library.queue has it
   - :inbox, those that were in the inbox
@@ -70,7 +70,7 @@
     (changes/announced :played-undo
                        (str "Marked " counted " played")
                        {:episode id
-                        :label   (str "Undo marking " counted " played")
+                        :label   (str "marking " counted " played")
                         :ids     ids
                         :queue   (queue/undo state leaving nil nil)
                         :inbox   (filterv #(profile.queue/in-inbox? (:profile library) %) ids)}
