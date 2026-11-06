@@ -51,6 +51,24 @@ test('Play next and Play last turn into Unqueue, which keeps the focus', async (
   }
 });
 
+test('Mark played takes an episode out of the queue, and keeps the focus', async ({ page }) => {
+  const main = page.getByRole('main');
+  const mark = main.getByRole('button', { name: 'Mark played', exact: true });
+  const unmark = main.getByRole('button', { name: 'Mark unplayed' });
+  await page.goto(episodePath(first));
+  await main.getByRole('button', { name: 'Play last' }).press('Enter');
+  await expect(announcement(page)).toHaveText(`Added ${first.title} to the queue`);
+
+  await mark.press('Enter');
+  await expect(announcement(page)).toHaveText(`Marked ${first.title} played`);
+  await expect(unmark).toBeFocused();
+  await expect(main.getByRole('button', { name: 'Unqueue' })).toHaveCount(0);
+
+  await unmark.press('Enter');
+  await expect(announcement(page)).toHaveText(`Marked ${first.title} unplayed`);
+  await expect(mark).toBeFocused();
+});
+
 test('moving and removing an episode keep the focus in Up next', async ({ page }) => {
   await queueTwo(page);
   await expect(titles(page)).toHaveText([first.title, second.title]);

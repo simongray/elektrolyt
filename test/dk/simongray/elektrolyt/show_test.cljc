@@ -78,6 +78,21 @@
       (is (= next-title (get-in (place title) [:next :rss/title])))
       (is (= [[:play [k next-title]]] (:effects (library/step lib [:ended [k title]])))))))
 
+(deftest the-episodes-earlier-in-a-serial
+  (let [items   (vec (for [t ["One" "Two" "Three"]]
+                       {:rss/title t :rss/guid {:content t}}))
+        serial  (assoc (feed "A Serial") :itunes/type "serial" :rss/items items)
+        source  {:url url :feed serial :whole? true}
+        k       (show/feed-id source)
+        lib     (library/make "test")
+        earlier (fn [lib source]
+                  (show/earlier-unplayed lib source "Three"))]
+    (is (= [[k "One"] [k "Two"]] (earlier lib source)))
+    (is (= [[k "Two"]] (earlier (library/update-profile lib profile/mark-played [k "One"]) source))
+        "without those already played")
+    (is (nil? (earlier lib (assoc source :whole? false))) "nor before the whole feed has arrived")
+    (is (nil? (earlier lib (assoc source :feed (dissoc serial :itunes/type)))) "nor in a show that isn't serial")))
+
 (deftest a-feed-that-arrives-in-stages
   (let [guid  "g"
         state (show/requested (on-page guid) [:whole url])

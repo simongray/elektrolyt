@@ -15,6 +15,7 @@
             [dk.simongray.podcast.profile.queue :as profile.queue]
             [dk.simongray.podcast.util.time :as time]
             [dk.simongray.elektrolyt.library.inbox :as inbox]
+            [dk.simongray.elektrolyt.library.played :as played]
             [dk.simongray.elektrolyt.library.queue :as queue]))
 
 (defn- profile-changed
@@ -58,6 +59,9 @@
          :inbox/dismiss-all   (changed profile.queue/dismiss-all)
          :inbox/enqueue-all   (changed profile.queue/enqueue-all)
          :inbox/restore       (changed inbox/restore)
+         :played/mark         (changed played/mark)
+         :played/unmark       (changed profile/mark-all-unplayed)
+         :played/restore      (changed played/restore)
          :settings/prefer     (changed profile/prefer)
          :opml/subscribe      (changed profile.opml/from-opml)
          :opml/mark-played    (let [[list] args]

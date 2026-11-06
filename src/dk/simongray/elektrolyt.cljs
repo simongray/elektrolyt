@@ -12,6 +12,7 @@
             [dk.simongray.elektrolyt.library.inbox :as inbox]
             [dk.simongray.elektrolyt.library.opml :as opml]
             [dk.simongray.elektrolyt.library.picks.finding :as picks-finding]
+            [dk.simongray.elektrolyt.library.played :as played]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.library.refresh :as refresh]
             [dk.simongray.elektrolyt.library.saves :as saves]
@@ -393,6 +394,22 @@
 (nxr/register-effect! :inbox/undo
   (fn [_ store]
     (changed! store (inbox/undone @store))))
+
+(nxr/register-effect! :played/mark
+  (fn [_ store id title]
+    (changed! store (played/marked @store id title))))
+
+(nxr/register-effect! :played/unmark
+  (fn [_ store id title]
+    (changed! store (played/unmarked id title))))
+
+(nxr/register-effect! :played/mark-up-to
+  (fn [_ store id earlier]
+    (changed! store (played/marked-up-to @store id earlier))))
+
+(nxr/register-effect! :played/undo
+  (fn [_ store]
+    (changed! store (played/undone @store))))
 
 ;; The settings
 

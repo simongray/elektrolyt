@@ -1,5 +1,7 @@
 (ns dk.simongray.elektrolyt.episode.ui-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.episode-test :as episode-test]
             [dk.simongray.elektrolyt.episode.ui :as episode-ui]
@@ -107,6 +109,40 @@
     (is (= (controls/single-click [[:queue/remove (:id page)]])
            (get-in (first (buttons :queued)) [1 :on :click]))
         "Unqueue once for a double click on Play next, which turns into it")))
+
+(deftest the-buttons-that-mark-it
+  (let [state   (episode-page nil)
+        page    (episode-ui/route-page state)
+        buttons #(remove nil? (episode-ui/mark-buttons %1 page %2))
+        texts   #(map text-of (buttons %1 %2))
+        serial  (episode-page nil {:feeds {episode-test/url
+                                           {:feed   (-> episode-test/feed
+                                                        (assoc :itunes/type "serial")
+                                                        (update :rss/items (comp vec reverse)))
+                                            :whole? true}}})
+        earlier [[(first (:id page)) "https://example.org/?p=1"]]]
+    (is (= ["Mark played"] (texts state nil)))
+    (is (= ["Mark unplayed"] (texts state {:played? true})) "which turns into its opposite once it's played")
+    (is (= (controls/single-click [[:played/mark (:id page) (:title page)]])
+           (get-in (first (buttons state nil)) [1 :on :click]))
+        "once for a double click")
+    (is (= (controls/single-click [[:played/unmark (:id page) (:title page)]])
+           (get-in (first (buttons state {:played? true})) [1 :on :click])))
+    (is (= [icons/check icons/arrow-counter-clockwise]
+           (map (comp :icon second) (concat (buttons state nil) (buttons state {:played? true})))))
+    (is (= ["Mark played" "Mark so far as played"] (texts serial nil))
+        "and in a serial, a button for the episodes before it")
+    (is (= [[:span.visually-hidden " as played"]]
+           (elements :span.visually-hidden (second (buttons serial nil))))
+        "whose last words are for a screen reader")
+    (is (= (controls/single-click [[:played/mark-up-to (:id page) earlier]])
+           (get-in (second (buttons serial nil)) [1 :on :click])))
+    (is (= ["Mark unplayed"] (texts serial {:played? true})) "but not once it's played")
+    (let [undoing (assoc serial :played-undo {:episode (:id page) :label "Undo marking 2 episodes played" :ids earlier}
+                         :library {:profile (profile/mark-all-played (:profile (library/make "test")) earlier
+                                                                     #inst "2026-11-06T12:00:00Z")})]
+      (is (= ["Mark played" "Undo marking 2 episodes played"] (texts undoing nil))
+          "whose undo takes its place, since those are played by then"))))
 
 (deftest the-page-of-an-episode
   (let [x (ui/page (episode-page nil))]
