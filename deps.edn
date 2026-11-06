@@ -11,7 +11,7 @@
  ;; arrive in stages do. Switch back to the release on Clojars once #83 is
  ;; merged and released.
  ;; https://github.com/cjohansen/replicant/pull/83
- :deps  {dk.simongray/podcast-clj {:mvn/version "0.5.2"}
+ :deps  {dk.simongray/podcast-clj {:mvn/version "0.5.3"}
          dk.simongray/play-nice   {:mvn/version "0.7.0"}
          dk.simongray/colour-coded {:mvn/version "0.2.0"}
          no.cjohansen/replicant   {:git/url "https://github.com/pyze/replicant.git"
@@ -30,7 +30,7 @@
  {;; clojure -M:cljs:local watch app portfolio  (see shadow-cljs.edn)
   :cljs  {:extra-paths ["dev" "test"]
           :extra-deps  {org.clojure/clojure    {:mvn/version "1.12.6"}
-                        thheller/shadow-cljs   {:mvn/version "3.5.7"}
+                        thheller/shadow-cljs   {:mvn/version "3.5.11"}
                         no.cjohansen/portfolio {:mvn/version "2026.03.1"}}
           :main-opts   ["-m" "shadow.cljs.devtools.cli"]}
 
@@ -43,7 +43,7 @@
                         io.pedestal/pedestal.service {:mvn/version "0.8.2"}
                         io.pedestal/pedestal.jetty   {:mvn/version "0.8.2"}
                         com.taoensso/telemere-slf4j  {:mvn/version "1.4.0"}
-                        com.cognitect/transit-clj    {:mvn/version "1.1.363"}}}
+                        com.cognitect/transit-clj    {:mvn/version "1.1.367"}}}
 
   ;; the server and the watch in one JVM, with an nREPL server (see
   ;; dev/user.clj): clojure -M:cljs:server:local:serve

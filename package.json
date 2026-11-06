@@ -8,7 +8,7 @@
   "devDependencies": {
     "@phosphor-icons/core": "2.1.1",
     "@playwright/test": "^1.64.0",
-    "shadow-cljs": "3.5.7",
+    "shadow-cljs": "3.5.11",
     "snabbdom": "^3.6.4"
   },
   "dependencies": {
