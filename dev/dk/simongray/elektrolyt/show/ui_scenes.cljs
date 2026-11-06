@@ -2,6 +2,7 @@
   "Scenes of the Show page, as its feed arrives in stages, and in the ways
   it can fail."
   (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.scenes :refer [artwork lib url]]
             [dk.simongray.elektrolyt.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
@@ -185,6 +186,67 @@
   (let [k (first (keys (:feeds lib)))]
     (ui/page {:route   {:name :route/show :path-params {:guid k} :query-params {}}
               :library lib})))
+
+(def serial
+  "A feed of a serial with a trailer and three seasons of three episodes
+  each, of 40 minutes."
+  (assoc pc20
+         :itunes/type "serial"
+         :rss/items (into [{:rss/guid            {:content "trailer"}
+                            :rss/title           "Trailer: A Serial in Three Seasons"
+                            :itunes/episode-type "trailer"
+                            :itunes/season       1
+                            :itunes/duration     120}]
+                          (for [season [1 2 3]
+                                episode [1 2 3]]
+                            {:rss/guid        {:content (str "s" season "e" episode)}
+                             :rss/title       (str "Season " season ", Episode " episode ": A Title")
+                             :itunes/season   season
+                             :itunes/episode  episode
+                             :itunes/duration 2400}))))
+
+(defn heard
+  "The state of the Show page of `feed` in the library, whose listener played
+  the episodes with the guids `played`, and is 20 minutes into the one with
+  the guid `started`, if any."
+  ([feed played]
+   (heard feed played nil))
+  ([feed played started]
+   (let [subscribed (library/subscribe (library/make "scenes") url feed)
+         k          (first (keys (:feeds subscribed)))]
+     {:route   {:name :route/show :path-params {:guid k} :query-params {}}
+      :library (cond-> (library/update-profile subscribed profile/mark-all-played
+                                               (mapv #(vector k %) played))
+                 started (library/update-profile profile/progress [k started] 1200 2400))})))
+
+(defscene a-serial-on-its-way
+  "A serial before its whole feed has arrived: its Details say that it's
+  serial, with no place in it yet."
+  (ui/page (show-page {:requests {[:whole url] {}}
+                       :feeds    {url {:feed serial :whole? false}}})))
+
+(defscene a-serial-not-begun
+  "A serial that the listener hasn't begun: its Details say how long it is."
+  (ui/page (heard serial [])))
+
+(defscene a-serial-under-way
+  "A serial that the listener is in the second season of: its Details give
+  the place and the time left in that season, with a link to the next
+  episode. The episodes heard are in a lighter ink and say Played."
+  (ui/page (heard serial ["s1e1" "s2e1"])))
+
+(defscene a-serial-of-one-season
+  "A serial without seasons: its Details name none."
+  (ui/page (heard (update serial :rss/items (partial mapv #(dissoc % :itunes/season))) ["s1e1"])))
+
+(defscene a-serial-all-heard
+  "A serial that the listener has heard to the end."
+  (ui/page (heard serial (for [season [1 2 3] episode [1 2 3]] (str "s" season "e" episode)))))
+
+(defscene a-show-partly-heard
+  "A show that isn't serial, whose first episode is played and whose second
+  is started: that row says what's left of it."
+  (ui/page (heard pc20 ["ep20"] "ep19")))
 
 (defscene a-show-from-a-link-on-its-way
   "A link to a show outside the library that names its feed, which is on

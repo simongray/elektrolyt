@@ -587,7 +587,7 @@ input[role="switch"]:checked {
   text-decoration: none;
 }
 
-/* the episodes of a serial already heard, in a lighter ink */
+/* the episodes already heard, in a lighter ink */
 .show-episode.played h3 a {
   color: var(--ink-2);
 }

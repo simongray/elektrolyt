@@ -90,13 +90,6 @@
       (is (= "Play" (text-of (button (assoc-in there [:elsewhere :paused] true) nil nil)))
           "but not once that tab paused it"))))
 
-(deftest the-time-it-has-left
-  (is (= "1h" (text-of (episode-ui/time-left 3600 nil))) "its length at first")
-  (is (= "50m left" (text-of (episode-ui/time-left 3600 {:position 600})))
-      "and what's left of it once it's started, as a fact rather than in Resume")
-  (is (= "1h" (text-of (episode-ui/time-left 3600 {:position 600 :played? true}))) "but not once it's played")
-  (is (nil? (episode-ui/time-left nil {:position 600})) "and nothing without a length"))
-
 (deftest the-buttons-that-queue-it
   (let [page    (episode-ui/route-page (episode-page nil))
         buttons #(episode-ui/queue-buttons page %)

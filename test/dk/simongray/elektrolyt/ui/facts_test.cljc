@@ -12,6 +12,13 @@
         "with a dot between them, which a screen reader reads as a comma"))
   (is (nil? (facts-ui/line [nil nil]))))
 
+(deftest the-time-it-has-left
+  (is (= "1h" (text-of (facts-ui/time-left 3600 nil))) "its length at first")
+  (is (= "50m left" (text-of (facts-ui/time-left 3600 {:position 600})))
+      "and what's left of it once it's started, as a fact rather than in Resume")
+  (is (= "1h" (text-of (facts-ui/time-left 3600 {:position 600 :played? true}))) "but not once it's played")
+  (is (nil? (facts-ui/time-left nil {:position 600})) "and nothing without a length"))
+
 (deftest where-an-episode-came-from
   (is (= "From drpodcast.nu" (facts-ui/source-text "https://drpodcast.nu/genstart/feed.xml")))
   (is (= "From example.org" (facts-ui/source-text "https://www.example.org/feed.xml")) "without www.")

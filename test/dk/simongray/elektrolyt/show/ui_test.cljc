@@ -123,16 +123,39 @@
   (let [items   (vec (for [[g t] [["1" "One"] ["2" "Two"] ["3" "Three"]]]
                        {:rss/title t :rss/guid {:content g} :itunes/duration 1800}))
         feed    {:rss/title "A Serial" :itunes/type "serial" :rss/items items}
-        id      #(show-model/episode-id {:feed feed :url url} {:guid %})
+        id      #(vector (show-model/feed-id {:feed feed :url url}) %)
         lib     (library/update-profile (library/make "test") profile/mark-all-played [(id "1")])
         state   (show-page {:library lib :feeds {url {:feed feed :whole? true}}})
         x       (show/content state [:h1 "A Serial"])
         order   (fn [x]
                   (some #(when (= [:dt "Order"] (nth % 2 nil)) (nth % 3))
                         (elements :div (elements :aside.details x))))
+        words   (fn [lib feed]
+                  (spoken (order (show/content (show-page {:library lib :feeds {url {:feed feed :whole? true}}})
+                                               [:h1 "A Serial"]))))
+        fresh   (library/make "test")
         [one]   (elements :li (elements :ol.episodes x))]
     (is (= "Episode 2 of 3, 1h left" (spoken (order x)))
         "in the Details, the first full episode not yet heard and the time left")
+    (is (= "Serial, 3 episodes, 1h 30m" (words fresh feed))
+        "before any is heard, how long the show is, with no place in it yet")
+    (is (= "Serial, 3 episodes, At least 1h" (words fresh (update-in feed [:rss/items 0] dissoc :itunes/duration)))
+        "at least, when a length is missing")
+    (is (= "Serial, 3 episodes" (words fresh (update feed :rss/items (partial mapv #(dissoc % :itunes/duration)))))
+        "and no length when all are")
+    (is (= "3 episodes, All heard"
+           (words (library/update-profile lib profile/mark-all-played [(id "2") (id "3")]) feed))
+        "once all are heard")
+    (is (= "Season 2, Episode 2 of 2, 30m left"
+           (let [seasons (update feed :rss/items
+                                 (partial mapv #(assoc %2 :itunes/season %1) [1 2 2]))]
+             (words (library/update-profile fresh profile/mark-all-played [(id "2")]) seasons)))
+        "and within its season, when it has several")
+    (is (= "The Sequel, Episode 2 of 2, 30m left"
+           (let [seasons (update feed :rss/items
+                                 (partial mapv #(assoc %2 :podcast/season {:content %1 :name "The Sequel"}) [1 2 2]))]
+             (words (library/update-profile fresh profile/mark-all-played [(id "2")]) seasons)))
+        "by the name that the feed gives it")
     (is (= " · " (text-of (elements :span.separator (order x)))) "between middle dots")
     (is (= [[:a {:href (show/episode-href "g" {:guid "2" :title "Two"} url)} "Episode 2 of 3"]]
            (elements :a (order x)))
@@ -146,6 +169,22 @@
            (text-of (order (show/content (show-page {:library lib :feeds {url {:feed feed :whole? false}}})
                                          [:h1 "A Serial"]))))
         "nor a place before its whole feed has arrived")))
+
+(deftest the-episodes-heard-of-any-show
+  (let [items (vec (for [g ["1" "2" "3"]]
+                     {:rss/title g :rss/guid {:content g} :itunes/duration 1800}))
+        feed  {:rss/title "A Show" :rss/items items}
+        id    #(vector (show-model/feed-id {:feed feed :url url}) %)
+        lib   (-> (library/make "test")
+                  (library/update-profile profile/mark-all-played [(id "1")])
+                  (library/update-profile profile/progress (id "2") 600 1800))
+        x     (show/content (show-page {:library lib :feeds {url {:feed feed :whole? false}}}) [:h1 "A Show"])
+        rows  (elements :li (elements :ol.episodes x))]
+    (is (= ["30m, Played" "20m left" "30m"]
+           (map #(spoken (elements :p %)) rows))
+        "says which are played and what's left of a started one, as it arrives")
+    (is (= [true false false] (map #(boolean (seq (elements :article.show-episode.played %))) rows))
+        "and has the played one in a lighter ink")))
 
 (deftest how-often-a-show-publishes
   (let [day (* 24 3600 1000)]
