@@ -6,8 +6,10 @@
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
+            [dk.simongray.elektrolyt.library.played :as played]
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.player :as player]
+            [dk.simongray.elektrolyt.show :as show]
             [dk.simongray.elektrolyt.show.ui :as show-ui]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.colors :as colors]
@@ -103,7 +105,7 @@
   in the queue, `queued`: nil, :queued, or :current, which needs none."
   [{:keys [id title] :as page} queued]
   (let [playable (episode/playable page)
-        unqueue  "main .episode-actions > :last-child"]
+        unqueue  "main .episode-actions > :nth-child(2)"]
     (case queued
       :current nil
       :queued  (list
@@ -121,6 +123,52 @@
                             :on           {:click (controls-ui/single-click [[:queue/add playable title false]
                                                                              queued-flight])}}
         "Play last"]))))
+
+(def mark-id
+  "The id of the button that marks an episode played or unplayed."
+  "played-mark")
+
+(def undo-id
+  "The id of the button that undoes marking several episodes played."
+  "played-undo")
+
+;; The buttons are here rather than in the list of episodes, whose rows have
+;; none. Their keys keep them from turning into the buttons that queue the
+;; episode, which come and go before them, with the focus on them. A
+;; button's hidden words follow its visible ones, so that speech control
+;; finds them at the start of its name.
+;; https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html
+(defn mark-buttons
+  "The buttons that mark the episode `page` in `state` played or unplayed by
+  its `entry` in the profile. In a serial, one marks those before it in its
+  season too, which another undoes."
+  [state {:keys [id guid item-guid title] :as page} entry]
+  (let [played?             (:played? entry)
+        [icon action words] (if played?
+                              [icons/arrow-counter-clockwise :played/unmark "Mark unplayed"]
+                              [icons/check :played/mark "Mark played"])
+        earlier             (when-not played?
+                              (show/earlier-unplayed (:library state) (show/source state guid) item-guid))]
+    (list
+     [controls-ui/button {:replicant/key mark-id
+                          :id            mark-id
+                          :icon          icon
+                          :on            {:click (controls-ui/single-click [[action id title]])}}
+      words]
+     (when (seq earlier)
+       [controls-ui/button {:replicant/key "played-up-to"
+                            :icon          icons/checks
+                            :data-refocus  (str "#" undo-id)
+                            :on            {:click (controls-ui/single-click [[:played/mark-up-to id earlier]])}}
+        "Mark so far"
+        [:span.visually-hidden " as played"]])
+     (when-let [{:keys [label]} (played/offered state id)]
+       [:button {:replicant/key undo-id
+                 :type          "button"
+                 :id            undo-id
+                 :data-refocus  (str "#" mark-id)
+                 :on            {:click [[:played/undo]]}}
+        label]))))
 
 (defn number-text
   "The number `n` of a season or an episode as text, e.g. 3 for 3.0."
@@ -149,7 +197,7 @@
 (defn intro
   "The header of the article of the episode `page` in `state`: the
   `heading` with its show, the artwork, the facts, and the buttons that
-  play and queue it."
+  play, queue and mark it."
   [state heading {:keys [id show language numbering published explicit? ai-content? supplement]
                   :as   page}]
   (let [entry    (player/entry (:library state) id)
@@ -170,7 +218,8 @@
                 (when (:played? entry) "Played")]))
       [:div.episode-actions
        (play-button page (:player state) entry (player/start-time duration (link-time state)))
-       (queue-buttons page (queue/place state id))]]]))
+       (queue-buttons page (queue/place state id))
+       (mark-buttons state page entry)]]]))
 
 (defn source
   "The site of the feed `supplement` that an episode came from, as a link

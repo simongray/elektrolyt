@@ -1,9 +1,13 @@
 (ns dk.simongray.elektrolyt.episode.ui-scenes
   "Scenes of the Episode page, from the start of its show's feed to the
   ways the episode can be missing."
-  (:require [dk.simongray.podcast.feed.guid :as guid]
+  (:require [dk.simongray.podcast.app.library :as library]
+            [dk.simongray.podcast.feed.guid :as guid]
+            [dk.simongray.podcast.profile :as profile]
             [dk.simongray.elektrolyt.episode :as episode]
             [dk.simongray.elektrolyt.episode.ui :as episode-ui]
+            [dk.simongray.elektrolyt.library.operations :as operations]
+            [dk.simongray.elektrolyt.library.played :as played]
             [dk.simongray.elektrolyt.scenes :refer [artwork url]]
             [dk.simongray.elektrolyt.ui :as ui]
             [portfolio.replicant :refer [defscene]]))
@@ -90,6 +94,34 @@
   (let [page (episode-ui/route-page (episode-page from-the-start))]
     (ui/page (episode-page from-the-start
                            {:player (assoc (episode/playable page) :playing? true)}))))
+
+(defscene marked-played
+  "An episode that the listener heard or marked played: the button that
+  marks it unplayed takes the place of Mark played."
+  (ui/page (episode-page from-the-start
+                         {:library (library/update-profile (library/make "scenes") profile/mark-all-played [(id)])})))
+
+(def in-a-serial
+  "What :feeds keeps of a serial, whose first two episodes come before the
+  scenes' episode."
+  {:whole? true
+   :feed   {:rss/title   "Podcasting 2.0"
+            :itunes/type "serial"
+            :rss/items   [{:rss/title "Episode 273" :rss/guid {:content "273"} :itunes/episode 273}
+                          {:rss/title "Episode 274" :rss/guid {:content "274"} :itunes/episode 274}
+                          (assoc item :itunes/episode 275)]}})
+
+(defscene in-a-serial-not-yet-heard
+  "An episode of a serial with episodes before it in its season that aren't
+  played: a button marks them too, for a listener who heard them elsewhere."
+  (ui/page (episode-page in-a-serial {:library (library/make "scenes")})))
+
+(defscene after-mark-so-far
+  "The moment after Mark so far: its Undo takes its place, which stays until
+  the next change of the marks."
+  (let [state (episode-page in-a-serial {:library (library/make "scenes")})
+        k     (first (id))]
+    (ui/page (operations/changed state (played/marked-up-to state (id) [[k "273"] [k "274"]])))))
 
 (defscene while-it-waits-for-data
   "Pause once the episode has waited half a second for data, with a ring

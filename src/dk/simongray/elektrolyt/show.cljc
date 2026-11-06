@@ -135,6 +135,19 @@
                       (fn [lib {:keys [key url feed whole?]}]
                         [(:profile lib) key url feed whole?])))
 
+(defn earlier-unplayed
+  "The ids of the full episodes before the one with the guid `item-guid` in
+  its season that aren't played, in the serial show from `source`, with the
+  profile of the library `lib`, or nil for a show that isn't serial or whose
+  whole feed hasn't arrived."
+  [lib {:keys [feed whole?] :as source} item-guid]
+  (when (and whole? (resolve/serial? feed))
+    (let [profile (:profile lib)
+          k       (feed-id source)]
+      (->> (show/earlier-in-season (listening-order feed) item-guid)
+           (map #(vector k (guid/item-guid %)))
+           (remove #(profile/played? profile %))))))
+
 ;; A Show or Episode page looks its show up about twelve times a render,
 ;; and each lookup went over every subscription, while only a change of the
 ;; subscriptions changes the answer, not e.g. a report of the position
