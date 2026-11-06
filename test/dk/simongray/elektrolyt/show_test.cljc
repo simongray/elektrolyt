@@ -86,6 +86,21 @@
         "the lengths that are missing counted apart")
     (is (nil? (show/place [(first rows)] (constantly nil))) "and no place without full episodes")))
 
+(deftest continuous-play-goes-on-from-the-place
+  (let [item   (fn [title type]
+                 {:rss/title title :rss/guid {:content title} :itunes/episode-type type})
+        serial (assoc (feed "A Serial")
+                      :itunes/type "serial"
+                      :rss/items [(item "Trailer" "trailer") (item "One" "full")
+                                  (item "Bonus" "bonus") (item "Two" "full")])
+        lib    (library/update-profile (library/subscribe (library/make "test") url serial)
+                                       profile/prefer {:continuous? true})
+        k      (key (first (library/subscriptions lib)))
+        heard  (library/update-profile lib profile/mark-played [k "One"])
+        place  (show/serial-place heard {:key k :url url :whole? true} (show/library-page heard k))]
+    (is (= [[:play [k (:guid (:next place))]]]
+           (:effects (library/step lib [:ended [k "One"]]))))))
+
 (deftest a-feed-that-arrives-in-stages
   (let [guid  "g"
         state (show/requested (on-page guid) [:whole url])
