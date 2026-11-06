@@ -30,11 +30,11 @@
 
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
-    (is (= ["Appearance" "Playback" "Recommendations" "Search" "DR" "Subscriptions" "This browser"]
+    (is (= ["Appearance" "Playback" "Recommendations" "Search" "Special settings" "Subscriptions" "This browser"]
            (map text-of (elements :h2 (elements :legend x))))
         "each group a fieldset, its heading in its legend")
     (is (= [["appearance" -1] ["playback" -1] ["recommendations" -1] ["search" -1]
-            ["dr" -1] ["subscriptions" -1] ["this-browser" -1]]
+            ["special" -1] ["subscriptions" -1] ["this-browser" -1]]
            (map #((juxt :id :tabindex) (second %)) (elements :h2 x)))
         "which a link to the group names, and which takes the focus")
     (is (= "/settings#search" (settings-ui/group-href :search)))
@@ -66,7 +66,7 @@
       (is (= ["switch" true] ((juxt :role :checked) attrs)) "drpodcast.nu's episodes, on at first")
       (is (= [[:settings/prefer ::settings/alternative-feeds? [:event/target-checked]]] (get-in attrs [:on :change]))))
     (is (= 2 (count (filter #(= "status" (:role (second %))) (elements :p.settings-status x))))
-        "a status line beside the buttons of each group that has them")))
+        "a status line under the rows of each group that has buttons")))
 
 (deftest a-failure-on-settings
   (let [x (settings-ui/status {:settings-status {:group :subscriptions :error? true :text "No OPML."}}
@@ -88,10 +88,13 @@
     (is (re-find #"This server doesn't sign" (text-of (first rows)))
         "the Podcast Index says where the server can't search it")
     (testing "the rows that a search asks move, as those of the queue do"
-      (is (= "true" (:aria-disabled (second (by-id x :button "directory-podcastindex-up")))) "no way up from the top")
+      (is (= "true" (:aria-disabled (second (by-id x controls/icon-button "directory-podcastindex-up")))) "no way up from the top")
       (is (= [[:settings/move-source :apple 3] [:page/focus "directory-apple-down"]]
-             (get-in (by-id x :button "directory-apple-down") [1 :on :click])))
-      (is (empty? (elements :button (last rows))) "but not those that it leaves out"))
+             (get-in (by-id x controls/icon-button "directory-apple-down") [1 :on :click])))
+      (is (= "Move down Apple Podcasts" (text-of (by-id x controls/icon-button "directory-apple-down")))
+          "named by the row, though it shows an arrow alone")
+      (is (empty? (elements controls/icon-button (last rows))) "but not those that it leaves out"))
+    (is (= "switch" (:role (second (by-id x :input "directory-gpodder")))) "each with a switch")
     (is (= [[:settings/search-source :gpodder [:event/target-checked]] [:page/focus "directory-gpodder"]]
            (get-in (by-id x :input "directory-gpodder") [1 :on :change])))))
 
@@ -103,7 +106,15 @@
     (is (re-find #"keeps the library until you clear.*1\.2 MB"
                  (shown {:supported? true :persisted? true :usage 1234567})))
     (is (re-find #"doesn't say" (shown {:supported? false}))))
-  (let [button (->> (elements :button (settings-ui/this-browser {:storage nil}))
+  (let [button (->> (elements controls/button (settings-ui/this-browser {:storage nil}))
                     (some #(when (= [[:cache/clear]] (get-in % [1 :on :click])) %)))]
-    (is (= "Clear the searches and shows" (last button))
+    (is (= "Clear the searches and shows" (text-of button))
         "and a button that clears what the cache keeps")))
+
+(deftest the-columns-of-the-settings-page
+  (let [[_ left right] (settings-ui/content {:library inbox-test/lib})
+        headings       #(map text-of (elements :h2 %))]
+    (is (= ["Appearance" "Playback" "Recommendations"] (headings left))
+        "how the app looks and plays on the left")
+    (is (= ["Search" "Special settings" "Subscriptions" "This browser"] (headings right))
+        "and where shows come from and where they're kept on the right")))

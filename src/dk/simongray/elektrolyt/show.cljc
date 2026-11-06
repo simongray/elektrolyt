@@ -164,7 +164,7 @@
 
 (def order-choices
   "The orders that a listener can choose for a show, for a select."
-  [[:from-first "From the first episode"]
+  [[:from-first "Oldest first"]
    [:newest "Newest first"]])
 
 ;; A serial from the first keeps its own order, by its seasons and numbers

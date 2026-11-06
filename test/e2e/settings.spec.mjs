@@ -32,6 +32,78 @@ test('importing an OPML file subscribes to its shows', async ({ page }) => {
   await expect(main.getByRole('heading', { name: showTitle })).toBeVisible();
 });
 
+test('the groups sit in two columns where there is room, and in one on a phone', async ({ page }) => {
+  const main = page.getByRole('main');
+  const heading = name => main.getByRole('heading', { name, level: 2 }).boundingBox();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/settings');
+  await expect(main.getByRole('heading', { name: 'This browser' })).toBeVisible();
+  const [appearance, search] = [await heading('Appearance'), await heading('Search')];
+  expect(search.y).toBe(appearance.y);
+  expect(search.x).toBeGreaterThan(appearance.x);
+  const rights = await main.locator('.settings-page > div:first-child .setting-control').evaluateAll(controls =>
+    controls.map(control => Math.round(control.getBoundingClientRect().right)));
+  expect(new Set(rights).size, 'every control ends on one edge').toBe(1);
+
+  await page.setViewportSize({ width: 320, height: 700 });
+  const [narrowAppearance, narrowSearch] = [await heading('Appearance'), await heading('Search')];
+  expect(narrowSearch.x).toBe(narrowAppearance.x);
+  expect(narrowSearch.y).toBeGreaterThan(narrowAppearance.y);
+  expect(await main.evaluate(m => m.scrollWidth <= m.clientWidth), 'with nothing wider than the phone').toBe(true);
+  const [label, select] = [await main.getByText('Contrast').boundingBox(), await main.getByLabel('Contrast').boundingBox()];
+  expect(select.y, "a select's label above it").toBeGreaterThan(label.y + label.height - 1);
+});
+
+test('the keyboard goes down one column and then the other, and finds the file picker', async ({ page }) => {
+  const main = page.getByRole('main');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/settings');
+
+  await main.getByRole('switch', { name: 'Explicit episodes' }).focus();
+  await page.keyboard.press('Tab');
+  await expect(main.getByRole('button', { name: 'Move up Podcast Index' })).toBeFocused();
+
+  await main.getByRole('switch', { name: 'Episodes from drpodcast.nu' }).focus();
+  await page.keyboard.press('Tab');
+  await expect(main.getByLabel('Import from an OPML file')).toBeFocused();
+  await expect(main.locator('.file-button')).toHaveCSS('outline-style', 'solid');
+});
+
+test('a select is a key with its value in the weight of the text, and has a border in more contrast', async ({ page }) => {
+  const main = page.getByRole('main');
+  const select = main.getByLabel('Skip back');
+  const button = main.getByRole('button', { name: 'Export as OPML' });
+  const look = locator => locator.evaluate(e => {
+    const { backgroundColor, boxShadow, borderTopColor, fontWeight } = getComputedStyle(e);
+    return { backgroundColor, boxShadow, borderTopColor, fontWeight };
+  });
+
+  await page.goto('/settings');
+  await expect(select).toBeVisible();
+  const [asSelect, asButton] = [await look(select), await look(button)];
+  expect(asSelect.backgroundColor).toBe(asButton.backgroundColor);
+  expect(asSelect.boxShadow).toBe(asButton.boxShadow);
+  expect(asSelect.borderTopColor).toBe(asButton.borderTopColor);
+  expect(Number(asSelect.fontWeight)).toBeLessThan(Number(asButton.fontWeight));
+
+  await main.getByLabel('Contrast').selectOption('More');
+  await expect.poll(async () => (await look(select)).borderTopColor, 'in the ink of a rule').not.toBe(asSelect.borderTopColor);
+  expect((await look(select)).borderTopColor).toBe((await look(button)).borderTopColor);
+});
+
+test('turning a directory off keeps its row, and the focus on its switch', async ({ page }) => {
+  const main = page.getByRole('main');
+  await page.goto('/settings');
+  const fyyd = main.getByRole('switch', { name: 'fyyd' });
+  await expect(main.getByRole('button', { name: 'Move up fyyd' })).toBeVisible();
+
+  await fyyd.press('Space');
+  await expect(fyyd).not.toBeChecked();
+  await expect(fyyd).toBeFocused();
+  await expect(main.getByRole('button', { name: 'Move up fyyd' })).toHaveCount(0);
+});
+
 test('exporting downloads the subscriptions as OPML', async ({ page }) => {
   await subscribeAndOpenSettings(page);
   const download = page.waitForEvent('download');
@@ -102,7 +174,7 @@ test("the colours are the device's, or light or dark as the listener chooses, in
   await page.reload({ waitUntil: 'domcontentloaded' });
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByRole('main').getByLabel('Light or dark').selectOption('Automatic, as the device');
+  await page.getByRole('main').getByLabel('Light or dark').selectOption('Automatic');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme');
   expect(await page.evaluate(() => localStorage.getItem('dk.simongray.elektrolyt.theme'))).toBeNull();
 });
@@ -157,10 +229,10 @@ test("the navigation's colours are a page's, the player's, or none, which leaves
   await expect(page.getByRole('main')).not.toHaveAttribute('aria-busy', 'true');
   expect(await labelsAlike(page), 'a colour for each page').toBe(false);
   const colours = page.getByRole('main').getByLabel('Colours in the navigation');
-  await colours.selectOption("The player's colour");
+  await colours.selectOption('By player');
   await expect(page.locator('.shell')).toHaveAttribute('data-palette', 'player');
   await expect.poll(() => labelsAlike(page), "or the player's colour, the same for every page").toBe(true);
-  await colours.selectOption('Colours for colour blindness');
+  await colours.selectOption('Colour-blind');
   await expect(page.locator('.shell')).toHaveAttribute('data-palette', 'color-blind');
   expect(await labelsAlike(page), 'or one for colour blindness').toBe(false);
   await colours.selectOption('None');
@@ -187,6 +259,6 @@ test('the lock screen follows the choice of what next and previous go to', async
 
   await navLink(page, 'Settings').click();
   await page.getByRole('main').getByLabel('Next and previous on the lock screen go to')
-    .selectOption({ label: 'The episodes of the queue' });
+    .selectOption({ label: 'Queue' });
   await expect.poll(next, 'once they go to the queue, while the episode plays').toBe(true);
 });

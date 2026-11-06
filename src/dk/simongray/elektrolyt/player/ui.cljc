@@ -182,8 +182,7 @@
   [:div.player-speed
    (controls-ui/select "player-speed" (player/speed-options playback-rate) (or playback-rate 1)
                        [:player/rate [:event/target-number]]
-                       {:title "Speed"})
-   [controls-ui/icon {:icon icons/caret-down}]])
+                       {:title "Speed"})])
 
 (defn volume-icon
   "The speaker icon for the volume `level`, struck out while it's `muted`

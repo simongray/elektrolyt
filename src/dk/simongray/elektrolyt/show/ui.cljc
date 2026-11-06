@@ -8,7 +8,6 @@
             [dk.simongray.podcast.feed.spec :as spec]
             [dk.simongray.elektrolyt.library.picks :as picks]
             [dk.simongray.elektrolyt.library.picks.ui :as picks-ui]
-            [dk.simongray.elektrolyt.library.settings.ui :as settings-ui]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.search :as search]
             [dk.simongray.elektrolyt.show :as show]
@@ -23,6 +22,7 @@
             [dk.simongray.elektrolyt.ui.loading :as loading]
             [dk.simongray.elektrolyt.ui.notices :as notices]
             [dk.simongray.elektrolyt.ui.routes :as routes]
+            [dk.simongray.elektrolyt.ui.setting :as setting]
             [dk.simongray.elektrolyt.ui.subscription :as subscription]
             [dk.simongray.elektrolyt.ui.text :as text]
             [dk.simongray.elektrolyt.ui.time :as time-ui]))
@@ -181,16 +181,16 @@
        state
        {:id "show-settings" :heading "Settings for this show" :place [:show-settings key]}
        #(let [in-order? (some? (show/heard-in-order lib src))]
-          (list
-           (settings-ui/choice "show-order" "Episodes" show/order-choices
-                               (if in-order? :from-first :newest)
-                               [:show/order key [:event/target-keyword]])
+          (setting/rows
+           (setting/choice "show-order" "Episodes" show/order-choices
+                           (if in-order? :from-first :newest)
+                           [:show/order key [:event/target-keyword]])
            (when in-order?
-             (settings-ui/action-switch "hide-later" "Hide later episodes"
-                                        (str "The list stops at your next episode, so that later "
-                                             "titles don't give the story away.")
-                                        (show/hide-later? lib key)
-                                        [:show/hide-later key [:event/target-checked]]))))))))
+             (setting/switch "hide-later" "Hide later episodes"
+                             (str "The list stops at your next episode, so that later "
+                                  "titles don't give the story away.")
+                             (show/hide-later? lib key)
+                             [:show/hide-later key [:event/target-checked]]))))))))
 
 ;; The later titles stay out of the page rather than being blurred or
 ;; covered, so that a screen reader or a browser's translation doesn't give
