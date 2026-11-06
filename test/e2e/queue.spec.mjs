@@ -69,6 +69,26 @@ test('Mark played takes an episode out of the queue, and keeps the focus', async
   await expect(mark).toBeFocused();
 });
 
+test("a row's buttons end it where there's room, and go under its title on a phone", async ({ page }) => {
+  const main = page.getByRole('main');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await queueTwo(page);
+  const title = main.getByRole('heading', { name: second.title });
+  const play = main.getByRole('button', { name: `Play ${second.title}` });
+  await expect(play).toBeVisible();
+
+  const columns = await main.locator('.columns').evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length);
+  expect(columns, 'with a column for the picks').toBe(2);
+  const [wide, wideTitle] = [await play.boundingBox(), await title.boundingBox()];
+  expect(wide.x).toBeGreaterThan(wideTitle.x);
+  expect(wide.y).toBeLessThan(wideTitle.y + wideTitle.height);
+
+  await page.setViewportSize({ width: 375, height: 700 });
+  const [narrow, narrowTitle] = [await play.boundingBox(), await title.boundingBox()];
+  expect(narrow.y).toBeGreaterThanOrEqual(narrowTitle.y + narrowTitle.height);
+  expect(await main.evaluate(m => m.scrollWidth <= m.clientWidth), 'with nothing wider than the phone').toBe(true);
+});
+
 test('moving and removing an episode keep the focus in Up next', async ({ page }) => {
   await queueTwo(page);
   await expect(titles(page)).toHaveText([first.title, second.title]);

@@ -14,10 +14,10 @@
   labelled `label` and offering the `options`."
   [state k label options]
   (let [id (str "library-" (name k))]
-    (list
+    [:div.library-choice
      [:label {:for id} label]
      (controls-ui/select id options (shows/choice state k)
-                         [:library/view k [:event/target-keyword]]))))
+                         [:library/view k [:event/target-keyword]])]))
 
 (defn refresh-line
   "The line that shows when the feeds were last `updated`, or how far the
@@ -76,12 +76,14 @@
         [:a {:href (routes/href :route/search)} "Search"] "."])
       (list
        (inbox-ui/section state)
-       [:section {:aria-labelledby "shows"}
+       ;; tiles aren't lines of reading text, so they take the room
+       [:section.wide {:aria-labelledby "shows"}
         [:h2#shows {:tabindex -1} "Shows"]
-        [:div.library-tools
-         (choice state :sort "Sort by" shows/sorts)
-         (choice state :layout "Show as" shows/layouts)]
-        (refresh-line state (shows/updated-at library))
+        [:div.toolbar
+         [:div.library-tools
+          (choice state :sort "Sort by" shows/sorts)
+          (choice state :layout "Show as" shows/layouts)]
+         (refresh-line state (shows/updated-at library))]
         ;; Safari drops the semantics of a list without markers
         [:ul {:role      "list"
               :class     ["library-shows" (name (shows/choice state :layout))]

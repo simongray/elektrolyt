@@ -11,6 +11,7 @@
             [dk.simongray.elektrolyt.library.queue :as queue]
             [dk.simongray.elektrolyt.ui.controls :as controls]
             [dk.simongray.elektrolyt.ui.facts :as facts-ui]
+            [dk.simongray.elektrolyt.ui.icons :as icons]
             [dk.simongray.elektrolyt.ui.lists :as lists-ui]
             [dk.simongray.elektrolyt.ui.routes :as routes]
             [dk.simongray.elektrolyt.ui.rows :as rows]
@@ -39,14 +40,16 @@
   [:div.queue-actions
    ;; the episode moves to Now playing, and its button goes with it
    (rows/button "Play" title {:id           (control-id id :play)
+                              :icon         icons/play
                               :class        "primary"
                               :data-refocus "#now-playing"
                               :on           {:click (controls/single-click
                                                      [[:player/play {:id id} nil]])}})
-   (rows/button "Remove" title {:id (control-id id :remove)
-                                :on {:click (controls/single-click
-                                             [[:queue/remove id]
-                                              [:page/focus next-focus]])}})
+   (rows/button "Remove" title {:id   (control-id id :remove)
+                                :icon icons/x
+                                :on   {:click (controls/single-click
+                                               [[:queue/remove id]
+                                                [:page/focus next-focus]])}})
    (rows/grip state "queue" {:id       id
                              :title    title
                              :position position
@@ -137,30 +140,35 @@
   "The Up next section in `state`, with the undo of the last removal."
   [state]
   (let [episodes (queue/up-next state)
-        n        (count episodes)]
+        n        (count episodes)
+        undo     (queue/offered state)]
     [:section {:aria-labelledby "up-next"}
      [:h2#up-next {:tabindex -1} "Up next"]
-     (if (empty? episodes)
-       (empty-queue state)
-       [:p.queue-summary (summary episodes)])
-     ;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until
-     ;; the next change, rather than a toast that times out. The focus goes
-     ;; to the first episode that it puts back, since the button goes, or
-     ;; to the heading when another tab left nothing to put back.
-     ;; https://adrianroselli.com/2020/01/defining-toast-messages.html
-     (when-let [{[first-id] :ids :keys [label]} (queue/offered state)]
-       [:button {:type         "button"
-                 :id           undo-id
-                 :data-refocus "#up-next"
-                 :on           {:click [[:queue/undo]
-                                        [:page/focus (control-id first-id :remove)]]}}
-        label])
+     (when (empty? episodes)
+       (empty-queue state))
+     (when (or undo (seq episodes))
+       [:div.toolbar
+        (when (seq episodes)
+          [:p.queue-summary (summary episodes)])
+        [:div.toolbar-buttons
+         ;; Adrian Roselli, Defining 'Toast' Messages: an undo that stays until
+         ;; the next change, rather than a toast that times out. The focus goes
+         ;; to the first episode that it puts back, since the button goes, or
+         ;; to the heading when another tab left nothing to put back.
+         ;; https://adrianroselli.com/2020/01/defining-toast-messages.html
+         (when-let [{[first-id] :ids :keys [label]} undo]
+           [:button {:type         "button"
+                     :id           undo-id
+                     :data-refocus "#up-next"
+                     :on           {:click [[:queue/undo]
+                                            [:page/focus (control-id first-id :remove)]]}}
+            label])
+         (when (seq episodes)
+           [:button {:type "button" :on {:click [[:dialog/open clear-dialog-id]]}}
+            "Clear the queue"])]])
      (when (seq episodes)
-       (list
-        [:ol.queue {:role "list"}
-         (map-indexed (partial up-next-item state episodes) episodes)]
-        [:button {:type "button" :on {:click [[:dialog/open clear-dialog-id]]}}
-         "Clear the queue"]))
+       [:ol.queue {:role "list"}
+        (map-indexed (partial up-next-item state episodes) episodes)])
      ;; it stays in the page, so that it closes where it opened
      (clear-dialog n)]))
 
@@ -178,9 +186,10 @@
   "The content of the Queue page in `state`, below its heading: what plays,
   what's up next, and picks like them."
   [state]
-  (list
-   (when-let [episode (queue/current state)]
-     (now-playing state episode))
-   (up-next state)
+  [:div.columns
+   [:div
+    (when-let [episode (queue/current state)]
+      (now-playing state episode))
+    (up-next state)]
    (when (seq (some-> (:library state) queue/view :episodes))
-     (picks-ui/kept-section state picks-section (picks/kept state [:queue])))))
+     (picks-ui/kept-section state picks-section (picks/kept state [:queue])))])
