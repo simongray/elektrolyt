@@ -201,8 +201,8 @@
   (some-> (js/document.querySelector "main h1") .focus))
 
 (defn restore-scroll!
-  "Scroll the main content back to `px` and move the focus to the page's
-  heading without scrolling to it."
+  "Scroll the main content to `px` and move the focus to the page's heading
+  without scrolling to it."
   [px]
   (some-> (js/document.querySelector "main h1") (.focus #js {:preventScroll true}))
   (when-let [main (js/document.getElementById "main")]
