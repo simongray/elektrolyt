@@ -213,6 +213,8 @@ test('Back returns to where the page was left, with the focus on its heading', a
   await page.goto(showPath);
   const main = page.getByRole('main');
   const link = main.getByRole('link', { name: episodes[0].title });
+  // the count of episodes comes last, and moves the rows down as it shows
+  await expect(main.getByText('3 episodes.')).toBeVisible();
   await main.evaluate(m => { m.scrollTop = m.scrollHeight; });
   await link.scrollIntoViewIfNeeded();
   const left = await main.evaluate(m => m.scrollTop);
@@ -227,6 +229,21 @@ test('Back returns to where the page was left, with the focus on its heading', a
   await expect.poll(() => main.evaluate(m => m.scrollTop)).toBe(left);
 
   await page.goForward();
+  await expect(main.getByRole('heading', { level: 1, name: episodes[0].title })).toBeFocused();
+  await expect.poll(() => main.evaluate(m => m.scrollTop)).toBe(0);
+});
+
+// Focus alone scrolls nothing while part of the heading shows. The height
+// leaves the Episode page something to scroll as it opens, and the event
+// clicks without scrolling to the link.
+test('a new page opens at the top, from a page scrolled too little to hide its heading', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 320 });
+  await page.goto(showPath);
+  const main = page.getByRole('main');
+  await expect(main.getByText('3 episodes.')).toBeVisible();
+  await main.evaluate(m => { m.scrollTop = 10; });
+
+  await main.getByRole('link', { name: episodes[0].title }).dispatchEvent('click');
   await expect(main.getByRole('heading', { level: 1, name: episodes[0].title })).toBeFocused();
   await expect.poll(() => main.evaluate(m => m.scrollTop)).toBe(0);
 });

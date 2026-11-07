@@ -96,10 +96,10 @@
          (routes/navigated {} inbox))))
 
 (deftest another-page-takes-the-focus
-  (is (= [[:store/assoc :route library-page] [:page/focus-heading] [:episodes/forget] [:feeds/forget]]
+  (is (= [[:store/assoc :route library-page] [:page/restore-scroll 0] [:episodes/forget] [:feeds/forget]]
          (routes/navigated {:route inbox} library-page))
       "and the oldest reads of episodes' files and the feeds of other shows go")
-  (is (= [[:store/assoc :route inbox] [:page/focus-heading] [:episodes/forget] [:feeds/forget]]
+  (is (= [[:store/assoc :route inbox] [:page/restore-scroll 0] [:episodes/forget] [:feeds/forget]]
          (routes/navigated {:route nil} inbox))))
 
 (deftest the-same-page-keeps-the-focus
@@ -113,10 +113,10 @@
   (is (= [[:store/assoc :route (search-page "x")] [:search/run "x"]]
          (routes/navigated {} (search-page "x")))
       "a link to a search, or a reload")
-  (is (= [[:store/assoc :route (search-page "x")] [:page/focus-heading] [:episodes/forget] [:feeds/forget]]
+  (is (= [[:store/assoc :route (search-page "x")] [:page/restore-scroll 0] [:episodes/forget] [:feeds/forget]]
          (routes/navigated {:route inbox :searches {"x" {:status :done}}} (search-page "x")))
       "Back to a search that's kept")
-  (is (= [[:store/assoc :route (search-page "x")] [:page/focus-heading] [:episodes/forget] [:feeds/forget] [:search/run "x"]]
+  (is (= [[:store/assoc :route (search-page "x")] [:page/restore-scroll 0] [:episodes/forget] [:feeds/forget] [:search/run "x"]]
          (routes/navigated {:route inbox :searches {"x" {:sources [:apple] :lists {}}}} (search-page "x")))
       "but not one of the directories from before a change in Settings")
   (is (= [[:store/assoc :route (search-page nil)]]
@@ -125,7 +125,7 @@
 (deftest a-fragment-shows-a-part-of-the-page
   (let [settings {:name :route/settings :path-params {} :query-params {} :fragment "search"}]
     (is (= [[:store/assoc :route settings]
-            [:page/focus-heading]
+            [:page/restore-scroll 0]
             [:episodes/forget]
             [:feeds/forget]
             [:storage/check]
@@ -161,7 +161,7 @@
                :path-params  {:guid "g"}
                :query-params {:url "https://example.org/feed.xml"}}]
     (is (= [[:store/assoc :route route]
-            [:page/focus-heading]
+            [:page/restore-scroll 0]
             [:episodes/forget]
             [:feeds/forget]
             [:show/load "g" "https://example.org/feed.xml" false]]
@@ -172,7 +172,7 @@
                :path-params  {:guid "g" :hash "8a98e2c"}
                :query-params {:url "https://example.org/feed.xml"}}]
     (is (= [[:store/assoc :route route]
-            [:page/focus-heading]
+            [:page/restore-scroll 0]
             [:episodes/forget]
             [:feeds/forget]
             [:show/load "g" "https://example.org/feed.xml" false]]

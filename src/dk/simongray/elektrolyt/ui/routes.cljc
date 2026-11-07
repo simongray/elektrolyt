@@ -183,8 +183,8 @@
 (defn navigated
   "The actions of the navigation to `route` from `state`: keep the route,
   and prepare the page, e.g. run its search, load its show or move the
-  focus to its heading. A new page that had the `scroll` position when it
-  was left, e.g. one gone back to, scrolls back there instead.
+  focus to its heading. A new page opens at the top, or at the `scroll`
+  position it had when it was left, e.g. one gone back to.
 
   The first page, and a page that only changes its query, keep the focus
   at the start of the document unless the URL's fragment names a part of
@@ -201,7 +201,7 @@
        ;; only on a new page, since an Episode page reads its own again as
        ;; it mounts
        new-page?
-       (conj (if restore? [:page/restore-scroll scroll] [:page/focus-heading])
+       (conj [:page/restore-scroll (or scroll 0)]
              [:episodes/forget]
              [:feeds/forget])
 
