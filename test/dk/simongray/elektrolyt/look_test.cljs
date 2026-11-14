@@ -10,6 +10,7 @@
             [dk.simongray.colour-coded :as cc]
             [dk.simongray.colour-coded.composite :as composite]
             [dk.simongray.colour-coded.contrast :as contrast]
+            [dk.simongray.colour-coded.epaper :as epaper]
             [dk.simongray.colour-coded.gamut :as gamut]
             [dk.simongray.colour-coded.mix :as mix]
             [dk.simongray.colour-coded.tone :as tone]
@@ -362,3 +363,51 @@
       (is (<= 7 (apply min (for [c (shades (nth player i) seeds)]
                              (least-on-rail [c] [c] i))))
           "labels in the player's colour on the navigation's paper"))))
+
+(def paper-root
+  "The tokens of E-paper on the root."
+  (declarations (stylesheet "tokens.css") ":root[data-theme=\"paper\"]" 0))
+
+(def paper-shell
+  "The tokens of E-paper's bar and accent, on the shell."
+  (declarations look ":root[data-theme=\"paper\"] .shell" 0))
+
+(def paper-main
+  "The tokens of E-paper's soft fill, on the main content."
+  (declarations look ":root[data-theme=\"paper\"] .shell > main" 0))
+
+;; colour-coded's model of a panel has black on white at 9:1 on Carta and at
+;; 6.5:1 on Kaleido 3, whose numbers are estimates, so E-paper keeps to
+;; WCAG's 4.5:1 for text and 3:1 for the edges of controls on both
+;; https://claude.ai/artifact/M2TNxQX8QrGg7jRUqbFJP4
+(deftest e-paper-keeps-its-contrast-on-a-panel
+  ;; the paper and a filled button's label are the light ones, white
+  (let [white (first paper)
+        ink   (get paper-root "--ink")
+        fill  (get paper-shell "--seed-accent")
+        label (first (light-dark (get main "--accent-ink")))
+        pairs [["text" ink white 4.5]
+               ["secondary text" (get paper-root "--ink-2") white 4.5]
+               ["the edges of controls" (get paper-root "--rule") white 3]
+               ["links" fill white 4.5]
+               ["links on a soft fill" fill (get paper-main "--accent-soft") 4.5]
+               ["a filled button's label" label fill 4.5]
+               ["a filled button's label under the pointer" label (get paper-shell "--seed-accent-hover") 4.5]
+               ["the bar's text" (get paper-shell "--on-bar") (get paper-shell "--bar") 4.5]
+               ["the bar's secondary text" (get paper-shell "--on-bar-2") (get paper-shell "--bar") 4.5]
+               ["the edges of the bar's controls" (get paper-shell "--bar-rule") (get paper-shell "--bar") 3]
+               ["the played part of the seek bar" (get paper-shell "--bar-fill") (get paper-shell "--bar") 3]
+               ["what lies on the bar's fill" (get paper-shell "--on-bar-fill") (get paper-shell "--bar-fill") 4.5]]]
+    (doseq [panel                    [:carta :kaleido-3]
+            [what text ground wants] pairs]
+      (is (<= wants (epaper/ratio text ground panel)) (str what ", on " (name panel))))))
+
+;; a panel shows 16 greys, and a colour between two of them can land on
+;; either, or dither into a stipple
+(deftest e-paper's-greys-are-a-panel's-own
+  (let [greys (->> (concat (vals paper-root) (vals paper-shell) (vals paper-main))
+                   (filter #(re-matches #"#[0-9a-f]{6}" %))
+                   distinct)]
+    (is (seq greys))
+    (doseq [c greys]
+      (is (= c (some-> (epaper/shade c) epaper/shade->grey cc/hex)) c))))

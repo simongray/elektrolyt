@@ -5,7 +5,7 @@
 // inline script.
 try {
   const theme = localStorage.getItem("dk.simongray.elektrolyt.theme");
-  if (theme === "light" || theme === "dark") {
+  if (theme === "light" || theme === "dark" || theme === "paper") {
     document.documentElement.dataset.theme = theme;
   }
   const contrast = localStorage.getItem("dk.simongray.elektrolyt.contrast");

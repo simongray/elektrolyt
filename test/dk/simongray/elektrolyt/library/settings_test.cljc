@@ -57,6 +57,15 @@
   (is (nil? (settings/look {}))
       "but nothing to go by without the library, which keeps them"))
 
+(deftest e-paper-is-this-browser's-choice
+  (let [paper (assoc (preferred state {::settings/appearance :dark ::settings/contrast :standard})
+                     :paper? true)]
+    (is (= :paper (settings/appearance paper)) "over what the profile has, which syncs")
+    (is (= {:theme "paper" :contrast "more"} (settings/look paper))
+        "with the rules of more contrast")
+    (is (= {:theme "paper" :contrast "more"} (settings/look {:paper? true}))
+        "before the library is restored too")))
+
 (deftest the-directories-of-a-search
   (is (= [[:podcastindex true] [:apple true] [:fyyd true] [:gpodder false]]
          (settings/directory-rows state))

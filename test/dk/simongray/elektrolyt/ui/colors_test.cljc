@@ -97,6 +97,9 @@
                              playing)))
   (is (nil? (colors/placeholder state playing)) "once it's known"))
 
+(deftest e-paper-takes-no-colours-from-artwork
+  (is (empty? (colors/wanted (assoc state :paper? true))) "so none are worked out"))
+
 (deftest the-show-of-a-page
   (is (nil? (colors/page-show state)) "none on the Queue page"))
 

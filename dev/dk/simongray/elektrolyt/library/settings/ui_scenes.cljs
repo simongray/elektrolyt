@@ -1,6 +1,6 @@
 (ns dk.simongray.elektrolyt.library.settings.ui-scenes
-  "Scenes of the Settings page: the defaults, a browser that may clear the
-  library, and the status line after an action."
+  "Scenes of the Settings page: the defaults, e-paper, a browser that may
+  clear the library, and the status line after an action."
   (:require [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.scenes :refer [lib]]
             [dk.simongray.elektrolyt.ui :as ui]
@@ -17,6 +17,13 @@
   "Every setting as it is until the listener changes it, in a browser that
   keeps the library."
   (ui/page (settings-page {:storage {:supported? true :persisted? true :usage 12345678}})))
+
+(defscene with-e-paper-chosen
+  "The Appearance group where this browser shows the app for e-paper: the
+  paper's choice alone, since the contrast and the colours don't apply. Choose E-paper in the toolbar's Background menu to see it
+  in its greys."
+  (ui/page (settings-page {:paper?  true
+                           :storage {:supported? true :persisted? true :usage 12345678}})))
 
 (defscene a-browser-that-may-clear-it
   "A browser that may clear the library, with the button that asks it to
