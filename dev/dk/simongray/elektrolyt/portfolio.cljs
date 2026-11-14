@@ -34,6 +34,26 @@
    (viewport "Phone, 390 × 844" 390 844)
    (viewport "Reflow, 320 × 640" 320 640)])
 
+;; the attributes that ui/document.cljs sets on the app's root
+(def papers
+  "The papers that each scene can render on: the device's, light, dark,
+  and e-paper with its more contrast."
+  [{:id    :auto
+    :title "Automatic"
+    :value {:background/background-color "#ffffff"}}
+   {:id    :light
+    :title "Light"
+    :value {:background/background-color "#ffffff"
+            :background/document-data    {:theme "light"}}}
+   {:id    :dark
+    :title "Dark"
+    :value {:background/background-color "#111111"
+            :background/document-data    {:theme "dark"}}}
+   {:id    :paper
+    :title "E-paper"
+    :value {:background/background-color "#ffffff"
+            :background/document-data    {:theme "paper" :contrast "more"}}}])
+
 (defn matrix-values
   "The values of an SVG feColorMatrix that applies the `matrix`, three
   rows of red, green and blue, and leaves the alpha as it is."
@@ -101,10 +121,12 @@
   (r/set-dispatch! log-actions)
   (vision-filters!)
   (portfolio/start!
-   {:config             {:canvas-path       "/canvas.html"
-                         :css-paths         ["/css/app.css"]
-                         :viewport/defaults (:value (first viewports))
-                         :viewport/options  viewports}
+   {:config             {:canvas-path                  "/canvas.html"
+                         :css-paths                    ["/css/app.css"]
+                         :viewport/defaults            (:value (first viewports))
+                         :viewport/options             viewports
+                         :background/options           papers
+                         :background/default-option-id :auto}
     :extra-canvas-tools [vision-tool]}))
 
 (start)
