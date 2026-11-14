@@ -35,7 +35,8 @@ shows in the app at once. Without it, they come from the versions in `deps.edn`.
 
 The app is at http://localhost:8400, and its views are at
 http://localhost:8402, in [Portfolio](https://github.com/cjohansen/portfolio),
-with a scene for each state of each view.
+with a scene for each state of each view. The Colour vision menu of its
+toolbar shows a scene as someone with a colour vision deficiency sees it.
 
 To listen with the app as a listener gets it, call `(listen!)` in the
 JVM's REPL. It builds a release into `target/release` and serves it at the
