@@ -49,7 +49,7 @@
 @property --seed {
   syntax: "<color>";
   inherits: true;
-  initial-value: oklch(20% 0 0);
+  initial-value: oklch(44% 0 0);
 }
 
 /* The seed of the player's bar, from the artwork of what plays alone,
@@ -57,7 +57,7 @@
 @property --bar-seed {
   syntax: "<color>";
   inherits: true;
-  initial-value: oklch(20% 0 0);
+  initial-value: oklch(33% 0 0);
 }
 
 :root {
@@ -120,10 +120,13 @@
   --icon-alone: 32px;
   --icon-alone-target: 44px;
 
-  /* The app's own colour, a neutral near-black, since the artwork gives it
-     most of its colour: the player's bar takes it while no artwork
-     colours it */
-  --app: oklch(20% 0 0);
+  /* The app's own colours, neutral, since the artwork gives it most of its
+     colour: the player's bar takes the first while no artwork colours it,
+     and the paper's links, buttons and focus ring the second. The tokens
+     of look.css keep a seed's own lightness, so each is as light as what
+     it colours. */
+  --app: oklch(33% 0 0);
+  --app-accent: light-dark(oklch(44% 0 0), oklch(80% 0 0));
 
   /* The colour of each page of the navigation, which its label takes:
      hues a quarter turn apart in LCH from the Library's green, and grey for

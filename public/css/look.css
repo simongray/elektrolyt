@@ -88,13 +88,22 @@ time,
 }
 
 
-/* The app's own near-black, until the view sets the seeds of artwork on
-   the shell: the --seed of the show that the page is about, for the
-   paper's links, buttons and tint, and the --bar-seed of what plays, for
-   the player's bar */
+/* The app's own colours, until the view sets the seeds of artwork on the
+   shell: the --seed of the show that the page is about, for the paper's
+   links, buttons and tint, and the --bar-seed of what plays, for the
+   player's bar. The bar's hue is its seed's, turned halfway round unless
+   the listener chose the artwork's own colour in Settings. People prefer
+   a figure whose hue contrasts with its ground (Schloss and Palmer,
+   2011), and the artwork is the figure on the bar.
+   https://pmc.ncbi.nlm.nih.gov/articles/PMC3037488 */
 .shell {
-  --seed: var(--app);
+  --seed: var(--app-accent);
   --bar-seed: var(--app);
+  --bar-turn: 180;
+}
+
+.shell[data-player-color="own"] {
+  --bar-turn: 0;
 }
 
 /* The colour of each page of the navigation, which the view names with
@@ -115,22 +124,26 @@ time,
   --page: var(--settings);
 }
 
-/* The bar of the player, in a strong colour from the bar's seed. It's
-   the seed's complement, its hue turned halfway round, so that the
-   artwork in the player doesn't sit on a colour like its own, at a
-   lightness of its own for each token, so that the contrast holds at
-   every hue. The app's own near-black has no hue, so it stays a dark
-   grey. The bar is the same in light and dark, and its controls are
-   drawn for a dark ground. */
+/* The bar of the player, in a strong colour from the bar's seed. By
+   default it's the seed's complement, so that the artwork in the player
+   doesn't sit on a colour like its own. The bar keeps the seed's own
+   lightness between 22% and 34%, so that dark artwork has a darker bar
+   than bright artwork, as theme/keep-seed of colour-coded keeps a
+   brand's colour where it has the contrast. Every other token has a
+   lightness of its own, so that its contrast with the bar holds at every
+   hue, up to the lightest bar. The app's own colour has no hue, so its
+   bar is a dark grey. The bar is the same in light and dark, and its
+   controls are drawn for a dark ground.
+   https://www.w3.org/TR/css-color-5/#relative-colors */
 .shell {
-  --bar: oklch(from var(--bar-seed) 33% min(c, 0.1) calc(h + 180));
+  --bar: oklch(from var(--bar-seed) clamp(0.22, l, 0.34) min(c, 0.16) calc(h + var(--bar-turn)));
   /* the deck of the player's controls below the episode, a little deeper */
-  --bar-deck: oklch(from var(--bar-seed) 28% min(c, 0.1) calc(h + 180));
-  --on-bar: oklch(from var(--bar-seed) 97% min(c, 0.012) calc(h + 180));
-  --on-bar-2: oklch(from var(--bar-seed) 84% min(c, 0.035) calc(h + 180));
-  --bar-rule: oklch(from var(--bar-seed) 68% min(c, 0.05) calc(h + 180));
-  --bar-fill: oklch(from var(--bar-seed) 94% min(c, 0.025) calc(h + 180));
-  --on-bar-fill: oklch(from var(--bar-seed) 30% min(c, 0.1) calc(h + 180));
+  --bar-deck: oklch(from var(--bar-seed) clamp(0.17, l - 0.05, 0.29) min(c, 0.16) calc(h + var(--bar-turn)));
+  --on-bar: oklch(from var(--bar-seed) 97% min(c, 0.012) calc(h + var(--bar-turn)));
+  --on-bar-2: oklch(from var(--bar-seed) 84% min(c, 0.035) calc(h + var(--bar-turn)));
+  --bar-rule: oklch(from var(--bar-seed) 68% min(c, 0.05) calc(h + var(--bar-turn)));
+  --bar-fill: oklch(from var(--bar-seed) 94% min(c, 0.025) calc(h + var(--bar-turn)));
+  --on-bar-fill: oklch(from var(--bar-seed) 30% min(c, 0.1) calc(h + var(--bar-turn)));
   /* the glow of type reversed out of a bar (see the player) */
   --bloom: 0 0 6px oklch(from var(--on-bar) l c h / 0.3);
 }
@@ -140,12 +153,14 @@ time,
      content. Its alpha is the seed's chroma, so that a grey seed, e.g.
      the app's own, tints nothing. */
   /* the accent of the seed, on the paper: its links, buttons and focus
-     ring, and the tone of the rail */
-  --seed-accent: light-dark(oklch(from var(--seed) 44% min(c, 0.075) h), oklch(from var(--seed) 80% min(c, 0.09) h));
+     ring, and the tone of the rail. It keeps the seed's own lightness as
+     far as every pair with it keeps 4.5:1 under the grain: a link on the
+     paper or on a soft fill, and a filled button's label on its key. */
+  --seed-accent: light-dark(oklch(from var(--seed) clamp(0.25, l, 0.46) min(c, 0.14) h), oklch(from var(--seed) clamp(0.7, l, 0.88) min(c, 0.14) h));
   /* and a lighter tone of it, for a filled button under the pointer or
-     the focus, as light as its words allow at 4.5:1 for every hue, or at
-     7:1 with more contrast (below) */
-  --seed-accent-hover: light-dark(oklch(from var(--seed) 55% min(c, 0.075) h), oklch(from var(--seed) 94% min(c, 0.09) h));
+     the focus, no lighter than its words allow at 4.5:1 for every hue, or
+     at 7:1 with more contrast (below) */
+  --seed-accent-hover: light-dark(oklch(from var(--seed) clamp(0.34, l + 0.09, 0.53) min(c, 0.14) h), oklch(from var(--seed) clamp(0.82, l + 0.12, 0.96) min(c, 0.14) h));
   --tint: light-dark(oklch(from var(--seed) 96.5% min(c, 0.022) h / calc(c * 12)), oklch(from var(--seed) 22.5% min(c, 0.022) h / calc(c * 12)));
   background: linear-gradient(to left, var(--tint), transparent 70%) var(--paper);
 }
@@ -230,11 +245,11 @@ time,
 }
 
 /* The player's colour, the listener's other choice: every label in a tone
-   of the bar's colour, the complement of the hue of what plays, which
-   changes with it, as the page colours are */
+   of the bar's hue, which changes with what plays, as the page colours
+   are */
 .shell[data-palette="player"] > nav,
 .shell[data-palette="player"] > nav li {
-  --label: light-dark(oklch(from var(--bar-seed) 44% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 80% min(c, 0.08) calc(h + 180)));
+  --label: light-dark(oklch(from var(--bar-seed) 44% min(c, 0.1) calc(h + var(--bar-turn))), oklch(from var(--bar-seed) 80% min(c, 0.08) calc(h + var(--bar-turn))));
 }
 
 /* The current page underlined, or the page that it's a part of, e.g. the
@@ -903,10 +918,10 @@ hgroup > p {
    tinted under the pointer or the focus and while its fan is open, as a
    lift would draw a seam. */
 .player-next {
-  --corner-1: oklch(from var(--seed-1, var(--bar-seed)) 33% min(c, 0.1) calc(h + 180));
-  --corner-2: oklch(from var(--seed-2, var(--seed-1, var(--bar-seed))) 33% min(c, 0.1) calc(h + 180));
-  --corner-3: oklch(from var(--seed-3, var(--seed-1, var(--bar-seed))) 33% min(c, 0.1) calc(h + 180));
-  --corner-4: oklch(from var(--seed-4, var(--seed-1, var(--bar-seed))) 33% min(c, 0.1) calc(h + 180));
+  --corner-1: oklch(from var(--seed-1, var(--bar-seed)) clamp(0.22, l, 0.34) min(c, 0.16) calc(h + var(--bar-turn)));
+  --corner-2: oklch(from var(--seed-2, var(--seed-1, var(--bar-seed))) clamp(0.22, l, 0.34) min(c, 0.16) calc(h + var(--bar-turn)));
+  --corner-3: oklch(from var(--seed-3, var(--seed-1, var(--bar-seed))) clamp(0.22, l, 0.34) min(c, 0.16) calc(h + var(--bar-turn)));
+  --corner-4: oklch(from var(--seed-4, var(--seed-1, var(--bar-seed))) clamp(0.22, l, 0.34) min(c, 0.16) calc(h + var(--bar-turn)));
   --corners: radial-gradient(in oklab farthest-side at 100% 0, var(--corner-2), transparent),
              radial-gradient(in oklab farthest-side at 100% 100%, var(--corner-3), transparent),
              radial-gradient(in oklab farthest-side at 0 100%, var(--corner-4), transparent),
@@ -1174,13 +1189,13 @@ search p {
    paper's plain buttons outlined again, in the stronger rule */
 @media (prefers-contrast: more) {
   :root:not([data-contrast="standard"]) .shell {
-    --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
-    --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
+    --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + var(--bar-turn)));
+    --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + var(--bar-turn)));
   }
 
   :root:not([data-contrast="standard"]) .shell {
-    --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
-    --seed-accent-hover: light-dark(oklch(from var(--seed) 45% min(c, 0.075) h), oklch(from var(--seed) 96% min(c, 0.07) h));
+    --seed-accent: light-dark(oklch(from var(--seed) clamp(0.25, l, 0.36) min(c, 0.14) h), oklch(from var(--seed) clamp(0.86, l, 0.92) min(c, 0.14) h));
+    --seed-accent-hover: light-dark(oklch(from var(--seed) clamp(0.34, l + 0.09, 0.41) min(c, 0.14) h), oklch(from var(--seed) 96% min(c, 0.14) h));
   }
 
   :root:not([data-contrast="standard"]) a {
@@ -1204,18 +1219,18 @@ search p {
 
   :root:not([data-contrast="standard"]) .shell[data-palette="player"] > nav,
   :root:not([data-contrast="standard"]) .shell[data-palette="player"] > nav li {
-    --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
+    --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + var(--bar-turn))), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + var(--bar-turn))));
   }
 }
 
 :root[data-contrast="more"] .shell {
-  --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + 180));
-  --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + 180));
+  --on-bar-2: oklch(from var(--bar-seed) 90% min(c, 0.03) calc(h + var(--bar-turn)));
+  --bar-rule: oklch(from var(--bar-seed) 76% min(c, 0.05) calc(h + var(--bar-turn)));
 }
 
 :root[data-contrast="more"] .shell {
-  --seed-accent: light-dark(oklch(from var(--seed) 36% min(c, 0.075) h), oklch(from var(--seed) 86% min(c, 0.07) h));
-  --seed-accent-hover: light-dark(oklch(from var(--seed) 45% min(c, 0.075) h), oklch(from var(--seed) 96% min(c, 0.07) h));
+  --seed-accent: light-dark(oklch(from var(--seed) clamp(0.25, l, 0.36) min(c, 0.14) h), oklch(from var(--seed) clamp(0.86, l, 0.92) min(c, 0.14) h));
+  --seed-accent-hover: light-dark(oklch(from var(--seed) clamp(0.34, l + 0.09, 0.41) min(c, 0.14) h), oklch(from var(--seed) 96% min(c, 0.14) h));
 }
 
 :root[data-contrast="more"] a {
@@ -1239,7 +1254,7 @@ search p {
 
 :root[data-contrast="more"] .shell[data-palette="player"] > nav,
 :root[data-contrast="more"] .shell[data-palette="player"] > nav li {
-  --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + 180)), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + 180)));
+  --label: light-dark(oklch(from var(--bar-seed) 36% min(c, 0.1) calc(h + var(--bar-turn))), oklch(from var(--bar-seed) 86% min(c, 0.07) calc(h + var(--bar-turn))));
 }
 
 

@@ -7,6 +7,8 @@
   https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
   (:require [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
+            [dk.simongray.colour-coded :as cc]
+            [dk.simongray.colour-coded.composite :as composite]
             [dk.simongray.colour-coded.contrast :as contrast]
             [dk.simongray.colour-coded.gamut :as gamut]
             [dk.simongray.colour-coded.mix :as mix]
@@ -53,16 +55,40 @@
       [(str/trim (subs args 0 i)) (str/trim (subs args (inc i)))])
     [value value]))
 
+(def root (declarations (stylesheet "tokens.css") ":root" 0))
+(def look (stylesheet "look.css"))
+(def shell (declarations look ".shell" 0))
+(def main (declarations look ".shell > main" 0))
+
+(def bar-turn
+  "The degrees that the bar's hue turns from its seed's, unless the
+  listener chose the artwork's own colour."
+  (js/parseFloat (get shell "--bar-turn")))
+
+(def token-pattern
+  "A relative colour from a custom property, as look.css has a token: its
+  space, its lightness or else the least and the most of a clamp() of the
+  seed's own, the most chroma, and the turn of its hue, if any."
+  #"^(oklch|lch)\(from var\(--[\w-]+\) (?:([\d.]+)%?|clamp\(([\d.]+), l(?: [+-] [\d.]+)?, ([\d.]+)\)) min\(c, ([\d.]+)\) (?:h|calc\(h \+ ([\d.]+|var\(--bar-turn\))\))\)$")
+
 (defn token
   "The token of tone of the CSS `value`, a relative colour from a custom
   property, e.g. oklch(from var(--seed) 33% min(c, 0.1) calc(h + 180)), or
-  else the value itself, a colour."
+  else the value itself, a colour. A clamp() of the seed's own lightness
+  is a range, whatever it adds to the seed's, since the seeds here are of
+  every lightness."
   [value]
-  (if-let [[_ space l c turn] (re-find #"^(oklch|lch)\(from var\(--[\w-]+\) ([\d.]+)%? min\(c, ([\d.]+)\) (?:h|calc\(h \+ ([\d.]+)\))\)$" value)]
+  (if-let [[_ space l least most c turn] (re-find token-pattern value)]
     {:space (keyword space)
-     :l     (cond-> (js/parseFloat l) (= "oklch" space) (/ 100))
+     :l     (cond
+              (nil? l)          [(js/parseFloat least) (js/parseFloat most)]
+              (= "oklch" space) (/ (js/parseFloat l) 100)
+              :else             (js/parseFloat l))
      :c     (js/parseFloat c)
-     :turn  (if turn (js/parseFloat turn) 0)}
+     :turn  (cond
+              (nil? turn)                0
+              (= "var(--bar-turn)" turn) bar-turn
+              :else                      (js/parseFloat turn))}
     value))
 
 (defn tokens
@@ -73,10 +99,12 @@
 
 (def seeds
   "Seeds of every third hue, from grey to vivid, as tone/worst-contrast
-  sweeps them."
-  (for [h (range 0 360 3)
+  sweeps them, each one black and white, for the two ends of a token that
+  keeps the seed's own lightness."
+  (for [l [0 1]
+        h (range 0 360 3)
         c (map #(* 0.04 %) (range 11))]
-    {:space :oklch :coords [0.5 c h] :alpha 1.0}))
+    {:space :oklch :coords [l c h] :alpha 1.0}))
 
 (defn colour
   "The colour of `x` from the `seed`, as tone maps it into sRGB, or as a
@@ -84,8 +112,8 @@
   [x seed clip?]
   (cond
     (not (contains? x :l)) x
-    clip?                  (gamut/clip (tone/unmapped x seed))
-    :else                  (tone/tone x seed)))
+    clip?                  (gamut/clip (tone/unmapped seed x))
+    :else                  (tone/tone seed x)))
 
 (defn least-ratio
   "The least contrast ratio of `a` and `b`, tokens or colours, over every
@@ -93,11 +121,6 @@
   [a b xs]
   (apply min (for [s xs clip? [false true]]
                (contrast/ratio (colour a s clip?) (colour b s clip?)))))
-
-(def root (declarations (stylesheet "tokens.css") ":root" 0))
-(def look (stylesheet "look.css"))
-(def shell (declarations look ".shell" 0))
-(def main (declarations look ".shell > main" 0))
 
 (def paper
   "The paper in light and dark."
@@ -109,12 +132,28 @@
              [p (get root (str "--" p))])))
 
 (deftest the-stylesheets-have-the-tokens
-  (is (= {:space :oklch :l 0.33 :c 0.1 :turn 180} (first (tokens shell "--bar"))))
+  (is (= {:space :oklch :l [0.22 0.34] :c 0.16 :turn 180} (first (tokens shell "--bar"))))
+  (is (= {:space :oklch :l [0.17 0.29] :c 0.16 :turn 180} (first (tokens shell "--bar-deck")))
+      "the deck, as far below the bar at either end")
   (is (= {:space :lch :l 42 :c 50 :turn 0}
          (first (tokens (declarations look ".shell > nav li" 0) "--label"))))
   (is (= 4 (count (filter some? (vals pages)))))
-  (is (= "oklch(20% 0 0)" (get root "--app")))
+  (is (= "oklch(33% 0 0)" (get root "--app")))
+  (is (= ["oklch(44% 0 0)" "oklch(80% 0 0)"] (light-dark (get root "--app-accent"))))
   (is (= ["oklch(100% 0 0)" "oklch(17.5% 0.003 80)"] paper)))
+
+(defn lightness
+  "The lightness of the colour that the token `x` takes from the `seed`,
+  to the nearest thousandth."
+  [x seed]
+  (/ (js/Math.round (* 1000 (first (:coords (tone/tone seed x))))) 1000))
+
+;; The tokens keep a seed's own lightness within a range, so the app's own
+;; colours are at the lightness that each had while the tokens fixed it
+(deftest the-app's-own-colours-keep-their-lightness
+  (is (= 0.33 (lightness (first (tokens shell "--bar")) (get root "--app"))))
+  (is (= [0.44 0.8]
+         (map lightness (tokens shell "--seed-accent") (light-dark (get root "--app-accent"))))))
 
 (deftest the-bar-contrasts-at-every-hue
   (doseq [[k on wants] [["--on-bar" "--bar" 4.5]
@@ -143,10 +182,13 @@
 (defn specked
   "The `ground` under the strongest speck of the grain that brings it
   closer to the `text`, white under lighter text and black under darker,
-  laid over it in sRGB, which is where a browser lays it."
+  as a browser lays one colour over another."
   [ground text]
-  (let [k (if (> (contrast/luminance text) (contrast/luminance ground)) :white :black)]
-    (mix/mix ground (name k) (specks k) :srgb)))
+  (let [lighter? (> (contrast/luminance text) (contrast/luminance ground))]
+    (composite/over (if lighter?
+                      (assoc contrast/white :alpha (:white specks))
+                      (assoc contrast/black :alpha (:black specks)))
+                    ground)))
 
 (defn least-specked-ratio
   "The least contrast ratio of the `text` on the `ground`, tokens or
@@ -183,6 +225,13 @@
       js/parseFloat
       (/ 100)))
 
+(defn keyed
+  "The `ground` under the key of a button whose words are the colour
+  `text`: that colour at the key's share, as a browser lays it over the
+  ground."
+  [ground text]
+  (composite/over (assoc (cc/to text :srgb) :alpha key-share) ground))
+
 (defn least-keyed-ratio
   "The least contrast ratio of the `text` on its key over the `ground`,
   tokens or colours, plain and under the grain's strongest specks, over
@@ -190,7 +239,7 @@
   [text ground xs]
   (apply min (for [s xs clip? [false true] specks? [false true]
                    :let [t (colour text s clip?)
-                         g (mix/mix (colour ground s clip?) t key-share :srgb)]]
+                         g (keyed (colour ground s clip?) t)]]
                (contrast/ratio t (cond-> g specks? (specked t))))))
 
 (deftest the-words-contrast-on-a-key
@@ -202,6 +251,34 @@
     (testing (str "on the " mode " paper")
       (is (<= 4.5 (least-keyed-ratio (nth (tokens root "--ink") i) (nth paper i) [nil])) "a plain button's words")
       (is (<= 4.5 (least-keyed-ratio (nth (tokens main "--accent-ink") i) accent seeds)) "a filled button's words"))))
+
+(def soft-share
+  "The share of the bar's text in the soft fill of the player, e.g. of
+  what's next under the pointer."
+  (-> (re-find #"/ ([\d.]+)\)$" (get (declarations look "#player" 0) "--accent-soft"))
+      second
+      js/parseFloat))
+
+;; contrast/ratio flattens a translucent colour as a browser draws it: the
+;; fill over the bar, and then the text over that
+(deftest the-bar's-text-contrasts-on-its-soft-fill
+  (let [[on-bar] (tokens shell "--on-bar")
+        [bar]    (tokens shell "--bar")]
+    (is (<= 4.5 (apply min (for [s seeds clip? [false true]
+                                 :let [text (colour on-bar s clip?)
+                                       fill (assoc (cc/to text :srgb) :alpha soft-share)]]
+                             (contrast/ratio text fill (colour bar s clip?))))))))
+
+;; The played part of the seek bar is told from the rest by its colour
+;; alone, so the two differ in lightness, which every colour vision sees
+;; (WCAG 2.2, SC 1.4.1), as the model of Machado et al. (2009) has it
+;; https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
+(deftest the-played-part-of-the-seek-bar-stays-apart-for-every-colour-vision
+  (let [[fill] (tokens shell "--bar-fill")
+        [rule] (tokens shell "--bar-rule")]
+    (is (<= 0.1 (apply min (for [s seeds clip? [false true]
+                                 d (vals (vision/least-difference [(colour fill s clip?) (colour rule s clip?)]))]
+                             d))))))
 
 (def rail-tone
   "How much of the colour of the label of the navigation's page tones its
