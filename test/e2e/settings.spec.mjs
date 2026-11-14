@@ -239,6 +239,14 @@ test("the navigation's colours are a page's, the player's, or none, which leaves
   await expect.poll(() => labelsAlike(page)).toBe(true);
 });
 
+test("the player's colour is opposite the artwork's, or the artwork's own", async ({ page }) => {
+  await page.goto('/settings');
+  await expect(page.getByRole('main')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('.shell')).toHaveAttribute('data-player-color', 'opposite');
+  await page.getByRole('main').getByLabel('Player colour').selectOption("The artwork's own");
+  await expect(page.locator('.shell')).toHaveAttribute('data-player-color', 'own');
+});
+
 test('the lock screen follows the choice of what next and previous go to', async ({ page }) => {
   // the handlers that the page gives the lock screen, the last of each
   await page.addInitScript(() => {

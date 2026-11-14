@@ -31,8 +31,9 @@
              [(keyword (name k)) (settings/preference state k)])))
 
 (deftest the-apps-own-preferences
-  (let [defaults {:appearance :auto :contrast :auto :artwork-colors? true :navigation-palette :pages
-                  :explicit-picks? false :autoplay? false :alternative-feeds? true}]
+  (let [defaults {:appearance :auto :contrast :auto :artwork-colors? true :player-color :opposite
+                  :navigation-palette :pages :explicit-picks? false :autoplay? false
+                  :alternative-feeds? true}]
     (is (= defaults (own state)) "the defaults, at first")
     (is (= defaults (own {})) "and before the library is restored")
     (is (= (assoc defaults :appearance :light :autoplay? true)

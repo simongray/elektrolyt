@@ -46,6 +46,7 @@
       (is (= "auto" (chosen x "light-or-dark")) "the device's colours")
       (is (= "auto" (chosen x "contrast")) "and its contrast")
       (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours")
+      (is (= "opposite" (chosen x "player-colour")) "with the player opposite the artwork")
       (is (= "pages" (chosen x "navigation-colours")) "and a colour for each page"))
     (testing "each change applied at once"
       (is (= [[:settings/prefer ::settings/appearance [:event/target-keyword]]]
@@ -54,6 +55,8 @@
              (get-in (by-id x :select "contrast") [1 :on :change])))
       (is (= [[:settings/prefer ::settings/artwork-colors? [:event/target-checked]]]
              (get-in (by-id x :input "artwork-colours") [1 :on :change])))
+      (is (= [[:settings/prefer ::settings/player-color [:event/target-keyword]]]
+             (get-in (by-id x :select "player-colour") [1 :on :change])))
       (is (= [[:settings/prefer ::settings/navigation-palette [:event/target-keyword]]]
              (get-in (by-id x :select "navigation-colours") [1 :on :change])))
       (is (= [[:settings/prefer :skip-back [:event/target-number]]]

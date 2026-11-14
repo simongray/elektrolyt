@@ -80,14 +80,20 @@
 (deftest the-colours-of-the-artwork
   (let [playing "https://example.org/a.jpg"
         state   (assoc (player-test/state {}) :route {:name :route/queue})]
-    (is (= {:data-palette "pages"} (second (ui/page state)))
+    (is (= {:data-palette "pages" :data-player-color "opposite"} (second (ui/page state)))
         "the app's own colours, while the artwork's are unknown")
-    (is (= {:data-palette "pages" :style {:--bar-seed "#9e2a2b"}}
+    (is (= {:data-palette "pages" :data-player-color "opposite" :style {:--bar-seed "#9e2a2b"}}
            (second (ui/page (assoc state :colors {playing {:seed "#9e2a2b"}}))))
         "and the player in the seed of the artwork of what plays, once it's known")
-    (is (= {:data-palette "pages"}
+    (is (= {:data-palette "pages" :data-player-color "opposite"}
            (second (ui/page (assoc state :colors {playing {:seed nil}}))))
-        "or the app's own, for artwork without a hue")))
+        "or the app's own, for artwork without a hue")
+    (is (= "own" (-> {:route {:name :route/queue} :library inbox-test/lib}
+                     (operations/changed (settings/preferred {::settings/player-color :own}))
+                     ui/page
+                     second
+                     :data-player-color))
+        "and the player in the artwork's own hue, when the listener chose that")))
 
 (deftest each-link-of-the-navigation-names-its-page
   (is (= ["home" "library" "search" "settings"]

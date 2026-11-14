@@ -48,7 +48,8 @@
 
 (defn appearance
   "The settings of the app's colours in `state`: light or dark, the
-  contrast, colours from artwork and colours in the navigation."
+  contrast, colours from artwork, the player's colour and colours in the
+  navigation."
   [state]
   (setting/group
    :appearance "Appearance"
@@ -65,6 +66,9 @@
                  "Otherwise the player keeps the app's own dark grey, and a "
                  "show's page the app's own colours.")
             (settings/artwork-colors? state) ::settings/artwork-colors?)
+    (setting/choice "player-colour" "Player colour" settings/player-colors
+                    (settings/player-color state)
+                    [:settings/prefer ::settings/player-color [:event/target-keyword]])
     (setting/choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
                     (settings/navigation-palette state)
                     [:settings/prefer ::settings/navigation-palette [:event/target-keyword]]))))
