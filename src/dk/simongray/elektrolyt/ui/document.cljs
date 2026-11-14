@@ -14,7 +14,9 @@
 
 (def theme-key
   "The localStorage key of a copy of the listener's theme, which
-  public/theme.js applies before the first render."
+  public/theme.js applies before the first render. Where it's \"paper\",
+  it's no copy but this browser's own choice of e-paper, which the app
+  reads as it starts."
   "dk.simongray.elektrolyt.theme")
 
 (def contrast-key

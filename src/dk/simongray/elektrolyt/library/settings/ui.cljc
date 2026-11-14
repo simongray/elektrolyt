@@ -47,31 +47,34 @@
   (setting/switch id label hint on? [:settings/prefer k [:event/target-checked]]))
 
 (defn appearance
-  "The settings of the app's colours in `state`: light or dark, the
-  contrast, colours from artwork, the player's colour and colours in the
-  navigation."
+  "The settings of the app's colours in `state`: the paper, the contrast,
+  colours from artwork, the player's colour and colours in the navigation.
+  With e-paper, the paper is the only one."
   [state]
   (setting/group
    :appearance "Appearance"
    (setting/rows
-    (setting/choice "light-or-dark" "Light or dark" settings/appearances
-                    (settings/preference state ::settings/appearance)
-                    [:settings/prefer ::settings/appearance [:event/target-keyword]])
-    (setting/choice "contrast" "Contrast" settings/contrasts
-                    (settings/preference state ::settings/contrast)
-                    [:settings/prefer ::settings/contrast [:event/target-keyword]])
-    (switch "artwork-colours" "Colours from the artwork"
-            (str "The player takes its colours from the artwork of what "
-                 "plays, and a show's page from the show's artwork. "
-                 "Otherwise the player keeps the app's own dark grey, and a "
-                 "show's page the app's own colours.")
-            (settings/artwork-colors? state) ::settings/artwork-colors?)
-    (setting/choice "player-colour" "Player colour" settings/player-colors
-                    (settings/player-color state)
-                    [:settings/prefer ::settings/player-color [:event/target-keyword]])
-    (setting/choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
-                    (settings/navigation-palette state)
-                    [:settings/prefer ::settings/navigation-palette [:event/target-keyword]]))))
+    (setting/choice "paper" "Paper" settings/appearances
+                    (settings/appearance state)
+                    [:settings/appear [:event/target-keyword]])
+    ;; e-paper has one contrast and no colours, so the rest doesn't apply
+    (when-not (settings/paper? state)
+      (list
+       (setting/choice "contrast" "Contrast" settings/contrasts
+                       (settings/preference state ::settings/contrast)
+                       [:settings/prefer ::settings/contrast [:event/target-keyword]])
+       (switch "artwork-colours" "Colours from the artwork"
+               (str "The player takes its colours from the artwork of what "
+                    "plays, and a show's page from the show's artwork. "
+                    "Otherwise the player keeps the app's own dark grey, and a "
+                    "show's page the app's own colours.")
+               (settings/artwork-colors? state) ::settings/artwork-colors?)
+       (setting/choice "player-colour" "Player colour" settings/player-colors
+                       (settings/player-color state)
+                       [:settings/prefer ::settings/player-color [:event/target-keyword]])
+       (setting/choice "navigation-colours" "Colours in the navigation" settings/navigation-palettes
+                       (settings/navigation-palette state)
+                       [:settings/prefer ::settings/navigation-palette [:event/target-keyword]]))))))
 
 (defn playback
   "The playback settings in `state`."

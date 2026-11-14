@@ -174,9 +174,11 @@
 ;; for a motion that CSS can't gate, e.g. a scroll that a script makes,
 ;; which would else smooth every scroll of its box
 (defn motion?
-  "Whether the listener allows motion, as prefers-reduced-motion says."
+  "Whether the listener allows motion, as prefers-reduced-motion says, and
+  the page isn't shown for e-paper."
   []
-  (.-matches (js/matchMedia "(prefers-reduced-motion: no-preference)")))
+  (and (.-matches (js/matchMedia "(prefers-reduced-motion: no-preference)"))
+       (not= "paper" (.getAttribute js/document.documentElement "data-theme"))))
 
 ;; CSS View Transitions: the browser draws the page as it was, calls `f`,
 ;; and then moves to the page as it is. A transition that the next one

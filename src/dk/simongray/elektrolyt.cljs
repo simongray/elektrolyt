@@ -432,6 +432,16 @@
       (when (= ::settings/alternative-feeds? k)
         (refresh/refresh-if-due! store)))))
 
+;; e-paper stays in this browser, since the profile syncs (settings/paper?)
+(nxr/register-effect! :settings/appear
+  (fn [_ store appearance]
+    (when (keyword? appearance)
+      (runtime/transition!
+       (fn []
+         (swap! store assoc :paper? (= :paper appearance))
+         (when-not (= :paper appearance)
+           (changed! store (settings/preferred {::settings/appearance appearance}))))))))
+
 (nxr/register-effect! :settings/search-source
   (fn [_ store source on?]
     (changed! store (settings/turned @store source (boolean on?)))))
@@ -594,7 +604,9 @@
   (runtime/on-transitionend! #(when (.. % -classList (contains "shell"))
                                 (document/theme-colored!)))
   (audio/volume-locked! store)
-  (swap! store assoc :library-view (local/stored-edn library-view-key))
+  (swap! store assoc
+         :library-view (local/stored-edn library-view-key)
+         :paper?       (= "paper" (local/stored document/theme-key)))
   (-> (js/Promise.all #js [(.finally (restore-library!) #(perf/mark! "startup/library"))
                            (.finally (load-server-info!) #(perf/mark! "startup/server"))])
       (.finally #(audio/restored! store))

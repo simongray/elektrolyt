@@ -27,11 +27,16 @@
 ;; web.dev, prefers-color-scheme: follow the device by default, and let the
 ;; listener choose, since some want a dark device but light pages
 ;; https://web.dev/articles/prefers-color-scheme
+;;
+;; E-paper is for an e-reader's or an e-ink tablet's screen. No browser
+;; reports such a screen, so it's a choice.
+;; https://claude.ai/artifact/M2TNxQX8QrGg7jRUqbFJP4
 (def appearances
   "The colour schemes that the listener can choose, with the text of each."
   [[:auto "Automatic"]
    [:light "Light"]
-   [:dark "Dark"]])
+   [:dark "Dark"]
+   [:paper "E-paper"]])
 
 ;; Media Queries 5, prefers-contrast: follow the device by default, and let
 ;; the listener ask for more contrast, or for the standard one on a device
@@ -68,24 +73,42 @@
   [state k]
   (get (preferences state) k (defaults k)))
 
-(defn theme
-  "The colour scheme that the listener chose in `state`, \"light\" or
-  \"dark\", or nil to follow the device."
+;; The profile syncs with the listener's other devices, where E-paper would
+;; be wrong, so the choice of it is the :paper? of the state, which this
+;; browser keeps, as it keeps the Library's layout
+(defn paper?
+  "Whether this browser shows the app for e-paper, by `state`."
   [state]
-  (some-> (#{:light :dark} (preference state ::appearance)) name))
+  (boolean (:paper? state)))
+
+(defn appearance
+  "The colour scheme that the listener chose in `state`: :paper where this
+  browser shows the app for e-paper, or else the listener's preference."
+  [state]
+  (if (paper? state)
+    :paper
+    (preference state ::appearance)))
+
+(defn theme
+  "The colour scheme that the listener chose in `state`, \"light\",
+  \"dark\" or \"paper\", or nil to follow the device."
+  [state]
+  (some-> (#{:light :dark :paper} (appearance state)) name))
 
 (defn contrast
   "The contrast that the listener chose in `state`, \"standard\" or
-  \"more\", or nil to follow the device."
+  \"more\", or nil to follow the device. E-paper has more."
   [state]
-  (some-> (#{:standard :more} (preference state ::contrast)) name))
+  (if (paper? state)
+    "more"
+    (some-> (#{:standard :more} (preference state ::contrast)) name)))
 
 (defn look
   "The listener's colour scheme and contrast in `state`, as a map of the
   :theme and the :contrast, or nil when there are no preferences to read,
-  e.g. before the library opens."
+  e.g. before the library opens, and this browser doesn't show e-paper."
   [state]
-  (when (preferences state)
+  (when (or (paper? state) (preferences state))
     {:theme (theme state) :contrast (contrast state)}))
 
 (defn artwork-colors?

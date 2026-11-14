@@ -105,7 +105,7 @@ test("a change of the colours cross-fades the page, and other settings don't", a
   const api = await page.evaluate(() => 'startViewTransition' in document);
   test.skip(!api, 'a browser without view transitions');
 
-  await main.getByLabel('Light or dark').selectOption('Dark');
+  await main.getByLabel('Paper', { exact: true }).selectOption('Dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await main.getByRole('switch', { name: 'Colours from the artwork' }).click();
   await expect(main.getByRole('switch', { name: 'Colours from the artwork' })).not.toBeChecked();

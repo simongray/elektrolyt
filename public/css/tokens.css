@@ -253,3 +253,23 @@
   --divider: light-dark(oklch(65% 0.004 80), oklch(55% 0.004 80));
   --grain: none;
 }
+
+/* E-paper, this browser's own choice in Settings, for an e-reader or an
+   e-ink tablet: black ink on white paper, and greys that are among the 16
+   that a panel shows flat, so that none dithers into a stipple
+   (colour-coded's epaper). It has the rules of more contrast too, since
+   ui/document.cljs sets both attributes. The look test checks each pair's
+   contrast as a panel shows it. A shadow would dither, so what lifts has
+   a line around it.
+   https://claude.ai/artifact/M2TNxQX8QrGg7jRUqbFJP4 */
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --ink: #000000;
+  --ink-2: #444444;
+  --ink-3: #666666;
+  --rule: #666666;
+  --rule-soft: #cccccc;
+  --divider: #aaaaaa;
+  --lift: 0 0 0 1px #000000;
+  --raised: 0 0 0 1px #000000;
+}

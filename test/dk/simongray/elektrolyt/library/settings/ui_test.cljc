@@ -28,6 +28,12 @@
     (is (= (count found) (count (distinct found)))
         "so that each label names its own control, e.g. Contrast, apart from the heading of its group")))
 
+(deftest e-paper-has-the-paper's-choice-alone
+  (let [x (settings-ui/appearance {:library inbox-test/lib :paper? true})]
+    (is (= "paper" (chosen x "paper")))
+    (is (= ["paper"] (keep (comp :id second) (concat (elements :select x) (elements :input x))))
+        "without the contrast and the colours, which it has none of")))
+
 (deftest the-settings-page
   (let [x (settings-ui/content {:library inbox-test/lib})]
     (is (= ["Appearance" "Playback" "Recommendations" "Search" "Special settings" "Subscriptions" "This browser"]
@@ -43,14 +49,15 @@
       (is (= "30" (chosen x "skip-forward")))
       (is (= "1" (chosen x "speed")))
       (is (= "chapters" (chosen x "track-buttons")))
-      (is (= "auto" (chosen x "light-or-dark")) "the device's colours")
+      (is (= "auto" (chosen x "paper")) "the device's colours")
       (is (= "auto" (chosen x "contrast")) "and its contrast")
       (is (true? (:checked (second (by-id x :input "artwork-colours")))) "and the artwork's colours")
       (is (= "opposite" (chosen x "player-colour")) "with the player opposite the artwork")
       (is (= "pages" (chosen x "navigation-colours")) "and a colour for each page"))
     (testing "each change applied at once"
-      (is (= [[:settings/prefer ::settings/appearance [:event/target-keyword]]]
-             (get-in (by-id x :select "light-or-dark") [1 :on :change])))
+      (is (= [[:settings/appear [:event/target-keyword]]]
+             (get-in (by-id x :select "paper") [1 :on :change]))
+          "the paper by an action of its own, since e-paper stays in this browser")
       (is (= [[:settings/prefer ::settings/contrast [:event/target-keyword]]]
              (get-in (by-id x :select "contrast") [1 :on :change])))
       (is (= [[:settings/prefer ::settings/artwork-colors? [:event/target-checked]]]

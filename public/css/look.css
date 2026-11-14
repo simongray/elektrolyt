@@ -1467,3 +1467,102 @@ search p {
     opacity: 0;
   }
 }
+
+
+/* E-paper (tokens.css). Nothing takes a colour from artwork, since a
+   black and white panel shows a hue as a grey and a colour panel as
+   little more, and the pages of the navigation have no colours either.
+   The player's bar is white, part of the paper under a black line: the
+   bar is where the page changes most, and whole dark pages are reported
+   to ghost more. Its filled controls are black.
+   https://blog.the-ebook-reader.com/2020/06/29/best-ebook-readers-for-dark-mode-white-text-black-background/ */
+:root[data-theme="paper"] .shell {
+  --bar: #ffffff;
+  --bar-deck: #ffffff;
+  --on-bar: #000000;
+  --on-bar-2: #444444;
+  --bar-rule: #666666;
+  --bar-fill: #000000;
+  --on-bar-fill: #ffffff;
+  --bloom: none;
+  --seed-accent: #000000;
+  --seed-accent-hover: #444444;
+  --tint: transparent;
+}
+
+:root[data-theme="paper"] .shell > main {
+  --accent-soft: #dddddd;
+}
+
+/* the line above the bar is a shadow with no blur, so that the bar is as
+   tall as ever */
+:root[data-theme="paper"] #player {
+  color-scheme: light;
+  box-shadow: 0 -2px 0 var(--ink);
+  --accent-soft: #dddddd;
+}
+
+:root[data-theme="paper"] .player-next {
+  --corners: var(--bar);
+}
+
+/* the navigation on the paper itself, in the ink, behind a line where the
+   tone of its own paper was: under a tab bar, and beside the rail */
+:root[data-theme="paper"] .shell > nav {
+  background: var(--paper);
+  box-shadow: inset 0 -1px 0 var(--ink);
+}
+
+@media (width >= 37.5em) {
+  :root[data-theme="paper"] .shell > nav {
+    box-shadow: inset -1px 0 0 var(--ink);
+  }
+}
+
+:root[data-theme="paper"] .shell > nav a {
+  color: var(--ink);
+}
+
+/* A stack's fan lies on the white paper, which hides the page behind it,
+   since a scrim would be a dithered grey: its titles are in the ink with
+   no halo, and its artworks have a line around them for a shadow */
+:root[data-theme="paper"] .stack-fan {
+  --halo: var(--paper);
+}
+
+:root[data-theme="paper"] .stack-fan-body::before {
+  background: var(--paper);
+}
+
+:root[data-theme="paper"] .stack-item img,
+:root[data-theme="paper"] .stack-pile > * {
+  box-shadow: var(--lift);
+}
+
+/* A plain key lies on the bare paper inside its line, since the faint
+   layer of the accent that it rests in on a screen would dither, and it's
+   a panel's own grey while it's pressed. The selectors weigh what the
+   rules of a key at rest weigh, so that a filled key and a key under the
+   pointer or the focus keep theirs. */
+:where(:root[data-theme="paper"]) button:where(:not(#player *, .disclosure, .bookmark, .menu-list *, [aria-disabled="true"])),
+:where(:root[data-theme="paper"]) select:where(:not(#player *)),
+:where(:root[data-theme="paper"]) .file-button {
+  --key-pressed: #dddddd;
+  background: var(--paper);
+}
+
+/* E-paper stills what moves, since a panel shows the steps of a motion as
+   flashes and ghosts: every transition and animation ends at once, by the
+   three properties that web.dev's rule for forcing reduced motion on any
+   page sets. A delay stays, e.g. the one before the volume hides, since
+   it isn't motion. Readwise Reader's E-ink Mode and EinkBro turn
+   animation off too.
+   https://web.dev/articles/prefers-reduced-motion
+   https://docs.readwise.io/reader/docs/faqs/eink */
+:root[data-theme="paper"] *,
+:root[data-theme="paper"] *::before,
+:root[data-theme="paper"] *::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+}

@@ -159,7 +159,7 @@ function scheme(page) {
 test("the colours are the device's, or light or dark as the listener chooses, in the profile", async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/settings');
-  const colours = page.getByRole('main').getByLabel('Light or dark');
+  const colours = page.getByRole('main').getByLabel('Paper', { exact: true });
   await expect(colours).toHaveValue('auto');
   expect(await scheme(page)).toBe('light dark');
   const themeColor = () => page.locator('meta[name=theme-color]').getAttribute('content');
@@ -174,9 +174,30 @@ test("the colours are the device's, or light or dark as the listener chooses, in
   await page.reload({ waitUntil: 'domcontentloaded' });
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByRole('main').getByLabel('Light or dark').selectOption('Automatic');
+  await page.getByRole('main').getByLabel('Paper', { exact: true }).selectOption('Automatic');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme');
   expect(await page.evaluate(() => localStorage.getItem('dk.simongray.elektrolyt.theme'))).toBeNull();
+});
+
+test("E-paper is this browser's own choice, with more contrast and without the settings of colour", async ({ page }) => {
+  await page.goto('/settings');
+  const main = page.getByRole('main');
+  await expect(main).not.toHaveAttribute('aria-busy', 'true');
+  await main.getByLabel('Paper', { exact: true }).selectOption('E-paper');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'paper');
+  await expect(page.locator('html')).toHaveAttribute('data-contrast', 'more');
+  await expect(main.getByLabel('Contrast')).toHaveCount(0);
+  await expect(main.getByRole('switch', { name: 'Colours from the artwork' })).toHaveCount(0);
+
+  // e-paper from the first paint, and still the choice once the app has
+  // restored the library, whose profile knows nothing of it
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('paper');
+  await expect(main.getByLabel('Paper', { exact: true })).toHaveValue('paper');
+  await main.getByLabel('Paper', { exact: true }).selectOption('Light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('html')).not.toHaveAttribute('data-contrast');
+  await expect(main.getByLabel('Contrast')).toHaveValue('auto');
 });
 
 /** The colour of the link to Search in the navigation of `page`. */

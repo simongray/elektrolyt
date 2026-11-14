@@ -44,6 +44,7 @@ as long as the tab.
 | `:storage` | How the browser keeps the site's storage | `library/check-storage!` | `library.settings.ui` | At each check |
 | `:save-status` | While this tab's writes fail: when the oldest change that waits was made, how many writes in a row failed and why, which holds back the next try | `library`, through `library.saves` | `library`, `library.saves.ui`, for `ui` and `library.settings.ui` | Once a write goes through |
 | `:library-view` | The Library page's order and layout | `elektrolyt` | `library.shows`, `library.ui` | Never |
+| `:paper?` | Whether this browser shows the app for e-paper | `elektrolyt` (`:settings/appear`) | `library.settings`, and through it the views | Never |
 | `:open` | The sections that the listener unfolded, the fan of a stack that they opened, e.g. the player's of what plays next, and a menu that they opened, e.g. of a row's moves | `ui.controls`, `ui.stack`, `ui.menu` | `ui.controls`, `ui.stack`, `ui.menu` | A section's never, so that Back finds it as the listener left it; a fan's at a press outside its stack, as the focus leaves it, at Escape, and at a press in it; a menu's at a press outside it, as the focus leaves it, at Escape, at an action, and as its row's drag starts |
 
 
@@ -85,7 +86,7 @@ browser clears the site's data.
 | `…device` | The id of this browser as a device | like-minded's `device/id!`, once, in `library/open!` | `library/open!` | Never |
 | `…volume` | The level of the volume slider | `player.audio` | `player.audio`, as the page loads | Never |
 | `…library-view` | The Library page's order and layout, which suit a screen | `elektrolyt` | `elektrolyt`, as the page loads | Never |
-| `…theme`, `…contrast` | Copies of the listener's preferences, so that `public/theme.js` colours the page before it starts | `ui.document` | `public/theme.js` | When the theme follows the device again |
+| `…theme`, `…contrast` | Copies of the listener's preferences, so that `public/theme.js` colours the page before it starts. A theme of `paper` is no copy: it's this browser's choice of e-paper, which suits a screen | `ui.document` | `public/theme.js`, and `elektrolyt`, as the page loads | When the theme follows the device again |
 
 
 In IndexedDB
@@ -134,7 +135,8 @@ Facts in two places
   profile of `:library`, and in IndexedDB, since the element alone knows
   where it is, and the library is told at moments.
 - **The theme and the contrast** are preferences in the profile, with
-  copies in localStorage for the first paint.
+  copies in localStorage for the first paint. E-paper is in `:paper?` and
+  in the copy of the theme alone, so that it doesn't sync.
 - **The Library page's view** is in `:library-view`, with a copy in
   localStorage for the next visit.
 - **The route** is in `:route` and in the address bar, which
