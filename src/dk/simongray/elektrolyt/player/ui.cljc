@@ -5,6 +5,7 @@
   (:require [dk.simongray.play-nice.controls :as controls]
             [dk.simongray.podcast.util.time :as time]
             [dk.simongray.elektrolyt.library.queue :as queue]
+            [dk.simongray.elektrolyt.library.settings :as settings]
             [dk.simongray.elektrolyt.player :as player]
             [dk.simongray.elektrolyt.ui.artwork :as artwork]
             [dk.simongray.elektrolyt.ui.colors :as colors]
@@ -100,17 +101,28 @@
 (defn seek-bar
   "The seek bar of the `playback` at the position in its `media` state, or
   at the `seeking` seconds while it's dragged, with its chapters' marks
-  between the time played and the time left."
-  [media seeking playback]
-  (let [{:keys [current-time duration] :as shown} (cond-> media seeking (assoc :current-time seeking))
+  between the time played and the time left.
+
+  With `minutes?`, for e-paper, the times are in whole minutes, and so is
+  the position unless it's dragged."
+  [media seeking playback minutes?]
+  (let [{:keys [current-time duration] :as shown}
+        (cond
+          seeking  (assoc media :current-time seeking)
+          minutes? (update media :current-time #(some-> % (quot 60) (* 60)))
+          :else    media)
         attrs   (controls/range-attributes shown)
         chapter (:title (player/chapter-at playback current-time))
         played  (fraction current-time duration)
+        clock   (if minutes? time-ui/minutes time-ui/clock)
+        text    (if minutes? time-ui/minutes-text time-ui/clock-text)
+        ;; the minus, and for minutes another digit's width, since their
+        ;; letters are wider than digits
         width   (when played
-                  (str (inc (count (time-ui/clock-text duration))) "ch"))]
+                  (str (+ (count (text duration)) (if minutes? 2 1)) "ch"))]
     [:div.player-seek (when width {:style {:--clock width}})
      [:label.visually-hidden {:for "player-position"} "Position"]
-     (time-ui/clock current-time)
+     (clock current-time)
      [:div.player-bar (when played {:style {:--played played}})
       ;; a drag that ends where it began fires no change
       [:input (cond-> (merge {:type "range"
@@ -122,7 +134,7 @@
                              attrs)
                 chapter (update :aria-valuetext str ", " chapter))]
       (chapter-marks shown (:chapters (player/chapter-doc playback)))]
-     (update (time-ui/clock (player/remaining shown)) 2 #(str "−" %))]))
+     (update (clock (player/remaining shown)) 2 #(str "−" %))]))
 
 ;; Play sits between back and forward, like in every podcast player, where
 ;; a thumb reaches it best on a phone. The speed comes before them and the
@@ -333,7 +345,7 @@
                 (volume-control media (or volume 1) volume-locked?))
      [:div.player-seek-row
       (chapter-button playback :previous)
-      (seek-bar (player/with-duration media playback) seeking playback)
+      (seek-bar (player/with-duration media playback) seeking playback (settings/paper? state))
       (chapter-button playback :next)]
      (up-next state)
      (status-line player))))

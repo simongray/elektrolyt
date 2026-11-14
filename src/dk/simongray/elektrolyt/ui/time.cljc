@@ -86,3 +86,28 @@
   datetime is the duration since its start."
   [seconds]
   [:time {:datetime (duration-attribute (or seconds 0))} (clock-text seconds)])
+
+;; An e-reader's own clock shows minutes, since each change makes the panel
+;; draw again, and Mudita's rules for e-ink say to avoid redrawing, which
+;; costs ghosting and battery
+;; https://zeroheight.com/956ff055a/p/577bfc-e-ink-guidelines
+(defn minutes-text
+  "The `seconds` into an episode in whole minutes, e.g. \"1h 23m\" or
+  \"0m\", or \"–\" while they're unknown."
+  [seconds]
+  (if (time/countable? seconds)
+    (let [minutes (quot (long seconds) 60)
+          parts   {:hours (quot minutes 60) :minutes (rem minutes 60)}]
+      #?(:clj  (str (when (pos? (:hours parts)) (str (:hours parts) "h "))
+                    (:minutes parts) "m")
+         :cljs (.format (text/formatter :minutes
+                                        {:style "narrow" :minutesDisplay "always"}
+                                        #(js/Intl.DurationFormat. %1 %2))
+                        (clj->js parts))))
+    "–"))
+
+(defn minutes
+  "The `seconds` into an episode as a time element in whole minutes, e.g.
+  1h 23m, whose datetime is the duration since its start."
+  [seconds]
+  [:time {:datetime (duration-attribute (or seconds 0))} (minutes-text seconds)])
