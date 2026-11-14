@@ -4,6 +4,7 @@
   (:require [clojure.string :as str]
             [dk.simongray.colour-coded :as cc]
             [dk.simongray.colour-coded.image :as image]
+            [dk.simongray.colour-coded.quantise :as quantise]
             [dk.simongray.elektrolyt.library.options :as library-options]
             [dk.simongray.elektrolyt.runtime :as runtime]
             [dk.simongray.elektrolyt.runtime.cache :as app-cache]
@@ -12,21 +13,28 @@
             [reitit.core :as reitit]
             [taoensso.telemere :as tel]))
 
+;; The cache keeps the palette and not what the page takes from it, so
+;; that a new rule for the seed needs no artwork fetched again
 (defn cached-colors
-  "The colours in the cache entry `kept`, or nil when there are none or
-  they were kept before colours had a :dominant one."
+  "The colours of the palette in the cache entry `kept`, or nil when it
+  has none, e.g. an entry from before the cache kept palettes."
   [kept]
-  (when (contains? (:value kept) :dominant)
-    (:value kept)))
+  (some-> (:palette (:value kept)) colors/from-palette))
 
-(defn image-colors
-  "A promise of the :seed and :dominant colour of the image in the bytes
-  `b`, as hex, or of nil when the image can't be decoded."
+;; Celebi (2011): k-means puts a colour where a cluster of pixels is, where
+;; buckets of sRGB split a cluster that straddles two. Eight colours leave
+;; room for a vivid detail beside the shades of a ground.
+;; https://arxiv.org/abs/1101.0395
+(defn image-palette
+  "A promise of the palette of the image in the bytes `b`, eight colours
+  as pairs of a hex colour and its share of the image, the commonest
+  first, or of nil when the image can't be decoded."
   [b]
-  (image/then (image/scheme b)
-              (fn [{:keys [seed background]}]
-                {:seed     (some-> seed cc/hex)
-                 :dominant (some-> background cc/hex)})))
+  (image/then (image/palette b 8 quantise/k-means)
+              (fn [palette]
+                (mapv (fn [{:keys [colour share]}]
+                        [(cc/hex colour) (/ (js/Math.round (* 1000 share)) 1000)])
+                      palette))))
 
 (defn- proxied-bytes
   "A promise of the bytes of the image at `url`, through the proxy, since
@@ -104,18 +112,18 @@
 
 (defn load-colors!
   "Work out the colours of the artwork `x` for `store`, from the cache or
-  else from the image, whose colours are then cached. An image that fails
+  else from the image, whose palette is then cached. An image that fails
   to load leaves the artwork without colours until the page loads again."
   [store {:keys [artwork] :as x}]
   (-> (app-cache/fetch! app-cache/colors artwork)
       (.then (fn [kept]
                (or (cached-colors kept)
                    (-> (image-bytes x)
-                       (.then image-colors)
-                       (.then (fn [v]
-                                (when v
-                                  (app-cache/put! app-cache/colors artwork v))
-                                v))))))
+                       (.then image-palette)
+                       (.then (fn [palette]
+                                (when palette
+                                  (app-cache/put! app-cache/colors artwork {:palette palette})
+                                  (colors/from-palette palette))))))))
       (.catch (fn [e]
                 (tel/log! {:level :warn :id :artwork/colors-failed
                            :data  {:artwork artwork} :error e}

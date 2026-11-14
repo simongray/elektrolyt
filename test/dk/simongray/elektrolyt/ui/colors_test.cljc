@@ -26,6 +26,14 @@
   (is (= "data:image/png;base64,AA==" (colors/source {:artwork "data:image/png;base64,AA=="}))
       "or the artwork itself, which the server can't fetch"))
 
+(deftest the-colours-of-a-palette
+  (let [palette [["#2a130a" 0.45] ["#ffffff" 0.4] ["#a91410" 0.15]]]
+    (is (= {:palette palette :seed "#a91410" :dominant "#2a130a"} (colors/from-palette palette))
+        "the vivid red for the seed, though the dull ground covers more"))
+  (is (= {:seed nil :dominant "#ffffff"}
+         (dissoc (colors/from-palette [["#ffffff" 0.7] ["#808080" 0.3]]) :palette))
+      "and no seed among greys"))
+
 (deftest the-artworks-that-a-page-wants
   (is (= [{:artwork (:artwork playing)}] (colors/wanted state))
       "the artwork of what plays, for the bars")
