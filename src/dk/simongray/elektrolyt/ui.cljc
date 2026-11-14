@@ -267,9 +267,11 @@
 
 (defn shell-attrs
   "The attributes of the page's shell in `state`: the navigation palette
-  that the listener chose, and the seeds of artwork."
+  and the player's colour that the listener chose, and the seeds of
+  artwork."
   [state]
-  (merge {:data-palette (name (settings/navigation-palette state))}
+  (merge {:data-palette      (name (settings/navigation-palette state))
+          :data-player-color (name (settings/player-color state))}
          (colors/attrs state)))
 
 ;; The shell of the frame at the start is another element than the page's,

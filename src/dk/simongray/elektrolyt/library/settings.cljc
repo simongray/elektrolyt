@@ -51,6 +51,7 @@
   {::appearance         :auto
    ::contrast           :auto
    ::artwork-colors?    true
+   ::player-color       :opposite
    ::navigation-palette :pages
    ::explicit-picks?    false
    ::autoplay?          false
@@ -92,6 +93,22 @@
   than the app's own."
   [state]
   (preference state ::artwork-colors?))
+
+;; People prefer a figure whose hue contrasts with its ground (Schloss and
+;; Palmer, 2011), and the artwork is the figure on the player's bar, so the
+;; bar takes the hue opposite the artwork's by default. The artwork's own
+;; hue makes the bar and the artwork one colour, which some will prefer.
+;; https://pmc.ncbi.nlm.nih.gov/articles/PMC3037488
+(def player-colors
+  "The colours of the player that the listener can choose, with the text
+  of each."
+  [[:opposite "Opposite the artwork"]
+   [:own "The artwork's own"]])
+
+(defn player-color
+  "The colour of the player that the listener chose in `state`."
+  [state]
+  (preference state ::player-color))
 
 ;; The colours for colour blindness keep the pages apart for protans,
 ;; deutans and tritans, but are closer to each other than the pages' own
