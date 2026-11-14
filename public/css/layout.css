@@ -1523,6 +1523,7 @@ main h1,
   .player-seek time {
     flex: none;
     inline-size: var(--clock, auto);
+    white-space: nowrap;
   }
 
   .player-seek time:first-of-type {

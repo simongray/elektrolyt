@@ -95,3 +95,10 @@
   "The player in the colours of the artwork of what plays, once they're
   worked out, here of a deep red."
   (ui/page (assoc (playing {}) :colors {artwork {:seed "#9e2a2b" :dominant "#888888"}})))
+
+(defscene on-e-paper
+  "The player where this browser shows the app for e-paper: its clock in
+  whole minutes, and no colour from the artwork. Choose E-paper in the
+  toolbar's Background menu to see it on its white bar."
+  (ui/page (assoc (playing {}) :paper? true
+                  :colors {artwork {:seed "#9e2a2b" :dominant "#888888"}})))

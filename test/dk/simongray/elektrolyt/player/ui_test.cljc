@@ -65,6 +65,12 @@
           "which draws how much has played")
       (is (= {:--clock "8ch"} (:style (second (first (elements :div.player-seek x)))))
           "with times as wide as the duration, 1:00:00, and its minus"))
+    (testing "for e-paper, to the minute, so that a panel draws it again once a minute"
+      (let [paper (player-ui/region (assoc (state {}) :paper? true))]
+        (is (= 60 (:value (attributes-of "player-position" paper))))
+        (is (= ["1m" "−59m"] (map text-of (elements :time (elements :div.player-seek paper)))))
+        (is (= 600 (:value (attributes-of "player-position" (player-ui/region (assoc (state {:seeking 600}) :paper? true)))))
+            "but where it's dragged to, while it is")))
     (is (= "1.5" (some #(when (:selected (second %)) (:value (second %))) (elements :option x)))
         "the speed that it plays at")
     (is (= "Speed" (:title (attributes-of "player-speed" x))) "named by its title, its tooltip")))
